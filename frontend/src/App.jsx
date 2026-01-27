@@ -6,9 +6,9 @@ import Layout from "./components/Layout";
 // Pages
 import Dashboard from "./pages/Dashboard";
 import Master from "./pages/Master";
+import InventoryReports from "./pages/InventoryReports";
 // import Transactions from "./pages/Transactions";
 // import Reports from "./pages/Reports";
-// import InventoryReports from "./pages/InventoryReports";
 // import Settings from "./pages/Settings";
 // import Help from "./pages/Help";
 
@@ -23,9 +23,9 @@ const App = () => {
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/masters" element={<Master />} />
+          <Route path="/inventory-reports" element={<InventoryReports />} />
           {/* <Route path="/transactions" element={<Transactions />} />
           <Route path="/reports" element={<Reports />} />
-          <Route path="/inventory-reports" element={<InventoryReports />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<Help />} /> */}
         </Route>
