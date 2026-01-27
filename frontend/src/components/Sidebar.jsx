@@ -10,12 +10,12 @@ import {
   FaCircleQuestion,
 } from "react-icons/fa6";
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }) => {
   const linkBase =
     "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition";
 
   return (
-    <aside className="flex flex-col w-60 border-r border-neutral-200 bg-[#0F172A]">
+    <aside className="flex flex-col w-60 h-screen border-r border-neutral-200 bg-[#0F172A]">
       {/* Header */}
       <div className="flex items-center h-16 px-4 border-b border-neutral-200">
         <div className="flex items-center gap-2">
@@ -32,6 +32,7 @@ const Sidebar = () => {
           <li>
             <NavLink
               to="/dashboard"
+               onClick={onClose}
               className={({ isActive }) =>
                 `${linkBase} ${
                   isActive
@@ -48,6 +49,7 @@ const Sidebar = () => {
           <li>
             <NavLink
               to="/masters"
+               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaDatabase className="w-4 h-4" />
@@ -58,6 +60,7 @@ const Sidebar = () => {
           <li>
             <NavLink
               to="/transactions"
+               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaRightLeft className="w-4 h-4" />
@@ -68,6 +71,7 @@ const Sidebar = () => {
           <li>
             <NavLink
               to="/reports"
+               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaChartPie className="w-4 h-4" />
@@ -78,6 +82,7 @@ const Sidebar = () => {
           <li>
             <NavLink
               to="/inventory-reports"
+               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaChartPie className="w-4 h-4" />
@@ -88,6 +93,7 @@ const Sidebar = () => {
           <li>
             <NavLink
               to="/settings"
+               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaSliders className="w-4 h-4" />
@@ -98,14 +104,16 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-neutral-200">
+      <div className="mt-auto p-4 border-t border-neutral-200">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full">
             <FaCircleQuestion className="text-neutral-600 text-sm" />
           </div>
           <div>
             <p className="text-sm text-[#CBD5E1]">
-              <NavLink to="/help">Help & Support</NavLink>
+              <NavLink to="/help" onClick={onClose} className="hover:text-white transition">
+                Help & Support
+              </NavLink>
             </p>
             <p className="text-xs text-neutral-500">Get assistance</p>
           </div>
