@@ -1,8 +1,14 @@
 import React from "react";
 import { FaLayerGroup, FaCircleExclamation } from "react-icons/fa6";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
+  const navigate = useNavigate();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    navigate('/company-selection');
+  };
   return (
     <main className="w-full bg-neutral-50 flex items-center justify-center min-h-screen">
       <div className="w-full max-w-md mx-auto p-4">
@@ -25,29 +31,30 @@ const Login = () => {
 
           {/* Body */}
           <div className="p-6">
-            <form className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               
               {/* Company ID */}
               <div>
                 <label className="block text-sm text-neutral-700">
-                  Company ID (Optional)
+                  Company ID
                 </label>
                 <input
                   type="text"
+                  required
                   placeholder="e.g., MOTORS-GST"
                   className="mt-1 block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900"
                 />
               </div>
 
-              {/* Username */}
+              {/* User Email */}
               <div>
                 <label className="block text-sm text-neutral-700">
-                  Username
+                  User Email
                 </label>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  placeholder="john.doe"
+                  placeholder="john.doe@example.com"
                   className="mt-1 block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900"
                 />
               </div>
@@ -60,6 +67,7 @@ const Login = () => {
                 <input
                   type="password"
                   required
+                  placeholder="Enter your password"
                   className="mt-1 block w-full px-3 py-2 bg-white border border-neutral-300 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900"
                 />
               </div>
@@ -101,7 +109,7 @@ const Login = () => {
                 type="submit"
                 className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm text-white bg-neutral-900 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900"
               >
-                <Link to="/company-selection">Log In</Link>
+                Log In
               </button>
 
             </form>
