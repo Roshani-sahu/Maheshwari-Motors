@@ -10,7 +10,7 @@ import {
 
 const InventoryReports = () => {
   return (
-    <div className="p-6">
+    <div className="">
       <div className="flex justify-between items-start mb-4">
         <div>
           <h1 className="text-2xl text-neutral-900">Inventory Reports</h1>

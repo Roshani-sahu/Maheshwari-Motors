@@ -38,7 +38,7 @@ const Dashboard = () => {
       value: "4,56,721.20",
       meta: "Across 3 accounts",
       icon: FaBuildingColumns,
-      trend: "neutral",
+      trend: "blue",
     },
   ];
 
@@ -86,7 +86,9 @@ const Dashboard = () => {
                         ? "text-emerald-600"
                         : card.trend === "down"
                         ? "text-red-500"
-                        : "text-blue-600"
+                        : card.trend === "blue"
+                        ? "text-blue-500"
+                        : "text-gray-600"
                     }
                   `}
                 />
@@ -104,7 +106,9 @@ const Dashboard = () => {
                       ? "text-emerald-600"
                       : card.trend === "down"
                       ? "text-red-500"
-                      : "text-blue-600"
+                      : card.trend === "blue"
+                      ? "text-blue-500"
+                      : "text-gray-600"
                   }
                 `}
               >
