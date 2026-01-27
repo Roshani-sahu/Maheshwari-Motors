@@ -8,8 +8,9 @@ import Dashboard from "./pages/Dashboard";
 import Master from "./pages/Master";
 import Transactions from "./pages/Transactions";
 import InventoryReports from "./pages/InventoryReports";
-import CompanySelection from "./pages/CompanySelection";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import CompanySelection from "./pages/CompanySelection";
 
 // Transaction Components
 import SaleEntry from "./components/transtation/Sale Entry.jsx";
@@ -50,6 +51,7 @@ const App = () => {
 
         {/* Login */}
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/company-selection" element={<CompanySelection />} />
         {/* Fallback */}
         <Route path="*" element={<div className="p-10">404 – Page Not Found</div>} />
