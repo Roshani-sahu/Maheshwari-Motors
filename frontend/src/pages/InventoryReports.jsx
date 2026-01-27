@@ -10,17 +10,16 @@ import {
 
 const InventoryReports = () => {
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h1 className="text-2xl text-neutral-900">Inventory Reports</h1>
-          <p className="text-sm text-neutral-500">
-            View and analyze stock levels, valuation, and reorder points.
-          </p>
-        </div>
+    <div>
+      {/* Header */}
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl text-neutral-900">Inventory Reports</h1>
+        <p className="text-xs md:text-sm text-neutral-500">
+          View and analyze stock levels, valuation, and reorder points.
+        </p>
       </div>
 
-      <div className="flex items-center gap-1 bg-neutral-200 p-1 rounded-lg mb-4">
+      <div className="flex items-center gap-1 bg-neutral-200 p-1 rounded-lg mb-4 md:mb-6">
         <button className="px-4 py-1.5 text-sm bg-white text-neutral-900 rounded-md shadow-sm flex-1 text-center">
           Stock Summary
         </button>
@@ -35,35 +34,35 @@ const InventoryReports = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-4">
-        <div className="bg-white border border-neutral-200 rounded-lg p-4">
-          <p className="text-sm text-neutral-500">Total Stock Value</p>
-          <p className="text-2xl text-neutral-900">1,245,890.50</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-6">
+        <div className="bg-white border border-neutral-200 rounded-lg p-3 md:p-4">
+          <p className="text-xs text-neutral-500">Total Stock Value</p>
+          <p className="text-lg md:text-2xl font-bold text-neutral-900">1,245,890.50</p>
         </div>
-        <div className="bg-white border border-neutral-200 rounded-lg p-4">
-          <p className="text-sm text-neutral-500">Items Below Reorder</p>
-          <p className="text-2xl text-neutral-900">42</p>
+        <div className="bg-white border border-neutral-200 rounded-lg p-3 md:p-4">
+          <p className="text-xs text-neutral-500">Items Below Reorder</p>
+          <p className="text-lg md:text-2xl font-bold text-neutral-900">42</p>
         </div>
-        <div className="bg-white border border-neutral-200 rounded-lg p-4">
-          <p className="text-sm text-neutral-500">Dead Stock Value</p>
-          <p className="text-2xl text-neutral-900">87,340.00</p>
+        <div className="bg-white border border-neutral-200 rounded-lg p-3 md:p-4">
+          <p className="text-xs text-neutral-500">Dead Stock Value</p>
+          <p className="text-lg md:text-2xl font-bold text-neutral-900">87,340.00</p>
         </div>
-        <div className="bg-white border border-neutral-200 rounded-lg p-4">
-          <p className="text-sm text-neutral-500">Total Stock Qty</p>
-          <p className="text-2xl text-neutral-900">18,560 Units</p>
+        <div className="bg-white border border-neutral-200 rounded-lg p-3 md:p-4">
+          <p className="text-xs text-neutral-500">Total Stock Qty</p>
+          <p className="text-lg md:text-2xl font-bold text-neutral-900">18,560 Units</p>
         </div>
       </div>
 
-      <div className="bg-white p-4 border border-neutral-200 rounded-lg mb-4">
-        <div className="flex justify-between items-end">
-          <div className="flex items-end gap-4">
+      <div className="bg-white p-3 md:p-4 border border-neutral-200 rounded-lg mb-4 md:mb-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 sm:gap-4">
             <div>
               <label htmlFor="warehouse" className="text-xs text-neutral-600">
                 Godown / Warehouse
               </label>
               <select
                 id="warehouse"
-                className="w-48 mt-1 text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
+                className="w-full sm:w-48 mt-1 text-xs md:text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
               >
                 <option>All Warehouses</option>
                 <option>Main Godown</option>
@@ -76,7 +75,7 @@ const InventoryReports = () => {
               </label>
               <select
                 id="item-group"
-                className="w-48 mt-1 text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
+                className="w-full sm:w-48 mt-1 text-xs md:text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
               >
                 <option>All Groups</option>
                 <option>Electronics</option>
@@ -91,18 +90,18 @@ const InventoryReports = () => {
               />
               <label
                 htmlFor="min-max-breach"
-                className="ml-2 text-sm text-neutral-800"
+                className="ml-2 text-xs md:text-sm text-neutral-800"
               >
                 Show Min/Max Breach Only
               </label>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50 flex items-center gap-2">
+            <button className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50 flex items-center gap-2">
               <FaFileExport className="text-xs" />
               Export
             </button>
-            <button className="px-3 py-1.5 text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50 flex items-center gap-2">
+            <button className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50 flex items-center gap-2">
               <FaPrint className="text-xs" />
               Print
             </button>
@@ -112,31 +111,21 @@ const InventoryReports = () => {
 
       <div className="bg-white border border-neutral-200 rounded-lg">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-50">
+          <table className="w-full text-xs md:text-sm min-w-[800px]">
+            <thead className="bg-neutral-50 text-xs text-neutral-500">
               <tr>
-                <th className="px-4 py-2 text-left text-neutral-600">
+                <th className="p-2 md:p-4 text-left">
                   <button className="flex items-center gap-1 group">
                     Item Name
                     <FaSort className="text-neutral-400 group-hover:text-neutral-600" />
                   </button>
                 </th>
-                <th className="px-4 py-2 text-left text-neutral-600">
-                  Item Code
-                </th>
-                <th className="px-4 py-2 text-left text-neutral-600">Group</th>
-                <th className="px-4 py-2 text-right text-neutral-600">
-                  Stock Qty
-                </th>
-                <th className="px-4 py-2 text-right text-neutral-600">
-                  Reorder Lvl
-                </th>
-                <th className="px-4 py-2 text-right text-neutral-600">
-                  Purchase Rate
-                </th>
-                <th className="px-4 py-2 text-right text-neutral-600">
-                  Valuation
-                </th>
+                <th className="p-2 md:p-4 text-left">Item Code</th>
+                <th className="p-2 md:p-4 text-left">Group</th>
+                <th className="p-2 md:p-4 text-right">Stock Qty</th>
+                <th className="p-2 md:p-4 text-right">Reorder Lvl</th>
+                <th className="p-2 md:p-4 text-right">Purchase Rate</th>
+                <th className="p-2 md:p-4 text-right">Valuation</th>
               </tr>
             </thead>
             <tbody>
@@ -206,13 +195,13 @@ const InventoryReports = () => {
                   key={i}
                   className="border-b border-neutral-200 hover:bg-neutral-50"
                 >
-                  <td className="px-4 py-2 text-neutral-900">{item.name}</td>
-                  <td className="px-4 py-2 text-neutral-600">{item.code}</td>
-                  <td className="px-4 py-2 text-neutral-600">{item.group}</td>
-                  <td className="px-4 py-2 text-right text-neutral-800">
+                  <td className="p-2 md:p-4 text-neutral-900">{item.name}</td>
+                  <td className="p-2 md:p-4 text-neutral-600">{item.code}</td>
+                  <td className="p-2 md:p-4 text-neutral-600">{item.group}</td>
+                  <td className="p-2 md:p-4 text-right text-neutral-800">
                     {item.stock}
                   </td>
-                  <td className="px-4 py-2 text-right text-neutral-800">
+                  <td className="p-2 md:p-4 text-right text-neutral-800">
                     <div className="flex items-center justify-end gap-2">
                       {item.reorder}
                       {item.belowReorder && (
@@ -223,10 +212,10 @@ const InventoryReports = () => {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-2 text-right text-neutral-600">
+                  <td className="p-2 md:p-4 text-right text-neutral-600">
                     {item.rate}
                   </td>
-                  <td className="px-4 py-2 text-right text-neutral-900">
+                  <td className="p-2 md:p-4 text-right text-neutral-900">
                     {item.valuation}
                   </td>
                 </tr>
@@ -234,7 +223,7 @@ const InventoryReports = () => {
             </tbody>
           </table>
         </div>
-        <div className="p-4 flex justify-between items-center text-sm text-neutral-600">
+        <div className="p-3 border-t border-neutral-200 flex flex-col sm:flex-row justify-between items-center text-xs md:text-sm text-neutral-600 gap-2">
           <span>Showing 1-6 of 128 items</span>
           <div className="flex items-center gap-2">
             <button className="px-2 py-1 border border-neutral-300 rounded-md hover:bg-neutral-100">
