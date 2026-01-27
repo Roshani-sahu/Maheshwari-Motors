@@ -15,7 +15,7 @@ const Sidebar = ({ onClose }) => {
     "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition";
 
   return (
-    <aside className="flex flex-col w-60 h-screen border-r border-neutral-200 bg-[#0F172A]">
+    <aside className="flex flex-col w-60 h-screen border-r border-neutral-200 bg-[#0F172A] relative">
       {/* Header */}
       <div className="flex items-center h-16 px-4 border-b border-neutral-200">
         <div className="flex items-center gap-2">
@@ -27,7 +27,7 @@ const Sidebar = ({ onClose }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-grow p-4">
+      <nav className="flex-1 p-4 overflow-y-auto pb-20">
         <ul className="space-y-1">
           <li>
             <NavLink
@@ -103,8 +103,8 @@ const Sidebar = ({ onClose }) => {
         </ul>
       </nav>
 
-      {/* Footer */}
-      <div className="mt-auto p-4 border-t border-neutral-200">
+      {/* Footer - Fixed to bottom */}
+      <div className="fixed bottom-0 left-0 w-60 p-4 border-t border-neutral-200 bg-[#0F172A] z-10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full">
             <FaCircleQuestion className="text-neutral-600 text-sm" />
