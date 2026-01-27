@@ -111,7 +111,7 @@ const Sidebar = ({ onClose }) => {
           </div>
           <div>
             <p className="text-sm text-[#CBD5E1]">
-              <NavLink to="/help" onClick={onClose} className="hover:text-white transition">
+              <NavLink to="/help-support" onClick={onClose} className="hover:text-white transition">
                 Help & Support
               </NavLink>
             </p>
