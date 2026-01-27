@@ -5,7 +5,7 @@ import Layout from "./components/Layout";
 
 // Pages
 import Dashboard from "./pages/Dashboard";
-// import Masters from "./pages/Masters";
+import Master from "./pages/Master";
 // import Transactions from "./pages/Transactions";
 // import Reports from "./pages/Reports";
 // import InventoryReports from "./pages/InventoryReports";
@@ -22,8 +22,8 @@ const App = () => {
         {/* ERP Layout */}
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          {/* <Route path="/masters" element={<Masters />} />
-          <Route path="/transactions" element={<Transactions />} />
+          <Route path="/masters" element={<Master />} />
+          {/* <Route path="/transactions" element={<Transactions />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/inventory-reports" element={<InventoryReports />} />
           <Route path="/settings" element={<Settings />} />

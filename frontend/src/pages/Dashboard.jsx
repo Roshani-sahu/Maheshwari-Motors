@@ -1,79 +1,91 @@
 import React from "react";
+import {
+  FaArrowTrendUp,
+  FaArrowTrendDown,
+  FaWallet,
+  FaBuildingColumns,
+  FaTriangleExclamation,
+  FaRotateRight,
+  FaFileInvoiceDollar,
+  FaEye,
+} from "react-icons/fa6";
 
 const Dashboard = () => {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl text-neutral-900">Dashboard</h1>
-        <p className="text-sm text-neutral-500">
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl text-neutral-900">Dashboard</h1>
+        <p className="text-xs md:text-sm text-neutral-500">
           Overview of your business performance for Motors GST.
         </p>
       </div>
 
       {/* KPI Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-6">
         {[
           {
             title: "Total Sales",
             value: "1,25,430.50",
             meta: "+12.5% from last month",
-            icon: "fa-arrow-trend-up",
+            icon: FaArrowTrendUp,
+          
           },
           {
             title: "Total Purchases",
             value: "82,115.00",
             meta: "-5.2% from last month",
-            icon: "fa-arrow-trend-down",
+            icon: FaArrowTrendDown,
+         
           },
           {
             title: "Cash in Hand",
             value: "15,890.75",
             meta: "As of today",
-            icon: "fa-wallet",
+            icon: FaWallet,
+          
           },
           {
             title: "Bank Balance",
             value: "4,56,721.20",
             meta: "Across 3 accounts",
-            icon: "fa-building-columns",
+            icon: FaBuildingColumns,
+            
           },
         ].map((card, i) => (
           <div
             key={i}
-            className="bg-white p-5 border border-neutral-200 rounded-lg"
+            className="bg-white p-3 md:p-5 border border-neutral-200 rounded-lg transition-all duration-300 cursor-pointer group"
           >
             <div className="flex items-center justify-between mb-1">
-              <p className="text-sm text-neutral-500">{card.title}</p>
-              <i
-                className={`fa-solid ${card.icon} text-neutral-500`}
-              />
+              <p className="text-xs md:text-sm text-neutral-600 transition-colors">{card.title}</p>
+              <card.icon className="text-neutral-600 text-sm md:text-lg" />
             </div>
-            <p className="text-2xl text-neutral-900">{card.value}</p>
-            <p className="text-xs text-neutral-400 mt-1">{card.meta}</p>
+            <p className="text-lg md:text-2xl font-bold text-neutral-900 mb-1">{card.value}</p>
+            <p className="text-xs text-neutral-500 transition-colors">{card.meta}</p>
           </div>
         ))}
       </section>
 
       {/* Stock + Alerts */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
         {/* Stock Summary */}
         <div className="lg:col-span-2 bg-white border border-neutral-200 rounded-lg">
-          <div className="p-4 border-b flex justify-between items-center">
-            <h3 className="text-base text-neutral-900">Stock Summary</h3>
+          <div className="p-3 md:p-4 border-b flex justify-between items-center">
+            <h3 className="text-sm md:text-base text-neutral-900">Stock Summary</h3>
             <button className="text-xs text-neutral-600 hover:underline">
               View All
             </button>
           </div>
 
-          <div className="p-2 overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="p-1 md:p-2 overflow-x-auto">
+            <table className="w-full text-xs md:text-sm min-w-[400px]">
               <thead className="text-xs text-neutral-500 text-left">
                 <tr>
-                  <th className="p-2">Item Name</th>
-                  <th className="p-2 text-right">In Stock</th>
-                  <th className="p-2 text-right">Value (₹)</th>
-                  <th className="p-2 text-center">Status</th>
+                  <th className="p-1 md:p-2">Item Name</th>
+                  <th className="p-1 md:p-2 text-right">In Stock</th>
+                  <th className="p-1 md:p-2 text-right">Value (₹)</th>
+                  <th className="p-1 md:p-2 text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -84,15 +96,15 @@ const Dashboard = () => {
                   ["Spark Plug (4-pack)", "50 units", "10,000.00", "In Stock"],
                 ].map((row, i) => (
                   <tr key={i} className="border-b last:border-none">
-                    <td className="p-2 text-neutral-800">{row[0]}</td>
-                    <td className="p-2 text-right text-neutral-600">
+                    <td className="p-1 md:p-2 text-neutral-800">{row[0]}</td>
+                    <td className="p-1 md:p-2 text-right text-neutral-600">
                       {row[1]}
                     </td>
-                    <td className="p-2 text-right text-neutral-600">
+                    <td className="p-1 md:p-2 text-right text-neutral-600">
                       {row[2]}
                     </td>
-                    <td className="p-2 text-center">
-                      <span className="px-2 py-0.5 text-xs bg-neutral-100 rounded-full">
+                    <td className="p-1 md:p-2 text-center">
+                      <span className="px-1.5 md:px-2 py-0.5 text-xs bg-neutral-100 rounded-full">
                         {row[3]}
                       </span>
                     </td>
@@ -105,38 +117,36 @@ const Dashboard = () => {
 
         {/* Alerts */}
         <div className="bg-white border border-neutral-200 rounded-lg">
-          <div className="p-4 border-b">
-            <h3 className="text-base text-neutral-900">
+          <div className="p-3 md:p-4 border-b">
+            <h3 className="text-sm md:text-base text-neutral-900">
               Alerts & Notifications
             </h3>
           </div>
 
-          <div className="p-4 space-y-4">
+          <div className="p-3 md:p-4 space-y-3 md:space-y-4">
             {[
               {
                 title: "Low Stock: Air Filter A-21",
                 desc: "Only 8 units remaining. Reorder level is 10.",
-                icon: "fa-triangle-exclamation",
+                icon: FaTriangleExclamation,
               },
               {
                 title: "Reorder: Brake Pad Set",
                 desc: "Stock is at 2 units. Min stock level is 5.",
-                icon: "fa-rotate-right",
+                icon: FaRotateRight,
               },
               {
                 title: "3 Overdue Invoices",
                 desc: "Totaling 12,300.00",
-                icon: "fa-file-invoice-dollar",
+                icon: FaFileInvoiceDollar,
               },
             ].map((alert, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div className="w-6 h-6 flex items-center justify-center bg-neutral-100 rounded-full mt-1">
-                  <i
-                    className={`fa-solid ${alert.icon} text-xs text-neutral-600`}
-                  />
+              <div key={i} className="flex items-start gap-2 md:gap-3">
+                <div className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center bg-neutral-100 rounded-full mt-1">
+                  <alert.icon className="text-xs text-neutral-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-neutral-800">
+                  <p className="text-xs md:text-sm text-neutral-800">
                     {alert.title}
                   </p>
                   <p className="text-xs text-neutral-500">
@@ -151,12 +161,12 @@ const Dashboard = () => {
 
       {/* Recent Transactions */}
       <section className="bg-white border border-neutral-200 rounded-lg">
-        <div className="p-4 border-b flex justify-between items-center">
+        <div className="p-3 md:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div>
-            <h3 className="text-base text-neutral-900">
+            <h3 className="text-sm md:text-base text-neutral-900">
               Recent Transactions
             </h3>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-neutral-500 hidden md:block">
               Shortcuts:
               <kbd className="mx-1 px-1.5 py-0.5 border rounded bg-neutral-100">
                 J
@@ -170,21 +180,21 @@ const Dashboard = () => {
             </p>
           </div>
 
-          <button className="text-sm text-neutral-600 hover:underline">
+          <button className="text-xs md:text-sm text-neutral-600 hover:underline">
             View All Transactions
           </button>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs md:text-sm min-w-[600px]">
             <thead className="bg-neutral-50 text-xs text-neutral-500">
               <tr>
-                <th className="p-3 text-left">Date</th>
-                <th className="p-3 text-left">Voucher No</th>
-                <th className="p-3 text-left">Party Name</th>
-                <th className="p-3 text-left">Type</th>
-                <th className="p-3 text-right">Amount (₹)</th>
-                <th className="p-3 text-center">Actions</th>
+                <th className="p-2 md:p-3 text-left">Date</th>
+                <th className="p-2 md:p-3 text-left">Voucher No</th>
+                <th className="p-2 md:p-3 text-left">Party Name</th>
+                <th className="p-2 md:p-3 text-left">Type</th>
+                <th className="p-2 md:p-3 text-right">Amount (₹)</th>
+                <th className="p-2 md:p-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -195,16 +205,16 @@ const Dashboard = () => {
                 ["2025-01-21", "PMT-0031", "Office Rent", "Payment", "15,000.00"],
               ].map((row, i) => (
                 <tr key={i} className="hover:bg-neutral-50">
-                  <td className="p-3 text-neutral-600">{row[0]}</td>
-                  <td className="p-3 text-neutral-800">{row[1]}</td>
-                  <td className="p-3 text-neutral-800">{row[2]}</td>
-                  <td className="p-3 text-neutral-600">{row[3]}</td>
-                  <td className="p-3 text-right text-neutral-600">
+                  <td className="p-2 md:p-3 text-neutral-600">{row[0]}</td>
+                  <td className="p-2 md:p-3 text-neutral-800">{row[1]}</td>
+                  <td className="p-2 md:p-3 text-neutral-800">{row[2]}</td>
+                  <td className="p-2 md:p-3 text-neutral-600">{row[3]}</td>
+                  <td className="p-2 md:p-3 text-right text-neutral-600">
                     {row[4]}
                   </td>
-                  <td className="p-3 text-center">
+                  <td className="p-2 md:p-3 text-center">
                     <button className="text-neutral-500 hover:text-neutral-800">
-                      <i className="fa-solid fa-eye" />
+                      <FaEye className="text-sm" />
                     </button>
                   </td>
                 </tr>
