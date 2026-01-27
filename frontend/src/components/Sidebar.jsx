@@ -1,5 +1,14 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
+import {
+  FaBookOpen,
+  FaHouse,
+  FaDatabase,
+  FaRightLeft,
+  FaChartPie,
+  FaSliders,
+  FaCircleQuestion,
+} from "react-icons/fa6";
 
 const Sidebar = () => {
   const linkBase =
@@ -11,13 +20,13 @@ const Sidebar = () => {
       <div className="flex items-center h-16 px-4 border-b border-neutral-200">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 flex items-center justify-center bg-neutral-900 rounded-md">
-            <i className="fa-solid fa-book-open text-white" />
+            <FaBookOpen className="text-white text-sm" />
           </div>
           <span className="text-lg text-[#CBD5E1]">ERP System</span>
         </div>
       </div>
 
-      {/* Nav */}
+      {/* Navigation */}
       <nav className="flex-grow p-4">
         <ul className="space-y-1">
           <li>
@@ -31,42 +40,57 @@ const Sidebar = () => {
                 }`
               }
             >
-              <i className="fa-solid fa-house w-4 h-4" />
+              <FaHouse className="w-4 h-4" />
               Dashboard
             </NavLink>
           </li>
 
           <li>
-            <NavLink to="/masters" className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}>
-              <i className="fa-solid fa-database w-4 h-4" />
+            <NavLink
+              to="/masters"
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaDatabase className="w-4 h-4" />
               Masters
             </NavLink>
           </li>
 
           <li>
-            <NavLink to="/transactions" className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}>
-              <i className="fa-solid fa-right-left w-4 h-4" />
+            <NavLink
+              to="/transactions"
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaRightLeft className="w-4 h-4" />
               Transactions
             </NavLink>
           </li>
 
           <li>
-            <NavLink to="/reports" className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}>
-              <i className="fa-solid fa-chart-pie w-4 h-4" />
+            <NavLink
+              to="/reports"
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaChartPie className="w-4 h-4" />
               Universal Reports
             </NavLink>
           </li>
 
           <li>
-            <NavLink to="/inventory-reports" className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}>
-              <i className="fa-solid fa-chart-pie w-4 h-4" />
+            <NavLink
+              to="/inventory-reports"
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaChartPie className="w-4 h-4" />
               Inventory Reports
             </NavLink>
           </li>
 
           <li>
-            <NavLink to="/settings" className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}>
-              <i className="fa-solid fa-sliders w-4 h-4" />
+            <NavLink
+              to="/settings"
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaSliders className="w-4 h-4" />
               Settings
             </NavLink>
           </li>
@@ -77,7 +101,7 @@ const Sidebar = () => {
       <div className="p-4 border-t border-neutral-200">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full">
-            <i className="fa-regular fa-circle-question text-neutral-600" />
+            <FaCircleQuestion className="text-neutral-600 text-sm" />
           </div>
           <div>
             <p className="text-sm text-[#CBD5E1]">

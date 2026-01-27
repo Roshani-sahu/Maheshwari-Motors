@@ -1,4 +1,9 @@
 import React from "react";
+import {
+  FaCar,
+  FaChevronDown,
+  FaRegCalendarAlt,
+} from "react-icons/fa";
 
 const Header = () => {
   return (
@@ -7,14 +12,14 @@ const Header = () => {
       <div className="flex items-center gap-4">
         <button className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-100">
           <div className="w-6 h-6 flex items-center justify-center bg-neutral-200 rounded-full">
-            <i className="fa-solid fa-car text-xs text-neutral-600" />
+            <FaCar className="text-xs text-neutral-600" />
           </div>
           <span className="text-sm text-neutral-800">Motors GST</span>
-          <i className="fa-solid fa-chevron-down text-xs text-neutral-500" />
+          <FaChevronDown className="text-xs text-neutral-500" />
         </button>
 
         <div className="flex items-center gap-2 text-sm">
-          <i className="fa-regular fa-calendar text-neutral-500" />
+          <FaRegCalendarAlt className="text-neutral-500" />
           <span className="text-neutral-800">
             01 Apr 2025 - 31 Mar 2026
           </span>
@@ -40,7 +45,7 @@ const Header = () => {
             className="w-8 h-8 rounded-full border"
             alt="User"
           />
-          <i className="fa-solid fa-chevron-down text-xs text-neutral-500" />
+          <FaChevronDown className="text-xs text-neutral-500" />
         </button>
       </div>
     </header>
