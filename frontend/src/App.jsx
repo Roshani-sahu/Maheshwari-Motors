@@ -16,10 +16,10 @@ import SaleEntry from "./components/transtation/Sale Entry.jsx";
 import ChallanBillPosting from "./components/transtation/Challan & Bill Posting.jsx";
 import ReceiptPaymentEntry from "./components/transtation/Receipt_Payment Entry.jsx";
 import Payment from "./components/transtation/Payment.jsx";
+import UniversalReport from "./pages/UniversalReport.jsx";
 
-// import Reports from "./pages/Reports";
-// import Settings from "./pages/Settings";
-// import Help from "./pages/Help";
+ import Settings from "./pages/SettingsPage.jsx";
+ import Help from "./pages/HelpSupportPage.jsx";
 
 const App = () => {
   return (
@@ -34,6 +34,7 @@ const App = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/masters" element={<Master />} />
           <Route path="/transactions" element={<Transactions />} />
+          <Route path="/universal-reports" element={<UniversalReport />} />
           <Route path="/inventory-reports" element={<InventoryReports />} />
           
           {/* Transaction Routes */}
@@ -42,9 +43,9 @@ const App = () => {
           <Route path="/receipt-payment" element={<ReceiptPaymentEntry />} />
           <Route path="/payment" element={<Payment />} />
           
-          {/* <Route path="/reports" element={<Reports />} />
+          
           <Route path="/settings" element={<Settings />} />
-          <Route path="/help" element={<Help />} /> */}
+          <Route path="/help-support" element={<Help />} />
         </Route>
 
         {/* Login */}

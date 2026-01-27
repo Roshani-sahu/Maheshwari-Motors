@@ -70,7 +70,7 @@ const Sidebar = ({ onClose }) => {
 
           <li>
             <NavLink
-              to="/reports"
+              to="/universal-reports"
                onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
