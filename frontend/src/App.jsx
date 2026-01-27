@@ -8,6 +8,8 @@ import Dashboard from "./pages/Dashboard";
 import Master from "./pages/Master";
 import Transactions from "./pages/Transactions";
 import InventoryReports from "./pages/InventoryReports";
+import CompanySelection from "./pages/CompanySelection";
+import Login from "./pages/Login";
 
 // Transaction Components
 import SaleEntry from "./components/transtation/Sale Entry.jsx";
@@ -24,10 +26,11 @@ const App = () => {
     <BrowserRouter>
       <Routes>
         {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* ERP Layout */}
         <Route element={<Layout />}>
+       
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/masters" element={<Master />} />
           <Route path="/transactions" element={<Transactions />} />
@@ -44,6 +47,9 @@ const App = () => {
           <Route path="/help" element={<Help />} /> */}
         </Route>
 
+        {/* Login */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/company-selection" element={<CompanySelection />} />
         {/* Fallback */}
         <Route path="*" element={<div className="p-10">404 – Page Not Found</div>} />
       </Routes>

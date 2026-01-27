@@ -38,7 +38,7 @@ const Dashboard = () => {
       value: "4,56,721.20",
       meta: "Across 3 accounts",
       icon: FaBuildingColumns,
-      trend: "neutral",
+      trend: "blue",
     },
   ];
 
@@ -86,7 +86,9 @@ const Dashboard = () => {
                         ? "text-emerald-600"
                         : card.trend === "down"
                         ? "text-red-500"
-                        : "text-blue-600"
+                        : card.trend === "blue"
+                        ? "text-blue-500"
+                        : "text-gray-600"
                     }
                   `}
                 />
@@ -104,7 +106,9 @@ const Dashboard = () => {
                       ? "text-emerald-600"
                       : card.trend === "down"
                       ? "text-red-500"
-                      : "text-blue-600"
+                      : card.trend === "blue"
+                      ? "text-blue-500"
+                      : "text-gray-600"
                   }
                 `}
               >
@@ -119,8 +123,8 @@ const Dashboard = () => {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
         {/* Stock Summary */}
         <div className="lg:col-span-2 bg-white border border-neutral-200 rounded-lg">
-          <div className="p-3 md:p-4 border-b flex justify-between items-center">
-            <h3 className="text-sm md:text-base text-neutral-900">
+          <div className="p-3 md:p-4 bg-[#F8FAFC] border-b flex justify-between items-center">
+            <h3 className="text-sm  md:text-base text-neutral-900">
               Stock Summary
             </h3>
             <button className="text-xs text-neutral-600 hover:underline">
