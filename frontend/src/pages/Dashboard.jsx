@@ -11,6 +11,37 @@ import {
 } from "react-icons/fa6";
 
 const Dashboard = () => {
+  const kpiData = [
+    {
+      title: "Total Sales",
+      value: "1,25,430.50",
+      meta: "+12.5% from last month",
+      icon: FaArrowTrendUp,
+      trend: "up",
+    },
+    {
+      title: "Total Purchases",
+      value: "82,115.00",
+      meta: "-5.2% from last month",
+      icon: FaArrowTrendDown,
+      trend: "down",
+    },
+    {
+      title: "Cash in Hand",
+      value: "15,890.75",
+      meta: "As of today",
+      icon: FaWallet,
+      trend: "neutral",
+    },
+    {
+      title: "Bank Balance",
+      value: "4,56,721.20",
+      meta: "Across 3 accounts",
+      icon: FaBuildingColumns,
+      trend: "neutral",
+    },
+  ];
+
   return (
     <div>
       {/* Header */}
@@ -23,48 +54,65 @@ const Dashboard = () => {
 
       {/* KPI Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-4 md:mb-6">
-        {[
-          {
-            title: "Total Sales",
-            value: "1,25,430.50",
-            meta: "+12.5% from last month",
-            icon: FaArrowTrendUp,
-          
-          },
-          {
-            title: "Total Purchases",
-            value: "82,115.00",
-            meta: "-5.2% from last month",
-            icon: FaArrowTrendDown,
-         
-          },
-          {
-            title: "Cash in Hand",
-            value: "15,890.75",
-            meta: "As of today",
-            icon: FaWallet,
-          
-          },
-          {
-            title: "Bank Balance",
-            value: "4,56,721.20",
-            meta: "Across 3 accounts",
-            icon: FaBuildingColumns,
-            
-          },
-        ].map((card, i) => (
-          <div
-            key={i}
-            className="bg-white p-3 md:p-5 border border-neutral-200 rounded-lg transition-all duration-300 cursor-pointer group"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs md:text-sm text-neutral-600 transition-colors">{card.title}</p>
-              <card.icon className="text-neutral-600 text-sm md:text-lg" />
+        {kpiData.map((card, i) => {
+          const Icon = card.icon;
+
+          return (
+            <div
+              key={i}
+              className={`
+                bg-white p-3 md:p-5 border border-neutral-200 rounded-lg
+                transition-all duration-300 cursor-pointer group
+                hover:shadow-md
+                ${
+                  card.trend === "up"
+                    ? "hover:border-l-4 hover:border-emerald-500"
+                    : card.trend === "down"
+                    ? "hover:border-l-4 hover:border-red-500"
+                    : "hover:border-l-4 hover:border-blue-500"
+                }
+              `}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs md:text-sm text-neutral-600">
+                  {card.title}
+                </p>
+
+                <Icon
+                  className={`
+                    text-sm md:text-lg transition-colors
+                    ${
+                      card.trend === "up"
+                        ? "text-emerald-600"
+                        : card.trend === "down"
+                        ? "text-red-500"
+                        : "text-blue-600"
+                    }
+                  `}
+                />
+              </div>
+
+              <p className="text-lg md:text-2xl font-bold text-neutral-900 mb-1">
+                {card.value}
+              </p>
+
+              <p
+                className={`
+                  text-xs transition-colors
+                  ${
+                    card.trend === "up"
+                      ? "text-emerald-600"
+                      : card.trend === "down"
+                      ? "text-red-500"
+                      : "text-blue-600"
+                  }
+                `}
+              >
+                {card.meta}
+              </p>
             </div>
-            <p className="text-lg md:text-2xl font-bold text-neutral-900 mb-1">{card.value}</p>
-            <p className="text-xs text-neutral-500 transition-colors">{card.meta}</p>
-          </div>
-        ))}
+          );
+        })}
       </section>
 
       {/* Stock + Alerts */}
@@ -72,7 +120,9 @@ const Dashboard = () => {
         {/* Stock Summary */}
         <div className="lg:col-span-2 bg-white border border-neutral-200 rounded-lg">
           <div className="p-3 md:p-4 border-b flex justify-between items-center">
-            <h3 className="text-sm md:text-base text-neutral-900">Stock Summary</h3>
+            <h3 className="text-sm md:text-base text-neutral-900">
+              Stock Summary
+            </h3>
             <button className="text-xs text-neutral-600 hover:underline">
               View All
             </button>
@@ -149,9 +199,7 @@ const Dashboard = () => {
                   <p className="text-xs md:text-sm text-neutral-800">
                     {alert.title}
                   </p>
-                  <p className="text-xs text-neutral-500">
-                    {alert.desc}
-                  </p>
+                  <p className="text-xs text-neutral-500">{alert.desc}</p>
                 </div>
               </div>
             ))}
@@ -161,25 +209,10 @@ const Dashboard = () => {
 
       {/* Recent Transactions */}
       <section className="bg-white border border-neutral-200 rounded-lg">
-        <div className="p-3 md:p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-          <div>
-            <h3 className="text-sm md:text-base text-neutral-900">
-              Recent Transactions
-            </h3>
-            <p className="text-xs text-neutral-500 hidden md:block">
-              Shortcuts:
-              <kbd className="mx-1 px-1.5 py-0.5 border rounded bg-neutral-100">
-                J
-              </kbd>
-              <kbd className="mx-1 px-1.5 py-0.5 border rounded bg-neutral-100">
-                K
-              </kbd>
-              <kbd className="mx-1 px-1.5 py-0.5 border rounded bg-neutral-100">
-                Enter
-              </kbd>
-            </p>
-          </div>
-
+        <div className="p-3 md:p-4 border-b flex justify-between items-center">
+          <h3 className="text-sm md:text-base text-neutral-900">
+            Recent Transactions
+          </h3>
           <button className="text-xs md:text-sm text-neutral-600 hover:underline">
             View All Transactions
           </button>
