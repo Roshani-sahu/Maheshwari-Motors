@@ -51,7 +51,7 @@ const CompanySelection = () => {
               
               {/* Active / Last Used */}
               <div className="group flex items-center p-4 border border-neutral-300 rounded-md cursor-pointer bg-neutral-50 ring-2 ring-neutral-900 hover:bg-neutral-50 hover:border-neutral-900">
-                <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
                   <FaCar className="text-neutral-600" />
                 </div>
                 <div className="flex-grow ml-4">
@@ -60,7 +60,7 @@ const CompanySelection = () => {
                     <span className="text-xs text-neutral-500">
                       GST Registered
                     </span>
-                    <span className="px-2 py-0.5 text-xs bg-neutral-200 text-neutral-700 rounded-full">
+                    <span className="px-2 py-0.5 text-xs bg-[#F1F5F9] text-neutral-700 rounded-full">
                       Last used
                     </span>
                   </div>
@@ -70,7 +70,7 @@ const CompanySelection = () => {
 
               {/* Company 2 */}
               <div className="group flex items-center p-4 border border-neutral-200 rounded-md cursor-pointer hover:bg-neutral-50 hover:border-neutral-900">
-                <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
                   <FaLeaf className="text-neutral-600" />
                 </div>
                 <div className="flex-grow ml-4">
@@ -84,7 +84,7 @@ const CompanySelection = () => {
 
               {/* Company 3 */}
               <div className="group flex items-center p-4 border border-neutral-200 rounded-md cursor-pointer hover:bg-neutral-50 hover:border-neutral-900">
-                <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
                   <FaWarehouse className="text-neutral-600" />
                 </div>
                 <div className="flex-grow ml-4">

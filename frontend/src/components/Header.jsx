@@ -20,7 +20,7 @@ const Header = ({ onMenuClick }) => {
         </button>
 
         <button className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-100">
-          <div className="w-6 h-6 flex items-center justify-center bg-neutral-200 rounded-full">
+          <div className="w-6 h-6 flex items-center justify-center bg-[#F1F5F9] rounded-full">
             <FaCar className="text-xs text-neutral-600" />
           </div>
           <span className="text-sm text-neutral-800">
@@ -65,7 +65,7 @@ const Header = ({ onMenuClick }) => {
             </button>
           </div>
 
-          <div className="w-px h-6 bg-neutral-200 hidden sm:block" />
+          <div className="w-px h-6 bg-[#F1F5F9] hidden sm:block" />
 
           {/* User avatar - hidden on mobile, shown on desktop */}
           <button className="hidden sm:flex items-center gap-2 p-1 rounded-full hover:bg-neutral-100">

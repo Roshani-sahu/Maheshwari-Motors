@@ -18,7 +18,7 @@ const SaleEntry = () => {
             Create a new sale invoice for a customer.
           </p>
         </div>
-        <div className="flex items-center gap-2 p-1 bg-neutral-200 rounded-lg">
+        <div className="flex items-center gap-2 p-1 bg-[#F1F5F9] rounded-lg">
           <button className="px-3 md:px-4 py-1.5 text-xs md:text-sm text-neutral-600 hover:text-neutral-900 hover:bg-white rounded-md">
             Purchase
           </button>

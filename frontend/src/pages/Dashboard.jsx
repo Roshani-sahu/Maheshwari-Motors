@@ -123,7 +123,7 @@ const Dashboard = () => {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
         {/* Stock Summary */}
         <div className="lg:col-span-2 bg-white border border-neutral-200 rounded-lg">
-          <div className="p-3 md:p-4 bg-[#F8FAFC] border-b flex justify-between items-center">
+          <div className="p-3 md:p-4  border-b flex justify-between items-center">
             <h3 className="text-sm  md:text-base text-neutral-900">
               Stock Summary
             </h3>
@@ -132,9 +132,9 @@ const Dashboard = () => {
             </button>
           </div>
 
-          <div className="p-1 md:p-2 overflow-x-auto">
+          <div className=" overflow-x-auto">
             <table className="w-full text-xs md:text-sm min-w-[400px]">
-              <thead className="text-xs text-neutral-500 text-left">
+              <thead className="bg-[#F1F5F9] text-xs text-neutral-700 text-left">
                 <tr>
                   <th className="p-1 md:p-2">Item Name</th>
                   <th className="p-1 md:p-2 text-right">In Stock</th>

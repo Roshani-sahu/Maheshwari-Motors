@@ -19,7 +19,7 @@ const InventoryReports = () => {
         </p>
       </div>
 
-      <div className="flex items-center gap-1 bg-neutral-200 p-1 rounded-lg mb-4 md:mb-6">
+      <div className="flex items-center gap-1 bg-[#F1F5F9] p-1 rounded-lg mb-4 md:mb-6">
         <button className="px-4 py-1.5 text-sm bg-white text-neutral-900 rounded-md shadow-sm flex-1 text-center">
           Stock Summary
         </button>

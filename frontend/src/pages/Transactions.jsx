@@ -67,7 +67,7 @@ const Transactions = () => {
                 to="/sale-entry"
                 className="group flex items-center gap-3 md:gap-4 p-3 md:p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 hover:border-neutral-300"
               >
-                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-neutral-200">
+                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-[#F1F5F9]">
                   <FaFileInvoiceDollar className="text-neutral-600 text-sm md:text-base" />
                 </div>
                 <div>
@@ -79,7 +79,7 @@ const Transactions = () => {
                 to="/purchase-entry"
                 className="group flex items-center gap-3 md:gap-4 p-3 md:p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 hover:border-neutral-300"
               >
-                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-neutral-200">
+                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-[#F1F5F9]">
                   <FaReceipt className="text-neutral-600 text-sm md:text-base" />
                 </div>
                 <div>
@@ -91,7 +91,7 @@ const Transactions = () => {
                 to="/quotation"
                 className="group flex items-center gap-3 md:gap-4 p-3 md:p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 hover:border-neutral-300"
               >
-                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-neutral-200">
+                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-[#F1F5F9]">
                   <FaFileCirclePlus className="text-neutral-600 text-sm md:text-base" />
                 </div>
                 <div>
@@ -103,7 +103,7 @@ const Transactions = () => {
                 to="/challan-posting"
                 className="group flex items-center gap-3 md:gap-4 p-3 md:p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 hover:border-neutral-300"
               >
-                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-neutral-200">
+                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-[#F1F5F9]">
                   <FaTruckFast className="text-neutral-600 text-sm md:text-base" />
                 </div>
                 <div>

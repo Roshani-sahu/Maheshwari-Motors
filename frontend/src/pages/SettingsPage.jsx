@@ -22,7 +22,7 @@ const SettingsAccessControl = () => {
           {/* Sub Navigation */}
           <aside className="w-full lg:w-1/5">
             <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible">
-              <div className="px-3 py-2 text-sm bg-neutral-200 rounded-md whitespace-nowrap">
+              <div className="px-3 py-2 text-sm bg-[#F1F5F9] rounded-md whitespace-nowrap">
                 User Rights & Roles
               </div>
 
