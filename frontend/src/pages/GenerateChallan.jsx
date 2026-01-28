@@ -1,226 +1,457 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { FaFloppyDisk, FaPlus, FaTrashCan, FaMagnifyingGlass } from "react-icons/fa6";
+import React, { useState, useRef, useEffect } from 'react';
+import { FaBarcode, FaPlus, FaTrash, FaSave, FaCheck, FaTimes, FaSearch } from 'react-icons/fa';
+import { useApp } from '../contexts/AppContext';
+import { useKeyboard } from '../hooks';
+import { formatCurrency, formatDate } from '../utils';
 
-const GenerateChallan = () => {
-  const [selectedCompany, setSelectedCompany] = useState('Maa Auto (Non-GST)');
-  const [customer, setCustomer] = useState('');
-  const [date, setDate] = useState('24 Jan 2025');
-  const [challanNo, setChallanNo] = useState('C-0062');
-  const [remarks, setRemarks] = useState('');
-  const [items, setItems] = useState([
-    { id: 1, name: '', qty: '', rate: '', amount: '0.00' }
-  ]);
-  const navigate = useNavigate();
+const ItemRow = ({ 
+  item, 
+  index, 
+  onUpdate, 
+  onDelete, 
+  onNext, 
+  isActive, 
+  firmType 
+}) => {
+  const barcodeRef = useRef(null);
+  const quantityRef = useRef(null);
+  const rateRef = useRef(null);
 
-  const addItem = () => {
-    const newItem = {
-      id: items.length + 1,
-      name: '',
-      qty: '',
-      rate: '',
-      amount: '0.00'
-    };
-    setItems([...items, newItem]);
-  };
+  useEffect(() => {
+    if (isActive && barcodeRef.current) {
+      barcodeRef.current.focus();
+    }
+  }, [isActive]);
 
-  const removeItem = (id) => {
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
+  const handleKeyDown = (e, field) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (field === 'barcode' && quantityRef.current) {
+        quantityRef.current.focus();
+      } else if (field === 'quantity' && rateRef.current) {
+        rateRef.current.focus();
+      } else if (field === 'rate') {
+        onNext();
+      }
+    } else if (e.key === 'Tab' && field === 'rate') {
+      onNext();
     }
   };
 
-  const updateItem = (id, field, value) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        if (field === 'qty' || field === 'rate') {
-          const qty = parseFloat(updatedItem.qty) || 0;
-          const rate = parseFloat(updatedItem.rate) || 0;
-          updatedItem.amount = (qty * rate).toFixed(2);
-        }
-        return updatedItem;
-      }
-      return item;
-    }));
+  const handleBarcodeChange = (barcode) => {
+    // Mock item lookup by barcode
+    const mockItems = {
+      '1234567890123': { name: 'Engine Oil 5W-30', rate: 450, stock: 25, unit: 'Ltr' },
+      '1234567890124': { name: 'Brake Pad Set', rate: 1200, stock: 8, unit: 'Set' }
+    };
+
+    const foundItem = mockItems[barcode];
+    if (foundItem) {
+      onUpdate(index, {
+        ...item,
+        barcode,
+        itemName: foundItem.name,
+        rate: foundItem.rate,
+        availableStock: foundItem.stock,
+        unit: foundItem.unit
+      });
+    } else {
+      onUpdate(index, { ...item, barcode });
+    }
   };
 
-  const getTotalAmount = () => {
-    return items.reduce((total, item) => total + parseFloat(item.amount || 0), 0).toFixed(2);
+  const amount = (item.quantity || 0) * (item.rate || 0);
+
+  return (
+    <tr className={`${isActive ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+      <td className="px-2 py-2 text-sm">{index + 1}</td>
+      
+      {/* Barcode */}
+      <td className="px-2 py-2">
+        <div className="relative">
+          <input
+            ref={barcodeRef}
+            type="text"
+            value={item.barcode || ''}
+            onChange={(e) => handleBarcodeChange(e.target.value)}
+            onKeyDown={(e) => handleKeyDown(e, 'barcode')}
+            placeholder="Scan/Enter barcode"
+            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <FaBarcode className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        </div>
+      </td>
+
+      {/* Item Name */}
+      <td className="px-2 py-2">
+        <input
+          type="text"
+          value={item.itemName || ''}
+          onChange={(e) => onUpdate(index, { ...item, itemName: e.target.value })}
+          placeholder="Item name"
+          className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </td>
+
+      {/* Quantity */}
+      <td className="px-2 py-2">
+        <input
+          ref={quantityRef}
+          type="number"
+          value={item.quantity || ''}
+          onChange={(e) => onUpdate(index, { ...item, quantity: parseFloat(e.target.value) || 0 })}
+          onKeyDown={(e) => handleKeyDown(e, 'quantity')}
+          placeholder="Qty"
+          className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          min="0"
+          step="0.01"
+        />
+      </td>
+
+      {/* Unit */}
+      <td className="px-2 py-2 text-sm text-gray-600">
+        {item.unit || '-'}
+      </td>
+
+      {/* Rate */}
+      <td className="px-2 py-2">
+        <input
+          ref={rateRef}
+          type="number"
+          value={item.rate || ''}
+          onChange={(e) => onUpdate(index, { ...item, rate: parseFloat(e.target.value) || 0 })}
+          onKeyDown={(e) => handleKeyDown(e, 'rate')}
+          placeholder="Rate"
+          className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          min="0"
+          step="0.01"
+        />
+      </td>
+
+      {/* Amount */}
+      <td className="px-2 py-2 text-sm text-right font-medium">
+        {formatCurrency(amount)}
+      </td>
+
+      {/* Stock */}
+      <td className="px-2 py-2 text-sm text-center">
+        {item.availableStock !== undefined ? (
+          <span className={`px-2 py-1 rounded-full text-xs ${
+            item.availableStock < (item.quantity || 0) 
+              ? 'bg-red-100 text-red-800' 
+              : 'bg-green-100 text-green-800'
+          }`}>
+            {item.availableStock}
+          </span>
+        ) : '-'}
+      </td>
+
+      {/* GST/Non-GST Tag */}
+      <td className="px-2 py-2 text-center">
+        <span className={`px-2 py-1 rounded-full text-xs ${
+          firmType === 'GST' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+        }`}>
+          {firmType}
+        </span>
+      </td>
+
+      {/* Actions */}
+      <td className="px-2 py-2">
+        <button
+          onClick={() => onDelete(index)}
+          className="text-red-600 hover:text-red-800 p-1"
+        >
+          <FaTrash className="text-xs" />
+        </button>
+      </td>
+    </tr>
+  );
+};
+
+const GenerateChallan = () => {
+  const { state, actions } = useApp();
+  const { selectedFirm } = state;
+  
+  const [challanData, setChallanData] = useState({
+    challanNo: 'CH001',
+    date: formatDate(new Date(), 'yyyy-mm-dd'),
+    party: '',
+    status: 'Draft'
+  });
+
+  const [items, setItems] = useState([
+    { id: 1, barcode: '', itemName: '', quantity: 0, unit: '', rate: 0, availableStock: undefined }
+  ]);
+
+  const [activeRow, setActiveRow] = useState(0);
+  const [parties] = useState([
+    { id: 1, name: 'ABC Motors', type: 'Customer' },
+    { id: 2, name: 'XYZ Parts', type: 'Customer' },
+    { id: 3, name: 'PQR Garage', type: 'Customer' }
+  ]);
+
+  // Keyboard shortcuts
+  useKeyboard({
+    'ctrl+s': () => handleSave(),
+    'ctrl+enter': () => handleApprove(),
+    'escape': () => handleCancel(),
+    'f9': () => addNewRow(),
+    'f10': () => setActiveRow(Math.max(0, activeRow - 1)),
+    'f11': () => setActiveRow(Math.min(items.length - 1, activeRow + 1))
+  });
+
+  const addNewRow = () => {
+    const newItem = { 
+      id: Date.now(), 
+      barcode: '', 
+      itemName: '', 
+      quantity: 0, 
+      unit: '', 
+      rate: 0, 
+      availableStock: undefined 
+    };
+    setItems([...items, newItem]);
+    setActiveRow(items.length);
+  };
+
+  const updateItem = (index, updatedItem) => {
+    const newItems = [...items];
+    newItems[index] = updatedItem;
+    setItems(newItems);
+  };
+
+  const deleteItem = (index) => {
+    if (items.length > 1) {
+      const newItems = items.filter((_, i) => i !== index);
+      setItems(newItems);
+      setActiveRow(Math.min(activeRow, newItems.length - 1));
+    }
+  };
+
+  const handleNextRow = () => {
+    if (activeRow === items.length - 1) {
+      addNewRow();
+    } else {
+      setActiveRow(activeRow + 1);
+    }
   };
 
   const handleSave = () => {
-    console.log('Saving challan:', {
-      company: selectedCompany,
-      customer,
-      date,
-      challanNo,
-      items,
-      remarks,
-      total: getTotalAmount()
-    });
-    navigate('/challan-list');
+    if (!challanData.party) {
+      actions.showToast('Please select a party', 'error');
+      return;
+    }
+
+    const validItems = items.filter(item => item.itemName && item.quantity > 0);
+    if (validItems.length === 0) {
+      actions.showToast('Please add at least one item', 'error');
+      return;
+    }
+
+    // Mock save
+    actions.showToast('Challan saved successfully', 'success');
   };
+
+  const handleApprove = () => {
+    if (!challanData.party) {
+      actions.showToast('Please select a party', 'error');
+      return;
+    }
+
+    const validItems = items.filter(item => item.itemName && item.quantity > 0);
+    if (validItems.length === 0) {
+      actions.showToast('Please add at least one item', 'error');
+      return;
+    }
+
+    setChallanData(prev => ({ ...prev, status: 'Approved' }));
+    actions.showToast('Challan approved successfully', 'success');
+  };
+
+  const handleCancel = () => {
+    actions.showConfirm(
+      'Are you sure you want to cancel? All unsaved changes will be lost.',
+      () => {
+        // Reset form or navigate away
+        setChallanData({ challanNo: 'CH001', date: formatDate(new Date(), 'yyyy-mm-dd'), party: '', status: 'Draft' });
+        setItems([{ id: 1, barcode: '', itemName: '', quantity: 0, unit: '', rate: 0, availableStock: undefined }]);
+      }
+    );
+  };
+
+  const totalAmount = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.rate || 0)), 0);
+
   return (
-    <div>
-      <div className="mb-4 md:mb-6">
-        <h1 className="text-xl md:text-2xl text-neutral-900">Generate Challan</h1>
-        <p className="text-xs md:text-sm text-neutral-500">
-          Create delivery challan (stock will be updated immediately)
-        </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Generate Challan</h1>
+          <p className="text-gray-600">Create delivery challan for {selectedFirm?.name}</p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <span className={`px-3 py-1 rounded-full text-sm ${
+            challanData.status === 'Draft' 
+              ? 'bg-yellow-100 text-yellow-800' 
+              : 'bg-green-100 text-green-800'
+          }`}>
+            {challanData.status}
+          </span>
+        </div>
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-lg">
-        {/* Header */}
-        <div className="p-3 md:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 border-b">
+      {/* Challan Header */}
+      <div className="bg-white p-6 rounded-lg border">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs text-neutral-600 mb-1">Company</label>
-            <select 
-              value={selectedCompany}
-              onChange={(e) => setSelectedCompany(e.target.value)}
-              className="w-full text-xs md:text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Firm
+            </label>
+            <input
+              type="text"
+              value={selectedFirm?.name || ''}
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Challan No.
+            </label>
+            <input
+              type="text"
+              value={challanData.challanNo}
+              onChange={(e) => setChallanData(prev => ({ ...prev, challanNo: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date
+            </label>
+            <input
+              type="date"
+              value={challanData.date}
+              onChange={(e) => setChallanData(prev => ({ ...prev, date: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Party <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={challanData.party}
+              onChange={(e) => setChallanData(prev => ({ ...prev, party: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option>Maa Auto (Non-GST)</option>
-              <option>Motors (GST)</option>
+              <option value="">Select Party</option>
+              {parties.map(party => (
+                <option key={party.id} value={party.name}>
+                  {party.name}
+                </option>
+              ))}
             </select>
           </div>
-          <div>
-            <label className="block text-xs text-neutral-600 mb-1">Customer</label>
-            <input
-              type="text"
-              placeholder="Select customer"
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              className="w-full text-xs md:text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-neutral-600 mb-1">Date</label>
-            <input
-              type="text"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full text-xs md:text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-neutral-600 mb-1">Challan No.</label>
-            <input
-              type="text"
-              value={challanNo}
-              onChange={(e) => setChallanNo(e.target.value)}
-              className="w-full text-xs md:text-sm border border-neutral-300 rounded-md px-3 py-1.5 bg-neutral-100"
-              readOnly
-            />
-          </div>
         </div>
+      </div>
 
-        {/* Items */}
+      {/* Items Grid */}
+      <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="p-4 border-b flex justify-between items-center">
+          <h3 className="font-medium text-gray-900">Items</h3>
+          <button
+            onClick={addNewRow}
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            <FaPlus className="text-xs" />
+            Add Row
+          </button>
+        </div>
+        
         <div className="overflow-x-auto">
-          <table className="w-full text-xs md:text-sm min-w-[800px]">
-            <thead className="bg-neutral-50">
+          <table className="w-full">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="p-2 md:p-4 text-left w-8">#</th>
-                <th className="p-2 md:p-4 text-left w-2/5">Item</th>
-                <th className="p-2 md:p-4 text-right">Qty</th>
-                <th className="p-2 md:p-4 text-right">Rate</th>
-                <th className="p-2 md:p-4 text-right">Amount</th>
-                <th className="p-1 md:p-2 text-center w-8"></th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Barcode</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item Name</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-white divide-y divide-gray-200">
               {items.map((item, index) => (
-                <tr key={item.id} className="border-b">
-                  <td className="p-2 md:p-4 text-neutral-500">{index + 1}</td>
-                  <td className="p-2 md:p-4">
-                    <div className="relative">
-                      <FaMagnifyingGlass className="absolute left-1 top-1/2 -translate-y-1/2 text-neutral-400 text-xs" />
-                      <input
-                        type="text"
-                        placeholder="Search item or scan barcode..."
-                        value={item.name}
-                        onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                        className="w-full bg-transparent focus:outline-none focus:bg-neutral-100 rounded pl-6 pr-1 py-1 text-xs md:text-sm"
-                      />
-                    </div>
-                  </td>
-                  <td className="p-2 md:p-4">
-                    <input
-                      type="number"
-                      value={item.qty}
-                      onChange={(e) => updateItem(item.id, 'qty', e.target.value)}
-                      className="w-full bg-transparent text-right focus:outline-none focus:bg-neutral-100 rounded px-1 py-1 text-xs md:text-sm"
-                    />
-                  </td>
-                  <td className="p-2 md:p-4">
-                    <input
-                      type="number"
-                      value={item.rate}
-                      onChange={(e) => updateItem(item.id, 'rate', e.target.value)}
-                      className="w-full bg-transparent text-right focus:outline-none focus:bg-neutral-100 rounded px-1 py-1 text-xs md:text-sm"
-                    />
-                  </td>
-                  <td className="p-2 md:p-4 text-right text-neutral-900">{item.amount}</td>
-                  <td className="p-1 md:p-2 text-center">
-                    <button 
-                      onClick={() => removeItem(item.id)}
-                      disabled={items.length === 1}
-                      className={`text-xs ${items.length === 1 ? 'text-neutral-300 cursor-not-allowed' : 'text-neutral-400 hover:text-neutral-600'}`}
-                    >
-                      <FaTrashCan />
-                    </button>
-                  </td>
-                </tr>
+                <ItemRow
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  onUpdate={updateItem}
+                  onDelete={deleteItem}
+                  onNext={handleNextRow}
+                  isActive={activeRow === index}
+                  firmType={selectedFirm?.type}
+                />
               ))}
             </tbody>
           </table>
         </div>
+      </div>
 
-        <div className="p-2 md:p-3 border-b">
-          <button 
-            onClick={addItem}
-            className="px-3 py-1 text-xs md:text-sm border border-dashed border-neutral-400 text-neutral-600 rounded-md hover:bg-neutral-100 flex items-center gap-2"
-          >
-            <FaPlus className="text-xs" />
-            Add Item
-          </button>
-        </div>
-
-        {/* Footer */}
-        <div className="p-3 md:p-4 flex justify-between items-center">
-          <div>
-            <label className="block text-xs text-neutral-600 mb-1">Remarks</label>
-            <input
-              type="text"
-              placeholder="Delivery notes..."
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              className="w-64 text-xs md:text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
-            />
+      {/* Footer */}
+      <div className="bg-white p-6 rounded-lg border">
+        <div className="flex justify-between items-center">
+          <div className="text-lg font-medium">
+            Total Amount: {formatCurrency(totalAmount)}
           </div>
-          <div className="text-right">
-            <p className="text-sm md:text-base text-neutral-900">Total: ₹{getTotalAmount()}</p>
-            <p className="text-xs text-neutral-500">{items.length} item(s)</p>
+          
+          <div className="flex gap-3">
+            <button
+              onClick={handleCancel}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              <FaTimes className="text-xs" />
+              Cancel
+            </button>
+            
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              <FaSave className="text-xs" />
+              Save
+            </button>
+            
+            <button
+              onClick={handleApprove}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+            >
+              <FaCheck className="text-xs" />
+              Approve
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="flex gap-3 mt-4 md:mt-6">
-        <button 
-          onClick={handleSave}
-          disabled={!customer || items.every(item => !item.name)}
-          className={`px-4 py-2 text-xs md:text-sm rounded-md flex items-center gap-2 ${
-            customer && items.some(item => item.name)
-              ? 'bg-neutral-900 text-white hover:bg-neutral-800'
-              : 'bg-neutral-400 text-white cursor-not-allowed'
-          }`}
-        >
-          <FaFloppyDisk />
-          Save Challan
-        </button>
-        <Link to="/transactions" className="px-4 py-2 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50">
-          Cancel
-        </Link>
+      {/* Keyboard Shortcuts Help */}
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <h4 className="font-medium text-blue-900 mb-2">Keyboard Shortcuts</h4>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm text-blue-800">
+          <div><kbd className="bg-white px-2 py-1 rounded">Ctrl+S</kbd> Save</div>
+          <div><kbd className="bg-white px-2 py-1 rounded">Ctrl+Enter</kbd> Approve</div>
+          <div><kbd className="bg-white px-2 py-1 rounded">F9</kbd> Add Row</div>
+          <div><kbd className="bg-white px-2 py-1 rounded">Enter</kbd> Next Field</div>
+          <div><kbd className="bg-white px-2 py-1 rounded">Esc</kbd> Cancel</div>
+        </div>
       </div>
     </div>
   );

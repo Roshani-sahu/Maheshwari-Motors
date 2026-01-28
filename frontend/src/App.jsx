@@ -1,5 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AppProvider } from "./contexts/AppContext";
+import { Toast, ConfirmDialog, LoadingOverlay } from "./components/GlobalComponents";
 
 import Layout from "./components/Layout";
 
@@ -37,13 +39,14 @@ import UniversalReport from "./pages/UniversalReport.jsx";
 
 const App = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+    <AppProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Default redirect */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* ERP Layout */}
-          <Route element={<Layout />}>
+          {/* ERP Layout */}
+            <Route element={<Layout />}>
        
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/add-company" element={<AddCompany />} />
@@ -82,7 +85,13 @@ const App = () => {
         {/* Fallback */}
         <Route path="*" element={<div className="p-10">404 – Page Not Found</div>} />
       </Routes>
+      
+      {/* Global Components */}
+      <Toast />
+      <ConfirmDialog />
+      <LoadingOverlay />
     </BrowserRouter>
+    </AppProvider>
   );
 };
 

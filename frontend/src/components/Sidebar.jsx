@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   FaBookOpen,
@@ -14,7 +14,37 @@ import {
   FaUserShield,
   FaClockRotateLeft,
   FaWallet,
+  FaChevronDown,
+  FaChevronRight,
+  FaUsers,
+  // FaBoxes,
+  // FaMapMarkerAlt,
+  // FaBarcode,
+  FaReceipt,
+  FaMoneyBillWave,
+  // FaFileAlt
 } from "react-icons/fa6";
+
+const SidebarSection = ({ title, children, defaultOpen = false }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  return (
+    <div className="mb-2">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 text-sm text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900 rounded-md transition"
+      >
+        <span className="font-medium">{title}</span>
+        {isOpen ? <FaChevronDown className="w-3 h-3" /> : <FaChevronRight className="w-3 h-3" />}
+      </button>
+      {isOpen && (
+        <div className="ml-4 mt-1 space-y-1">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Sidebar = ({ onClose }) => {
   const linkBase =
@@ -52,137 +82,152 @@ const Sidebar = ({ onClose }) => {
             </NavLink>
           </li>
 
-          <li>
+          {/* Masters Section */}
+          <SidebarSection title="Masters" defaultOpen={true}>
             <NavLink
               to="/add-company"
-               onClick={onClose}
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaBuilding className="w-4 h-4" />
-              Add Company
+              Firm Setup
             </NavLink>
-          </li>
+            
+            <NavLink
+              to="/account-master"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaUsers className="w-4 h-4" />
+              Account Master
+            </NavLink>
+            
+            <NavLink
+              to="/item-master"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaUsers className="w-4 h-4" />
+              Item Master
+            </NavLink>
+            
+            <NavLink
+              to="/masters"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaDatabase className="w-4 h-4" />
+              General Masters
+            </NavLink>
+          </SidebarSection>
 
-          <li>
+          {/* Transactions Section */}
+          <SidebarSection title="Transactions" defaultOpen={true}>
             <NavLink
               to="/generate-challan"
-               onClick={onClose}
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaFileInvoiceDollar className="w-4 h-4" />
-              Generate Challan
+              Challan Entry
             </NavLink>
-          </li>
-
-          <li>
+            
             <NavLink
               to="/challan-list"
-               onClick={onClose}
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaListCheck className="w-4 h-4" />
               Challan List
             </NavLink>
-          </li>
-
-          <li>
+            
             <NavLink
-              to="/generate-bill"
-               onClick={onClose}
+              to="/challan-posting"
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaFileInvoiceDollar className="w-4 h-4" />
-              Generate Bill
+              <FaReceipt className="w-4 h-4" />
+              Challan → Bill
             </NavLink>
-          </li>
-
-          <li>
+            
             <NavLink
-              to="/masters"
-               onClick={onClose}
+              to="/sale-entry"
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaDatabase className="w-4 h-4" />
-              Masters
+              <FaMoneyBillWave className="w-4 h-4" />
+              Sale Entry
             </NavLink>
-          </li>
-
-          <li>
-            <NavLink
-              to="/payment-status"
-               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaWallet className="w-4 h-4" />
-              Payments
-            </NavLink>
-          </li>
-
-          <li>
+            
             <NavLink
               to="/transactions"
-               onClick={onClose}
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaRightLeft className="w-4 h-4" />
-              Transactions
+              Purchase Entry
             </NavLink>
-          </li>
+            
+            <NavLink
+              to="/payment-status"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaWallet className="w-4 h-4" />
+              Payment Entry
+            </NavLink>
+          </SidebarSection>
 
-          <li>
+          {/* Reports Section */}
+          <SidebarSection title="Reports">
             <NavLink
               to="/universal-reports"
-               onClick={onClose}
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaChartPie className="w-4 h-4" />
-              Universal Reports
+              Business Reports
             </NavLink>
-          </li>
-
-          <li>
+            
             <NavLink
               to="/inventory-reports"
-               onClick={onClose}
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaChartPie className="w-4 h-4" />
               Inventory Reports
             </NavLink>
-          </li>
+          </SidebarSection>
 
-          <li>
+          {/* Setup & Tools Section */}
+          <SidebarSection title="Setup & Tools">
             <NavLink
               to="/user-rights"
-               onClick={onClose}
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaUserShield className="w-4 h-4" />
               User Rights
             </NavLink>
-          </li>
-
-          <li>
+            
             <NavLink
               to="/audit-logs"
-               onClick={onClose}
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaClockRotateLeft className="w-4 h-4" />
               Audit Logs
             </NavLink>
-          </li>
-
-          <li>
+            
             <NavLink
               to="/settings"
-               onClick={onClose}
+              onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaSliders className="w-4 h-4" />
               Settings
             </NavLink>
-          </li>
+          </SidebarSection>
         </ul>
       </nav>
 

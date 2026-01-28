@@ -1,226 +1,388 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import {
-  FaPlus,
-  FaUser,
-  FaCalendarDays,
-  FaFilter,
-  FaChevronDown,
-  FaChevronLeft,
-  FaChevronRight,
-} from "react-icons/fa6";
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FaFileInvoiceDollar, FaCheck, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
+import { DataTable, Button, Select, FormField } from '../ui';
+import { useApp } from '../../contexts/AppContext';
+import { formatCurrency, formatDate, calculateGST, generateInvoiceNumber } from '../../utils';
 
 const ChallanBillPosting = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { state, actions } = useApp();
+  const { selectedFirm } = state;
+  
+  const [selectedFirm2, setSelectedFirm2] = useState(selectedFirm?.id || '');
+  const [selectedParty, setSelectedParty] = useState('');
+  const [availableChallans, setAvailableChallans] = useState([]);
+  const [selectedChallans, setSelectedChallans] = useState([]);
+  const [billPreview, setBillPreview] = useState(null);
+
+  // Mock data
+  const [parties] = useState([
+    { id: 1, name: 'ABC Motors', type: 'Customer', gstNo: '27ABCDE1234F1Z5' },
+    { id: 2, name: 'XYZ Parts', type: 'Customer', gstNo: '' },
+    { id: 3, name: 'PQR Garage', type: 'Customer', gstNo: '27PQRST5678G2A1' }
+  ]);
+
+  const [mockChallans] = useState([
+    {
+      id: 1,
+      challanNo: 'CH001',
+      date: '2025-01-15',
+      party: 'ABC Motors',
+      items: [
+        { name: 'Engine Oil 5W-30', quantity: 2, rate: 450, amount: 900 },
+        { name: 'Air Filter', quantity: 1, rate: 350, amount: 350 }
+      ],
+      totalAmount: 1250,
+      status: 'Approved',
+      firmId: 2
+    },
+    {
+      id: 2,
+      challanNo: 'CH002',
+      date: '2025-01-15',
+      party: 'ABC Motors',
+      items: [
+        { name: 'Brake Pad Set', quantity: 1, rate: 1200, amount: 1200 }
+      ],
+      totalAmount: 1200,
+      status: 'Approved',
+      firmId: 2
+    },
+    {
+      id: 3,
+      challanNo: 'CH004',
+      date: '2025-01-14',
+      party: 'XYZ Parts',
+      items: [
+        { name: 'Spark Plug Set', quantity: 4, rate: 150, amount: 600 }
+      ],
+      totalAmount: 600,
+      status: 'Approved',
+      firmId: 1
+    }
+  ]);
+
+  useEffect(() => {
+    // Load pre-selected challans from navigation state
+    if (location.state?.selectedChallans) {
+      setSelectedChallans(location.state.selectedChallans);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    // Filter available challans based on firm and party
+    let filtered = mockChallans.filter(challan => 
+      challan.status === 'Approved' &&
+      challan.firmId === parseInt(selectedFirm2)
+    );
+
+    if (selectedParty) {
+      filtered = filtered.filter(challan => challan.party === selectedParty);
+    }
+
+    setAvailableChallans(filtered);
+  }, [selectedFirm2, selectedParty, mockChallans]);
+
+  useEffect(() => {
+    // Generate bill preview when challans are selected
+    if (selectedChallans.length > 0) {
+      generateBillPreview();
+    } else {
+      setBillPreview(null);
+    }
+  }, [selectedChallans, selectedFirm2]);
+
+  const generateBillPreview = () => {
+    const party = parties.find(p => p.name === selectedChallans[0]?.party);
+    const firm = state.firms.find(f => f.id === parseInt(selectedFirm2));
+    
+    if (!party || !firm) return;
+
+    // Combine all items from selected challans
+    const allItems = selectedChallans.flatMap(challan => 
+      challan.items.map(item => ({
+        ...item,
+        challanNo: challan.challanNo
+      }))
+    );
+
+    const subtotal = allItems.reduce((sum, item) => sum + item.amount, 0);
+    
+    let billData = {
+      billNo: generateInvoiceNumber(firm.name.substring(0, 3).toUpperCase(), 'B', 1),
+      date: formatDate(new Date()),
+      party: party.name,
+      partyGst: party.gstNo,
+      firm: firm.name,
+      firmType: firm.type,
+      items: allItems,
+      subtotal,
+      gstDetails: null,
+      total: subtotal
+    };
+
+    // Calculate GST if applicable
+    if (firm.type === 'GST' && party.gstNo) {
+      const gstCalc = calculateGST(subtotal);
+      billData.gstDetails = gstCalc;
+      billData.total = gstCalc.totalAmount;
+    }
+
+    setBillPreview(billData);
+  };
+
+  const handleFirmChange = (firmId) => {
+    setSelectedFirm2(firmId);
+    setSelectedParty('');
+    setSelectedChallans([]);
+  };
+
+  const handlePartyChange = (partyName) => {
+    setSelectedParty(partyName);
+    setSelectedChallans([]);
+  };
+
+  const handleGenerateBill = () => {
+    if (selectedChallans.length === 0) {
+      actions.showToast('Please select at least one challan', 'error');
+      return;
+    }
+
+    const firm = state.firms.find(f => f.id === parseInt(selectedFirm2));
+    const party = parties.find(p => p.name === selectedParty);
+
+    // Validation for GST/Non-GST mixing
+    if (firm?.type === 'GST' && !party?.gstNo) {
+      actions.showConfirm(
+        'This party does not have GST number. Generate Non-GST bill?',
+        () => {
+          proceedWithBillGeneration();
+        }
+      );
+      return;
+    }
+
+    proceedWithBillGeneration();
+  };
+
+  const proceedWithBillGeneration = () => {
+    // Mock bill generation
+    actions.showToast('Bill generated successfully!', 'success');
+    
+    // Navigate to bill view or list
+    setTimeout(() => {
+      navigate('/universal-reports');
+    }, 1500);
+  };
+
+  const challanColumns = [
+    {
+      key: 'challanNo',
+      label: 'Challan No.'
+    },
+    {
+      key: 'date',
+      label: 'Date',
+      render: (value) => formatDate(value)
+    },
+    {
+      key: 'items',
+      label: 'Items',
+      render: (items) => `${items.length} items`
+    },
+    {
+      key: 'totalAmount',
+      label: 'Amount',
+      render: (value) => formatCurrency(value)
+    }
+  ];
+
+  const selectedPartyData = parties.find(p => p.name === selectedParty);
+  const selectedFirmData = state.firms.find(f => f.id === parseInt(selectedFirm2));
+
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6 gap-3">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl md:text-2xl text-neutral-900">Challan to Bill Posting</h1>
-          <p className="text-xs md:text-sm text-neutral-500">
-            Select pending challans to consolidate and generate a single bill.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Challan to Bill Posting</h1>
+          <p className="text-gray-600">Convert approved challans to bills</p>
         </div>
-        <button className="px-3 md:px-4 py-2 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50 flex items-center gap-2">
-          <FaPlus className="text-xs" />
-          New Challan
-        </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4 md:gap-6 items-start">
-        {/* Challan List Section */}
-        <div className="w-full lg:w-2/3 bg-white border border-neutral-200 rounded-lg">
-          {/* Filters */}
-          <div className="p-3 md:p-4 border-b border-neutral-200 flex flex-col sm:flex-row items-start sm:items-end gap-3 sm:gap-4">
-            <div className="flex-1 w-full sm:w-auto">
-              <label htmlFor="party-filter" className="block text-xs text-neutral-600 mb-1">
-                Party
-              </label>
-              <div className="relative">
-                <FaUser className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs" />
-                <input
-                  type="text"
-                  id="party-filter"
-                  defaultValue="Creative Designs LLC"
-                  className="w-full text-xs md:text-sm border border-neutral-300 rounded-md pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
-                />
-              </div>
-            </div>
-            <div className="flex-1 w-full sm:w-auto">
-              <label htmlFor="date-range-filter" className="block text-xs text-neutral-600 mb-1">
-                Date Range
-              </label>
-              <div className="relative">
-                <FaCalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs" />
-                <input
-                  type="text"
-                  id="date-range-filter"
-                  defaultValue="01 Jan 2025 - 24 Jan 2025"
-                  className="w-full text-xs md:text-sm border border-neutral-300 rounded-md pl-8 pr-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
-                />
-              </div>
-            </div>
-            <div className="flex items-end h-full">
-              <button className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50 h-[34px] flex items-center gap-2">
-                <FaFilter className="text-xs" />
-                Filter
-              </button>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs md:text-sm min-w-[600px]">
-              <thead className="bg-neutral-50">
-                <tr>
-                  <th className="p-2 md:p-4 text-left w-8">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
-                    />
-                  </th>
-                  <th className="p-2 md:p-4 text-left text-neutral-600">Challan No.</th>
-                  <th className="p-2 md:p-4 text-left text-neutral-600">Date</th>
-                  <th className="p-2 md:p-4 text-right text-neutral-600">Items</th>
-                  <th className="p-2 md:p-4 text-right text-neutral-600">Amount</th>
-                  <th className="p-2 md:p-4 text-center text-neutral-600">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { checked: true, challan: "C-0054", date: "15 Jan 2025", items: "2", amount: "4,275.00", status: "Pending", disabled: false },
-                  { checked: false, challan: "C-0058", date: "18 Jan 2025", items: "1", amount: "5,536.50", status: "Pending", disabled: false },
-                  { checked: false, challan: "C-0049", date: "10 Jan 2025", items: "3", amount: "8,120.00", status: "Billed", disabled: true },
-                  { checked: true, challan: "C-0061", date: "22 Jan 2025", items: "5", amount: "11,350.00", status: "Pending", disabled: false },
-                ].map((row, i) => (
-                  <tr key={i} className="border-b border-neutral-200 hover:bg-neutral-50">
-                    <td className="p-2 md:p-4">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
-                        defaultChecked={row.checked}
-                        disabled={row.disabled}
-                      />
-                    </td>
-                    <td className={`p-2 md:p-4 ${row.disabled ? 'text-neutral-400' : 'text-neutral-800'}`}>
-                      {row.challan}
-                    </td>
-                    <td className={`p-2 md:p-4 ${row.disabled ? 'text-neutral-400' : 'text-neutral-600'}`}>
-                      {row.date}
-                    </td>
-                    <td className={`p-2 md:p-4 text-right ${row.disabled ? 'text-neutral-400' : 'text-neutral-600'}`}>
-                      {row.items}
-                    </td>
-                    <td className={`p-2 md:p-4 text-right ${row.disabled ? 'text-neutral-400' : 'text-neutral-900'}`}>
-                      {row.amount}
-                    </td>
-                    <td className="p-2 md:p-4 text-center">
-                      <span className="px-2 py-0.5 text-xs bg-neutral-100 text-neutral-800 rounded-full">
-                        {row.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Footer */}
-          <div className="p-3 md:p-4 flex flex-col sm:flex-row justify-between items-center text-xs md:text-sm text-neutral-600 gap-2">
-            <span>Showing 1-4 of 12 pending challans</span>
-            <div className="flex items-center gap-2">
-              <button className="px-2 py-1 border border-neutral-300 rounded-md hover:bg-neutral-100">
-                <FaChevronLeft className="text-xs" />
-              </button>
-              <span className="px-2">Page 1 of 3</span>
-              <button className="px-2 py-1 border border-neutral-300 rounded-md hover:bg-neutral-100">
-                <FaChevronRight className="text-xs" />
-              </button>
-            </div>
-          </div>
+      {/* Selection Form */}
+      <div className="bg-white p-6 rounded-lg border">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField label="Select Firm" required>
+            <Select
+              value={selectedFirm2}
+              onChange={handleFirmChange}
+              options={state.firms.map(firm => ({
+                value: firm.id.toString(),
+                label: `${firm.name} (${firm.type})`
+              }))}
+              placeholder="Select Firm"
+            />
+          </FormField>
+          
+          <FormField label="Select Party" required>
+            <Select
+              value={selectedParty}
+              onChange={handlePartyChange}
+              options={parties.map(party => ({
+                value: party.name,
+                label: `${party.name} ${party.gstNo ? '(GST)' : '(Non-GST)'}`
+              }))}
+              placeholder="Select Party"
+              disabled={!selectedFirm2}
+            />
+          </FormField>
         </div>
 
-        {/* Posting Summary Section */}
-        <div className="w-full lg:w-1/3 bg-white border border-neutral-200 rounded-lg lg:sticky lg:top-6">
-          {/* Header */}
-          <div className="p-3 md:p-4 border-b border-neutral-200">
-            <h2 className="text-base md:text-lg text-neutral-900">Posting Summary</h2>
-            <p className="text-xs md:text-sm text-neutral-500">3 challans selected</p>
-          </div>
-
-          {/* Details */}
-          <div className="p-3 md:p-4 space-y-4">
-            <div>
-              <label htmlFor="bill-date" className="block text-xs text-neutral-600 mb-1">
-                Bill Date
-              </label>
-              <input
-                type="text"
-                id="bill-date"
-                defaultValue="24 Jan 2025"
-                className="w-full text-xs md:text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-neutral-800"
-              />
+        {/* GST Warning */}
+        {selectedFirmData?.type === 'GST' && selectedPartyData && !selectedPartyData.gstNo && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <div className="flex items-center gap-2">
+              <FaExclamationTriangle className="text-yellow-600" />
+              <span className="text-sm text-yellow-800">
+                Warning: GST firm selected but party has no GST number. Bill will be generated as Non-GST.
+              </span>
             </div>
-            <div>
-              <label htmlFor="bill-type" className="block text-xs text-neutral-600 mb-1">
-                Bill Type
-              </label>
-              <div className="relative">
-                <select
-                  id="bill-type"
-                  className="w-full text-xs md:text-sm border border-neutral-300 rounded-md px-3 py-1.5 appearance-none focus:outline-none focus:ring-2 focus:ring-neutral-800"
-                >
-                  <option>GST Bill</option>
-                  <option>Non-GST Bill</option>
-                </select>
-                <FaChevronDown className="text-xs text-neutral-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        )}
+      </div>
+
+      {/* Available Challans */}
+      {selectedParty && (
+        <div className="bg-white rounded-lg border">
+          <div className="p-4 border-b">
+            <h3 className="font-medium text-gray-900">
+              Available Challans for {selectedParty}
+            </h3>
+          </div>
+          
+          {availableChallans.length > 0 ? (
+            <DataTable
+              data={availableChallans}
+              columns={challanColumns}
+              selectable={true}
+              onSelectionChange={setSelectedChallans}
+              className="border-0"
+            />
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              No approved challans found for the selected party and firm.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bill Preview */}
+      {billPreview && (
+        <div className="bg-white rounded-lg border">
+          <div className="p-4 border-b">
+            <h3 className="font-medium text-gray-900">Bill Preview</h3>
+          </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Bill Details</h4>
+                <p className="text-sm text-gray-600">Bill No: {billPreview.billNo}</p>
+                <p className="text-sm text-gray-600">Date: {billPreview.date}</p>
+                <p className="text-sm text-gray-600">Firm: {billPreview.firm} ({billPreview.firmType})</p>
+              </div>
+              
+              <div>
+                <h4 className="font-medium text-gray-900 mb-2">Party Details</h4>
+                <p className="text-sm text-gray-600">Name: {billPreview.party}</p>
+                <p className="text-sm text-gray-600">
+                  GST: {billPreview.partyGst || 'Not Available'}
+                </p>
+              </div>
+            </div>
+
+            {/* Items */}
+            <div className="mb-6">
+              <h4 className="font-medium text-gray-900 mb-3">Items</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Item</th>
+                      <th className="px-3 py-2 text-left">Challan</th>
+                      <th className="px-3 py-2 text-right">Qty</th>
+                      <th className="px-3 py-2 text-right">Rate</th>
+                      <th className="px-3 py-2 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {billPreview.items.map((item, index) => (
+                      <tr key={index}>
+                        <td className="px-3 py-2">{item.name}</td>
+                        <td className="px-3 py-2 text-gray-600">{item.challanNo}</td>
+                        <td className="px-3 py-2 text-right">{item.quantity}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(item.rate)}</td>
+                        <td className="px-3 py-2 text-right">{formatCurrency(item.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
 
             {/* Totals */}
-            <div className="space-y-2 text-xs md:text-sm pt-2">
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-600">Total Items</span>
-                <span className="text-neutral-900">8</span>
+            <div className="border-t pt-4">
+              <div className="flex justify-end">
+                <div className="w-64">
+                  <div className="flex justify-between py-1">
+                    <span className="text-sm text-gray-600">Subtotal:</span>
+                    <span className="text-sm font-medium">{formatCurrency(billPreview.subtotal)}</span>
+                  </div>
+                  
+                  {billPreview.gstDetails && (
+                    <>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-gray-600">CGST (9%):</span>
+                        <span className="text-sm">{formatCurrency(billPreview.gstDetails.cgst)}</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-sm text-gray-600">SGST (9%):</span>
+                        <span className="text-sm">{formatCurrency(billPreview.gstDetails.sgst)}</span>
+                      </div>
+                    </>
+                  )}
+                  
+                  <div className="flex justify-between py-2 border-t font-medium">
+                    <span>Total:</span>
+                    <span>{formatCurrency(billPreview.total)}</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-600">Subtotal</span>
-                <span className="text-neutral-900">₹21,161.50</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-600">Total Tax (Est.)</span>
-                <span className="text-neutral-900">₹4,512.70</span>
-              </div>
-              <div className="flex justify-between items-center border-t-2 border-neutral-900 mt-2 pt-2">
-                <span className="text-sm md:text-base text-neutral-900">Grand Total</span>
-                <span className="text-sm md:text-base text-neutral-900">₹25,674.20</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="p-3 md:p-4 border-t border-neutral-200">
-            <button className="w-full px-4 py-2 text-xs md:text-sm bg-neutral-900 text-white rounded-md hover:bg-neutral-800">
-              <Link to="/transactions">Generate & Post Bill</Link>
-            </button>
-            <button className="w-full mt-2 text-center text-xs md:text-sm text-neutral-600 hover:text-neutral-900">
-              Preview Bill
-            </button>
-          </div>
-
-          {/* Audit Trail */}
-          <div className="p-3 md:p-4 border-t border-neutral-200">
-            <h3 className="text-xs md:text-sm text-neutral-800 mb-2">Audit Trail</h3>
-            <div className="text-xs text-neutral-500 space-y-1">
-              <p>
-                <span className="text-neutral-700">Last Billed:</span> C-0049 on 11 Jan 2025
-              </p>
-              <p>
-                <span className="text-neutral-700">Last Viewed:</span> by Admin on 23 Jan 2025
-              </p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex justify-end gap-3">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/challan-list')}
+        >
+          <FaTimes className="mr-2 text-xs" />
+          Cancel
+        </Button>
+        
+        <Button
+          onClick={handleGenerateBill}
+          disabled={selectedChallans.length === 0}
+        >
+          <FaFileInvoiceDollar className="mr-2 text-xs" />
+          Generate Bill
+        </Button>
       </div>
     </div>
   );

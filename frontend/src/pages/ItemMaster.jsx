@@ -1,149 +1,382 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { FaPlus, FaMagnifyingGlass, FaPencil, FaFilter, FaEye, FaTrashCan } from "react-icons/fa6";
+import React, { useState, useEffect, useRef } from 'react';
+import { FaEdit, FaSave, FaTimes, FaPlus, FaDownload, FaUpload, FaSearch, FaBarcode } from 'react-icons/fa';
+import { useApp } from '../contexts/AppContext';
+import { useKeyboard } from '../hooks';
+import { formatCurrency } from '../utils';
 
-const ItemMaster = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+const EditableCell = ({ 
+  value, 
+  onSave, 
+  type = 'text', 
+  options = [], 
+  isEditing, 
+  onEdit, 
+  onCancel,
+  className = "" 
+}) => {
+  const [editValue, setEditValue] = useState(value);
+  const inputRef = useRef(null);
 
-  const items = [
-    { name: "Engine Oil 5L", code: "EO-5L-001", hsn: "2710", unit: "Ltr", gst: "18", purchase: "450.00", sale: "550.00", stock: "15" },
-    { name: "Air Filter A-21", code: "AF-A21-002", hsn: "8421", unit: "Pcs", gst: "18", purchase: "320.00", sale: "400.00", stock: "8" },
-    { name: "Brake Pad Set", code: "BP-SET-003", hsn: "8708", unit: "Set", gst: "28", purchase: "1200.00", sale: "1500.00", stock: "2" },
-    { name: "Spark Plug (4-pack)", code: "SP-4P-004", hsn: "8511", unit: "Pack", gst: "18", purchase: "180.00", sale: "220.00", stock: "50" },
-    { name: "Coolant 1L", code: "CL-1L-005", hsn: "3820", unit: "Ltr", gst: "18", purchase: "250.00", sale: "300.00", stock: "25" },
-  ];
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
 
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.hsn.includes(searchTerm);
-    return matchesSearch;
-  });
-
-  const handleView = (itemName) => {
-    alert(`Viewing details for: ${itemName}`);
+  const handleSave = () => {
+    onSave(editValue);
+    onCancel();
   };
 
-  const handleEdit = (itemName) => {
-    alert(`Editing: ${itemName}`);
-  };
-
-  const handleDelete = (itemName) => {
-    if (window.confirm(`Are you sure you want to delete ${itemName}?`)) {
-      alert(`Deleted: ${itemName}`);
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setEditValue(value);
+      onCancel();
     }
   };
+
+  if (isEditing) {
+    if (type === 'select') {
+      return (
+        <select
+          ref={inputRef}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          className="w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          {options.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      );
+    }
+
+    return (
+      <input
+        ref={inputRef}
+        type={type}
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onBlur={handleSave}
+        onKeyDown={handleKeyDown}
+        className="w-full px-2 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+      />
+    );
+  }
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4 md:mb-6">
+    <div 
+      className={`cursor-pointer hover:bg-gray-50 px-2 py-1 rounded ${className}`}
+      onClick={onEdit}
+    >
+      {type === 'currency' ? formatCurrency(value) : value || '-'}
+    </div>
+  );
+};
+
+const ItemMaster = () => {
+  const { state, actions } = useApp();
+  const { selectedFirm } = state;
+  
+  const [items, setItems] = useState([
+    {
+      id: 1,
+      name: 'Engine Oil 5W-30',
+      alias: 'EO530',
+      barcode: '1234567890123',
+      gstCode: '27101980',
+      nonGstCode: 'OIL001',
+      unit: 'Ltr',
+      rate: 450,
+      stock: 25,
+      reorderLevel: 10
+    },
+    {
+      id: 2,
+      name: 'Brake Pad Set',
+      alias: 'BPS001',
+      barcode: '1234567890124',
+      gstCode: '87083010',
+      nonGstCode: 'BRK001',
+      unit: 'Set',
+      rate: 1200,
+      stock: 8,
+      reorderLevel: 5
+    }
+  ]);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [editingCell, setEditingCell] = useState(null);
+  const [fastEditMode, setFastEditMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const filteredItems = items.filter(item =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.barcode.includes(searchTerm)
+  );
+
+  // Keyboard shortcuts
+  useKeyboard({
+    'ctrl+n': () => setShowAddForm(true),
+    'ctrl+f': () => document.getElementById('search-input')?.focus(),
+    'f2': () => setFastEditMode(!fastEditMode),
+    'escape': () => {
+      setEditingCell(null);
+      setShowAddForm(false);
+    }
+  });
+
+  const handleCellEdit = (itemId, field) => {
+    setEditingCell({ itemId, field });
+  };
+
+  const handleCellSave = (itemId, field, value) => {
+    setItems(prev => prev.map(item => 
+      item.id === itemId ? { ...item, [field]: value } : item
+    ));
+    actions.showToast('Item updated successfully', 'success');
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedItems.size === 0) return;
+    
+    actions.showConfirm(
+      `Delete ${selectedItems.size} selected items?`,
+      () => {
+        setItems(prev => prev.filter(item => !selectedItems.has(item.id)));
+        setSelectedItems(new Set());
+        actions.showToast('Items deleted successfully', 'success');
+      }
+    );
+  };
+
+  const handleImport = () => {
+    // Mock import functionality
+    actions.showToast('Import functionality will be implemented', 'info');
+  };
+
+  const handleExport = () => {
+    // Mock export functionality
+    const csvContent = [
+      ['Name', 'Alias', 'Barcode', 'GST Code', 'Non-GST Code', 'Unit', 'Rate', 'Stock', 'Reorder Level'],
+      ...filteredItems.map(item => [
+        item.name, item.alias, item.barcode, item.gstCode, item.nonGstCode,
+        item.unit, item.rate, item.stock, item.reorderLevel
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'items.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    actions.showToast('Items exported successfully', 'success');
+  };
+
+  const columns = [
+    { key: 'name', label: 'Item Name', editable: true },
+    { key: 'alias', label: 'Alias', editable: true },
+    { key: 'barcode', label: 'Barcode', editable: true },
+    { key: 'gstCode', label: 'GST Code', editable: true },
+    { key: 'nonGstCode', label: 'Non-GST Code', editable: true },
+    { key: 'unit', label: 'Unit', editable: true, type: 'select', options: [
+      { value: 'Pcs', label: 'Pieces' },
+      { value: 'Ltr', label: 'Liters' },
+      { value: 'Kg', label: 'Kilograms' },
+      { value: 'Set', label: 'Set' }
+    ]},
+    { key: 'rate', label: 'Rate', editable: true, type: 'number' },
+    { key: 'stock', label: 'Stock', editable: true, type: 'number' },
+    { key: 'reorderLevel', label: 'Reorder Level', editable: true, type: 'number' }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl md:text-2xl text-neutral-900">Item Master</h1>
-          <p className="text-xs md:text-sm text-neutral-500">
-            Manage inventory items, rates, and stock settings
+          <h1 className="text-2xl font-bold text-gray-900">Item Master</h1>
+          <p className="text-gray-600">
+            Manage your inventory items for {selectedFirm?.name}
           </p>
         </div>
-        <Link to="/add-item" className="px-3 md:px-4 py-2 text-xs md:text-sm bg-neutral-900 text-white rounded-md hover:bg-neutral-800 flex items-center gap-2">
-          <FaPlus />
-          Add Item
-        </Link>
-      </div>
-
-      {/* Search & Filters */}
-      <div className="bg-white p-3 md:p-4 border border-neutral-200 rounded-lg mb-4 md:mb-6">
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <div className="relative flex-1">
-            <FaMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs" />
-            <input
-              type="text"
-              placeholder="Search by name, code, HSN..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-800"
-            />
-          </div>
-          <select 
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md"
+        
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setFastEditMode(!fastEditMode)}
+            className={`px-3 py-2 text-sm rounded-md border ${
+              fastEditMode 
+                ? 'bg-green-100 text-green-800 border-green-300' 
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
           >
-            <option>All Categories</option>
-            <option>Auto Parts</option>
-            <option>Electronics</option>
-            <option>Hardware</option>
-          </select>
-          <button className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50 flex items-center gap-2">
-            <FaFilter />
-            Filter
+            Fast Edit {fastEditMode ? 'ON' : 'OFF'}
+          </button>
+          
+          <button
+            onClick={handleImport}
+            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            <FaUpload className="text-xs" />
+            Import
+          </button>
+          
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            <FaDownload className="text-xs" />
+            Export
+          </button>
+          
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+          >
+            <FaPlus className="text-xs" />
+            Add Item
           </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-neutral-200 rounded-lg">
+      {/* Search and Filters */}
+      <div className="bg-white p-4 rounded-lg border">
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-md">
+            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+            <input
+              id="search-input"
+              type="text"
+              placeholder="Search items by name, alias, or barcode..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          {selectedItems.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">
+                {selectedItems.size} selected
+              </span>
+              <button
+                onClick={handleBulkDelete}
+                className="px-3 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+              >
+                Delete Selected
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Items Table */}
+      <div className="bg-white rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs md:text-sm min-w-[900px]">
-            <thead className="bg-neutral-50">
+          <table className="w-full">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="p-2 md:p-4 text-left">Item Name</th>
-                <th className="p-2 md:p-4 text-left">Code/Barcode</th>
-                <th className="p-2 md:p-4 text-left">HSN</th>
-                <th className="p-2 md:p-4 text-left">Unit</th>
-                <th className="p-2 md:p-4 text-right">GST %</th>
-                <th className="p-2 md:p-4 text-right">Purchase Rate</th>
-                <th className="p-2 md:p-4 text-right">Sale Rate</th>
-                <th className="p-2 md:p-4 text-right">Stock</th>
-                <th className="p-2 md:p-4 text-center">Actions</th>
+                <th className="px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedItems(new Set(filteredItems.map(item => item.id)));
+                      } else {
+                        setSelectedItems(new Set());
+                      }
+                    }}
+                    checked={selectedItems.size === filteredItems.length && filteredItems.length > 0}
+                  />
+                </th>
+                {columns.map(col => (
+                  <th key={col.key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {col.label}
+                  </th>
+                ))}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
               </tr>
             </thead>
-            <tbody>
-              {filteredItems.length > 0 ? (
-                filteredItems.map((item, i) => (
-                  <tr key={i} className="border-b hover:bg-neutral-50">
-                    <td className="p-2 md:p-4 text-neutral-800">{item.name}</td>
-                    <td className="p-2 md:p-4 text-neutral-600">{item.code}</td>
-                    <td className="p-2 md:p-4 text-neutral-600">{item.hsn}</td>
-                    <td className="p-2 md:p-4 text-neutral-600">{item.unit}</td>
-                    <td className="p-2 md:p-4 text-right text-neutral-600">{item.gst}%</td>
-                    <td className="p-2 md:p-4 text-right text-neutral-600">₹{item.purchase}</td>
-                    <td className="p-2 md:p-4 text-right text-neutral-900">₹{item.sale}</td>
-                    <td className="p-2 md:p-4 text-right text-neutral-800">{item.stock}</td>
-                    <td className="p-2 md:p-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => handleView(item.name)}
-                          className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
-                          title="View"
-                        >
-                          <FaEye className="text-xs" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(item.name)}
-                          className="p-1 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded"
-                          title="Edit"
-                        >
-                          <FaPencil className="text-xs" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.name)}
-                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
-                          title="Delete"
-                        >
-                          <FaTrashCan className="text-xs" />
-                        </button>
-                      </div>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredItems.map((item) => (
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.has(item.id)}
+                      onChange={(e) => {
+                        const newSelected = new Set(selectedItems);
+                        if (e.target.checked) {
+                          newSelected.add(item.id);
+                        } else {
+                          newSelected.delete(item.id);
+                        }
+                        setSelectedItems(newSelected);
+                      }}
+                    />
+                  </td>
+                  {columns.map(col => (
+                    <td key={col.key} className="px-4 py-3 text-sm">
+                      {col.editable ? (
+                        <EditableCell
+                          value={item[col.key]}
+                          onSave={(value) => handleCellSave(item.id, col.key, value)}
+                          type={col.type}
+                          options={col.options}
+                          isEditing={editingCell?.itemId === item.id && editingCell?.field === col.key}
+                          onEdit={() => handleCellEdit(item.id, col.key)}
+                          onCancel={() => setEditingCell(null)}
+                          className={fastEditMode ? 'border border-dashed border-gray-300' : ''}
+                        />
+                      ) : (
+                        <span>{item[col.key]}</span>
+                      )}
                     </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="9" className="p-8 text-center text-neutral-500">
-                    No items found matching your search criteria.
+                  ))}
+                  <td className="px-4 py-3 text-sm">
+                    {item.stock <= item.reorderLevel ? (
+                      <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                        Low Stock
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                        In Stock
+                      </span>
+                    )}
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
+        </div>
+
+        {filteredItems.length === 0 && (
+          <div className="p-8 text-center text-gray-500">
+            {searchTerm ? 'No items found matching your search.' : 'No items found. Add your first item to get started.'}
+          </div>
+        )}
+      </div>
+
+      {/* Keyboard Shortcuts Help */}
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <h4 className="font-medium text-blue-900 mb-2">Keyboard Shortcuts</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-blue-800">
+          <div><kbd className="bg-white px-2 py-1 rounded">Ctrl+N</kbd> Add Item</div>
+          <div><kbd className="bg-white px-2 py-1 rounded">Ctrl+F</kbd> Search</div>
+          <div><kbd className="bg-white px-2 py-1 rounded">F2</kbd> Toggle Fast Edit</div>
+          <div><kbd className="bg-white px-2 py-1 rounded">Esc</kbd> Cancel</div>
         </div>
       </div>
     </div>
