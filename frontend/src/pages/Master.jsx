@@ -70,7 +70,7 @@ const Master = () => {
             >
               <FaPlus />
               <span>
-                <Link to="/masters/edit">Add New Account</Link>
+                <Link to="/masters/add-account">Add New Account</Link>
               </span>
             </button>
           </div>

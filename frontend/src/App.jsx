@@ -12,6 +12,9 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import CompanySelection from "./pages/CompanySelection";
 
+// Master Components
+import AddAccount from "./components/masterComp/AddAccount.jsx";
+
 // Transaction Components
 import SaleEntry from "./components/transtation/Sale Entry.jsx";
 import ChallanBillPosting from "./components/transtation/Challan & Bill Posting.jsx";
@@ -30,13 +33,16 @@ const App = () => {
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* ERP Layout */}
-        <Route element={<Layout />}>
+          <Route element={<Layout />}>
        
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/masters" element={<Master />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/universal-reports" element={<UniversalReport />} />
           <Route path="/inventory-reports" element={<InventoryReports />} />
+
+           {/* Master Routes */}
+           <Route path="/masters/add-account" element={<AddAccount />} />
           
           {/* Transaction Routes */}
           <Route path="/sale-entry" element={<SaleEntry />} />
