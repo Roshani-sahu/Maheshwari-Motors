@@ -1,8 +1,43 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { FaPlus, FaMagnifyingGlass, FaPencil, FaFilter, FaSort } from "react-icons/fa6";
+import { FaPlus, FaMagnifyingGlass, FaPencil, FaFilter, FaSort, FaEye, FaTrashCan } from "react-icons/fa6";
 
 const AccountMasterList = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGroup, setSelectedGroup] = useState('All Groups');
+  const [selectedGSTType, setSelectedGSTType] = useState('All GST Types');
+
+  const accounts = [
+    { name: "City Car Service", group: "Sundry Debtors", gstType: "GST Regular", gstin: "24AAFCE1234F1Z5", mobile: "9876543210", balance: "8,450.00 Dr", balanceType: "dr" },
+    { name: "Auto Parts Inc.", group: "Sundry Creditors", gstType: "GST Regular", gstin: "27BBFCE5678G2A6", mobile: "9876543211", balance: "25,000.00 Cr", balanceType: "cr" },
+    { name: "National Garage", group: "Sundry Debtors", gstType: "Unregistered", gstin: "-", mobile: "9876543212", balance: "5,000.00 Dr", balanceType: "dr" },
+    { name: "HDFC Bank", group: "Bank Accounts", gstType: "Not Applicable", gstin: "-", mobile: "-", balance: "2,50,000.00 Dr", balanceType: "dr" },
+    { name: "Cash Account", group: "Cash Accounts", gstType: "Not Applicable", gstin: "-", mobile: "-", balance: "15,890.75 Dr", balanceType: "dr" },
+    { name: "Speedy Spares Ltd.", group: "Sundry Creditors", gstType: "Composition", gstin: "29CCFCE9012H3B7", mobile: "9876543213", balance: "12,300.00 Cr", balanceType: "cr" },
+  ];
+
+  const filteredAccounts = accounts.filter(account => {
+    const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         account.gstin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         account.mobile.includes(searchTerm);
+    const matchesGroup = selectedGroup === 'All Groups' || account.group === selectedGroup;
+    const matchesGST = selectedGSTType === 'All GST Types' || account.gstType === selectedGSTType;
+    return matchesSearch && matchesGroup && matchesGST;
+  });
+
+  const handleView = (accountName) => {
+    alert(`Viewing details for: ${accountName}`);
+  };
+
+  const handleEdit = (accountName) => {
+    alert(`Editing: ${accountName}`);
+  };
+
+  const handleDelete = (accountName) => {
+    if (window.confirm(`Are you sure you want to delete ${accountName}?`)) {
+      alert(`Deleted: ${accountName}`);
+    }
+  };
   return (
     <div>
       <div className="flex justify-between items-center mb-4 md:mb-6">
@@ -26,21 +61,32 @@ const AccountMasterList = () => {
             <input
               type="text"
               placeholder="Search by name, GSTIN, mobile..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-800"
             />
           </div>
-          <select className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md">
+          <select 
+            value={selectedGroup}
+            onChange={(e) => setSelectedGroup(e.target.value)}
+            className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md"
+          >
             <option>All Groups</option>
             <option>Sundry Debtors</option>
             <option>Sundry Creditors</option>
             <option>Bank Accounts</option>
             <option>Cash Accounts</option>
           </select>
-          <select className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md">
+          <select 
+            value={selectedGSTType}
+            onChange={(e) => setSelectedGSTType(e.target.value)}
+            className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md"
+          >
             <option>All GST Types</option>
             <option>GST Regular</option>
             <option>Composition</option>
             <option>Unregistered</option>
+            <option>Not Applicable</option>
           </select>
           <button className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50 flex items-center gap-2">
             <FaFilter />
@@ -70,36 +116,57 @@ const AccountMasterList = () => {
               </tr>
             </thead>
             <tbody>
-              {[
-                { name: "City Car Service", group: "Sundry Debtors", gstType: "GST Regular", gstin: "24AAFCE1234F1Z5", mobile: "9876543210", balance: "8,450.00 Dr", balanceType: "dr" },
-                { name: "Auto Parts Inc.", group: "Sundry Creditors", gstType: "GST Regular", gstin: "27BBFCE5678G2A6", mobile: "9876543211", balance: "25,000.00 Cr", balanceType: "cr" },
-                { name: "National Garage", group: "Sundry Debtors", gstType: "Unregistered", gstin: "-", mobile: "9876543212", balance: "5,000.00 Dr", balanceType: "dr" },
-                { name: "HDFC Bank", group: "Bank Accounts", gstType: "Not Applicable", gstin: "-", mobile: "-", balance: "2,50,000.00 Dr", balanceType: "dr" },
-                { name: "Cash Account", group: "Cash Accounts", gstType: "Not Applicable", gstin: "-", mobile: "-", balance: "15,890.75 Dr", balanceType: "dr" },
-                { name: "Speedy Spares Ltd.", group: "Sundry Creditors", gstType: "Composition", gstin: "29CCFCE9012H3B7", mobile: "9876543213", balance: "12,300.00 Cr", balanceType: "cr" },
-              ].map((account, i) => (
-                <tr key={i} className="border-b hover:bg-neutral-50">
-                  <td className="p-2 md:p-4 text-neutral-800">{account.name}</td>
-                  <td className="p-2 md:p-4 text-neutral-600">{account.group}</td>
-                  <td className="p-2 md:p-4 text-neutral-600">{account.gstType}</td>
-                  <td className="p-2 md:p-4 text-neutral-600">{account.gstin}</td>
-                  <td className="p-2 md:p-4 text-neutral-600">{account.mobile}</td>
-                  <td className={`p-2 md:p-4 text-right ${account.balanceType === 'dr' ? 'text-red-600' : 'text-green-600'}`}>
-                    ₹{account.balance}
-                  </td>
-                  <td className="p-2 md:p-4 text-center">
-                    <button className="p-1 text-neutral-500 hover:text-neutral-900">
-                      <FaPencil className="text-xs" />
-                    </button>
+              {filteredAccounts.length > 0 ? (
+                filteredAccounts.map((account, i) => (
+                  <tr key={i} className="border-b hover:bg-neutral-50">
+                    <td className="p-2 md:p-4 text-neutral-800">{account.name}</td>
+                    <td className="p-2 md:p-4 text-neutral-600">{account.group}</td>
+                    <td className="p-2 md:p-4 text-neutral-600">{account.gstType}</td>
+                    <td className="p-2 md:p-4 text-neutral-600">{account.gstin}</td>
+                    <td className="p-2 md:p-4 text-neutral-600">{account.mobile}</td>
+                    <td className={`p-2 md:p-4 text-right ${account.balanceType === 'dr' ? 'text-red-600' : 'text-green-600'}`}>
+                      ₹{account.balance}
+                    </td>
+                    <td className="p-2 md:p-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleView(account.name)}
+                          className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
+                          title="View"
+                        >
+                          <FaEye className="text-xs" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(account.name)}
+                          className="p-1 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded"
+                          title="Edit"
+                        >
+                          <FaPencil className="text-xs" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(account.name)}
+                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                          title="Delete"
+                        >
+                          <FaTrashCan className="text-xs" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center text-neutral-500">
+                    No accounts found matching your search criteria.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
         
         <div className="p-3 border-t border-neutral-200 flex justify-between items-center text-xs md:text-sm text-neutral-600">
-          <span>Showing 1-6 of 42 accounts</span>
+          <span>Showing {filteredAccounts.length} of {accounts.length} accounts</span>
           <div className="flex gap-2">
             <button className="px-2 py-1 border border-neutral-300 rounded-md hover:bg-neutral-100">Previous</button>
             <button className="px-2 py-1 border border-neutral-300 rounded-md hover:bg-neutral-100">Next</button>

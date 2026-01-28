@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FaUsers,
@@ -10,9 +10,48 @@ import {
   FaArrowUp,
   FaSort,
   FaPencil,
+  FaEye,
+  FaTrashCan,
 } from "react-icons/fa6";
 
 const Master = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGroup, setSelectedGroup] = useState('All Groups');
+  const [selectedGSTType, setSelectedGSTType] = useState('All GST Types');
+
+  const accounts = [
+    ["City Car Service", "Sundry Debtors", "GST Regular", "8,450.00 Cr"],
+    ["Auto Parts Inc.", "Sundry Creditors", "GST Regular", "25,000.00 Dr"],
+    ["National Garage", "Sundry Debtors", "Unregistered", "5,000.00 Cr"],
+    ["Office Rent", "Indirect Expenses", "Not Applicable", "15,000.00 Dr"],
+    ["Speedy Spares Ltd.", "Sundry Creditors", "Composition", "0.00"],
+    ["Walk-in Customer", "Sundry Debtors", "Unregistered", "1,200.00 Cr"],
+    ["Bank of Baroda", "Bank Accounts", "Not Applicable", "2,50,000.00 Dr"],
+  ];
+
+  const filteredAccounts = accounts.filter(account => {
+    const matchesSearch = account[0].toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesGroup = selectedGroup === 'All Groups' || account[1] === selectedGroup;
+    const matchesGST = selectedGSTType === 'All GST Types' || account[2] === selectedGSTType;
+    return matchesSearch && matchesGroup && matchesGST;
+  });
+
+  const handleView = (accountName) => {
+    console.log('Viewing account:', accountName);
+    alert(`Viewing details for: ${accountName}`);
+  };
+
+  const handleEdit = (accountName) => {
+    console.log('Editing account:', accountName);
+    alert(`Editing: ${accountName}`);
+  };
+
+  const handleDelete = (accountName) => {
+    if (window.confirm(`Are you sure you want to delete ${accountName}?`)) {
+      console.log('Deleting account:', accountName);
+      alert(`Deleted: ${accountName}`);
+    }
+  };
   return (
     <>
       <div id="masters-header" className="mb-4 md:mb-6">
@@ -42,6 +81,40 @@ const Master = () => {
               <Link to="/item-master" className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50">
                 Item Master
               </Link>
+            </div>
+            <div className="relative w-full sm:w-72">
+              <FaMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search by name, code, GSTIN..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedGroup}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50"
+              >
+                <option>All Groups</option>
+                <option>Sundry Debtors</option>
+                <option>Sundry Creditors</option>
+                <option>Bank Accounts</option>
+                <option>Indirect Expenses</option>
+              </select>
+              <select
+                value={selectedGSTType}
+                onChange={(e) => setSelectedGSTType(e.target.value)}
+                className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50"
+              >
+                <option>All GST Types</option>
+                <option>GST Regular</option>
+                <option>Composition</option>
+                <option>Unregistered</option>
+                <option>Not Applicable</option>
+              </select>
             </div>
           </div>
           <div id="master-actions">
@@ -138,29 +211,47 @@ const Master = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {[
-                ["City Car Service", "Sundry Debtors", "GST Regular", "8,450.00 Cr"],
-                ["Auto Parts Inc.", "Sundry Creditors", "GST Regular", "25,000.00 Dr"],
-                ["National Garage", "Sundry Debtors", "Unregistered", "5,000.00 Cr"],
-                ["Office Rent", "Indirect Expenses", "Not Applicable", "15,000.00 Dr"],
-                ["Speedy Spares Ltd.", "Sundry Creditors", "Composition", "0.00"],
-                ["Walk-in Customer", "Sundry Debtors", "Unregistered", "1,200.00 Cr"],
-                ["Bank of Baroda", "Bank Accounts", "Not Applicable", "2,50,000.00 Dr"],
-              ].map((row, i) => (
-                <tr key={i} className="hover:bg-neutral-50">
-                  <td className="p-2 md:p-3 text-neutral-800">{row[0]}</td>
-                  <td className="p-2 md:p-3 text-neutral-600">{row[1]}</td>
-                  <td className="p-2 md:p-3 text-neutral-600">{row[2]}</td>
-                  <td className="p-2 md:p-3 text-right text-neutral-600">{row[3]}</td>
-                  <td className="p-2 md:p-3 text-center">
-                    <button
-                      className="px-2 py-1 text-neutral-500 hover:text-neutral-900 hover:bg-[#F1F5F9] rounded-md text-xs"
-                    >
-                      <FaPencil className="w-3 h-3 md:w-4 md:h-4" />
-                    </button>
+              {filteredAccounts.length > 0 ? (
+                filteredAccounts.map((row, i) => (
+                  <tr key={i} className="hover:bg-neutral-50">
+                    <td className="p-2 md:p-3 text-neutral-800">{row[0]}</td>
+                    <td className="p-2 md:p-3 text-neutral-600">{row[1]}</td>
+                    <td className="p-2 md:p-3 text-neutral-600">{row[2]}</td>
+                    <td className="p-2 md:p-3 text-right text-neutral-600">{row[3]}</td>
+                    <td className="p-2 md:p-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleView(row[0])}
+                          className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
+                          title="View"
+                        >
+                          <FaEye className="w-3 h-3 md:w-4 md:h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(row[0])}
+                          className="p-1 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded"
+                          title="Edit"
+                        >
+                          <FaPencil className="w-3 h-3 md:w-4 md:h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(row[0])}
+                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                          title="Delete"
+                        >
+                          <FaTrashCan className="w-3 h-3 md:w-4 md:h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="p-8 text-center text-neutral-500">
+                    No accounts found matching your search criteria.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -168,7 +259,7 @@ const Master = () => {
           id="table-footer"
           className="p-3 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between text-xs md:text-sm gap-2"
         >
-          <span className="text-neutral-600">Showing 1 to 7 of 42 entries</span>
+          <span className="text-neutral-600">Showing {filteredAccounts.length} of {accounts.length} entries</span>
           <div className="flex items-center gap-2">
             <button
               className="px-3 py-1 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50"

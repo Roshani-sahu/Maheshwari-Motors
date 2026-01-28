@@ -1,8 +1,38 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { FaPlus, FaUserShield, FaUser, FaPencil } from "react-icons/fa6";
+import { FaPlus, FaUserShield, FaUser, FaPencil, FaEye, FaTrashCan } from "react-icons/fa6";
 
 const UserRights = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRole, setSelectedRole] = useState('All Roles');
+
+  const users = [
+    { name: "Super Admin", role: "Super Admin", companies: "All (Maa Auto, Motors, Surat)", lastLogin: "24 Jan 2025", status: "Active" },
+    { name: "Admin User 1", role: "Admin", companies: "Maa Auto, Motors", lastLogin: "23 Jan 2025", status: "Active" },
+    { name: "Admin User 2", role: "Admin", companies: "Motors", lastLogin: "22 Jan 2025", status: "Active" },
+    { name: "Operator", role: "Admin", companies: "Maa Auto", lastLogin: "20 Jan 2025", status: "Inactive" },
+  ];
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.companies.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = selectedRole === 'All Roles' || user.role === selectedRole;
+    return matchesSearch && matchesRole;
+  });
+
+  const handleView = (userName) => {
+    alert(`Viewing details for: ${userName}`);
+  };
+
+  const handleEdit = (userName) => {
+    alert(`Editing permissions for: ${userName}`);
+  };
+
+  const handleDelete = (userName) => {
+    if (window.confirm(`Are you sure you want to delete user ${userName}?`)) {
+      alert(`Deleted user: ${userName}`);
+    }
+  };
   return (
     <div>
       <div className="flex justify-between items-center mb-4 md:mb-6">
@@ -48,8 +78,26 @@ const UserRights = () => {
 
       {/* Users Table */}
       <div className="bg-white border border-neutral-200 rounded-lg">
-        <div className="p-3 md:p-4 border-b">
+        <div className="p-3 md:p-4 border-b flex justify-between items-center">
           <h3 className="text-sm md:text-base text-neutral-900">User List</h3>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="px-3 py-1.5 text-xs border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-800"
+            />
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="px-3 py-1.5 text-xs border border-neutral-300 rounded-md"
+            >
+              <option>All Roles</option>
+              <option>Super Admin</option>
+              <option>Admin</option>
+            </select>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs md:text-sm min-w-[600px]">
@@ -64,39 +112,62 @@ const UserRights = () => {
               </tr>
             </thead>
             <tbody>
-              {[
-                { name: "Super Admin", role: "Super Admin", companies: "All (Maa Auto, Motors, Surat)", lastLogin: "24 Jan 2025", status: "Active" },
-                { name: "Admin User 1", role: "Admin", companies: "Maa Auto, Motors", lastLogin: "23 Jan 2025", status: "Active" },
-                { name: "Admin User 2", role: "Admin", companies: "Motors", lastLogin: "22 Jan 2025", status: "Active" },
-                { name: "Operator", role: "Admin", companies: "Maa Auto", lastLogin: "20 Jan 2025", status: "Inactive" },
-              ].map((user, i) => (
-                <tr key={i} className="border-b hover:bg-neutral-50">
-                  <td className="p-2 md:p-4">
-                    <div className="flex items-center gap-2">
-                      {user.role === 'Super Admin' ? 
-                        <FaUserShield className="text-green-500 text-xs" /> : 
-                        <FaUser className="text-blue-500 text-xs" />
-                      }
-                      <span className="text-neutral-800">{user.name}</span>
-                    </div>
-                  </td>
-                  <td className="p-2 md:p-4 text-neutral-600">{user.role}</td>
-                  <td className="p-2 md:p-4 text-neutral-600">{user.companies}</td>
-                  <td className="p-2 md:p-4 text-neutral-600">{user.lastLogin}</td>
-                  <td className="p-2 md:p-4 text-center">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="p-2 md:p-4 text-center">
-                    <button className="p-1 text-neutral-500 hover:text-neutral-900">
-                      <FaPencil className="text-xs" />
-                    </button>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user, i) => (
+                  <tr key={i} className="border-b hover:bg-neutral-50">
+                    <td className="p-2 md:p-4">
+                      <div className="flex items-center gap-2">
+                        {user.role === 'Super Admin' ? 
+                          <FaUserShield className="text-green-500 text-xs" /> : 
+                          <FaUser className="text-blue-500 text-xs" />
+                        }
+                        <span className="text-neutral-800">{user.name}</span>
+                      </div>
+                    </td>
+                    <td className="p-2 md:p-4 text-neutral-600">{user.role}</td>
+                    <td className="p-2 md:p-4 text-neutral-600">{user.companies}</td>
+                    <td className="p-2 md:p-4 text-neutral-600">{user.lastLogin}</td>
+                    <td className="p-2 md:p-4 text-center">
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${
+                        user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td className="p-2 md:p-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleView(user.name)}
+                          className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded"
+                          title="View"
+                        >
+                          <FaEye className="text-xs" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(user.name)}
+                          className="p-1 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded"
+                          title="Edit"
+                        >
+                          <FaPencil className="text-xs" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user.name)}
+                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                          title="Delete"
+                        >
+                          <FaTrashCan className="text-xs" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="p-8 text-center text-neutral-500">
+                    No users found matching your search criteria.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

@@ -1,4 +1,4 @@
-     import React from "react";
+import React, { useState } from "react";
 import {
   FaBuildingUser,
   FaMagnifyingGlass,
@@ -8,9 +8,58 @@ import {
   FaStar,
   FaRegStar,
 } from "react-icons/fa6";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const CompanySelection = () => {
+  const [selectedCompany, setSelectedCompany] = useState('Motors GST');
+  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+
+  const companies = [
+    {
+      id: 'motors',
+      name: 'Motors GST',
+      type: 'GST Registered',
+      icon: FaCar,
+      isLastUsed: true,
+      description: 'Full GST operations with stock management'
+    },
+    {
+      id: 'maa-auto',
+      name: 'Maa Non-GST',
+      type: 'Non-GST / Unregistered',
+      icon: FaLeaf,
+      isLastUsed: false,
+      description: 'Non-GST operations with stock management'
+    },
+    {
+      id: 'surat',
+      name: 'Surat GST without physical stock',
+      type: 'GST Registered / Virtual Stock',
+      icon: FaWarehouse,
+      isLastUsed: false,
+      description: 'GST billing only, no stock impact'
+    }
+  ];
+
+  const filteredCompanies = companies.filter(company =>
+    company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    company.type.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleCompanySelect = (companyName) => {
+    setSelectedCompany(companyName);
+  };
+
+  const handleConfirmSelection = () => {
+    // Store selected company in localStorage or context
+    localStorage.setItem('selectedCompany', selectedCompany);
+    navigate('/dashboard');
+  };
+
+  const handleLogout = () => {
+    navigate('/login');
+  };
   return (
     <main className="w-full bg-neutral-50 flex items-center justify-center min-h-screen">
       <div className="w-full max-w-lg mx-auto p-4">
@@ -41,6 +90,8 @@ const CompanySelection = () => {
                 <input
                   type="text"
                   placeholder="Search company..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="block w-full pl-10 pr-3 py-2 bg-white border border-neutral-300 rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900"
                 />
               </div>
@@ -48,75 +99,87 @@ const CompanySelection = () => {
 
             {/* Company List */}
             <div className="space-y-3">
-              
-              {/* Active / Last Used */}
-              <div className="group flex items-center p-4 border border-neutral-300 rounded-md cursor-pointer bg-neutral-50 ring-2 ring-neutral-900 hover:bg-neutral-50 hover:border-neutral-900">
-                <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
-                  <FaCar className="text-neutral-600" />
-                </div>
-                <div className="flex-grow ml-4">
-                  <p className="text-sm text-neutral-900">Motors GST</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-neutral-500">
-                      GST Registered
-                    </span>
-                    <span className="px-2 py-0.5 text-xs bg-[#F1F5F9] text-neutral-700 rounded-full">
-                      Last used
-                    </span>
+              {filteredCompanies.map((company) => {
+                const Icon = company.icon;
+                const isSelected = selectedCompany === company.name;
+                
+                return (
+                  <div 
+                    key={company.id}
+                    onClick={() => handleCompanySelect(company.name)}
+                    className={`group flex items-center p-4 border rounded-md cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'border-neutral-900 bg-neutral-50 ring-2 ring-neutral-900' 
+                        : 'border-neutral-200 hover:bg-neutral-50 hover:border-neutral-900'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
+                      <Icon className="text-neutral-600" />
+                    </div>
+                    <div className="flex-grow ml-4">
+                      <p className="text-sm text-neutral-900">{company.name}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-neutral-500">
+                          {company.type}
+                        </span>
+                        {company.isLastUsed && (
+                          <span className="px-2 py-0.5 text-xs bg-[#F1F5F9] text-neutral-700 rounded-full">
+                            Last used
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {isSelected ? (
+                      <FaStar className="text-neutral-800" />
+                    ) : (
+                      <FaRegStar className="text-neutral-400 group-hover:text-neutral-600" />
+                    )}
                   </div>
+                );
+              })}
+              
+              {filteredCompanies.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-sm text-neutral-500">No companies found matching your search.</p>
                 </div>
-                <FaStar className="text-neutral-800" />
-              </div>
-
-              {/* Company 2 */}
-              <div className="group flex items-center p-4 border border-neutral-200 rounded-md cursor-pointer hover:bg-neutral-50 hover:border-neutral-900">
-                <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
-                  <FaLeaf className="text-neutral-600" />
-                </div>
-                <div className="flex-grow ml-4">
-                  <p className="text-sm text-neutral-900">Maa Non-GST</p>
-                  <span className="text-xs text-neutral-500">
-                    Non-GST / Unregistered
-                  </span>
-                </div>
-                <FaRegStar className="text-neutral-400 group-hover:text-neutral-600" />
-              </div>
-
-              {/* Company 3 */}
-              <div className="group flex items-center p-4 border border-neutral-200 rounded-md cursor-pointer hover:bg-neutral-50 hover:border-neutral-900">
-                <div className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
-                  <FaWarehouse className="text-neutral-600" />
-                </div>
-                <div className="flex-grow ml-4">
-                  <p className="text-sm text-neutral-900">
-                    Surat GST without physical stock
-                  </p>
-                  <span className="text-xs text-neutral-500">
-                    GST Registered / Virtual Stock
-                  </span>
-                </div>
-                <FaRegStar className="text-neutral-400 group-hover:text-neutral-600" />
-              </div>
+              )}
             </div>
           </div>
 
           {/* Footer */}
           <div className="p-6 bg-neutral-50 border-t border-neutral-200 rounded-b-lg">
             <div className="flex flex-col space-y-3">
-              <Link
-                to="/dashboard"
-                className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm text-white bg-neutral-900 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900"
+              <button
+                onClick={handleConfirmSelection}
+                disabled={!selectedCompany}
+                className={`w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900 ${
+                  selectedCompany 
+                    ? 'bg-neutral-900 hover:bg-neutral-800' 
+                    : 'bg-neutral-400 cursor-not-allowed'
+                }`}
               >
                 Confirm Selection
-              </Link>
+              </button>
 
               <button
+                onClick={handleLogout}
                 type="button"
                 className="w-full flex justify-center py-2 px-4 border border-neutral-300 rounded-md shadow-sm text-sm text-neutral-700 bg-white hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-900"
               >
                 Log Out
               </button>
             </div>
+
+            {/* Selected Company Info */}
+            {selectedCompany && (
+              <div className="mt-4 p-3 bg-white border border-neutral-200 rounded-md">
+                <p className="text-xs text-neutral-600 mb-1">Selected Company:</p>
+                <p className="text-sm font-medium text-neutral-900">{selectedCompany}</p>
+                <p className="text-xs text-neutral-500">
+                  {companies.find(c => c.name === selectedCompany)?.description}
+                </p>
+              </div>
+            )}
 
             {/* User */}
             <div className="mt-4 flex items-center justify-center">
@@ -127,7 +190,7 @@ const CompanySelection = () => {
               />
               <p className="text-xs text-neutral-500">
                 Logged in as{" "}
-                <span className="text-neutral-700">john.doe</span>
+                <span className="text-neutral-700">admin@maheshwarimotors.com</span>
               </p>
             </div>
           </div>
