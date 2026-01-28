@@ -11,6 +11,16 @@ import InventoryReports from "./pages/InventoryReports";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import CompanySelection from "./pages/CompanySelection";
+import AddCompany from "./pages/AddCompany";
+import GenerateChallan from "./pages/GenerateChallan";
+import ChallanList from "./pages/ChallanList";
+import ItemMaster from "./pages/ItemMaster";
+import AddItem from "./pages/AddItem";
+import UserRights from "./pages/UserRights";
+import AuditLogs from "./pages/AuditLogs";
+import AccountMasterList from "./pages/AccountMasterList";
+import GenerateBill from "./pages/GenerateBill";
+import PaymentStatus from "./pages/PaymentStatus";
 
 // Master Components
 import AddAccount from "./components/masterComp/AddAccount.jsx";
@@ -36,13 +46,23 @@ const App = () => {
           <Route element={<Layout />}>
        
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/add-company" element={<AddCompany />} />
+          <Route path="/generate-challan" element={<GenerateChallan />} />
+          <Route path="/challan-list" element={<ChallanList />} />
+          <Route path="/generate-bill" element={<GenerateBill />} />
+          <Route path="/payment-status" element={<PaymentStatus />} />
           <Route path="/masters" element={<Master />} />
+          <Route path="/account-master" element={<AccountMasterList />} />
+          <Route path="/item-master" element={<ItemMaster />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/universal-reports" element={<UniversalReport />} />
           <Route path="/inventory-reports" element={<InventoryReports />} />
+          <Route path="/user-rights" element={<UserRights />} />
+          <Route path="/audit-logs" element={<AuditLogs />} />
 
            {/* Master Routes */}
            <Route path="/masters/add-account" element={<AddAccount />} />
+           <Route path="/add-item" element={<AddItem />} />
           
           {/* Transaction Routes */}
           <Route path="/sale-entry" element={<SaleEntry />} />

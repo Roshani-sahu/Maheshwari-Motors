@@ -29,39 +29,19 @@ const Master = () => {
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 lg:gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
             <div id="master-type-selector">
-              <button
-                className="flex items-center gap-2 px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50"
-              >
-                <FaUsers className="text-neutral-500" />
-                <span>Account Master</span>
-                <FaChevronDown
-                  className="text-xs text-neutral-500"
-                />
-              </button>
+              <select className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50">
+                <option>Account Master</option>
+                <option>Item Master</option>
+                <option>Company Master</option>
+              </select>
             </div>
-            <div id="master-search" className="relative w-full sm:w-72">
-              <FaMagnifyingGlass
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
-              />
-              <input
-                type="text"
-                placeholder="Search by name, code, GSTIN..."
-                className="w-full pl-9 pr-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:border-transparent"
-              />
-            </div>
-            <div id="master-filters" className="flex items-center gap-2">
-              <button
-                className="flex items-center gap-2 px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50"
-              >
-                <FaFilter className="text-neutral-500" />
-                <span className="hidden sm:inline">GST Type</span>
-              </button>
-              <button
-                className="flex items-center gap-2 px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50"
-              >
-                <FaLayerGroup className="text-neutral-500" />
-                <span className="hidden sm:inline">Group</span>
-              </button>
+            <div className="flex gap-2">
+              <Link to="/account-master" className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50">
+                Account Master
+              </Link>
+              <Link to="/item-master" className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50">
+                Item Master
+              </Link>
             </div>
           </div>
           <div id="master-actions">

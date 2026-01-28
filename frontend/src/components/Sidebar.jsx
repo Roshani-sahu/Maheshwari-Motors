@@ -8,6 +8,12 @@ import {
   FaChartPie,
   FaSliders,
   FaCircleQuestion,
+  FaBuilding,
+  FaFileInvoiceDollar,
+  FaListCheck,
+  FaUserShield,
+  FaClockRotateLeft,
+  FaWallet,
 } from "react-icons/fa6";
 
 const Sidebar = ({ onClose }) => {
@@ -48,12 +54,67 @@ const Sidebar = ({ onClose }) => {
 
           <li>
             <NavLink
+              to="/add-company"
+               onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaBuilding className="w-4 h-4" />
+              Add Company
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/generate-challan"
+               onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaFileInvoiceDollar className="w-4 h-4" />
+              Generate Challan
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/challan-list"
+               onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaListCheck className="w-4 h-4" />
+              Challan List
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/generate-bill"
+               onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaFileInvoiceDollar className="w-4 h-4" />
+              Generate Bill
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
               to="/masters"
                onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaDatabase className="w-4 h-4" />
               Masters
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/payment-status"
+               onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaWallet className="w-4 h-4" />
+              Payments
             </NavLink>
           </li>
 
@@ -87,6 +148,28 @@ const Sidebar = ({ onClose }) => {
             >
               <FaChartPie className="w-4 h-4" />
               Inventory Reports
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/user-rights"
+               onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaUserShield className="w-4 h-4" />
+              User Rights
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/audit-logs"
+               onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaClockRotateLeft className="w-4 h-4" />
+              Audit Logs
             </NavLink>
           </li>
 

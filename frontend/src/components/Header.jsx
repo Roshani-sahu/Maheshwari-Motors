@@ -1,10 +1,10 @@
 import React from "react";
 import {
-  FaCar,
   FaChevronDown,
   FaRegCalendarAlt,
   FaBars,
 } from "react-icons/fa";
+import CompanySelector from "./CompanySelector";
 
 const Header = ({ onMenuClick }) => {
   return (
@@ -19,15 +19,7 @@ const Header = ({ onMenuClick }) => {
           <FaBars className="text-neutral-700" />
         </button>
 
-        <button className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-100">
-          <div className="w-6 h-6 flex items-center justify-center bg-[#F1F5F9] rounded-full">
-            <FaCar className="text-xs text-neutral-600" />
-          </div>
-          <span className="text-sm text-neutral-800">
-            Motors GST
-          </span>
-          <FaChevronDown className="text-xs text-neutral-500" />
-        </button>
+        <CompanySelector />
 
         {/* User avatar - moved to top right on mobile */}
         <button className="sm:hidden flex items-center gap-2 p-1 rounded-full hover:bg-neutral-100">

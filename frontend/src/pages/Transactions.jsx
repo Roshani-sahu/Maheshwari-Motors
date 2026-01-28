@@ -64,6 +64,18 @@ const Transactions = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <Link
+                to="/generate-challan"
+                className="group flex items-center gap-3 md:gap-4 p-3 md:p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 hover:border-neutral-300"
+              >
+                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-[#F1F5F9]">
+                  <FaTruckFast className="text-neutral-600 text-sm md:text-base" />
+                </div>
+                <div>
+                  <p className="text-xs md:text-sm text-neutral-900">Generate Challan</p>
+                  <p className="text-xs text-neutral-500">Create delivery challan (stock updates immediately).</p>
+                </div>
+              </Link>
+              <Link
                 to="/sale-entry"
                 className="group flex items-center gap-3 md:gap-4 p-3 md:p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 hover:border-neutral-300"
               >
@@ -73,6 +85,18 @@ const Transactions = () => {
                 <div>
                   <p className="text-xs md:text-sm text-neutral-900">Create Sale Invoice</p>
                   <p className="text-xs text-neutral-500">Bill goods or services to a customer.</p>
+                </div>
+              </Link>
+              <Link
+                to="/generate-bill"
+                className="group flex items-center gap-3 md:gap-4 p-3 md:p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 hover:border-neutral-300"
+              >
+                <div className="w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center bg-neutral-100 rounded-lg group-hover:bg-[#F1F5F9]">
+                  <FaFileInvoiceDollar className="text-neutral-600 text-sm md:text-base" />
+                </div>
+                <div>
+                  <p className="text-xs md:text-sm text-neutral-900">Generate Bill</p>
+                  <p className="text-xs text-neutral-500">Create bill from approved challans.</p>
                 </div>
               </Link>
               <Link
