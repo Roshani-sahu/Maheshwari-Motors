@@ -158,7 +158,13 @@ const Dashboard = () => {
                       {row[2]}
                     </td>
                     <td className="p-1 md:p-2 text-center">
-                      <span className="px-1.5 md:px-2 py-0.5 text-xs bg-neutral-100 rounded-full">
+                      <span className={`px-1.5 md:px-2 py-0.5 text-xs rounded-full ${
+                        row[3] === 'In Stock' 
+                          ? 'text-green-600'
+                          : row[3] === 'Low Stock'
+                          ? 'text-red-600'
+                          : 'text-yellow-600'
+                      }`}>
                         {row[3]}
                       </span>
                     </td>

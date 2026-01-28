@@ -3,7 +3,7 @@ import { FaPlus } from "react-icons/fa6";
 
 const SettingsAccessControl = () => {
   return (
-    <div className="w-full bg-neutral-50 min-h-screen ">
+    <div className="w-full bg-neutral-50 ">
       {/* Content */}
       <main className="w-full">
         {/* Header */}

@@ -2,7 +2,7 @@ import React from "react";
 
 const AccountMasterForm = () => {
   return (
-    <main className="min-h-screen bg-neutral-50  relative">
+    <main className=" bg-neutral-50  relative">
       {/* Page Header */}
       <div className="mb-6">
         <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500 mb-2">
