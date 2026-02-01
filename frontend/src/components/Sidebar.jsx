@@ -63,7 +63,7 @@ const Sidebar = ({ onClose }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 overflow-y-auto pb-20">
+      <nav className="flex-1 p-4 overflow-y-auto pb-20" style={{msOverflowStyle: 'none', scrollbarWidth: 'none'}} onScroll={(e) => e.target.style.setProperty('--webkit-scrollbar', 'display: none')}>
         <ul className="space-y-1">
           <li>
             <NavLink
