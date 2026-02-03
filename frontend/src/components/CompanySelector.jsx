@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import { FaBuilding, FaChevronDown } from "react-icons/fa6";
-import { useApp } from '../contexts/AppContext';
+import useStore from '../store';
 
 const CompanySelector = () => {
-  const { state, actions } = useApp();
+  const { selectedFirm, firms, setFirm } = useStore();
   const [isOpen, setIsOpen] = useState(false);
-  
-  const { selectedFirm, firms } = state;
 
   return (
     <div className="relative">
@@ -25,7 +23,7 @@ const CompanySelector = () => {
             <button
               key={firm.id}
               onClick={() => {
-                actions.setFirm(firm);
+                setFirm(firm);
                 setIsOpen(false);
               }}
               className={`w-full flex items-center justify-between px-3 py-2 text-xs md:text-sm text-left hover:bg-neutral-50 ${
@@ -33,7 +31,7 @@ const CompanySelector = () => {
               }`}
             >
               <span className="text-neutral-800">{firm.name}</span>
-              <span className={`px-2 py-0.5 text-xs rounded-full ${firm.color}`}>
+              <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-800">
                 {firm.type}
               </span>
             </button>

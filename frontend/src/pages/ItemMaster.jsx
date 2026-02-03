@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaEdit, FaSave, FaTimes, FaPlus, FaDownload, FaUpload, FaSearch, FaBarcode } from 'react-icons/fa';
+import {  FaTimes, FaPlus, FaDownload, FaUpload, FaSearch, FaBarcode } from 'react-icons/fa';
 import { useApp } from '../contexts/AppContext';
 import { useKeyboard } from '../hooks';
 import { formatCurrency } from '../utils';
@@ -253,7 +253,7 @@ const ItemMaster = () => {
       <div className="bg-white p-4 rounded-lg border">
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-md">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+            <FaPlus className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
             <input
               id="search-input"
               type="text"

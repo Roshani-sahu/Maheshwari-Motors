@@ -9,7 +9,7 @@ import {
   FaArrowRight,
   FaCalendarDay
 } from 'react-icons/fa';
-import { useApp } from '../contexts/AppContext';
+import useStore from '../store';
 import { formatCurrency, formatDate } from '../utils';
 
 const DashboardWidget = ({ 
@@ -86,8 +86,7 @@ const RecentActivity = ({ activities }) => (
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { state } = useApp();
-  const { selectedFirm } = state;
+  const { selectedFirm } = useStore();
   
   const [dashboardData, setDashboardData] = useState({
     todaysChallans: 12,

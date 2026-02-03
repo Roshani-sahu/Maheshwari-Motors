@@ -1,20 +1,19 @@
 import React, { useEffect } from 'react';
 import { FaCheckCircle, FaExclamationCircle, FaInfoCircle, FaTimes } from 'react-icons/fa';
-import { useApp } from '../contexts/AppContext';
+import useStore from '../store';
 
 // Toast Component
 export const Toast = () => {
-  const { state, actions } = useApp();
-  const { toast } = state;
+  const { toast, hideToast } = useStore();
 
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => {
-        actions.hideToast();
+        hideToast();
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [toast, actions]);
+  }, [toast, hideToast]);
 
   if (!toast) return null;
 
@@ -38,7 +37,7 @@ export const Toast = () => {
         {icons[toast.type]}
         <p className="text-sm text-gray-800 flex-1">{toast.message}</p>
         <button
-          onClick={actions.hideToast}
+          onClick={hideToast}
           className="text-gray-400 hover:text-gray-600"
         >
           <FaTimes className="text-sm" />
@@ -50,19 +49,18 @@ export const Toast = () => {
 
 // Confirm Dialog Component
 export const ConfirmDialog = () => {
-  const { state, actions } = useApp();
-  const { confirmDialog } = state;
+  const { confirmDialog, hideConfirm } = useStore();
 
   if (!confirmDialog) return null;
 
   const handleConfirm = () => {
     confirmDialog.onConfirm?.();
-    actions.hideConfirm();
+    hideConfirm();
   };
 
   const handleCancel = () => {
     confirmDialog.onCancel?.();
-    actions.hideConfirm();
+    hideConfirm();
   };
 
   return (
@@ -102,9 +100,9 @@ export const ConfirmDialog = () => {
 
 // Loading Overlay Component
 export const LoadingOverlay = () => {
-  const { state } = useApp();
+  const { loading } = useStore();
   
-  if (!state.loading) return null;
+  if (!loading) return null;
 
   return (
     <div className="fixed inset-0 z-40 bg-black bg-opacity-25 flex items-center justify-center">

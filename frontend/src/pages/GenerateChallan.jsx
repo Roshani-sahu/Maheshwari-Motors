@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaBarcode, FaPlus, FaTrash, FaSave, FaCheck, FaTimes, FaSearch } from 'react-icons/fa';
+import { FaBarcode, FaPlus, FaTrash, FaCheck, FaTimes, FaSearch } from 'react-icons/fa';
 import { useApp } from '../contexts/AppContext';
 import { useKeyboard } from '../hooks';
 import { formatCurrency, formatDate } from '../utils';
@@ -427,7 +427,7 @@ const GenerateChallan = () => {
               onClick={handleSave}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              <FaSave className="text-xs" />
+              {/* <FaSave className="text-xs" /> */}
               Save
             </button>
             

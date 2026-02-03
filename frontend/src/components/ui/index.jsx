@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaSearch, FaSort, FaSortUp, FaSortDown, FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import {  FaSort, FaSortUp, FaSortDown, FaTrash, FaPlus } from 'react-icons/fa';
 
 // Data Table Component
 export const DataTable = ({ 
@@ -68,7 +68,7 @@ export const DataTable = ({
       <div className="p-4 border-b flex justify-between items-center">
         {searchable && (
           <div className="relative">
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
+            <FaPlus className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
             <input
               type="text"
               placeholder="Search..."
@@ -157,7 +157,7 @@ export const DataTable = ({
                           onClick={() => onEdit(row)}
                           className="text-blue-600 hover:text-blue-800"
                         >
-                          <FaEdit />
+                          {/* <FaEdit /> */}
                         </button>
                       )}
                       {onDelete && (

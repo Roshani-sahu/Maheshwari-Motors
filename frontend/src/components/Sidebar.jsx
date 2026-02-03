@@ -85,7 +85,7 @@ const Sidebar = ({ onClose }) => {
           {/* Masters Section */}
           <SidebarSection title="Masters" defaultOpen={true}>
             <NavLink
-              to="/add-company"
+              to="/firm-setup"
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >

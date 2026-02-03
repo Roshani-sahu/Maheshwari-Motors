@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit, FaEye, FaCheck, FaTimes, FaFileInvoiceDollar } from 'react-icons/fa';
+import { FaPlus, FaEye, FaCheck, FaTimes, FaFileInvoiceDollar } from 'react-icons/fa';
 import { DataTable, Button, Select, Input, FormField } from '../components/ui';
-import { useApp } from '../contexts/AppContext';
+import useStore from '../store';
 import { formatCurrency, formatDate } from '../utils';
 
 const ChallanList = () => {
   const navigate = useNavigate();
-  const { state, actions } = useApp();
-  const { selectedFirm } = state;
+  const { selectedFirm, showToast, showConfirm } = useStore();
   
   const [challans] = useState([
     {
@@ -129,15 +128,15 @@ const ChallanList = () => {
   const handleBulkApprove = () => {
     const draftChallans = selectedChallans.filter(challan => challan.status === 'Draft');
     if (draftChallans.length === 0) {
-      actions.showToast('No draft challans selected', 'warning');
+      showToast('No draft challans selected', 'warning');
       return;
     }
 
-    actions.showConfirm(
+    showConfirm(
       `Approve ${draftChallans.length} selected challans?`,
       () => {
         // Mock bulk approve
-        actions.showToast(`${draftChallans.length} challans approved successfully`, 'success');
+        showToast(`${draftChallans.length} challans approved successfully`, 'success');
         setSelectedChallans([]);
       }
     );
@@ -146,7 +145,7 @@ const ChallanList = () => {
   const handleBulkBill = () => {
     const approvedChallans = selectedChallans.filter(challan => challan.status === 'Approved');
     if (approvedChallans.length === 0) {
-      actions.showToast('No approved challans selected', 'warning');
+      showToast('No approved challans selected', 'warning');
       return;
     }
 
@@ -157,7 +156,7 @@ const ChallanList = () => {
 
   const handleEdit = (challan) => {
     if (challan.status === 'Billed') {
-      actions.showToast('Cannot edit billed challan', 'error');
+      showToast('Cannot edit billed challan', 'error');
       return;
     }
     navigate(`/generate-challan?edit=${challan.id}`);
@@ -165,20 +164,20 @@ const ChallanList = () => {
 
   const handleView = (challan) => {
     // Mock view functionality - could open a modal or navigate to view page
-    actions.showToast('View functionality will be implemented', 'info');
+    showToast('View functionality will be implemented', 'info');
   };
 
   const handleDelete = (challan) => {
     if (challan.status === 'Billed') {
-      actions.showToast('Cannot delete billed challan', 'error');
+      showToast('Cannot delete billed challan', 'error');
       return;
     }
 
-    actions.showConfirm(
+    showConfirm(
       `Delete challan ${challan.challanNo}?`,
       () => {
         // Mock delete
-        actions.showToast('Challan deleted successfully', 'success');
+        showToast('Challan deleted successfully', 'success');
       }
     );
   };

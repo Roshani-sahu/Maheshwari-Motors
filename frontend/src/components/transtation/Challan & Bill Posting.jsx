@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FaFileInvoiceDollar, FaCheck, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 import { DataTable, Button, Select, FormField } from '../ui';
-import { useApp } from '../../contexts/AppContext';
+import useStore from '../../store';
 import { formatCurrency, formatDate, calculateGST, generateInvoiceNumber } from '../../utils';
 
 const ChallanBillPosting = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { state, actions } = useApp();
-  const { selectedFirm } = state;
+  const { selectedFirm, firms, showToast, showConfirm } = useStore();
   
   const [selectedFirm2, setSelectedFirm2] = useState(selectedFirm?.id || '');
   const [selectedParty, setSelectedParty] = useState('');
@@ -96,7 +95,7 @@ const ChallanBillPosting = () => {
 
   const generateBillPreview = () => {
     const party = parties.find(p => p.name === selectedChallans[0]?.party);
-    const firm = state.firms.find(f => f.id === parseInt(selectedFirm2));
+    const firm = firms.find(f => f.id === parseInt(selectedFirm2));
     
     if (!party || !firm) return;
 
@@ -146,16 +145,16 @@ const ChallanBillPosting = () => {
 
   const handleGenerateBill = () => {
     if (selectedChallans.length === 0) {
-      actions.showToast('Please select at least one challan', 'error');
+      showToast('Please select at least one challan', 'error');
       return;
     }
 
-    const firm = state.firms.find(f => f.id === parseInt(selectedFirm2));
+    const firm = firms.find(f => f.id === parseInt(selectedFirm2));
     const party = parties.find(p => p.name === selectedParty);
 
     // Validation for GST/Non-GST mixing
     if (firm?.type === 'GST' && !party?.gstNo) {
-      actions.showConfirm(
+      showConfirm(
         'This party does not have GST number. Generate Non-GST bill?',
         () => {
           proceedWithBillGeneration();
@@ -169,7 +168,7 @@ const ChallanBillPosting = () => {
 
   const proceedWithBillGeneration = () => {
     // Mock bill generation
-    actions.showToast('Bill generated successfully!', 'success');
+    showToast('Bill generated successfully!', 'success');
     
     // Navigate to bill view or list
     setTimeout(() => {
@@ -200,7 +199,7 @@ const ChallanBillPosting = () => {
   ];
 
   const selectedPartyData = parties.find(p => p.name === selectedParty);
-  const selectedFirmData = state.firms.find(f => f.id === parseInt(selectedFirm2));
+  const selectedFirmData = firms.find(f => f.id === parseInt(selectedFirm2));
 
   return (
     <div className="space-y-6">
@@ -219,7 +218,7 @@ const ChallanBillPosting = () => {
             <Select
               value={selectedFirm2}
               onChange={handleFirmChange}
-              options={state.firms.map(firm => ({
+              options={firms.map(firm => ({
                 value: firm.id.toString(),
                 label: `${firm.name} (${firm.type})`
               }))}

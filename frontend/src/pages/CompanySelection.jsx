@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaBuildingUser,
   FaMagnifyingGlass,
@@ -9,40 +9,37 @@ import {
   FaRegStar,
 } from "react-icons/fa6";
 import { Link, useNavigate } from "react-router-dom";
+import useStore from '../store';
+import { firmAPI } from '../services/api';
 
 const CompanySelection = () => {
-  const [selectedCompany, setSelectedCompany] = useState('Motors GST');
+  const [selectedCompany, setSelectedCompany] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+  const { firms, selectedFirm, setFirm, setFirms, showToast, setLoading, user } = useStore();
 
-  const companies = [
-    {
-      id: 'motors',
-      name: 'Motors GST',
-      type: 'GST Registered',
-      icon: FaCar,
-      isLastUsed: true,
-      description: 'Full GST operations with stock management'
-    },
-    {
-      id: 'maa-auto',
-      name: 'Maa Non-GST',
-      type: 'Non-GST / Unregistered',
-      icon: FaLeaf,
-      isLastUsed: false,
-      description: 'Non-GST operations with stock management'
-    },
-    {
-      id: 'surat',
-      name: 'Surat GST without physical stock',
-      type: 'GST Registered / Virtual Stock',
-      icon: FaWarehouse,
-      isLastUsed: false,
-      description: 'GST billing only, no stock impact'
+  useEffect(() => {
+    loadFirms();
+  }, []);
+
+  const loadFirms = async () => {
+    setLoading(true);
+    try {
+      const response = await firmAPI.getAll();
+      setFirms(response.data);
+      // Set default selection to last used or first firm
+      if (response.data.length > 0) {
+        const lastUsed = response.data.find(f => f.isLastUsed) || response.data[0];
+        setSelectedCompany(lastUsed.name);
+      }
+    } catch (error) {
+      showToast('Failed to load firms', 'error');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const filteredCompanies = companies.filter(company =>
+  const filteredCompanies = firms.filter(company =>
     company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     company.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -52,12 +49,16 @@ const CompanySelection = () => {
   };
 
   const handleConfirmSelection = () => {
-    // Store selected company in localStorage or context
-    localStorage.setItem('selectedCompany', selectedCompany);
-    navigate('/dashboard');
+    const selected = firms.find(f => f.name === selectedCompany);
+    if (selected) {
+      setFirm(selected);
+      showToast(`Switched to ${selected.name}`, 'success');
+      navigate('/dashboard');
+    }
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
     navigate('/login');
   };
   return (
@@ -100,7 +101,15 @@ const CompanySelection = () => {
             {/* Company List */}
             <div className="space-y-3">
               {filteredCompanies.map((company) => {
-                const Icon = company.icon;
+                const getIcon = (type) => {
+                  switch (type) {
+                    case 'GST': return FaCar;
+                    case 'NON_GST': return FaLeaf;
+                    case 'BILL_ONLY': return FaWarehouse;
+                    default: return FaBuildingUser;
+                  }
+                };
+                const Icon = getIcon(company.type);
                 const isSelected = selectedCompany === company.name;
                 
                 return (
@@ -120,7 +129,9 @@ const CompanySelection = () => {
                       <p className="text-sm text-neutral-900">{company.name}</p>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-neutral-500">
-                          {company.type}
+                          {company.type === 'GST' ? 'GST Registered' : 
+                           company.type === 'NON_GST' ? 'Non-GST / Unregistered' :
+                           'GST Registered / Virtual Stock'}
                         </span>
                         {company.isLastUsed && (
                           <span className="px-2 py-0.5 text-xs bg-[#F1F5F9] text-neutral-700 rounded-full">
@@ -176,7 +187,7 @@ const CompanySelection = () => {
                 <p className="text-xs text-neutral-600 mb-1">Selected Company:</p>
                 <p className="text-sm font-medium text-neutral-900">{selectedCompany}</p>
                 <p className="text-xs text-neutral-500">
-                  {companies.find(c => c.name === selectedCompany)?.description}
+                  {firms.find(c => c.name === selectedCompany)?.address || 'No description available'}
                 </p>
               </div>
             )}
@@ -190,7 +201,7 @@ const CompanySelection = () => {
               />
               <p className="text-xs text-neutral-500">
                 Logged in as{" "}
-                <span className="text-neutral-700">admin@maheshwarimotors.com</span>
+                <span className="text-neutral-700">{user?.email || 'admin@maheshwarimotors.com'}</span>
               </p>
             </div>
           </div>
