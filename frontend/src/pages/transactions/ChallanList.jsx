@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { FaEye, FaCheck, FaFileInvoiceDollar, FaFilter } from 'react-icons/fa';
-import { DataTable, Modal, Toggle } from '../../components/common';
-import { Button, Select } from '../../components/ui';
+import { FaEye, FaFileInvoiceDollar, FaFilter, FaCheck, FaPlus, FaCheckSquare } from 'react-icons/fa';
+import { DataTable, Modal } from '../../components/common';
+import { Button, Select, Input } from '../../components/ui';
 
 const ChallanList = () => {
   const [challans, setChallans] = useState([
@@ -12,7 +12,6 @@ const ChallanList = () => {
       party: 'ABC Motors',
       items: ['Engine Oil', 'Brake Pads'],
       amount: 25000,
-      approval: false,
       gstFlag: 0 // GST
     },
     {
@@ -22,7 +21,6 @@ const ChallanList = () => {
       party: 'XYZ Parts',
       items: ['Air Filter', 'Spark Plugs'],
       amount: 18500,
-      approval: true,
       gstFlag: 1 // NON-GST
     },
     {
@@ -32,7 +30,6 @@ const ChallanList = () => {
       party: 'PQR Auto',
       items: ['Transmission Fluid'],
       amount: 32000,
-      approval: false,
       gstFlag: 0 // GST
     }
   ]);
@@ -41,12 +38,21 @@ const ChallanList = () => {
     dateFrom: '',
     dateTo: '',
     party: '',
-    approval: 'all', // all, approved, pending
     gstType: 'all' // all, gst, non-gst
   });
 
   const [selectedChallan, setSelectedChallan] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedChallans, setSelectedChallans] = useState([]);
+  const [newChallan, setNewChallan] = useState({
+    challanNo: '',
+    party: '',
+    items: '',
+    amount: '',
+    gstFlag: 0
+  });
 
   const columns = [
     {
@@ -74,23 +80,12 @@ const ChallanList = () => {
     },
     {
       key: 'gstFlag',
-      label: 'GST Type',
+      label: 'Type',
       render: (value) => (
         <span className={`px-2 py-1 text-xs rounded-full ${
           value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
-          {value === 0 ? 'GST' : 'NON-GST'}
-        </span>
-      )
-    },
-    {
-      key: 'approval',
-      label: 'Approval',
-      render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          value ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-        }`}>
-          {value ? 'Approved' : 'Pending'}
+          {value}
         </span>
       )
     }
@@ -104,42 +99,54 @@ const ChallanList = () => {
         setIsViewModalOpen(true);
       },
       className: 'bg-blue-600 text-white hover:bg-blue-700'
-    },
-    {
-      label: 'Approve',
-      onClick: (challan) => handleApprove(challan.id),
-      className: 'bg-green-600 text-white hover:bg-green-700'
-    },
-    {
-      label: 'Convert to Bill',
-      onClick: (challan) => handleConvertToBill(challan.id),
-      className: 'bg-purple-600 text-white hover:bg-purple-700'
     }
   ];
 
-  const handleApprove = (challanId) => {
-    setChallans(prev => prev.map(challan => 
-      challan.id === challanId ? { ...challan, approval: true } : challan
+  const handleConvertToBill = () => {
+    if (selectedChallans.length === 0) {
+      alert('Please select challans to convert');
+      return;
+    }
+    
+    // Create bill from selected challans
+    const totalAmount = selectedChallans.reduce((sum, challan) => sum + challan.amount, 0);
+    const billNo = `B${String(Date.now()).slice(-3)}`;
+    
+    console.log('Converting challans to bill:', {
+      billNo,
+      challans: selectedChallans.map(c => c.challanNo),
+      totalAmount
+    });
+    
+    // Remove converted challans
+    setChallans(prev => prev.filter(challan => 
+      !selectedChallans.some(selected => selected.id === challan.id)
     ));
+    
+    setSelectedChallans([]);
+    setIsConvertModalOpen(false);
+    alert(`Bill ${billNo} created successfully!`);
   };
 
-  const handleConvertToBill = (challanId) => {
-    const challan = challans.find(c => c.id === challanId);
-    if (challan && challan.approval) {
-      // Navigate to bill generation or create bill
-      console.log('Converting challan to bill:', challan.challanNo);
-    } else {
-      alert('Challan must be approved before converting to bill');
-    }
+  const handleCreateChallan = () => {
+    const challan = {
+      id: challans.length + 1,
+      challanNo: newChallan.challanNo || `CH${String(Date.now()).slice(-3)}`,
+      date: new Date().toISOString().split('T')[0],
+      party: newChallan.party,
+      items: newChallan.items.split(',').map(item => item.trim()),
+      amount: parseFloat(newChallan.amount) || 0,
+      gstFlag: parseInt(newChallan.gstFlag)
+    };
+    
+    setChallans(prev => [...prev, challan]);
+    setNewChallan({ challanNo: '', party: '', items: '', amount: '', gstFlag: 0 });
+    setIsCreateModalOpen(false);
+    alert(`Challan ${challan.challanNo} created successfully!`);
   };
 
   // Apply filters
   const filteredChallans = challans.filter(challan => {
-    if (filters.approval !== 'all') {
-      const isApproved = filters.approval === 'approved';
-      if (challan.approval !== isApproved) return false;
-    }
-    
     if (filters.gstType !== 'all') {
       const isGst = filters.gstType === 'gst';
       if ((challan.gstFlag === 0) !== isGst) return false;
@@ -158,7 +165,23 @@ const ChallanList = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Challan List</h1>
-          <p className="text-gray-600">Manage delivery challans and approvals</p>
+          <p className="text-gray-600">Manage delivery challans</p>
+        </div>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <FaPlus />
+            Create Challan
+          </Button>
+          <Button 
+            onClick={() => setIsConvertModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <FaFileInvoiceDollar />
+            Convert to Bill
+          </Button>
         </div>
       </div>
 
@@ -168,7 +191,7 @@ const ChallanList = () => {
           <FaFilter className="text-gray-500" />
           <h3 className="font-medium text-gray-900">Filters</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Party
@@ -184,29 +207,15 @@ const ChallanList = () => {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Approval Status
-            </label>
-            <Select
-              value={filters.approval}
-              onChange={(e) => setFilters(prev => ({ ...prev, approval: e.target.value }))}
-            >
-              <option value="all">All</option>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              GST Type
+              Type
             </label>
             <Select
               value={filters.gstType}
-              onChange={(e) => setFilters(prev => ({ ...prev, gstType: e.target.value }))}
+              onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
             >
               <option value="all">All</option>
               <option value="gst">GST</option>
-              <option value="non-gst">NON-GST</option>
+              <option value="non-gst">Non GST</option>
             </Select>
           </div>
           
@@ -217,7 +226,6 @@ const ChallanList = () => {
                 dateFrom: '',
                 dateTo: '',
                 party: '',
-                approval: 'all',
                 gstType: 'all'
               })}
             >
@@ -235,7 +243,99 @@ const ChallanList = () => {
         searchable={true}
         sortable={true}
         pagination={true}
+        selectable={true}
+        onSelectionChange={setSelectedChallans}
       />
+
+      {/* Convert to Bill Modal */}
+      <Modal
+        isOpen={isConvertModalOpen}
+        onClose={() => setIsConvertModalOpen(false)}
+        title="Convert Challans to Bill"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">Select challans to convert into a single bill:</p>
+          
+          <div className="max-h-64 overflow-y-auto border rounded-lg">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                    <input
+                      type="checkbox"
+                      checked={selectedChallans.length === challans.length && challans.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedChallans([...challans]);
+                        } else {
+                          setSelectedChallans([]);
+                        }
+                      }}
+                      className="rounded"
+                    />
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Challan No</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Party</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {challans.map(challan => (
+                  <tr key={challan.id} className="border-t">
+                    <td className="px-4 py-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedChallans.some(s => s.id === challan.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedChallans(prev => [...prev, challan]);
+                          } else {
+                            setSelectedChallans(prev => prev.filter(s => s.id !== challan.id));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-sm">{challan.challanNo}</td>
+                    <td className="px-4 py-2 text-sm">{challan.party}</td>
+                    <td className="px-4 py-2 text-sm">₹{challan.amount.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {selectedChallans.length > 0 && (
+            <div className="bg-blue-50 p-3 rounded-lg">
+              <p className="text-sm text-blue-800">
+                Selected: {selectedChallans.length} challans | 
+                Total Amount: ₹{selectedChallans.reduce((sum, c) => sum + c.amount, 0).toLocaleString()}
+              </p>
+            </div>
+          )}
+          
+          <div className="flex gap-3 pt-4">
+            <Button 
+              onClick={handleConvertToBill}
+              disabled={selectedChallans.length === 0}
+              className="flex items-center gap-2"
+            >
+              <FaCheck />
+              Convert to Bill
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsConvertModalOpen(false);
+                setSelectedChallans([]);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* View Modal */}
       <Modal
@@ -264,19 +364,11 @@ const ChallanList = () => {
                 <p className="text-gray-900">₹{selectedChallan.amount.toLocaleString()}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">GST Type</label>
+                <label className="block text-sm font-medium text-gray-700">Type</label>
                 <span className={`px-2 py-1 text-xs rounded-full ${
                   selectedChallan.gstFlag === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                 }`}>
-                  {selectedChallan.gstFlag === 0 ? 'GST' : 'NON-GST'}
-                </span>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Approval Status</label>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  selectedChallan.approval ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {selectedChallan.approval ? 'Approved' : 'Pending'}
+                  {selectedChallan.gstFlag}
                 </span>
               </div>
             </div>
@@ -291,6 +383,84 @@ const ChallanList = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Create Challan Modal */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Create New Challan"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Challan No</label>
+            <Input
+              value={newChallan.challanNo}
+              onChange={(value) => setNewChallan(prev => ({ ...prev, challanNo: value }))}
+              placeholder="Auto-generated if empty"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
+            <Input
+              value={newChallan.party}
+              onChange={(value) => setNewChallan(prev => ({ ...prev, party: value }))}
+              placeholder="Enter party name"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Items *</label>
+            <Input
+              value={newChallan.items}
+              onChange={(value) => setNewChallan(prev => ({ ...prev, items: value }))}
+              placeholder="Enter items separated by commas"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
+            <Input
+              type="number"
+              value={newChallan.amount}
+              onChange={(value) => setNewChallan(prev => ({ ...prev, amount: value }))}
+              placeholder="Enter amount"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <Select
+              value={newChallan.gstFlag}
+              onChange={(value) => setNewChallan(prev => ({ ...prev, gstFlag: parseInt(value) }))}
+            >
+              <option value={0}>0 (GST)</option>
+              <option value={1}>1 (Non GST)</option>
+            </Select>
+          </div>
+          
+          <div className="flex gap-3 pt-4">
+            <Button 
+              onClick={handleCreateChallan}
+              disabled={!newChallan.party || !newChallan.items || !newChallan.amount}
+              className="flex items-center gap-2"
+            >
+              <FaPlus />
+              Create Challan
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                setNewChallan({ challanNo: '', party: '', items: '', amount: '', gstFlag: 0 });
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

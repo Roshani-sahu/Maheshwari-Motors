@@ -73,12 +73,12 @@ const BillList = () => {
     },
     {
       key: 'gstFlag',
-      label: 'GST Type',
+      label: 'Type',
       render: (value) => (
         <span className={`px-2 py-1 text-xs rounded-full ${
           value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
-          {value === 0 ? 'GST' : 'NON-GST'}
+          {value}
         </span>
       )
     },
@@ -244,11 +244,11 @@ const BillList = () => {
                 <p className="text-gray-900 font-bold">₹{selectedBill.amount.toLocaleString()}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">GST Type</label>
+                <label className="block text-sm font-medium text-gray-700">Type</label>
                 <span className={`px-2 py-1 text-xs rounded-full ${
                   selectedBill.gstFlag === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
                 }`}>
-                  {selectedBill.gstFlag === 0 ? 'GST' : 'NON-GST'}
+                  {selectedBill.gstFlag}
                 </span>
               </div>
               <div>

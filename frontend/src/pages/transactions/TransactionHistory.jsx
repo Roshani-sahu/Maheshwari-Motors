@@ -100,12 +100,12 @@ const TransactionHistory = () => {
     { key: 'firm', label: 'Firm' },
     {
       key: 'gstFlag',
-      label: 'GST Type',
+      label: 'Type',
       render: (value) => (
         <span className={`px-2 py-1 text-xs rounded-full ${
           value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
-          {value === 0 ? 'GST' : 'NON-GST'}
+          {value}
         </span>
       )
     },
@@ -226,7 +226,7 @@ const TransactionHistory = () => {
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <Select
             value={filters.type}
-            onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+            onChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
           >
             <option value="all">All Types</option>
             <option value="Challan">Challan</option>
@@ -236,7 +236,7 @@ const TransactionHistory = () => {
           
           <Select
             value={filters.firm}
-            onChange={(e) => setFilters(prev => ({ ...prev, firm: e.target.value }))}
+            onChange={(value) => setFilters(prev => ({ ...prev, firm: value }))}
           >
             <option value="all">All Firms</option>
             {firms.map(firm => (
@@ -246,7 +246,7 @@ const TransactionHistory = () => {
           
           <Select
             value={filters.gstType}
-            onChange={(e) => setFilters(prev => ({ ...prev, gstType: e.target.value }))}
+            onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
           >
             <option value="all">All GST Types</option>
             <option value="gst">GST</option>
@@ -255,7 +255,7 @@ const TransactionHistory = () => {
           
           <Select
             value={filters.status}
-            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+            onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
           >
             <option value="all">All Status</option>
             <option value="Completed">Completed</option>
@@ -265,7 +265,7 @@ const TransactionHistory = () => {
           <Input
             type="date"
             value={filters.dateFrom}
-            onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+            onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
             placeholder="From Date"
           />
           

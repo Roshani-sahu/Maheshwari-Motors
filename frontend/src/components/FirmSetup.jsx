@@ -11,13 +11,13 @@ const FirmSetup = () => {
   const { showToast, setLoading } = useStore();
   const [formData, setFormData] = useState({
     name: '',
-    shortName: '',
+    // shortName: '',
     type: 'GST',
     address: '',
     city: '',
     pincode: '',
     state: '',
-    phone: '',
+    // phone: '',
     mobile: '',
     email: '',
     fax: '',
@@ -25,10 +25,10 @@ const FirmSetup = () => {
     gstin: '',
     cin: '',
     registrationNo: '',
-    tinCst: '',
-    ecc: '',
-    range: '',
-    division: '',
+    // tinCst: '',
+    // ecc: '',
+    // range: '',
+    // division: '',
     pan: '',
     rule: '',
     godownAddress: '',
@@ -69,7 +69,7 @@ const FirmSetup = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Firm name is required';
-    if (!formData.shortName.trim()) newErrors.shortName = 'Short name is required';
+    // if (!formData.shortName.trim()) newErrors.shortName = 'Short name is required';
     if (formData.type === 'GST' && !formData.gstin.trim()) {
       newErrors.gstin = 'GSTIN is required for GST registered firms';
     }
@@ -140,13 +140,24 @@ const FirmSetup = () => {
               />
             </FormField>
 
-            <FormField label="Short Name" error={errors.shortName} required>
+            {/* <FormField label="Short Name" error={errors.shortName} required>
               <Input
                 name="shortName"
                 value={formData.shortName}
                 onChange={handleChange}
                 placeholder="Short name"
                 error={errors.shortName}
+              />
+            </FormField> */}
+
+             <FormField label="Email" error={errors.email}>
+              <Input
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Email address"
+                error={errors.email}
               />
             </FormField>
 
@@ -199,14 +210,14 @@ const FirmSetup = () => {
               </Select>
             </FormField>
 
-            <FormField label="Phone No">
+            {/* <FormField label="Phone No">
               <Input
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="Phone number"
               />
-            </FormField>
+            </FormField> */}
 
             <FormField label="Mobile No">
               <Input
@@ -217,16 +228,7 @@ const FirmSetup = () => {
               />
             </FormField>
 
-            <FormField label="Email" error={errors.email}>
-              <Input
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Email address"
-                error={errors.email}
-              />
-            </FormField>
+           
 
             <FormField label="Fax No">
               <Input
@@ -237,7 +239,7 @@ const FirmSetup = () => {
               />
             </FormField>
 
-            <FormField label="Signature" className="md:col-span-2">
+            <FormField label="Signature" className="md:col-span-1">
               <Input
                 name="signature"
                 value={formData.signature}
@@ -251,7 +253,7 @@ const FirmSetup = () => {
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-medium text-gray-900 mb-4">Other Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField label="GSTIN" error={errors.gstin}>
+              {/* <FormField label="GSTIN" error={errors.gstin}>
                 <Input
                   name="gstin"
                   value={formData.gstin}
@@ -314,27 +316,17 @@ const FirmSetup = () => {
                   onChange={handleChange}
                   placeholder="Division number"
                 />
-              </FormField>
+              </FormField> */}
 
-              <FormField label="Pan No" error={errors.pan}>
-                <Input
-                  name="pan"
-                  value={formData.pan}
-                  onChange={handleChange}
-                  placeholder="10 digit PAN"
-                  maxLength={10}
-                  error={errors.pan}
-                />
-              </FormField>
-
-              <FormField label="Rule">
+             
+              {/* <FormField label="Rule">
                 <Input
                   name="rule"
                   value={formData.rule}
                   onChange={handleChange}
                   placeholder="Rule"
                 />
-              </FormField>
+              </FormField> */}
 
               <FormField label="Godown Add." className="md:col-span-3">
                 <Textarea
@@ -372,6 +364,18 @@ const FirmSetup = () => {
                   placeholder="IFSC code"
                 />
               </FormField>
+
+               <FormField label="Pan No" error={errors.pan}>
+                <Input
+                  name="pan"
+                  value={formData.pan}
+                  onChange={handleChange}
+                  placeholder="10 digit PAN"
+                  maxLength={10}
+                  error={errors.pan}
+                />
+              </FormField>
+
             </div>
           </div>
 
