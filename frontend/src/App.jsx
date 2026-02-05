@@ -7,42 +7,32 @@ import Layout from "./components/Layout";
 // Global Components
 import { Toast, ConfirmDialog, LoadingOverlay } from "./components/GlobalComponents";
 
-// Pages
+// Main Pages
 import Dashboard from "./pages/Dashboard";
-import Master from "./pages/Master";
-import Transactions from "./pages/Transactions";
-import InventoryReports from "./pages/InventoryReports";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import CompanySelection from "./pages/CompanySelection";
-import AddCompany from "./pages/AddCompany";
-import GenerateChallan from "./pages/GenerateChallan";
-import ChallanList from "./pages/ChallanList";
-import ItemMaster from "./pages/ItemMaster";
+import Reports from "./pages/Reports";
 import AddItem from "./pages/AddItem";
-import UserRights from "./pages/UserRights";
-import AuditLogs from "./pages/AuditLogs";
-import AccountMasterList from "./pages/AccountMasterList";
-import GenerateBill from "./pages/GenerateBill";
-import PaymentStatus from "./pages/PaymentStatus";
 
-// New Components
+// Master Pages
+import FirmMaster from "./pages/masters/FirmMaster";
+import StockAlertMaster from "./pages/masters/StockAlertMaster";
+import ItemMaster from "./pages/masters/ItemMaster";
+import UserMaster from "./pages/masters/UserMaster";
+import AccountMaster from "./pages/masters/AccountMaster";
+
+// Transaction Pages
+import ChallanList from "./pages/transactions/ChallanList";
+import BillList from "./pages/transactions/BillList";
+import TransactionHistory from "./pages/transactions/TransactionHistory";
+
+// Setup Pages
+import BackupRestore from "./pages/setup/BackupRestore";
+import FinancialYearClose from "./pages/setup/FinancialYearClose";
+
+// Components
 import FirmSetup from "./components/FirmSetup";
-import ItemMasterGrid from "./components/ItemMaster";
-import ChallanEntry from "./components/ChallanEntry";
-
-// Master Components
-import AddAccount from "./components/masterComp/AddAccount.jsx";
-
-// Transaction Components
-import SaleEntry from "./components/transtation/Sale Entry.jsx";
-import ChallanBillPosting from "./components/transtation/Challan & Bill Posting.jsx";
-import ReceiptPaymentEntry from "./components/transtation/Receipt_Payment Entry.jsx";
-import Payment from "./components/transtation/Payment.jsx";
-import UniversalReport from "./pages/UniversalReport.jsx";
-
-import Settings from "./pages/SettingsPage.jsx";
-import Help from "./pages/HelpSupportPage.jsx";
 
 const App = () => {
   const { toast, confirmDialog, loading } = useStore();
@@ -53,43 +43,44 @@ const App = () => {
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* ERP Layout */}
-        <Route element={<Layout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/add-company" element={<AddCompany />} />
-          <Route path="/firm-setup" element={<FirmSetup />} />
-          <Route path="/firm-setup/:id" element={<FirmSetup />} />
-          <Route path="/generate-challan" element={<ChallanEntry />} />
-          <Route path="/challan-list" element={<ChallanList />} />
-          <Route path="/generate-bill" element={<GenerateBill />} />
-          <Route path="/payment-status" element={<PaymentStatus />} />
-          <Route path="/masters" element={<Master />} />
-          <Route path="/account-master" element={<AccountMasterList />} />
-          <Route path="/item-master" element={<ItemMasterGrid />} />
-          <Route path="/transactions" element={<Transactions />} />
-          <Route path="/universal-reports" element={<UniversalReport />} />
-          <Route path="/inventory-reports" element={<InventoryReports />} />
-          <Route path="/user-rights" element={<UserRights />} />
-          <Route path="/audit-logs" element={<AuditLogs />} />
-
-          {/* Master Routes */}
-          <Route path="/masters/add-account" element={<AddAccount />} />
-          <Route path="/add-item" element={<AddItem />} />
-          
-          {/* Transaction Routes */}
-          <Route path="/sale-entry" element={<SaleEntry />} />
-          <Route path="/challan-posting" element={<ChallanBillPosting />} />
-          <Route path="/receipt-payment" element={<ReceiptPaymentEntry />} />
-          <Route path="/payment" element={<Payment />} />
-          
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/help-support" element={<Help />} />
-        </Route>
-
-        {/* Login */}
+        {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/company-selection" element={<CompanySelection />} />
+
+        {/* ERP Layout */}
+        <Route element={<Layout />}>
+          {/* 1. Dashboard */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* 2. Masters */}
+          <Route path="/masters/firm-master" element={<FirmMaster />} />
+          <Route path="/masters/firm-master/add" element={<FirmSetup />} />
+          <Route path="/masters/firm-master/edit/:id" element={<FirmSetup />} />
+          <Route path="/masters/stock-alert-master" element={<StockAlertMaster />} />
+          <Route path="/masters/item-master" element={<ItemMaster />} />
+          <Route path="/masters/item-master/add" element={<AddItem />} />
+          <Route path="/masters/user-master" element={<UserMaster />} />
+          <Route path="/masters/account-master" element={<AccountMaster />} />
+          
+          {/* 3. Transactions */}
+          <Route path="/transactions/challan-list" element={<ChallanList />} />
+          <Route path="/transactions/bill-list" element={<BillList />} />
+          <Route path="/transactions/transaction-history" element={<TransactionHistory />} />
+          
+          {/* 4. Reports */}
+          <Route path="/reports" element={<Reports />} />
+          
+          {/* 5. Setup & Tools */}
+          <Route path="/setup/backup-restore" element={<BackupRestore />} />
+          <Route path="/setup/financial-year-close" element={<FinancialYearClose />} />
+          
+          {/* Legacy routes - redirect to new structure */}
+          <Route path="/firm-setup" element={<Navigate to="/masters/firm-master" replace />} />
+          <Route path="/item-master" element={<Navigate to="/masters/item-master" replace />} />
+          <Route path="/challan-list" element={<Navigate to="/transactions/challan-list" replace />} />
+          <Route path="/add-item" element={<Navigate to="/masters/item-master/add" replace />} />
+        </Route>
         
         {/* Fallback */}
         <Route path="*" element={<div className="p-10">404 – Page Not Found</div>} />

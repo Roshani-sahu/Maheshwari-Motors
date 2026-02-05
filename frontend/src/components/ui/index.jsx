@@ -235,21 +235,24 @@ export const Input = ({
 export const Select = ({ 
   value, 
   onChange, 
-  options, 
+  options = [], 
   placeholder, 
   disabled, 
-  className = "" 
+  className = "",
+  children,
+  ...props 
 }) => (
   <select
     value={value}
     onChange={(e) => onChange?.(e.target.value)}
     disabled={disabled}
     className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 ${className}`}
+    {...props}
   >
     {placeholder && <option value="">{placeholder}</option>}
-    {options.map(option => (
-      <option key={option.value} value={option.value}>
-        {option.label}
+    {children || options.map(option => (
+      <option key={option.value || option} value={option.value || option}>
+        {option.label || option}
       </option>
     ))}
   </select>
@@ -355,3 +358,26 @@ export const Button = ({
     </button>
   );
 };
+
+// Textarea Component
+export const Textarea = ({ 
+  value, 
+  onChange, 
+  onBlur,
+  placeholder, 
+  disabled, 
+  rows = 3,
+  className = "",
+  ...props 
+}) => (
+  <textarea
+    value={value}
+    onChange={(e) => onChange?.(e.target.value)}
+    onBlur={onBlur}
+    placeholder={placeholder}
+    disabled={disabled}
+    rows={rows}
+    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 resize-vertical ${className}`}
+    {...props}
+  />
+);

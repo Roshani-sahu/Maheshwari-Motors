@@ -59,14 +59,90 @@ export const firmAPI = {
 };
 
 export const accountAPI = {
-  getAll: (firmId) => Promise.resolve({ data: [] }),
+  getAll: (firmId) => Promise.resolve({ 
+    data: [
+      { id: 1, name: "CASH", type: "CASH", balance: 50000 },
+      { id: 2, name: "HDFC BANK", type: "BANK", balance: 125000 },
+      { id: 3, name: "MARUTI PARTS SUPPLIER", type: "SUPPLIER", balance: -25000 },
+      { id: 4, name: "TATA MOTORS DEALER", type: "CUSTOMER", balance: 15000 },
+      { id: 5, name: "HERO HONDA PARTS", type: "SUPPLIER", balance: -8500 }
+    ]
+  }),
   create: (data) => Promise.resolve({ data }),
   update: (id, data) => Promise.resolve({ data }),
   delete: (id) => Promise.resolve({ data: {} }),
 };
 
 export const itemAPI = {
-  getAll: (firmId) => Promise.resolve({ data: [] }),
+  getAll: (firmId) => Promise.resolve({ 
+    data: [
+      {
+        id: 1,
+        name: "BRAKE MASTER CYLINDER BOSCH",
+        gstCode: "14564",
+        nonGstCode: "14564",
+        unit: "PCS",
+        gstFlag: "GST",
+        saleRate: 850.00,
+        purchaseRate: 750.00,
+        mrp: 950.00,
+        stock: 25,
+        barcode: "BC14564"
+      },
+      {
+        id: 2,
+        name: "CLUTCH RING TYPE PURD",
+        gstCode: "1",
+        nonGstCode: "1",
+        unit: "PCS",
+        gstFlag: "GST",
+        saleRate: 320.00,
+        purchaseRate: 280.00,
+        mrp: 380.00,
+        stock: 15,
+        barcode: "BC001"
+      },
+      {
+        id: 3,
+        name: "1 LTR CLOTH & STAR FULL KIT HATHI",
+        gstCode: "2",
+        nonGstCode: "2",
+        unit: "SET",
+        gstFlag: "GST",
+        saleRate: 450.00,
+        purchaseRate: 400.00,
+        mrp: 520.00,
+        stock: 8,
+        barcode: "BC002"
+      },
+      {
+        id: 4,
+        name: "1 LTR 10W40 BISCOL",
+        gstCode: "11574",
+        nonGstCode: "11574",
+        unit: "LTR",
+        gstFlag: "GST",
+        saleRate: 180.00,
+        purchaseRate: 160.00,
+        mrp: 220.00,
+        stock: 50,
+        barcode: "BC11574"
+      },
+      {
+        id: 5,
+        name: "1 LTR 10W40 HP PURD",
+        gstCode: "14920",
+        nonGstCode: "14920",
+        unit: "LTR",
+        gstFlag: "GST",
+        saleRate: 195.00,
+        purchaseRate: 175.00,
+        mrp: 240.00,
+        stock: 30,
+        barcode: "BC14920"
+      }
+    ]
+  }),
   create: (data) => Promise.resolve({ data }),
   update: (id, data) => Promise.resolve({ data }),
   delete: (id) => Promise.resolve({ data: {} }),

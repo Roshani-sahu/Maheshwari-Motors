@@ -157,9 +157,8 @@ const FirmSetup = () => {
                 onChange={handleChange}
                 error={errors.type}
               >
-                <option value="GST">GST Registered</option>
-                <option value="NON_GST">Non-GST</option>
-                <option value="BILL_ONLY">Bill Only (No Stock)</option>
+                <option value="0">GST Registered</option>
+                <option value="1">Non-GST</option>
               </Select>
             </FormField>
 

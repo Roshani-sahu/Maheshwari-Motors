@@ -18,18 +18,18 @@ const ItemMaster = () => {
 
   const columns = [
     { key: 'code', header: 'Code', width: '120px', editable: true },
-    { key: 'name', header: 'Name', width: '200px', editable: true },
-    { key: 'alias', header: 'Alias', width: '150px', editable: true },
+    { key: 'name', header: 'Item Name', width: '200px', editable: true },
+    { key: 'alias', header: 'Alias/Description', width: '180px', editable: true },
     { key: 'barcode', header: 'Barcode', width: '150px', editable: true },
     { key: 'unit', header: 'Unit', width: '100px', editable: true, type: 'select' },
-    { key: 'group', header: 'Group', width: '150px', editable: true, type: 'select' },
-    { key: 'subGroup', header: 'Sub-Group', width: '150px', editable: true, type: 'select' },
-    { key: 'hsn', header: 'HSN', width: '120px', editable: true, type: 'select' },
-    { key: 'gstFlag', header: 'GST Flag', width: '100px', editable: true, type: 'select' },
-    { key: 'minQty', header: 'Min Qty', width: '100px', editable: true, type: 'number' },
-    { key: 'maxQty', header: 'Max Qty', width: '100px', editable: true, type: 'number' },
-    { key: 'importFlag', header: 'Import', width: '80px', editable: true, type: 'checkbox' },
-    { key: 'exportFlag', header: 'Export', width: '80px', editable: true, type: 'checkbox' },
+    { key: 'group', header: 'Main Group', width: '150px', editable: true, type: 'select' },
+    { key: 'subGroup', header: 'Sub Group', width: '150px', editable: true, type: 'select' },
+    { key: 'gstCode', header: 'GST Code', width: '120px', editable: true },
+    { key: 'nonGstCode', header: 'Non-GST Code', width: '120px', editable: true },
+    { key: 'gstRate', header: 'GST %', width: '80px', editable: true, type: 'number' },
+    { key: 'saleRate', header: 'Sale Rate', width: '100px', editable: true, type: 'number' },
+    { key: 'purchaseRate', header: 'Purchase Rate', width: '120px', editable: true, type: 'number' },
+    { key: 'discount', header: 'Discount %', width: '100px', editable: true, type: 'number' },
     { key: 'currentStock', header: 'Stock', width: '100px', editable: false },
     { key: 'actions', header: 'Actions', width: '100px', editable: false }
   ];
@@ -117,12 +117,12 @@ const ItemMaster = () => {
       unit: '',
       group: '',
       subGroup: '',
-      hsn: '',
-      gstFlag: 'GST',
-      minQty: 0,
-      maxQty: 0,
-      importFlag: false,
-      exportFlag: false,
+      gstCode: '',
+      nonGstCode: '',
+      gstRate: 0,
+      saleRate: 0,
+      purchaseRate: 0,
+      discount: 0,
       currentStock: 0,
       firmId: selectedFirm.id
     };
@@ -192,11 +192,7 @@ const ItemMaster = () => {
           className="px-2 py-1 cursor-pointer hover:bg-gray-50 min-h-[32px] flex items-center"
           onClick={() => handleCellClick(rowIndex, column.key)}
         >
-          {column.type === 'checkbox' ? (
-            <input type="checkbox" checked={value} readOnly className="pointer-events-none" />
-          ) : (
-            <span className="truncate">{value}</span>
-          )}
+          <span className="truncate">{value}</span>
         </div>
       );
     }
@@ -207,8 +203,6 @@ const ItemMaster = () => {
       if (column.key === 'unit') options = units;
       else if (column.key === 'group') options = groups;
       else if (column.key === 'subGroup') options = groups.filter(g => g.parentId === item.group);
-      else if (column.key === 'hsn') options = hsnCodes;
-      else if (column.key === 'gstFlag') options = [{ id: 'GST', name: 'GST' }, { id: 'NON_GST', name: 'NON-GST' }];
 
       return (
         <select
@@ -226,20 +220,6 @@ const ItemMaster = () => {
             </option>
           ))}
         </select>
-      );
-    }
-
-    if (column.type === 'checkbox') {
-      return (
-        <input
-          type="checkbox"
-          checked={value}
-          onChange={(e) => handleCellChange(rowIndex, column.key, e.target.checked)}
-          onBlur={() => handleCellBlur(rowIndex, column.key)}
-          onKeyDown={(e) => handleKeyDown(e, rowIndex, column.key)}
-          className="w-4 h-4"
-          autoFocus
-        />
       );
     }
 
