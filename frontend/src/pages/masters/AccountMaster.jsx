@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaPlus, FaFilter, FaPercent, FaMoneyBillWave } from 'react-icons/fa';
+import { FaPlus, FaFilter, FaPercent, FaMoneyBillWave, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, Toggle } from '../../components/common';
 import { Button, Input, Select } from '../../components/ui';
 
@@ -33,7 +33,7 @@ const AccountMaster = () => {
 
   const transactionActions = [
     {
-      label: 'Delete',
+      label: <FaTrash size={14} />,
       onClick: (transaction) => {
         if (window.confirm(`Are you sure you want to delete transaction "${transaction.transactionId}"?`)) {
           setTransactions(prev => prev.filter(t => t.id !== transaction.id));
@@ -144,7 +144,7 @@ const AccountMaster = () => {
 
   const discountActions = [
     {
-      label: 'Edit',
+      label: <FaEdit size={14} />,
       onClick: (discount) => {
         setEditingDiscount(discount);
         setIsEditDiscountModalOpen(true);
@@ -152,7 +152,7 @@ const AccountMaster = () => {
       className: 'bg-blue-600 text-white hover:bg-blue-700'
     },
     {
-      label: 'Delete',
+      label: <FaTrash size={14} />,
       onClick: (discount) => setDiscounts(prev => prev.filter(d => d.id !== discount.id)),
       className: 'bg-red-600 text-white hover:bg-red-700'
     }

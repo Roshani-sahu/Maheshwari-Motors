@@ -514,7 +514,7 @@ const ChallanList = () => {
               value={newChallan.gstType}
               onChange={(e) => setNewChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}>
               className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
+            
               <option value={1}>1</option>
               <option value={0}>0</option>
             </select>

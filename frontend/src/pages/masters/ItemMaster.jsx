@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit, FaImage } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaImage, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
@@ -111,7 +111,7 @@ const ItemMaster = () => {
 
   const actions = [
     {
-      label: 'Edit',
+      label: <FaEdit size={14} />,
       onClick: (item) => {
         setEditingItem(item);
         setIsEditModalOpen(true);
@@ -119,7 +119,7 @@ const ItemMaster = () => {
       className: 'bg-blue-600 text-white hover:bg-blue-700'
     },
     {
-      label: 'Delete',
+      label: <FaTrash size={14} />,
       onClick: (item) => {
         if (window.confirm(`Are you sure you want to delete "${item.itemName}"?`)) {
           deleteItem(item.id);

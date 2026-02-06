@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
@@ -91,12 +91,12 @@ const FirmMaster = () => {
 
   const actions = [
     {
-      label: 'Edit',
+      label: <FaEdit size={14} />,
       onClick: (firm) => navigate(`/masters/firm-master/edit/${firm.id}`),
       className: 'bg-blue-600 text-white hover:bg-blue-700'
     },
     {
-      label: 'Delete',
+      label: <FaTrash size={14} />,
       onClick: (firm) => {
         if (window.confirm(`Are you sure you want to delete "${firm.name}"?`)) {
           deleteFirm(firm.id);

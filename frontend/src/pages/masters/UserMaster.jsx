@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
@@ -75,7 +75,7 @@ const UserMaster = () => {
 
   const actions = [
     {
-      label: 'Edit',
+      label: <FaEdit size={14} />,
       onClick: (user) => {
         setEditingUser(user);
         setIsEditModalOpen(true);
@@ -83,7 +83,7 @@ const UserMaster = () => {
       className: 'bg-blue-600 text-white hover:bg-blue-700'
     },
     {
-      label: 'Delete',
+      label: <FaTrash size={14} />,
       onClick: (user) => {
         if (window.confirm(`Are you sure you want to delete user "${user.username}"?`)) {
           deleteUser(user.id);
