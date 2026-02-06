@@ -53,12 +53,14 @@ const FirmMaster = () => {
   const columns = [
     {
       key: 'id',
-      label: 'ID'
+      label: 'ID',
+      width: '60px' // Mobile pe thodi width increase
     },
-    {
-      key: 'name',
-      label: 'Firm Name'
-    },
+{
+  key: 'name',
+  label: 'Firm Name',
+  width: '180px'
+},
     {
       key: 'type',
       label: 'Type',
@@ -68,72 +70,80 @@ const FirmMaster = () => {
         }`}>
           {value === 0 ? '1' : '0'}
         </span>
-      )
+      ),
+      width: '70px' // Mobile pe thodi width increase
     },
     {
       key: 'city',
-      label: 'City'
+      label: 'City',
+      width: '100px' // Mobile pe thodi width increase
     },
     {
       key: 'phone',
-      label: 'Phone'
+      label: 'Phone',
+      width: '120px' // Mobile pe thodi width increase
     },
     {
       key: 'email',
-      label: 'Email'
+      label: 'Email',
+      width: '150px' // Mobile pe thodi width increase
     },
     {
       key: 'gstin',
       label: 'GSTIN',
-      render: (value) => value || 'N/A'
+      render: (value) => value || 'N/A',
+      width: '140px' // Mobile pe thodi width increase
     }
   ];
 
   const actions = [
     {
-      label: <FaEdit size={14} />,
+      label: <FaEdit size={12} className="sm:size-4" />,
       onClick: (firm) => navigate(`/masters/firm-master/edit/${firm.id}`),
-      className: 'bg-blue-600 text-white hover:bg-blue-700'
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1.5 sm:p-2'
     },
     {
-      label: <FaTrash size={14} />,
+      label: <FaTrash size={12} className="sm:size-4" />,
       onClick: (firm) => {
         if (window.confirm(`Are you sure you want to delete "${firm.name}"?`)) {
           deleteFirm(firm.id);
         }
       },
-      className: 'bg-red-600 text-white hover:bg-red-700'
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1.5 sm:p-2'
     }
   ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
-  <div>
-    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Firm Master</h1>
-    <p className="text-gray-600 text-xs sm:text-sm">
-      Manage your business firms (GST / NON-GST)
-    </p>
-  </div>
-  <Button
-    onClick={() => navigate('/masters/firm-master/add')}
-    className="flex items-center gap-2 text-xs sm:text-sm"
-  >
-    <FaPlus className="text-sm sm:text-base" />
-    Add Firm
-  </Button>
-</div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Firm Master</h1>
+          <p className="text-gray-600 text-xs sm:text-sm">
+            Manage your business firms (GST / NON-GST)
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate('/masters/firm-master/add')}
+          className="flex items-center gap-2 text-xs sm:text-sm"
+        >
+          <FaPlus className="text-sm sm:text-base" />
+          Add Firm
+        </Button>
+      </div>
 
       {/* Firms Table */}
-      <DataTable
-        columns={columns}
-        data={firms}
-        actions={actions}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-      />
+      <div className="overflow-x-auto">
+        <DataTable
+          columns={columns}
+          data={firms}
+          actions={actions}
+          searchable={true}
+          sortable={true}
+          pagination={true}
+          minWidth="800px" // Minimum width for better mobile scrolling
+        />
+      </div>
     </div>
   );
 };
