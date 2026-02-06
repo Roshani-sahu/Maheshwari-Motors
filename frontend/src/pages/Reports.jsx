@@ -35,17 +35,17 @@ const Reports = () => {
   ];
 
   return (
-    <div className="space-y-6  bg-gray-50 min-h-screen">
+    <div className="space-y-4 sm:space-y-6 bg-gray-50 min-h-screen px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Business Analytics</h1>
-          <p className="text-gray-500 mt-1">Track your business performance</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Business Analytics</h1>
+          <p className="text-gray-500 mt-1 text-xs sm:text-sm md:text-base">Track your business performance</p>
         </div>
         <select
           value={selectedPeriod}
           onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
         >
           <option value="month">This Month</option>
           <option value="quarter">This Quarter</option>
@@ -54,72 +54,72 @@ const Reports = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Total Challans</p>
-              <h3 className="text-3xl font-bold text-gray-900 mt-2">253</h3>
-              <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
-                <FaArrowUp size={12} /> 12% increase
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Challans</p>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">253</h3>
+              <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
+                <FaArrowUp size={10} className="sm:size-3" /> 12% increase
               </p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FaChartLine className="text-blue-600 text-xl" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FaChartLine className="text-blue-600 text-sm sm:text-base md:text-xl" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Total Bills</p>
-              <h3 className="text-3xl font-bold text-gray-900 mt-2">200</h3>
-              <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
-                <FaArrowUp size={12} /> 8% increase
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Bills</p>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">200</h3>
+              <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
+                <FaArrowUp size={10} className="sm:size-3" /> 8% increase
               </p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <FaChartBar className="text-green-600 text-xl" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <FaChartBar className="text-green-600 text-sm sm:text-base md:text-xl" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
-              <h3 className="text-3xl font-bold text-gray-900 mt-2">₹29.5L</h3>
-              <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
-                <FaArrowUp size={12} /> 15% increase
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Revenue</p>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">₹29.5L</h3>
+              <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
+                <FaArrowUp size={10} className="sm:size-3" /> 15% increase
               </p>
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <FaTrophy className="text-purple-600 text-xl" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+              <FaTrophy className="text-purple-600 text-sm sm:text-base md:text-xl" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Conversion Rate</p>
-              <h3 className="text-3xl font-bold text-gray-900 mt-2">79%</h3>
-              <p className="text-sm text-gray-500 mt-2">Challan to Bill</p>
+              <p className="text-xs sm:text-sm text-gray-500 font-medium">Conversion Rate</p>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">79%</h3>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Challan to Bill</p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <FaChartPie className="text-orange-600 text-xl" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <FaChartPie className="text-orange-600 text-sm sm:text-base md:text-xl" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Line Chart */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Challans vs Bills Trend</h3>
-          <ResponsiveContainer width="100%" height={280}>
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Challans vs Bills Trend</h3>
+          <ResponsiveContainer width="100%" height={220} className="mx-auto sm:mx-0">
             <AreaChart data={monthlyData}>
               <defs>
                 <linearGradient id="colorChallans" x1="0" y1="0" x2="0" y2="1">
@@ -132,9 +132,9 @@ const Reports = () => {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
-              <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
-              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }} />
+              <XAxis dataKey="month" stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
+              <YAxis stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
+              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '11px', sm: '12px' }} />
               <Area type="monotone" dataKey="challans" stroke="#3B82F6" fillOpacity={1} fill="url(#colorChallans)" strokeWidth={2} />
               <Area type="monotone" dataKey="bills" stroke="#10B981" fillOpacity={1} fill="url(#colorBills)" strokeWidth={2} />
             </AreaChart>
@@ -142,48 +142,48 @@ const Reports = () => {
         </div>
 
         {/* Bar Chart */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Revenue (₹ in thousands)</h3>
-          <ResponsiveContainer width="100%" height={280}>
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Monthly Revenue (₹ in thousands)</h3>
+          <ResponsiveContainer width="100%" height={220} className="mx-auto sm:mx-0">
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
-              <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
-              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '12px' }} />
-              <Bar dataKey="revenue" fill="#8B5CF6" radius={[8, 8, 0, 0]} />
+              <XAxis dataKey="month" stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
+              <YAxis stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
+              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '11px', sm: '12px' }} />
+              <Bar dataKey="revenue" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Pie Chart 1 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Transaction Types</h3>
-          <ResponsiveContainer width="100%" height={220}>
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Transaction Types</h3>
+          <ResponsiveContainer width="100%" height={180} className="mx-auto">
             <PieChart>
               <Pie
                 data={transactionTypeData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
+                innerRadius={50}
+                outerRadius={70}
+                paddingAngle={3}
                 dataKey="value"
               >
                 {transactionTypeData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip contentStyle={{ fontSize: '11px', sm: '12px' }} />
             </PieChart>
           </ResponsiveContainer>
-          <div className="grid grid-cols-2 gap-2 mt-4">
+          <div className="grid grid-cols-2 gap-2 mt-3 sm:mt-4">
             {transactionTypeData.map((item, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                <span className="text-xs text-gray-600">{item.name}</span>
+              <div key={index} className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                <span className="text-xs text-gray-600 truncate">{item.name}</span>
                 <span className="text-xs font-semibold ml-auto">{item.value}</span>
               </div>
             ))}
@@ -191,31 +191,31 @@ const Reports = () => {
         </div>
 
         {/* Pie Chart 2 */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">GST Distribution</h3>
-          <ResponsiveContainer width="100%" height={220}>
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">GST Distribution</h3>
+          <ResponsiveContainer width="100%" height={180} className="mx-auto">
             <PieChart>
               <Pie
                 data={gstData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
+                innerRadius={50}
+                outerRadius={70}
+                paddingAngle={3}
                 dataKey="value"
               >
                 {gstData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip contentStyle={{ fontSize: '11px', sm: '12px' }} />
             </PieChart>
           </ResponsiveContainer>
-          <div className="grid grid-cols-2 gap-2 mt-4">
+          <div className="grid grid-cols-2 gap-2 mt-3 sm:mt-4">
             {gstData.map((item, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                <span className="text-xs text-gray-600">{item.name}</span>
+              <div key={index} className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                <span className="text-xs text-gray-600 truncate">{item.name}</span>
                 <span className="text-xs font-semibold ml-auto">{item.value}</span>
               </div>
             ))}
@@ -223,18 +223,18 @@ const Reports = () => {
         </div>
 
         {/* Top Parties */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Parties</h3>
-          <div className="space-y-3">
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Top Parties</h3>
+          <div className="space-y-2 sm:space-y-3">
             {topPartiesData.map((item, index) => (
               <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm">
                     {index + 1}
                   </div>
-                  <span className="text-sm font-medium text-gray-700">{item.party}</span>
+                  <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">{item.party}</span>
                 </div>
-                <span className="text-sm font-bold text-gray-900">₹{item.amount}K</span>
+                <span className="text-xs sm:text-sm font-bold text-gray-900">₹{item.amount}K</span>
               </div>
             ))}
           </div>
