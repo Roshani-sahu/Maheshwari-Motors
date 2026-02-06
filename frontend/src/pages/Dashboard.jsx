@@ -44,90 +44,77 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">
-            Welcome back! Here's your business overview for {selectedFirm?.name || 'your firm'}.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <FaCalendarDay />
-          {formatDate(new Date())}
+     {/* Header */}
+<div className="flex items-center justify-between">
+  <div>
+    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
+    <p className="text-gray-600 text-xs sm:text-sm">
+      Welcome back! Here's your business overview for {selectedFirm?.name || 'your firm'}.
+    </p>
+  </div>
+  <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+    <FaCalendarDay className="text-sm sm:text-base" />
+    {formatDate(new Date())}
+  </div>
+</div>
+
+     {/* Top 4 Stat Cards */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+  <StatsCard
+    title="Total Firms"
+    value={dashboardData.totalFirms}
+    subtitle="Click to manage"
+    icon={FaBuilding}
+    color="blue"
+    onClick={() => navigate('/masters/firm-master')}
+    className="p-3 sm:p-4 md:p-6"
+  />
+  
+  <StatsCard
+    title="Total Challans"
+    value={dashboardData.todaysChallans}
+    subtitle="Today's Challan"
+    icon={FaFileInvoiceDollar}
+    color="green"
+    onClick={() => navigate('/transactions/challan-list')}
+    className="p-3 sm:p-4 md:p-6"
+  />
+  
+  {/* Custom Bill Card */}
+  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border-l-2 sm:border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
+    <div className="flex items-center justify-between mb-2 sm:mb-3 md:mb-4">
+      <div>
+        <p className="text-xs sm:text-sm font-medium text-gray-600">Total Bills</p>
+        <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-2">
+          <Toggle
+            checked={billPeriod === 'month'}
+            onChange={() => setBillPeriod(billPeriod === 'today' ? 'month' : 'today')}
+            size="sm"
+          />
+          <span className="text-xs text-gray-500">
+            {billPeriod === 'today' ? 'Today' : 'This Month'}
+          </span>
         </div>
       </div>
-
-
-      {/* Top 4 Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Total Firms"
-          value={dashboardData.totalFirms}
-          subtitle="Click to manage"
-          icon={FaBuilding}
-          color="blue"
-          onClick={() => navigate('/masters/firm-master')}
-        />
-        
-         <StatsCard
-          title="Total Challans"
-          value={dashboardData.todaysChallans}
-          subtitle="Today's Challan"
-          icon={FaFileInvoiceDollar}
-          color="green"
-          onClick={() => navigate('/transactions/challan-list')}
-        />
-        {/* <div className="bg-white p-6 rounded-lg border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between ">
-            <div>
-              <p className="text-sm font-medium text-gray-600"></p>
-            </div>
-            <div className="p-3 rounded-full bg-green-50">
-              <FaFileInvoiceDollar className="text-xl text-green-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">
-            {dashboardData.todaysChallans}
-          </p>
-          
-        </div>
-         */}
-        
-        <div className="bg-white p-6 rounded-lg border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Bills</p>
-              <div className="flex items-center gap-3 mt-2">
-                <Toggle
-                  checked={billPeriod === 'month'}
-                  onChange={() => setBillPeriod(billPeriod === 'today' ? 'month' : 'today')}
-                  size="sm"
-                />
-                <span className="text-xs text-gray-500">
-                  {billPeriod === 'today' ? 'Today' : 'This Month'}
-                </span>
-              </div>
-            </div>
-            <div className="p-3 rounded-full bg-purple-50">
-              <FaFileInvoiceDollar className="text-xl text-purple-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-gray-900">
-            {billPeriod === 'today' ? dashboardData.todaysBills : dashboardData.thisMonthBills}
-          </p>
-        </div>
-        
-        <StatsCard
-          title="Low Stock Alerts"
-          value={dashboardData.lowStockAlerts}
-          subtitle="Below threshold"
-          icon={FaExclamationTriangle}
-          color="red"
-          onClick={() => navigate('/masters/stock-alert-master')}
-        />
+      <div className="p-2 sm:p-3 rounded-full bg-purple-50">
+        <FaFileInvoiceDollar className="text-sm sm:text-base md:text-xl text-purple-600" />
       </div>
-
+    </div>
+    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+      {billPeriod === 'today' ? dashboardData.todaysBills : dashboardData.thisMonthBills}
+    </p>
+  </div>
+  
+  <StatsCard
+    title="Low Stock Alerts"
+    value={dashboardData.lowStockAlerts}
+    subtitle="Below threshold"
+    icon={FaExclamationTriangle}
+    color="red"
+    onClick={() => navigate('/masters/stock-alert-master')}
+    className="p-3 sm:p-4 md:p-6"
+  />
+</div> 
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Challans */}

@@ -109,19 +109,21 @@ const FirmMaster = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Firm Master</h1>
-          <p className="text-gray-600">Manage your business firms (GST / NON-GST)</p>
-        </div>
-        <Button
-          onClick={() => navigate('/masters/firm-master/add')}
-          className="flex items-center gap-2"
-        >
-          <FaPlus />
-          Add Firm
-        </Button>
-      </div>
+<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+  <div>
+    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Firm Master</h1>
+    <p className="text-gray-600 text-xs sm:text-sm">
+      Manage your business firms (GST / NON-GST)
+    </p>
+  </div>
+  <Button
+    onClick={() => navigate('/masters/firm-master/add')}
+    className="flex items-center gap-2 text-xs sm:text-sm"
+  >
+    <FaPlus className="text-sm sm:text-base" />
+    Add Firm
+  </Button>
+</div>
 
       {/* Firms Table */}
       <DataTable
