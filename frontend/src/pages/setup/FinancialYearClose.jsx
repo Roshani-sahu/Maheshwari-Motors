@@ -63,6 +63,26 @@ const FinancialYearClose = () => {
           Close current financial year and prepare for new year
         </p>
       </div>
+{/* Financial Summary */}
+      <div className="bg-white p-4 sm:p-6 rounded-lg border">
+        <h3 className="font-medium text-gray-900 text-sm sm:text-base mb-4">
+          Financial Year Summary (Read-Only)
+        </h3>
+
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <SummaryCard title="Total Challans" value={closingSummary.totalChallans.toLocaleString()} />
+          <SummaryCard title="Total Bills" value={closingSummary.totalBills.toLocaleString()} color="green" />
+          <SummaryCard title="Total Revenue" value={`₹${(closingSummary.totalRevenue / 100000).toFixed(1)}L`} color="purple" />
+          <SummaryCard title="Pending Payments" value={`₹${(closingSummary.pendingPayments / 100000).toFixed(1)}L`} color="red" />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+          <SummaryCard title="Stock Value" value={`₹${(closingSummary.stockValue / 100000).toFixed(1)}L`} />
+          <SummaryCard title="GST Collected" value={`₹${(closingSummary.gstCollected / 100000).toFixed(1)}L`} color="green" />
+          <SummaryCard title="GST Paid" value={`₹${(closingSummary.gstPaid / 100000).toFixed(1)}L`} color="purple" />
+        </div>
+      </div>
+
 
       {/* Current Year Status */}
       <div className="bg-white p-4 sm:p-6 rounded-lg border">
@@ -119,25 +139,7 @@ const FinancialYearClose = () => {
         )}
       </div>
 
-      {/* Financial Summary */}
-      <div className="bg-white p-4 sm:p-6 rounded-lg border">
-        <h3 className="font-medium text-gray-900 text-sm sm:text-base mb-4">
-          Financial Year Summary (Read-Only)
-        </h3>
-
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <SummaryCard title="Total Challans" value={closingSummary.totalChallans.toLocaleString()} />
-          <SummaryCard title="Total Bills" value={closingSummary.totalBills.toLocaleString()} color="green" />
-          <SummaryCard title="Total Revenue" value={`₹${(closingSummary.totalRevenue / 100000).toFixed(1)}L`} color="purple" />
-          <SummaryCard title="Pending Payments" value={`₹${(closingSummary.pendingPayments / 100000).toFixed(1)}L`} color="red" />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-          <SummaryCard title="Stock Value" value={`₹${(closingSummary.stockValue / 100000).toFixed(1)}L`} />
-          <SummaryCard title="GST Collected" value={`₹${(closingSummary.gstCollected / 100000).toFixed(1)}L`} color="green" />
-          <SummaryCard title="GST Paid" value={`₹${(closingSummary.gstPaid / 100000).toFixed(1)}L`} color="purple" />
-        </div>
-      </div>
+      
 
       {/* Action Section */}
       {!isYearClosed && (
