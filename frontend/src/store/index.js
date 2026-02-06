@@ -31,6 +31,7 @@ const useStore = create(devtools((set, get) => ({
   // Transaction Data
   challans: [],
   bills: [],
+  transactions: [],
   
   // Actions
   setUser: (user) => set({ user, isAuthenticated: !!user }),
@@ -60,6 +61,19 @@ const useStore = create(devtools((set, get) => ({
   setBooks: (books) => set({ books }),
   setChallans: (challans) => set({ challans }),
   setBills: (bills) => set({ bills }),
+  setTransactions: (transactions) => set({ transactions }),
+  
+  addBill: (bill) => {
+    console.log('Adding bill to store:', bill);
+    set((state) => ({ bills: [...state.bills, bill] }));
+  },
+  addTransaction: (transaction) => {
+    console.log('Adding transaction to store:', transaction);
+    set((state) => ({ transactions: [...state.transactions, transaction] }));
+  },
+  removeChallans: (challanIds) => set((state) => ({
+    challans: state.challans.filter(c => !challanIds.includes(c.id))
+  })),
 })));
 
 export default useStore;

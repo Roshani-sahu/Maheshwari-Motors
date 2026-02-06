@@ -1,77 +1,85 @@
-import React, { useState } from 'react';
-import { FaFilter, FaHistory, FaFileInvoiceDollar, FaReceipt, FaMoneyBillWave } from 'react-icons/fa';
-import { DataTable } from '../../components/common';
+import React, { useState, useEffect } from 'react';
+import { FaFilter, FaHistory, FaFileInvoiceDollar, FaReceipt, FaMoneyBillWave, FaCheckCircle, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
+import { DataTable, Modal } from '../../components/common';
 import { Select, Input, Button } from '../../components/ui';
+import useStore from '../../store';
 
 const TransactionHistory = () => {
+  const { transactions: storeTransactions } = useStore();
   const [transactions, setTransactions] = useState([
     {
       id: 1,
       transactionId: 'TXN001',
       type: 'Challan',
       firm: 'Maa Auto',
-      gstFlag: 0, // GST
       amount: 25000,
       date: '2024-01-15',
       party: 'ABC Motors',
-      status: 'Completed'
+      gstType: 1
     },
     {
       id: 2,
       transactionId: 'TXN002',
       type: 'Bill',
       firm: 'Motors Division',
-      gstFlag: 1, // NON-GST
       amount: 18500,
       date: '2024-01-15',
       party: 'XYZ Parts',
-      status: 'Completed'
+      gstType: 0
     },
     {
       id: 3,
       transactionId: 'TXN003',
-      type: 'Payment',
+      type: 'Prepaid',
       firm: 'Maa Auto',
-      gstFlag: 0, // GST
       amount: 15000,
       date: '2024-01-14',
       party: 'PQR Auto',
-      status: 'Pending'
+      gstType: 1
     },
     {
       id: 4,
       transactionId: 'TXN004',
       type: 'Challan',
       firm: 'Surat Branch',
-      gstFlag: 0, // GST
       amount: 32000,
       date: '2024-01-14',
       party: 'LMN Garage',
-      status: 'Completed'
+      gstType: 0
     },
     {
       id: 5,
       transactionId: 'TXN005',
-      type: 'Bill',
+      type: 'Due',
       firm: 'Motors Division',
-      gstFlag: 1, // NON-GST
       amount: 28000,
       date: '2024-01-13',
       party: 'RST Motors',
-      status: 'Completed'
+      gstType: 1
     }
   ]);
+
+  useEffect(() => {
+    console.log('TransactionHistory - Store transactions updated:', storeTransactions);
+    setTransactions(prev => {
+      const newTransactions = storeTransactions.filter(st => !prev.some(t => t.id === st.id));
+      console.log('TransactionHistory - New transactions to add:', newTransactions);
+      return newTransactions.length > 0 ? [...prev, ...newTransactions] : prev;
+    });
+  }, [storeTransactions]);
 
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    type: 'all', // all, Challan, Bill, Payment
-    firm: 'all',
-    gstType: 'all', // all, gst, non-gst
-    status: 'all'
+    type: 'all',
+    firm: 'all'
   });
 
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
+
   const firms = ['Maa Auto', 'Motors Division', 'Surat Branch'];
+  const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
 
   const columns = [
     { key: 'transactionId', label: 'Transaction ID' },
@@ -82,12 +90,14 @@ const TransactionHistory = () => {
         const icons = {
           'Challan': <FaFileInvoiceDollar className="inline mr-1" />,
           'Bill': <FaReceipt className="inline mr-1" />,
-          'Payment': <FaMoneyBillWave className="inline mr-1" />
+          'Prepaid': <FaCheckCircle className="inline mr-1" />,
+          'Due': <FaMoneyBillWave className="inline mr-1" />
         };
         const colors = {
           'Challan': 'bg-blue-100 text-blue-800',
           'Bill': 'bg-green-100 text-green-800',
-          'Payment': 'bg-purple-100 text-purple-800'
+          'Prepaid': 'bg-purple-100 text-purple-800',
+          'Due': 'bg-orange-100 text-orange-800'
         };
         return (
           <span className={`px-2 py-1 text-xs rounded-full ${colors[value]}`}>
@@ -98,17 +108,6 @@ const TransactionHistory = () => {
       }
     },
     { key: 'firm', label: 'Firm' },
-    {
-      key: 'gstFlag',
-      label: 'Type',
-      render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-        }`}>
-          {value}
-        </span>
-      )
-    },
     {
       key: 'amount',
       label: 'Amount',
@@ -121,42 +120,107 @@ const TransactionHistory = () => {
     },
     { key: 'party', label: 'Party' },
     {
-      key: 'status',
-      label: 'Status',
+      key: 'gstType',
+      label: 'Type',
       render: (value) => (
         <span className={`px-2 py-1 text-xs rounded-full ${
-          value === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+          value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
           {value}
         </span>
       )
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (value, txn) => (
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setEditingTransaction({...txn});
+              setIsEditModalOpen(true);
+            }}
+            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+            title="Edit"
+          >
+            <FaEdit size={14} />
+          </button>
+          <button
+            onClick={() => {
+              if (confirm(`Delete transaction ${txn.transactionId}?`)) {
+                setTransactions(prev => prev.filter(t => t.id !== txn.id));
+              }
+            }}
+            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+            title="Delete"
+          >
+            <FaTrash size={14} />
+          </button>
+          <button
+            onClick={() => {
+              // Generate PDF
+              const printWindow = window.open('', '', 'width=800,height=600');
+              printWindow.document.write(`
+                <html>
+                  <head>
+                    <title>Transaction ${txn.transactionId}</title>
+                    <style>
+                      body { font-family: Arial, sans-serif; padding: 40px; }
+                      h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+                      .info { margin: 20px 0; }
+                      .label { font-weight: bold; display: inline-block; width: 150px; }
+                    </style>
+                  </head>
+                  <body>
+                    <h1>Transaction Details</h1>
+                    <div class="info">
+                      <p><span class="label">Transaction ID:</span> ${txn.transactionId}</p>
+                      <p><span class="label">Type:</span> ${txn.type}</p>
+                      <p><span class="label">Firm:</span> ${txn.firm}</p>
+                      <p><span class="label">Party:</span> ${txn.party}</p>
+                      <p><span class="label">Date:</span> ${new Date(txn.date).toLocaleDateString()}</p>
+                      <p><span class="label">Amount:</span> ₹${txn.amount.toLocaleString()}</p>
+                      <p><span class="label">GST Type:</span> ${txn.gstType}</p>
+                    </div>
+                  </body>
+                </html>
+              `);
+              printWindow.document.close();
+              printWindow.print();
+            }}
+            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+            title="Download"
+          >
+            <FaDownload size={14} />
+          </button>
+        </div>
+      )
     }
   ];
 
-  // Apply filters
+  const handleEditTransaction = () => {
+    setTransactions(prev => prev.map(t => 
+      t.id === editingTransaction.id ? {...editingTransaction, amount: parseFloat(editingTransaction.amount)} : t
+    ));
+    setIsEditModalOpen(false);
+    setEditingTransaction(null);
+    alert('Transaction updated successfully!');
+  };
+
   const filteredTransactions = transactions.filter(txn => {
     if (filters.type !== 'all' && txn.type !== filters.type) return false;
     if (filters.firm !== 'all' && txn.firm !== filters.firm) return false;
-    if (filters.status !== 'all' && txn.status !== filters.status) return false;
-    if (filters.gstType !== 'all') {
-      const isGst = filters.gstType === 'gst';
-      if ((txn.gstFlag === 0) !== isGst) return false;
-    }
     return true;
   });
 
-  // Calculate summary stats
   const stats = {
     total: filteredTransactions.length,
     totalAmount: filteredTransactions.reduce((sum, txn) => sum + txn.amount, 0),
     byType: {
       Challan: filteredTransactions.filter(t => t.type === 'Challan').length,
       Bill: filteredTransactions.filter(t => t.type === 'Bill').length,
-      Payment: filteredTransactions.filter(t => t.type === 'Payment').length
-    },
-    byGst: {
-      gst: filteredTransactions.filter(t => t.gstFlag === 0).length,
-      nonGst: filteredTransactions.filter(t => t.gstFlag === 1).length
+      Prepaid: filteredTransactions.filter(t => t.type === 'Prepaid').length,
+      Due: filteredTransactions.filter(t => t.type === 'Due').length
     }
   };
 
@@ -169,8 +233,7 @@ const TransactionHistory = () => {
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-500">
           <h3 className="text-sm font-medium text-blue-800">Total Transactions</h3>
           <p className="text-2xl font-bold text-blue-900">{stats.total}</p>
@@ -179,20 +242,11 @@ const TransactionHistory = () => {
           <h3 className="text-sm font-medium text-green-800">Total Amount</h3>
           <p className="text-2xl font-bold text-green-900">₹{(stats.totalAmount / 100000).toFixed(1)}L</p>
         </div>
-        <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-l-purple-500">
-          <h3 className="text-sm font-medium text-purple-800">GST Transactions</h3>
-          <p className="text-2xl font-bold text-purple-900">{stats.byGst.gst}</p>
-        </div>
-        <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-l-orange-500">
-          <h3 className="text-sm font-medium text-orange-800">NON-GST Transactions</h3>
-          <p className="text-2xl font-bold text-orange-900">{stats.byGst.nonGst}</p>
-        </div>
       </div>
 
-      {/* Type Breakdown */}
       <div className="bg-white p-4 rounded-lg border">
         <h3 className="font-medium text-gray-900 mb-3">Transaction Breakdown</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
             <div className="flex items-center gap-2">
               <FaFileInvoiceDollar className="text-blue-600" />
@@ -209,21 +263,27 @@ const TransactionHistory = () => {
           </div>
           <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
             <div className="flex items-center gap-2">
-              <FaMoneyBillWave className="text-purple-600" />
-              <span className="text-sm font-medium">Payments</span>
+              <FaCheckCircle className="text-purple-600" />
+              <span className="text-sm font-medium">Prepaid</span>
             </div>
-            <span className="text-lg font-bold text-purple-600">{stats.byType.Payment}</span>
+            <span className="text-lg font-bold text-purple-600">{stats.byType.Prepaid}</span>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FaMoneyBillWave className="text-orange-600" />
+              <span className="text-sm font-medium">Due Amount</span>
+            </div>
+            <span className="text-lg font-bold text-orange-600">{stats.byType.Due}</span>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="bg-white p-4 rounded-lg border">
         <div className="flex items-center gap-2 mb-4">
           <FaFilter className="text-gray-500" />
           <h3 className="font-medium text-gray-900">Filters</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Select
             value={filters.type}
             onChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
@@ -231,7 +291,8 @@ const TransactionHistory = () => {
             <option value="all">All Types</option>
             <option value="Challan">Challan</option>
             <option value="Bill">Bill</option>
-            <option value="Payment">Payment</option>
+            <option value="Prepaid">Prepaid</option>
+            <option value="Due">Due</option>
           </Select>
           
           <Select
@@ -244,24 +305,6 @@ const TransactionHistory = () => {
             ))}
           </Select>
           
-          <Select
-            value={filters.gstType}
-            onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
-          >
-            <option value="all">All GST Types</option>
-            <option value="gst">GST</option>
-            <option value="non-gst">NON-GST</option>
-          </Select>
-          
-          <Select
-            value={filters.status}
-            onChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
-          >
-            <option value="all">All Status</option>
-            <option value="Completed">Completed</option>
-            <option value="Pending">Pending</option>
-          </Select>
-          
           <Input
             type="date"
             value={filters.dateFrom}
@@ -272,7 +315,7 @@ const TransactionHistory = () => {
           <Button
             variant="outline"
             onClick={() => setFilters({
-              dateFrom: '', dateTo: '', type: 'all', firm: 'all', gstType: 'all', status: 'all'
+              dateFrom: '', dateTo: '', type: 'all', firm: 'all'
             })}
           >
             Clear All
@@ -280,7 +323,6 @@ const TransactionHistory = () => {
         </div>
       </div>
 
-      {/* Transaction Table */}
       <DataTable
         columns={columns}
         data={filteredTransactions}
@@ -289,6 +331,111 @@ const TransactionHistory = () => {
         pagination={true}
         pageSize={15}
       />
+
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Transaction"
+        size="md"
+      >
+        {editingTransaction && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Transaction ID</label>
+              <input
+                type="text"
+                value={editingTransaction.transactionId}
+                disabled
+                className="w-full px-3 py-2 border rounded-md bg-gray-100 cursor-not-allowed"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+              <select
+                value={editingTransaction.type}
+                onChange={(e) => setEditingTransaction(prev => ({ ...prev, type: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="Challan">Challan</option>
+                <option value="Bill">Bill</option>
+                <option value="Prepaid">Prepaid</option>
+                <option value="Due">Due</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Firm *</label>
+              <select
+                value={editingTransaction.firm}
+                onChange={(e) => setEditingTransaction(prev => ({ ...prev, firm: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {firms.map(firm => (
+                  <option key={firm} value={firm}>{firm}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
+              <select
+                value={editingTransaction.party}
+                onChange={(e) => setEditingTransaction(prev => ({ ...prev, party: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select Party</option>
+                {parties.map(party => (
+                  <option key={party} value={party}>{party}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
+              <input
+                type="number"
+                value={editingTransaction.amount}
+                onChange={(e) => setEditingTransaction(prev => ({ ...prev, amount: e.target.value }))}
+                placeholder="Enter amount"
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">GST Type *</label>
+              <select
+                value={editingTransaction.gstType}
+                onChange={(e) => setEditingTransaction(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value={1}>1</option>
+                <option value={0}>0</option>
+              </select>
+            </div>
+            
+            <div className="flex gap-3 pt-4">
+              <Button 
+                onClick={handleEditTransaction}
+                disabled={!editingTransaction.party || !editingTransaction.amount}
+                className="flex items-center gap-2"
+              >
+                <FaEdit />
+                Update Transaction
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingTransaction(null);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

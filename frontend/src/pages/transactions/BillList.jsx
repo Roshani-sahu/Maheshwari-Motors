@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Select, Input } from '../../components/ui';
+import useStore from '../../store';
 
 const BillList = () => {
+  const { bills: storeBills } = useStore();
   const [bills, setBills] = useState([
     {
       id: 1,
@@ -12,8 +14,7 @@ const BillList = () => {
       party: 'ABC Motors',
       amount: 25000,
       linkedChallans: ['CH001', 'CH002'],
-      gstFlag: 0, // GST
-      status: 'Paid'
+      gstType: 1
     },
     {
       id: 2,
@@ -22,8 +23,7 @@ const BillList = () => {
       party: 'XYZ Parts',
       amount: 18500,
       linkedChallans: ['CH003'],
-      gstFlag: 1, // NON-GST
-      status: 'Pending'
+      gstType: 0
     },
     {
       id: 3,
@@ -32,21 +32,31 @@ const BillList = () => {
       party: 'PQR Auto',
       amount: 32000,
       linkedChallans: ['CH004', 'CH005', 'CH006'],
-      gstFlag: 0, // GST
-      status: 'Overdue'
+      gstType: 1
     }
   ]);
+
+  useEffect(() => {
+    console.log('BillList - Store bills updated:', storeBills);
+    setBills(prev => {
+      const newBills = storeBills.filter(sb => !prev.some(b => b.id === sb.id));
+      console.log('BillList - New bills to add:', newBills);
+      return newBills.length > 0 ? [...prev, ...newBills] : prev;
+    });
+  }, [storeBills]);
 
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    party: '',
-    status: 'all',
-    gstType: 'all'
+    party: ''
   });
 
   const [selectedBill, setSelectedBill] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingBill, setEditingBill] = useState(null);
+
+  const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
 
   const columns = [
     { key: 'billNo', label: 'Bill No' },
@@ -72,58 +82,134 @@ const BillList = () => {
       )
     },
     {
-      key: 'gstFlag',
+      key: 'gstType',
       label: 'Type',
       render: (value) => (
         <span className={`px-2 py-1 text-xs rounded-full ${
-          value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+          value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
           {value}
         </span>
       )
     },
     {
-      key: 'status',
-      label: 'Status',
-      render: (value) => {
-        const colors = {
-          'Paid': 'bg-green-100 text-green-800',
-          'Pending': 'bg-yellow-100 text-yellow-800',
-          'Overdue': 'bg-red-100 text-red-800'
-        };
-        return (
-          <span className={`px-2 py-1 text-xs rounded-full ${colors[value]}`}>
-            {value}
-          </span>
-        );
-      }
+      key: 'actions',
+      label: 'Actions',
+      render: (value, bill) => (
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setEditingBill({...bill});
+              setIsEditModalOpen(true);
+            }}
+            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+            title="Edit"
+          >
+            <FaEdit size={14} />
+          </button>
+          <button
+            onClick={() => {
+              if (confirm(`Delete bill ${bill.billNo}?`)) {
+                setBills(prev => prev.filter(b => b.id !== bill.id));
+              }
+            }}
+            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+            title="Delete"
+          >
+            <FaTrash size={14} />
+          </button>
+          <button
+            onClick={() => {
+              // Generate PDF
+              const printWindow = window.open('', '', 'width=800,height=600');
+              printWindow.document.write(`
+                <html>
+                  <head>
+                    <title>Bill ${bill.billNo}</title>
+                    <style>
+                      body { font-family: Arial, sans-serif; padding: 40px; }
+                      h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+                      .info { margin: 20px 0; }
+                      .label { font-weight: bold; display: inline-block; width: 150px; }
+                      .challans { margin-top: 20px; }
+                      .challans ul { list-style: none; padding: 0; }
+                      .challans li { padding: 5px 0; border-bottom: 1px solid #eee; }
+                    </style>
+                  </head>
+                  <body>
+                    <h1>Bill Details</h1>
+                    <div class="info">
+                      <p><span class="label">Bill No:</span> ${bill.billNo}</p>
+                      <p><span class="label">Date:</span> ${new Date(bill.date).toLocaleDateString()}</p>
+                      <p><span class="label">Party:</span> ${bill.party}</p>
+                      <p><span class="label">Amount:</span> ₹${bill.amount.toLocaleString()}</p>
+                      <p><span class="label">Type:</span> ${bill.gstType}</p>
+                    </div>
+                    <div class="challans">
+                      <h3>Linked Challans:</h3>
+                      <ul>
+                        ${bill.linkedChallans.map(challan => `<li>${challan}</li>`).join('')}
+                      </ul>
+                    </div>
+                  </body>
+                </html>
+              `);
+              printWindow.document.close();
+              printWindow.print();
+            }}
+            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+            title="Download"
+          >
+            <FaDownload size={14} />
+          </button>
+        </div>
+      )
     }
   ];
 
   const actions = [
     {
-      label: 'View',
+      icon: FaEdit,
       onClick: (bill) => {
-        setSelectedBill(bill);
-        setIsViewModalOpen(true);
+        console.log('Edit bill:', bill.billNo);
+        alert(`Edit ${bill.billNo}`);
       },
-      className: 'bg-blue-600 text-white hover:bg-blue-700'
+      className: 'text-green-600 hover:text-green-700',
+      title: 'Edit'
     },
     {
-      label: 'Print',
-      onClick: (bill) => console.log('Print bill:', bill.billNo),
-      className: 'bg-gray-600 text-white hover:bg-gray-700'
+      icon: FaTrash,
+      onClick: (bill) => {
+        if (confirm(`Delete bill ${bill.billNo}?`)) {
+          setBills(prev => prev.filter(b => b.id !== bill.id));
+        }
+      },
+      className: 'text-red-600 hover:text-red-700',
+      title: 'Delete'
+    },
+    {
+      icon: FaDownload,
+      onClick: (bill) => {
+        console.log('Download bill:', bill.billNo);
+        alert(`Downloading ${bill.billNo}`);
+      },
+      className: 'text-blue-600 hover:text-blue-700',
+      title: 'Download'
     }
   ];
+
+  const handleEditBill = () => {
+    setBills(prev => prev.map(b => 
+      b.id === editingBill.id ? {...editingBill, amount: parseFloat(editingBill.amount)} : b
+    ));
+    setIsEditModalOpen(false);
+    setEditingBill(null);
+    alert('Bill updated successfully!');
+  };
 
   // Apply filters
   const filteredBills = bills.filter(bill => {
     if (filters.party && !bill.party.toLowerCase().includes(filters.party.toLowerCase())) return false;
-    if (filters.status !== 'all' && bill.status !== filters.status) return false;
-    if (filters.gstType !== 'all') {
-      const isGst = filters.gstType === 'gst';
-      if ((bill.gstFlag === 0) !== isGst) return false;
-    }
     return true;
   });
 
@@ -137,27 +223,15 @@ const BillList = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-500">
           <h3 className="text-sm font-medium text-blue-800">Total Bills</h3>
           <p className="text-2xl font-bold text-blue-900">{bills.length}</p>
         </div>
         <div className="bg-green-50 p-4 rounded-lg border-l-4 border-l-green-500">
-          <h3 className="text-sm font-medium text-green-800">Paid Bills</h3>
+          <h3 className="text-sm font-medium text-green-800">Total Amount</h3>
           <p className="text-2xl font-bold text-green-900">
-            {bills.filter(b => b.status === 'Paid').length}
-          </p>
-        </div>
-        <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-l-yellow-500">
-          <h3 className="text-sm font-medium text-yellow-800">Pending Bills</h3>
-          <p className="text-2xl font-bold text-yellow-900">
-            {bills.filter(b => b.status === 'Pending').length}
-          </p>
-        </div>
-        <div className="bg-red-50 p-4 rounded-lg border-l-4 border-l-red-500">
-          <h3 className="text-sm font-medium text-red-800">Overdue Bills</h3>
-          <p className="text-2xl font-bold text-red-900">
-            {bills.filter(b => b.status === 'Overdue').length}
+            ₹{bills.reduce((sum, b) => sum + b.amount, 0).toLocaleString()}
           </p>
         </div>
       </div>
@@ -168,29 +242,12 @@ const BillList = () => {
           <FaFilter className="text-gray-500" />
           <h3 className="font-medium text-gray-900">Filters</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Input
             placeholder="Search party..."
             value={filters.party}
             onChange={(e) => setFilters(prev => ({ ...prev, party: e.target.value }))}
           />
-          <Select
-            value={filters.status}
-            onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-          >
-            <option value="all">All Status</option>
-            <option value="Paid">Paid</option>
-            <option value="Pending">Pending</option>
-            <option value="Overdue">Overdue</option>
-          </Select>
-          <Select
-            value={filters.gstType}
-            onChange={(e) => setFilters(prev => ({ ...prev, gstType: e.target.value }))}
-          >
-            <option value="all">All GST Types</option>
-            <option value="gst">GST</option>
-            <option value="non-gst">NON-GST</option>
-          </Select>
           <Input
             type="date"
             value={filters.dateFrom}
@@ -199,7 +256,7 @@ const BillList = () => {
           <Button
             variant="outline"
             onClick={() => setFilters({
-              dateFrom: '', dateTo: '', party: '', status: 'all', gstType: 'all'
+              dateFrom: '', dateTo: '', party: ''
             })}
           >
             Clear
@@ -211,7 +268,6 @@ const BillList = () => {
       <DataTable
         columns={columns}
         data={filteredBills}
-        actions={actions}
         searchable={true}
         sortable={true}
         pagination={true}
@@ -243,24 +299,6 @@ const BillList = () => {
                 <label className="block text-sm font-medium text-gray-700">Amount</label>
                 <p className="text-gray-900 font-bold">₹{selectedBill.amount.toLocaleString()}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Type</label>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  selectedBill.gstFlag === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                }`}>
-                  {selectedBill.gstFlag}
-                </span>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  selectedBill.status === 'Paid' ? 'bg-green-100 text-green-800' :
-                  selectedBill.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {selectedBill.status}
-                </span>
-              </div>
             </div>
 
             <div>
@@ -283,6 +321,85 @@ const BillList = () => {
               </Button>
               <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>
                 Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit Bill Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Bill"
+        size="md"
+      >
+        {editingBill && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bill No</label>
+              <input
+                type="text"
+                value={editingBill.billNo}
+                disabled
+                className="w-full px-3 py-2 border rounded-md bg-gray-100 cursor-not-allowed"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
+              <select
+                value={editingBill.party}
+                onChange={(e) => setEditingBill(prev => ({ ...prev, party: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Select Party</option>
+                {parties.map(party => (
+                  <option key={party} value={party}>{party}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
+              <input
+                type="number"
+                value={editingBill.amount}
+                onChange={(e) => setEditingBill(prev => ({ ...prev, amount: e.target.value }))}
+                placeholder="Enter amount"
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+              <select
+                value={editingBill.gstType}
+                onChange={(e) => setEditingBill(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value={1}>1</option>
+                <option value={0}>0</option>
+              </select>
+            </div>
+            
+            <div className="flex gap-3 pt-4">
+              <Button 
+                onClick={handleEditBill}
+                disabled={!editingBill.party || !editingBill.amount}
+                className="flex items-center gap-2"
+              >
+                <FaEdit />
+                Update Bill
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingBill(null);
+                }}
+              >
+                Cancel
               </Button>
             </div>
           </div>
