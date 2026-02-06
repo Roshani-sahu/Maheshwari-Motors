@@ -197,7 +197,7 @@ const BackupRestore = () => {
       {/* Backup History - Mobile responsive */}
       <div className="bg-white rounded-lg border">
         <div className="p-3 sm:p-4 border-b flex items-center gap-2">
-          <FaClockRotateLeft className="text-gray-500" size={14} className="sm:size-auto" />
+          <FaClockRotateLeft className="text-gray-500 sm:size-auto" size={14}  />
           <h3 className="font-medium text-gray-900 text-sm sm:text-base">
             Backup History
           </h3>
