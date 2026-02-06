@@ -65,110 +65,101 @@ const ChallanList = () => {
   const columns = [
     {
       key: 'challanNo',
-      label: 'Challan No'
+      label: 'Challan No',
+      render: (value) => <span className="text-xs sm:text-sm font-medium">{value}</span>
     },
     {
       key: 'date',
       label: 'Date',
-      render: (value) => new Date(value).toLocaleDateString()
+      render: (value) => <span className="text-xs sm:text-sm">{new Date(value).toLocaleDateString()}</span>
     },
     {
       key: 'party',
-      label: 'Party'
+      label: 'Party',
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
     },
     {
       key: 'items',
       label: 'Items',
-      render: (value) => `${value.length} item(s)`
+      render: (value) => <span className="text-xs sm:text-sm">{`${value.length} item(s)`}</span>
     },
     {
       key: 'amount',
       label: 'Amount',
-      render: (value) => `₹${value.toLocaleString()}`
+      render: (value) => <span className="text-xs sm:text-sm">₹{value.toLocaleString()}</span>
     },
     {
       key: 'gstType',
       label: 'Type',
       render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
+        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
           value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
           {value}
         </span>
       )
+    }
+  ];
+
+  const actions = [
+    {
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
+      onClick: (challan) => {
+        setEditingChallan({...challan});
+        setIsEditModalOpen(true);
+      },
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
-      key: 'actions',
-      label: 'Actions',
-      render: (value, challan) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setEditingChallan({...challan});
-              setIsEditModalOpen(true);
-            }}
-            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-            title="Edit"
-          >
-            <FaEdit size={14} />
-          </button>
-          <button
-            onClick={() => {
-              if (confirm(`Delete challan ${challan.challanNo}?`)) {
-                setChallans(prev => prev.filter(c => c.id !== challan.id));
-              }
-            }}
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-            title="Delete"
-          >
-            <FaTrash size={14} />
-          </button>
-          <button
-            onClick={() => {
-              // Generate PDF
-              const printWindow = window.open('', '', 'width=800,height=600');
-              printWindow.document.write(`
-                <html>
-                  <head>
-                    <title>Challan ${challan.challanNo}</title>
-                    <style>
-                      body { font-family: Arial, sans-serif; padding: 40px; }
-                      h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                      .info { margin: 20px 0; }
-                      .label { font-weight: bold; display: inline-block; width: 150px; }
-                      .items { margin-top: 20px; }
-                      .items ul { list-style: none; padding: 0; }
-                      .items li { padding: 5px 0; border-bottom: 1px solid #eee; }
-                    </style>
-                  </head>
-                  <body>
-                    <h1>Challan Details</h1>
-                    <div class="info">
-                      <p><span class="label">Challan No:</span> ${challan.challanNo}</p>
-                      <p><span class="label">Date:</span> ${new Date(challan.date).toLocaleDateString()}</p>
-                      <p><span class="label">Party:</span> ${challan.party}</p>
-                      <p><span class="label">Amount:</span> ₹${challan.amount.toLocaleString()}</p>
-                      <p><span class="label">Type:</span> ${challan.gstType}</p>
-                    </div>
-                    <div class="items">
-                      <h3>Items:</h3>
-                      <ul>
-                        ${challan.items.map(item => `<li>${item}</li>`).join('')}
-                      </ul>
-                    </div>
-                  </body>
-                </html>
-              `);
-              printWindow.document.close();
-              printWindow.print();
-            }}
-            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-            title="Download"
-          >
-            <FaDownload size={14} />
-          </button>
-        </div>
-      )
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
+      onClick: (challan) => {
+        if (confirm(`Delete challan ${challan.challanNo}?`)) {
+          setChallans(prev => prev.filter(c => c.id !== challan.id));
+        }
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
+    },
+    {
+      label: <FaDownload size={10} className="sm:size-3 md:size-4" />,
+      onClick: (challan) => {
+        // Generate PDF
+        const printWindow = window.open('', '', 'width=800,height=600');
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Challan ${challan.challanNo}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 40px; }
+                h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+                .info { margin: 20px 0; }
+                .label { font-weight: bold; display: inline-block; width: 150px; }
+                .items { margin-top: 20px; }
+                .items ul { list-style: none; padding: 0; }
+                .items li { padding: 5px 0; border-bottom: 1px solid #eee; }
+              </style>
+            </head>
+            <body>
+              <h1>Challan Details</h1>
+              <div class="info">
+                <p><span class="label">Challan No:</span> ${challan.challanNo}</p>
+                <p><span class="label">Date:</span> ${new Date(challan.date).toLocaleDateString()}</p>
+                <p><span class="label">Party:</span> ${challan.party}</p>
+                <p><span class="label">Amount:</span> ₹${challan.amount.toLocaleString()}</p>
+                <p><span class="label">Type:</span> ${challan.gstType}</p>
+              </div>
+              <div class="items">
+                <h3>Items:</h3>
+                <ul>
+                  ${challan.items.map(item => `<li>${item}</li>`).join('')}
+                </ul>
+              </div>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      },
+      className: 'bg-green-600 text-white hover:bg-green-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
@@ -275,38 +266,40 @@ const ChallanList = () => {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Challan List</h1>
-          <p className="text-gray-600">Manage delivery challans</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Challan List</h1>
+          <p className="text-gray-600 text-xs sm:text-sm">Manage delivery challans</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-xs sm:text-sm w-full sm:w-auto justify-center sm:justify-start"
           >
-            <FaPlus />
+            <FaPlus className="text-sm sm:text-base" />
             Create Challan
           </Button>
           <Button 
             onClick={() => setIsConvertModalOpen(true)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-xs sm:text-sm w-full sm:w-auto justify-center sm:justify-start"
           >
-            <FaFileInvoiceDollar />
+            <FaFileInvoiceDollar className="text-sm sm:text-base" />
             Convert to Bill
           </Button>
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-lg border">
-        <div className="flex items-center gap-2 mb-4">
-          <FaFilter className="text-gray-500" />
-          <h3 className="font-medium text-gray-900">Filters</h3>
+      {/* Filters */}
+      <div className="bg-white p-3 sm:p-4 rounded-lg border">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
+          <FaFilter className="text-gray-500 text-sm sm:text-base" />
+          <h3 className="font-medium text-gray-900 text-sm sm:text-base">Filters</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Party
             </label>
             <input
@@ -314,7 +307,7 @@ const ChallanList = () => {
               value={filters.party}
               onChange={(e) => setFilters(prev => ({ ...prev, party: e.target.value }))}
               placeholder="Search party..."
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
             />
           </div>
           
@@ -326,6 +319,7 @@ const ChallanList = () => {
                 dateTo: '',
                 party: ''
               })}
+              className="w-full sm:w-auto text-xs sm:text-sm py-2"
             >
               Clear Filters
             </Button>
@@ -333,17 +327,23 @@ const ChallanList = () => {
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredChallans}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-        selectable={true}
-        onSelectionChange={setSelectedChallans}
-      />
+      {/* Challans Table */}
+      <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+        <DataTable
+          columns={columns}
+          data={filteredChallans}
+          actions={actions}
+          searchable={true}
+          sortable={true}
+          pagination={true}
+          selectable={true}
+          onSelectionChange={setSelectedChallans}
+          className="text-xs sm:text-sm"
+          minWidth="700px"
+        />
+      </div>
 
-      {/* Convert to Bill Modal */}
+            {/* Convert to Bill Modal */}
       <Modal
         isOpen={isConvertModalOpen}
         onClose={() => setIsConvertModalOpen(false)}
@@ -433,7 +433,7 @@ const ChallanList = () => {
         </div>
       </Modal>
 
-      {/* Create Challan Modal */}
+            {/* Create Challan Modal */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -448,7 +448,7 @@ const ChallanList = () => {
               value={newChallan.challanNo}
               onChange={(e) => setNewChallan(prev => ({ ...prev, challanNo: e.target.value }))}
               placeholder="Auto-generated if empty"
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
             />
           </div>
           
@@ -457,7 +457,7 @@ const ChallanList = () => {
             <select
               value={newChallan.party}
               onChange={(e) => setNewChallan(prev => ({ ...prev, party: e.target.value }))}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
             >
               <option value="">Select Party</option>
               {parties.map(party => (
@@ -504,7 +504,7 @@ const ChallanList = () => {
               value={newChallan.amount}
               onChange={(e) => setNewChallan(prev => ({ ...prev, amount: e.target.value }))}
               placeholder="Enter amount"
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
             />
           </div>
 
@@ -512,9 +512,9 @@ const ChallanList = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
             <select
               value={newChallan.gstType}
-              onChange={(e) => setNewChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}>
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            
+              onChange={(e) => setNewChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
+              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
+            >
               <option value={1}>1</option>
               <option value={0}>0</option>
             </select>
@@ -547,26 +547,26 @@ const ChallanList = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title="Edit Challan"
-        size="md"
+        size="sm md:md"
       >
         {editingChallan && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Challan No</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Challan No</label>
               <input
                 type="text"
                 value={editingChallan.challanNo}
                 disabled
-                className="w-full px-3 py-2 border rounded-md bg-gray-100 cursor-not-allowed"
+                className="w-full px-3 py-2 border rounded-md bg-gray-100 cursor-not-allowed text-xs sm:text-sm"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Party *</label>
               <select
                 value={editingChallan.party}
                 onChange={(e) => setEditingChallan(prev => ({ ...prev, party: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
               >
                 <option value="">Select Party</option>
                 {parties.map(party => (
@@ -576,8 +576,8 @@ const ChallanList = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Items *</label>
-              <div className="border rounded-md p-3 max-h-48 overflow-y-auto bg-gray-50">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Items *</label>
+              <div className="border rounded-md p-3 max-h-40 sm:max-h-48 overflow-y-auto bg-gray-50">
                 <div className="space-y-2">
                   {availableItems.map(item => (
                     <label key={item} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded">
@@ -585,9 +585,9 @@ const ChallanList = () => {
                         type="checkbox"
                         checked={editingChallan.items.includes(item)}
                         onChange={() => toggleItemSelection(item, true)}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        className="rounded text-blue-600 focus:ring-blue-500 text-xs sm:text-sm"
                       />
-                      <span className="text-sm text-gray-700">{item}</span>
+                      <span className="text-xs sm:text-sm text-gray-700">{item}</span>
                     </label>
                   ))}
                 </div>
@@ -607,35 +607,35 @@ const ChallanList = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Amount *</label>
               <input
                 type="number"
                 value={editingChallan.amount}
                 onChange={(e) => setEditingChallan(prev => ({ ...prev, amount: e.target.value }))}
                 placeholder="Enter amount"
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type *</label>
               <select
                 value={editingChallan.gstType}
                 onChange={(e) => setEditingChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
               >
                 <option value={1}>1</option>
                 <option value={0}>0</option>
               </select>
             </div>
             
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
               <Button 
                 onClick={handleEditChallan}
                 disabled={!editingChallan.party || editingChallan.items.length === 0 || !editingChallan.amount}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-xs sm:text-sm w-full sm:w-auto justify-center sm:justify-start"
               >
-                <FaEdit />
+                <FaEdit className="text-xs sm:text-sm" />
                 Update Challan
               </Button>
               <Button
@@ -644,6 +644,7 @@ const ChallanList = () => {
                   setIsEditModalOpen(false);
                   setEditingChallan(null);
                 }}
+                className="text-xs sm:text-sm w-full sm:w-auto"
               >
                 Cancel
               </Button>
