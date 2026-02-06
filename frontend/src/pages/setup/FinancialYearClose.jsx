@@ -36,16 +36,16 @@ const FinancialYearClose = () => {
     };
 
     return (
-      <div className={`p-4 rounded-lg border-l-4 ${colorClasses[color]}`}>
+      <div className={`p-3 sm:p-4 rounded-lg border-l-2 sm:border-l-4 ${colorClasses[color]}`}>
         <div className="flex items-center gap-3">
           {Icon && (
-            <div className={`p-2 rounded-lg ${colorClasses[color].split(" ")[0]}`}>
-              <Icon className={colorClasses[color].split(" ")[1]} />
+            <div className={`p-1.5 sm:p-2 rounded-lg ${colorClasses[color].split(" ")[0]}`}>
+              <Icon className={`${colorClasses[color].split(" ")[1]} text-sm sm:text-base`} />
             </div>
           )}
           <div>
-            <h3 className="text-sm font-medium text-gray-700">{title}</h3>
-            <p className="text-xl font-bold text-gray-900">{value}</p>
+            <h3 className="text-xs sm:text-sm font-medium text-gray-700">{title}</h3>
+            <p className="text-base sm:text-lg md:text-xl font-bold text-gray-900">{value}</p>
           </div>
         </div>
       </div>
@@ -54,7 +54,7 @@ const FinancialYearClose = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - NO CHANGES */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
           Financial Year Close
@@ -63,18 +63,38 @@ const FinancialYearClose = () => {
           Close current financial year and prepare for new year
         </p>
       </div>
+{/* Financial Summary */}
+      <div className="bg-white p-4 sm:p-6 rounded-lg border">
+        <h3 className="font-medium text-gray-900 text-sm sm:text-base mb-4">
+          Financial Year Summary (Read-Only)
+        </h3>
+
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <SummaryCard title="Total Challans" value={closingSummary.totalChallans.toLocaleString()} />
+          <SummaryCard title="Total Bills" value={closingSummary.totalBills.toLocaleString()} color="green" />
+          <SummaryCard title="Total Revenue" value={`₹${(closingSummary.totalRevenue / 100000).toFixed(1)}L`} color="purple" />
+          <SummaryCard title="Pending Payments" value={`₹${(closingSummary.pendingPayments / 100000).toFixed(1)}L`} color="red" />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+          <SummaryCard title="Stock Value" value={`₹${(closingSummary.stockValue / 100000).toFixed(1)}L`} />
+          <SummaryCard title="GST Collected" value={`₹${(closingSummary.gstCollected / 100000).toFixed(1)}L`} color="green" />
+          <SummaryCard title="GST Paid" value={`₹${(closingSummary.gstPaid / 100000).toFixed(1)}L`} color="purple" />
+        </div>
+      </div>
+
 
       {/* Current Year Status */}
-      <div className="bg-white p-6 rounded-lg border">
+      <div className="bg-white p-4 sm:p-6 rounded-lg border">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-blue-50 rounded-lg">
-            <FaCalendarXmark className="text-blue-600 text-xl" />
+          <div className="p-2 sm:p-3 bg-blue-50 rounded-lg">
+            <FaCalendarXmark className="text-blue-600 text-lg sm:text-xl" />
           </div>
           <div>
-            <h3 className="font-medium text-gray-900">
+            <h3 className="font-medium text-gray-900 text-sm sm:text-base">
               Current Financial Year
             </h3>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-xl sm:text-2xl font-bold text-blue-600">
               {currentFinancialYear}
             </p>
           </div>
@@ -83,15 +103,15 @@ const FinancialYearClose = () => {
         <div className="flex items-center gap-2 mb-4">
           {isYearClosed ? (
             <>
-              <FaCircleCheck className="text-green-600" />
-              <span className="text-sm font-medium text-green-600">
+              <FaCircleCheck className="text-green-600 text-sm sm:text-base" />
+              <span className="text-xs sm:text-sm font-medium text-green-600">
                 Year Closed Successfully
               </span>
             </>
           ) : (
             <>
-              <FaCircleInfo className="text-yellow-600" />
-              <span className="text-sm font-medium text-yellow-600">
+              <FaCircleInfo className="text-yellow-600 text-sm sm:text-base" />
+              <span className="text-xs sm:text-sm font-medium text-yellow-600">
                 Year is currently active
               </span>
             </>
@@ -99,10 +119,10 @@ const FinancialYearClose = () => {
         </div>
 
         {!isYearClosed && (
-          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+          <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border border-yellow-200">
             <div className="flex items-start gap-3">
-              <FaCircleInfo className="text-yellow-600 mt-0.5" />
-              <div className="text-sm text-yellow-800">
+              <FaCircleInfo className="text-yellow-600 mt-0.5 text-sm sm:text-base" />
+              <div className="text-xs sm:text-sm text-yellow-800">
                 <p className="font-medium mb-1">
                   Before closing the financial year:
                 </p>
@@ -119,37 +139,19 @@ const FinancialYearClose = () => {
         )}
       </div>
 
-      {/* Financial Summary */}
-      <div className="bg-white p-6 rounded-lg border">
-        <h3 className="font-medium text-gray-900 mb-4">
-          Financial Year Summary (Read-Only)
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <SummaryCard title="Total Challans" value={closingSummary.totalChallans.toLocaleString()} />
-          <SummaryCard title="Total Bills" value={closingSummary.totalBills.toLocaleString()} color="green" />
-          <SummaryCard title="Total Revenue" value={`₹${(closingSummary.totalRevenue / 100000).toFixed(1)}L`} color="purple" />
-          <SummaryCard title="Pending Payments" value={`₹${(closingSummary.pendingPayments / 100000).toFixed(1)}L`} color="red" />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SummaryCard title="Stock Value" value={`₹${(closingSummary.stockValue / 100000).toFixed(1)}L`} />
-          <SummaryCard title="GST Collected" value={`₹${(closingSummary.gstCollected / 100000).toFixed(1)}L`} color="green" />
-          <SummaryCard title="GST Paid" value={`₹${(closingSummary.gstPaid / 100000).toFixed(1)}L`} color="purple" />
-        </div>
-      </div>
+      
 
       {/* Action Section */}
       {!isYearClosed && (
-        <div className="bg-white p-6 rounded-lg border">
-          <h3 className="font-medium text-gray-900 mb-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg border">
+          <h3 className="font-medium text-gray-900 text-sm sm:text-base mb-4">
             Close Financial Year
           </h3>
 
-          <div className="bg-red-50 p-4 rounded-lg border border-red-200 mb-4">
+          <div className="bg-red-50 p-3 sm:p-4 rounded-lg border border-red-200 mb-4">
             <div className="flex items-start gap-3">
-              <FaCircleInfo className="text-red-600 mt-0.5" />
-              <div className="text-sm text-red-800">
+              <FaCircleInfo className="text-red-600 mt-0.5 text-sm sm:text-base" />
+              <div className="text-xs sm:text-sm text-red-800">
                 <p className="font-medium mb-1">Warning:</p>
                 <p>
                   Closing the financial year is irreversible. Once closed, you
@@ -161,7 +163,7 @@ const FinancialYearClose = () => {
 
           <Button
             onClick={() => setIsCloseDialogOpen(true)}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            className="bg-red-600 hover:bg-red-700 text-white text-sm sm:text-base"
           >
             Close Financial Year {currentFinancialYear}
           </Button>
@@ -170,14 +172,14 @@ const FinancialYearClose = () => {
 
       {/* Success Message */}
       {isYearClosed && (
-        <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+        <div className="bg-green-50 p-4 sm:p-6 rounded-lg border border-green-200">
           <div className="flex items-center gap-3">
-            <FaCircleCheck className="text-green-600 text-xl" />
+            <FaCircleCheck className="text-green-600 text-lg sm:text-xl" />
             <div>
-              <h3 className="font-medium text-green-800">
+              <h3 className="font-medium text-green-800 text-sm sm:text-base">
                 Financial Year Closed Successfully
               </h3>
-              <p className="text-sm text-green-700">
+              <p className="text-xs sm:text-sm text-green-700">
                 Financial year {currentFinancialYear} has been closed. The system
                 is now ready for the new financial year.
               </p>
