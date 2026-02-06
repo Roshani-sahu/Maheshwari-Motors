@@ -116,30 +116,64 @@ const Reports = () => {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Line Chart */}
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Challans vs Bills Trend</h3>
-          <ResponsiveContainer width="100%" height={220} className="mx-auto sm:mx-0">
-            <AreaChart data={monthlyData}>
-              <defs>
-                <linearGradient id="colorChallans" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorBills" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
-              <YAxis stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
-              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '11px', sm: '12px' }} />
-              <Area type="monotone" dataKey="challans" stroke="#3B82F6" fillOpacity={1} fill="url(#colorChallans)" strokeWidth={2} />
-              <Area type="monotone" dataKey="bills" stroke="#10B981" fillOpacity={1} fill="url(#colorBills)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+      {/* Line Chart */}
+<div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
+  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">
+    Challans vs Bills Trend
+  </h3>
+
+  <div className="w-full flex justify-center">
+    {/* THIS WRAPPER FIXES MOBILE CENTER */}
+    <div className="w-full max-w-[400px] sm:max-w-none">
+      <ResponsiveContainer width="100%" height={220}>
+        <AreaChart data={monthlyData}>
+          <defs>
+            <linearGradient id="colorChallans" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+            </linearGradient>
+
+            <linearGradient id="colorBills" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis dataKey="month" stroke="#9CA3AF" />
+          <YAxis stroke="#9CA3AF" />
+
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "#fff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+              fontSize: "12px",
+            }}
+          />
+
+          <Area
+            type="monotone"
+            dataKey="challans"
+            stroke="#3B82F6"
+            fillOpacity={1}
+            fill="url(#colorChallans)"
+            strokeWidth={2}
+          />
+          <Area
+            type="monotone"
+            dataKey="bills"
+            stroke="#10B981"
+            fillOpacity={1}
+            fill="url(#colorBills)"
+            strokeWidth={2}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+</div>
+
 
         {/* Bar Chart */}
         <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
