@@ -436,8 +436,8 @@ const ChallanList = () => {
               value={newChallan.gstFlag}
               onChange={(value) => setNewChallan(prev => ({ ...prev, gstFlag: parseInt(value) }))}
             >
-              <option value={0}>0 (GST)</option>
-              <option value={1}>1 (Non GST)</option>
+              <option value={0}>0 </option>
+              <option value={1}>1 </option>
             </Select>
           </div>
           

@@ -80,7 +80,7 @@ const AccountMaster = () => {
         <span className={`px-2 py-1 text-xs rounded-full ${
           value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
-          {value === 0 ? 'GST' : 'NON-GST'}
+          {value === 0 ? '1' : '0'}
         </span>
       )
     },
@@ -223,9 +223,9 @@ const AccountMaster = () => {
                     value={filters.gstType}
                     onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
                   >
-                    <option value="all">All GST Types</option>
-                    <option value="gst">GST</option>
-                    <option value="non-gst">NON-GST</option>
+                    <option value="all">All  Types</option>
+                    <option value="gst"> 1 </option>
+                    <option value="non-gst">0 </option>
                   </Select>
                   <Input
                     type="date"

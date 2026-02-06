@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FaChevronDown,
-  FaRegCalendarAlt,
+  // FaRegCalendarAlt,
   FaBars,
   FaUser,
   FaCog,
@@ -12,7 +12,7 @@ import CompanySelector from "./CompanySelector";
 
 const Header = ({ onMenuClick }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  // const [showDatePicker, setShowDatePicker] = useState(false);
   const navigate = useNavigate();
   const userMenuRef = useRef(null);
   const datePickerRef = useRef(null);
@@ -34,13 +34,13 @@ const Header = ({ onMenuClick }) => {
     };
   }, []);
 
-  const handlePurchaseClick = () => {
-    navigate('/transactions');
-  };
+  // const handlePurchaseClick = () => {
+  //   navigate('/transactions');
+  // };
 
-  const handleSaleClick = () => {
-    navigate('/sale-entry');
-  };
+  // const handleSaleClick = () => {
+  //   navigate('/sale-entry');
+  // };
 
   const handleLogout = () => {
     navigate('/login');
@@ -86,7 +86,7 @@ const Header = ({ onMenuClick }) => {
           )}
         </div>
 
-        <div className="hidden lg:flex items-center gap-2 text-xs sm:text-sm relative" ref={datePickerRef}>
+        {/* <div className="hidden lg:flex items-center gap-2 text-xs sm:text-sm relative" ref={datePickerRef}>
           <FaRegCalendarAlt className="text-neutral-500" />
           <button 
             onClick={() => setShowDatePicker(!showDatePicker)}
@@ -104,12 +104,12 @@ const Header = ({ onMenuClick }) => {
               </select>
             </div>
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* Bottom row on mobile, right section on desktop */}
       <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 mt-2 sm:mt-0">
-        <div className="lg:hidden flex items-center gap-2 text-xs sm:text-sm relative">
+        {/* <div className="lg:hidden flex items-center gap-2 text-xs sm:text-sm relative">
           <FaRegCalendarAlt className="text-neutral-500" />
           <button 
             onClick={() => setShowDatePicker(!showDatePicker)}
@@ -127,10 +127,10 @@ const Header = ({ onMenuClick }) => {
               </select>
             </div>
           )}
-        </div>
+        </div> */}
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="flex gap-1 sm:gap-2">
+          {/* <div className="flex gap-1 sm:gap-2">
             <button 
               onClick={handlePurchaseClick}
               className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm border rounded-md hover:bg-neutral-50"
@@ -143,7 +143,7 @@ const Header = ({ onMenuClick }) => {
             >
               Sale
             </button>
-          </div>
+          </div> */}
 
           <div className="w-px h-6 bg-[#F1F5F9] hidden sm:block" />
 

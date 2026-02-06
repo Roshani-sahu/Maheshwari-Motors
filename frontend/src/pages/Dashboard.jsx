@@ -5,8 +5,8 @@ import {
   FaFileInvoiceDollar, 
   FaExclamationTriangle, 
   FaCalendarDay,
-  FaToggleOn,
-  FaToggleOff
+  // FaToggleOn,
+  // FaToggleOff
 } from 'react-icons/fa';
 import useStore from '../store';
 import { StatsCard, Toggle } from '../components/common';
@@ -19,13 +19,11 @@ const Dashboard = () => {
   const [dashboardData, setDashboardData] = useState({
     totalFirms: 3,
     todaysChallans: 12,
-    thisMonthChallans: 45,
     todaysBills: 8,
     thisMonthBills: 32,
     lowStockAlerts: 15
   });
 
-  const [challanPeriod, setChallanPeriod] = useState('today'); // today | month
   const [billPeriod, setBillPeriod] = useState('today'); // today | month
 
   const [recentChallans] = useState([
@@ -60,6 +58,7 @@ const Dashboard = () => {
         </div>
       </div>
 
+
       {/* Top 4 Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
@@ -71,29 +70,29 @@ const Dashboard = () => {
           onClick={() => navigate('/masters/firm-master')}
         />
         
-        <div className="bg-white p-6 rounded-lg border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-4">
+         <StatsCard
+          title="Total Challans"
+          value={dashboardData.todaysChallans}
+          subtitle="Today's Challan"
+          icon={FaFileInvoiceDollar}
+          color="green"
+          onClick={() => navigate('/transactions/challan-list')}
+        />
+        {/* <div className="bg-white p-6 rounded-lg border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between ">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Challans</p>
-              <div className="flex items-center gap-3 mt-2">
-                <Toggle
-                  checked={challanPeriod === 'month'}
-                  onChange={() => setChallanPeriod(challanPeriod === 'today' ? 'month' : 'today')}
-                  size="sm"
-                />
-                <span className="text-xs text-gray-500">
-                  {challanPeriod === 'today' ? 'Today' : 'This Month'}
-                </span>
-              </div>
+              <p className="text-sm font-medium text-gray-600"></p>
             </div>
             <div className="p-3 rounded-full bg-green-50">
               <FaFileInvoiceDollar className="text-xl text-green-600" />
             </div>
           </div>
           <p className="text-2xl font-bold text-gray-900">
-            {challanPeriod === 'today' ? dashboardData.todaysChallans : dashboardData.thisMonthChallans}
+            {dashboardData.todaysChallans}
           </p>
+          
         </div>
+         */}
         
         <div className="bg-white p-6 rounded-lg border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
