@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { FaChartBar, FaChartLine, FaChartPie, FaBoxes, FaTrophy, FaCalendarAlt, FaArrowUp } from 'react-icons/fa';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { FaChartBar, FaChartLine, FaChartPie, FaBoxes, FaTrophy, FaCalendarAlt, FaArrowUp } from 'react-icons/fa';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('year');
@@ -14,22 +12,8 @@ const Reports = () => {
     { month: 'Apr', challans: 22, bills: 18, revenue: 245 },
     { month: 'May', challans: 25, bills: 20, revenue: 285 },
     { month: 'Jun', challans: 20, bills: 16, revenue: 225 },
-  const [selectedPeriod, setSelectedPeriod] = useState('year');
-  
-  const monthlyData = [
-    { month: 'Jan', challans: 12, bills: 8, revenue: 125 },
-    { month: 'Feb', challans: 18, bills: 14, revenue: 185 },
-    { month: 'Mar', challans: 15, bills: 12, revenue: 165 },
-    { month: 'Apr', challans: 22, bills: 18, revenue: 245 },
-    { month: 'May', challans: 25, bills: 20, revenue: 285 },
-    { month: 'Jun', challans: 20, bills: 16, revenue: 225 },
   ];
 
-  const transactionTypeData = [
-    { name: 'Challans', value: 253, color: '#3B82F6' },
-    { name: 'Bills', value: 200, color: '#10B981' },
-    { name: 'Prepaid', value: 45, color: '#8B5CF6' },
-    { name: 'Due', value: 32, color: '#F59E0B' }
   const transactionTypeData = [
     { name: 'Challans', value: 253, color: '#3B82F6' },
     { name: 'Bills', value: 200, color: '#10B981' },
@@ -41,18 +25,7 @@ const Reports = () => {
     { name: '1 (GST)', value: 320, color: '#10B981' },
     { name: '0 (NON-GST)', value: 210, color: '#3B82F6' }
   ];
-  const gstData = [
-    { name: '1 (GST)', value: 320, color: '#10B981' },
-    { name: '0 (NON-GST)', value: 210, color: '#3B82F6' }
-  ];
 
-  const topPartiesData = [
-    { party: 'ABC Motors', amount: 450 },
-    { party: 'XYZ Parts', amount: 380 },
-    { party: 'PQR Auto', amount: 320 },
-    { party: 'LMN Garage', amount: 280 },
-    { party: 'RST Motors', amount: 250 }
-  ];
   const topPartiesData = [
     { party: 'ABC Motors', amount: 450 },
     { party: 'XYZ Parts', amount: 380 },
@@ -143,64 +116,30 @@ const Reports = () => {
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-      {/* Line Chart */}
-<div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">
-    Challans vs Bills Trend
-  </h3>
-
-  <div className="w-full flex justify-center">
-    {/* THIS WRAPPER FIXES MOBILE CENTER */}
-    <div className="w-full max-w-[400px] sm:max-w-none">
-      <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={monthlyData}>
-          <defs>
-            <linearGradient id="colorChallans" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-            </linearGradient>
-
-            <linearGradient id="colorBills" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="month" stroke="#9CA3AF" />
-          <YAxis stroke="#9CA3AF" />
-
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#fff",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-              fontSize: "12px",
-            }}
-          />
-
-          <Area
-            type="monotone"
-            dataKey="challans"
-            stroke="#3B82F6"
-            fillOpacity={1}
-            fill="url(#colorChallans)"
-            strokeWidth={2}
-          />
-          <Area
-            type="monotone"
-            dataKey="bills"
-            stroke="#10B981"
-            fillOpacity={1}
-            fill="url(#colorBills)"
-            strokeWidth={2}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  </div>
-</div>
-
+        {/* Line Chart */}
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Challans vs Bills Trend</h3>
+          <ResponsiveContainer width="100%" height={220} className="mx-auto sm:mx-0">
+            <AreaChart data={monthlyData}>
+              <defs>
+                <linearGradient id="colorChallans" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorBills" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
+              <YAxis stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
+              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '11px', sm: '12px' }} />
+              <Area type="monotone" dataKey="challans" stroke="#3B82F6" fillOpacity={1} fill="url(#colorChallans)" strokeWidth={2} />
+              <Area type="monotone" dataKey="bills" stroke="#10B981" fillOpacity={1} fill="url(#colorBills)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
 
         {/* Bar Chart */}
         <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
@@ -281,7 +220,6 @@ const Reports = () => {
               </div>
             ))}
           </div>
-        </div>
         </div>
 
         {/* Top Parties */}
