@@ -1,54 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaEdit, FaImage } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Input } from '../../components/ui';
+import useStore from '../../store';
 
 const ItemMaster = () => {
   const navigate = useNavigate();
-  const [items, setItems] = useState([
-    {
-      id: 1,
-      itemName: 'Engine Oil 5W-30',
-      amount: 450.00,
-      threshold: 10,
-      stockCount: 5,
-      itemMedia: null,
-      status: 'LOW'
-    },
-    {
-      id: 2,
-      itemName: 'Brake Pads',
-      amount: 1200.00,
-      threshold: 8,
-      stockCount: 3,
-      itemMedia: null,
-      status: 'LOW'
-    },
-    {
-      id: 3,
-      itemName: 'Air Filter',
-      amount: 350.00,
-      threshold: 12,
-      stockCount: 15,
-      itemMedia: null,
-      status: 'OK'
-    },
-    {
-      id: 4,
-      itemName: 'Spark Plugs',
-      amount: 180.00,
-      threshold: 6,
-      stockCount: 2,
-      itemMedia: null,
-      status: 'LOW'
-    }
-  ]);
-
+  const { items, setItems, updateItem } = useStore();
   const [editingItem, setEditingItem] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editImageFile, setEditImageFile] = useState(null);
+
+  // Initialize with sample data if empty
+  useEffect(() => {
+    if (items.length === 0) {
+      setItems([
+        {
+          id: 1,
+          itemName: 'Engine Oil 5W-30',
+          amount: 450.00,
+          threshold: 10,
+          stockCount: 5,
+          itemMedia: null,
+          status: 'LOW'
+        },
+        {
+          id: 2,
+          itemName: 'Brake Pads',
+          amount: 1200.00,
+          threshold: 8,
+          stockCount: 3,
+          itemMedia: null,
+          status: 'LOW'
+        },
+        {
+          id: 3,
+          itemName: 'Air Filter',
+          amount: 350.00,
+          threshold: 12,
+          stockCount: 15,
+          itemMedia: null,
+          status: 'OK'
+        },
+        {
+          id: 4,
+          itemName: 'Spark Plugs',
+          amount: 180.00,
+          threshold: 6,
+          stockCount: 2,
+          itemMedia: null,
+          status: 'LOW'
+        }
+      ]);
+    }
+  }, [items.length, setItems]);
 
   const columns = [
+    {
+      key: 'id',
+      label: 'ID'
+    },
     {
       key: 'itemName',
       label: 'Item Name'
@@ -110,15 +122,27 @@ const ItemMaster = () => {
 
   const handleSaveEdit = () => {
     if (editingItem) {
-      setItems(prev => prev.map(item => 
-        item.id === editingItem.id ? {
-          ...editingItem,
-          status: editingItem.stockCount <= editingItem.threshold ? 'LOW' : 'OK'
-        } : item
-      ));
+      let updatedItem = {
+        ...editingItem,
+        status: editingItem.stockCount <= editingItem.threshold ? 'LOW' : 'OK'
+      };
+      
+      // Handle image update
+      if (editImageFile) {
+        const imageUrl = URL.createObjectURL(editImageFile);
+        updatedItem.itemMedia = imageUrl;
+      }
+      
+      updateItem(editingItem.id, updatedItem);
       setIsEditModalOpen(false);
       setEditingItem(null);
+      setEditImageFile(null);
     }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setEditImageFile(file);
   };
 
   return (
@@ -163,9 +187,9 @@ const ItemMaster = () => {
               </label>
               <Input
                 value={editingItem.itemName}
-                onChange={(e) => setEditingItem(prev => ({
+                onChange={(value) => setEditingItem(prev => ({
                   ...prev,
-                  itemName: e.target.value
+                  itemName: value
                 }))}
                 disabled
                 className="bg-gray-50"
@@ -181,9 +205,9 @@ const ItemMaster = () => {
                   type="number"
                   step="0.01"
                   value={editingItem.amount}
-                  onChange={(e) => setEditingItem(prev => ({
+                  onChange={(value) => setEditingItem(prev => ({
                     ...prev,
-                    amount: parseFloat(e.target.value) || 0
+                    amount: parseFloat(value) || 0
                   }))}
                 />
               </div>
@@ -195,9 +219,9 @@ const ItemMaster = () => {
                 <Input
                   type="number"
                   value={editingItem.threshold}
-                  onChange={(e) => setEditingItem(prev => ({
+                  onChange={(value) => setEditingItem(prev => ({
                     ...prev,
-                    threshold: parseInt(e.target.value) || 0
+                    threshold: parseInt(value) || 0
                   }))}
                 />
               </div>
@@ -210,11 +234,28 @@ const ItemMaster = () => {
               <Input
                 type="number"
                 value={editingItem.stockCount}
-                onChange={(e) => setEditingItem(prev => ({
+                onChange={(value) => setEditingItem(prev => ({
                   ...prev,
-                  stockCount: parseInt(e.target.value) || 0
+                  stockCount: parseInt(value) || 0
                 }))}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Item Image
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              {editingItem.itemMedia && (
+                <div className="mt-2">
+                  <img src={editingItem.itemMedia} alt="Current" className="w-16 h-16 object-cover rounded" />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">

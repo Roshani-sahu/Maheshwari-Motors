@@ -42,6 +42,10 @@ const StockAlertMaster = () => {
 
   const columns = [
     {
+      key: 'id',
+      label: 'ID'
+    },
+    {
       key: 'itemName',
       label: 'Item Name'
     },
@@ -57,17 +61,6 @@ const StockAlertMaster = () => {
     {
       key: 'threshold',
       label: 'Threshold'
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          value === 'LOW' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-        }`}>
-          {value}
-        </span>
-      )
     }
   ];
 
@@ -99,17 +92,11 @@ const StockAlertMaster = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-red-50 p-4 rounded-lg border-l-4 border-l-red-500">
           <h3 className="text-sm font-medium text-red-800">Low Stock Items</h3>
           <p className="text-2xl font-bold text-red-900">
             {stockAlerts.filter(item => item.status === 'LOW').length}
-          </p>
-        </div>
-        <div className="bg-green-50 p-4 rounded-lg border-l-4 border-l-green-500">
-          <h3 className="text-sm font-medium text-green-800">Normal Stock Items</h3>
-          <p className="text-2xl font-bold text-green-900">
-            {stockAlerts.filter(item => item.status === 'OK').length}
           </p>
         </div>
         <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-500">
