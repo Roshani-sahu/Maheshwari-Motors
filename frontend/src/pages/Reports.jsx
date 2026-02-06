@@ -25,12 +25,12 @@ const Reports = () => {
   ];
 
   const ChartCard = ({ title, icon: Icon, children }) => (
-    <div className="bg-white p-6 rounded-lg border">
+    <div className="bg-white p-4 sm:p-6 rounded-lg border">
       <div className="flex items-center gap-3 mb-4">
         <div className="p-2 bg-blue-50 rounded-lg">
           <Icon className="text-blue-600" />
         </div>
-        <h3 className="font-medium text-gray-900">{title}</h3>
+        <h3 className="font-medium text-gray-900 text-sm sm:text-base">{title}</h3>
       </div>
       {children}
     </div>
@@ -40,14 +40,14 @@ const Reports = () => {
     <div className="space-y-3">
       {data.map((value, index) => (
         <div key={index} className="flex items-center gap-3">
-          <div className="w-16 text-sm text-gray-600">{labels[index]}</div>
-          <div className="flex-1 bg-gray-200 rounded-full h-4 relative">
+          <div className="w-12 sm:w-16 text-xs sm:text-sm text-gray-600">{labels[index]}</div>
+          <div className="flex-1 bg-gray-200 rounded-full h-3 sm:h-4 relative">
             <div 
-              className={`h-4 rounded-full ${colors[index % colors.length]}`}
+              className={`h-3 sm:h-4 rounded-full ${colors[index % colors.length]}`}
               style={{ width: `${(value / Math.max(...data)) * 100}%` }}
             />
           </div>
-          <div className="w-12 text-sm font-medium text-gray-900">{value}</div>
+          <div className="w-8 sm:w-12 text-xs sm:text-sm font-medium text-gray-900">{value}</div>
         </div>
       ))}
     </div>
@@ -55,7 +55,7 @@ const Reports = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - NO CHANGES HERE */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
@@ -76,7 +76,7 @@ const Reports = () => {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* 1. Monthly Challans vs Bills */}
         <ChartCard title="Monthly Challans vs Bills" icon={FaChartLine}>
           <div className="space-y-4">
@@ -149,36 +149,36 @@ const Reports = () => {
         </ChartCard>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-500">
-          <h3 className="text-sm font-medium text-blue-800">Total Challans</h3>
-          <p className="text-2xl font-bold text-blue-900">
+      {/* Summary Stats - Mobile responsive */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border-l-2 sm:border-l-4 border-l-blue-500">
+          <h3 className="text-xs sm:text-sm font-medium text-blue-800">Total Challans</h3>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900">
             {monthlyData.challans.reduce((a, b) => a + b, 0)}
           </p>
-          <p className="text-xs text-blue-600">This year</p>
+          <p className="text-[10px] sm:text-xs text-blue-600">This year</p>
         </div>
         
-        <div className="bg-green-50 p-4 rounded-lg border-l-4 border-l-green-500">
-          <h3 className="text-sm font-medium text-green-800">Total Bills</h3>
-          <p className="text-2xl font-bold text-green-900">
+        <div className="bg-green-50 p-3 sm:p-4 rounded-lg border-l-2 sm:border-l-4 border-l-green-500">
+          <h3 className="text-xs sm:text-sm font-medium text-green-800">Total Bills</h3>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-green-900">
             {monthlyData.bills.reduce((a, b) => a + b, 0)}
           </p>
-          <p className="text-xs text-green-600">This year</p>
+          <p className="text-[10px] sm:text-xs text-green-600">This year</p>
         </div>
         
-        <div className="bg-red-50 p-4 rounded-lg border-l-4 border-l-red-500">
-          <h3 className="text-sm font-medium text-red-800">Low Stock Items</h3>
-          <p className="text-2xl font-bold text-red-900">{lowStockItems.length}</p>
-          <p className="text-xs text-red-600">Need attention</p>
+        <div className="bg-red-50 p-3 sm:p-4 rounded-lg border-l-2 sm:border-l-4 border-l-red-500">
+          <h3 className="text-xs sm:text-sm font-medium text-red-800">Low Stock Items</h3>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-red-900">{lowStockItems.length}</p>
+          <p className="text-[10px] sm:text-xs text-red-600">Need attention</p>
         </div>
         
-        <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-l-purple-500">
-          <h3 className="text-sm font-medium text-purple-800">Conversion Rate</h3>
-          <p className="text-2xl font-bold text-purple-900">
+        <div className="bg-purple-50 p-3 sm:p-4 rounded-lg border-l-2 sm:border-l-4 border-l-purple-500">
+          <h3 className="text-xs sm:text-sm font-medium text-purple-800">Conversion Rate</h3>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-purple-900">
             {Math.round((monthlyData.bills.reduce((a, b) => a + b, 0) / monthlyData.challans.reduce((a, b) => a + b, 0)) * 100)}%
           </p>
-          <p className="text-xs text-purple-600">Challan to Bill</p>
+          <p className="text-[10px] sm:text-xs text-purple-600">Challan to Bill</p>
         </div>
       </div>
     </div>
