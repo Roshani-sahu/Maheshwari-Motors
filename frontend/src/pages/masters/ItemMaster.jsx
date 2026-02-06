@@ -59,35 +59,38 @@ const ItemMaster = () => {
   const columns = [
     {
       key: 'id',
-      label: 'ID'
+      label: 'ID',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
     {
       key: 'itemName',
-      label: 'Item Name'
+      label: 'Item Name',
+      render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
     },
     {
       key: 'amount',
       label: 'Amount',
-      render: (value) => `₹${value.toFixed(2)}`
+      render: (value) => <span className="text-xs sm:text-sm">₹{value.toFixed(2)}</span>
     },
     {
       key: 'stockCount',
       label: 'Stock Count',
       render: (value, row) => (
-        <span className={row.status === 'LOW' ? 'text-red-600 font-medium' : 'text-gray-900'}>
+        <span className={`text-xs sm:text-sm ${row.status === 'LOW' ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
           {value}
         </span>
       )
     },
     {
       key: 'threshold',
-      label: 'Threshold'
+      label: 'Threshold',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
     {
       key: 'status',
       label: 'Stock Status',
       render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
+        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
           value === 'LOW' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
         }`}>
           {value}
@@ -98,11 +101,11 @@ const ItemMaster = () => {
       key: 'itemMedia',
       label: 'Image',
       render: (value) => (
-        <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+        <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gray-100 rounded flex items-center justify-center">
           {value ? (
             <img src={value} alt="Item" className="w-full h-full object-cover rounded" />
           ) : (
-            <FaImage className="text-gray-400 text-sm" />
+            <FaImage className="text-gray-400 text-xs sm:text-sm" />
           )}
         </div>
       )
@@ -111,21 +114,21 @@ const ItemMaster = () => {
 
   const actions = [
     {
-      label: <FaEdit size={14} />,
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (item) => {
         setEditingItem(item);
         setIsEditModalOpen(true);
       },
-      className: 'bg-blue-600 text-white hover:bg-blue-700'
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
-      label: <FaTrash size={14} />,
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (item) => {
         if (window.confirm(`Are you sure you want to delete "${item.itemName}"?`)) {
           deleteItem(item.id);
         }
       },
-      className: 'bg-red-600 text-white hover:bg-red-700'
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
@@ -155,43 +158,47 @@ const ItemMaster = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Item Master</h1>
-          <p className="text-gray-600">Manage inventory items and stock levels</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Item Master</h1>
+          <p className="text-gray-600 text-xs sm:text-sm">Manage inventory items and stock levels</p>
         </div>
         <Button 
           onClick={() => navigate('/masters/item-master/add')}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 text-xs sm:text-sm"
         >
-          <FaPlus />
+          <FaPlus className="text-sm sm:text-base" />
           Add Item
         </Button>
       </div>
 
       {/* Items Table */}
-      <DataTable
-        columns={columns}
-        data={items}
-        actions={actions}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-      />
+      <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+        <DataTable
+          columns={columns}
+          data={items}
+          actions={actions}
+          searchable={true}
+          sortable={true}
+          pagination={true}
+          minWidth="700px"
+          className="text-xs sm:text-sm"
+        />
+      </div>
 
-      {/* Edit Modal */}
+            {/* Edit Modal */}
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title="Edit Item"
-        size="md"
+        size="sm md:md"
       >
         {editingItem && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Item Name
               </label>
               <Input
@@ -201,13 +208,13 @@ const ItemMaster = () => {
                   itemName: value
                 }))}
                 disabled
-                className="bg-gray-50"
+                className="bg-gray-50 text-xs sm:text-sm py-1.5 sm:py-2"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Amount (₹)
                 </label>
                 <Input
@@ -218,11 +225,12 @@ const ItemMaster = () => {
                     ...prev,
                     amount: parseFloat(value) || 0
                   }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Threshold
                 </label>
                 <Input
@@ -232,12 +240,13 @@ const ItemMaster = () => {
                     ...prev,
                     threshold: parseInt(value) || 0
                   }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Current Stock Count
               </label>
               <Input
@@ -247,33 +256,35 @@ const ItemMaster = () => {
                   ...prev,
                   stockCount: parseInt(value) || 0
                 }))}
+                className="text-xs sm:text-sm py-1.5 sm:py-2"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Item Image
               </label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
-                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                className="w-full text-xs sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-1.5 sm:file:py-2 file:px-2 sm:file:px-4 file:rounded-md file:border-0 file:text-xs sm:file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
               {editingItem.itemMedia && (
                 <div className="mt-2">
-                  <img src={editingItem.itemMedia} alt="Current" className="w-16 h-16 object-cover rounded" />
+                  <img src={editingItem.itemMedia} alt="Current" className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 object-cover rounded" />
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button onClick={handleSaveEdit}>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
+              <Button onClick={handleSaveEdit} className="text-xs sm:text-sm py-1.5 sm:py-2">
                 Save Changes
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setIsEditModalOpen(false)}
+                className="text-xs sm:text-sm py-1.5 sm:py-2"
               >
                 Cancel
               </Button>
