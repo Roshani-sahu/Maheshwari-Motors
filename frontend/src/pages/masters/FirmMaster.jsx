@@ -53,85 +53,103 @@ const FirmMaster = () => {
   const columns = [
     {
       key: 'id',
-      label: 'ID'
+      label: 'ID',
+      width: '50px',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
     {
       key: 'name',
-      label: 'Firm Name'
+      label: 'Firm Name',
+      width: '180px',
+      render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
     },
     {
       key: 'type',
       label: 'Type',
       render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
+        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
           value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
           {value === 0 ? '1' : '0'}
         </span>
-      )
+      ),
+      width: '60px'
     },
     {
       key: 'city',
-      label: 'City'
+      label: 'City',
+      width: '90px',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
     {
       key: 'phone',
-      label: 'Phone'
+      label: 'Phone',
+      width: '110px',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
     {
       key: 'email',
-      label: 'Email'
+      label: 'Email',
+      width: '140px',
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
     },
     {
       key: 'gstin',
       label: 'GSTIN',
-      render: (value) => value || 'N/A'
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value || 'N/A'}</span>,
+      width: '130px'
     }
   ];
 
   const actions = [
     {
-      label: <FaEdit size={14} />,
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (firm) => navigate(`/masters/firm-master/edit/${firm.id}`),
-      className: 'bg-blue-600 text-white hover:bg-blue-700'
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
-      label: <FaTrash size={14} />,
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (firm) => {
         if (window.confirm(`Are you sure you want to delete "${firm.name}"?`)) {
           deleteFirm(firm.id);
         }
       },
-      className: 'bg-red-600 text-white hover:bg-red-700'
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Firm Master</h1>
-          <p className="text-gray-600">Manage your business firms (GST / NON-GST)</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Firm Master</h1>
+          <p className="text-gray-600 text-xs sm:text-sm">
+            Manage your business firms (GST / NON-GST)
+          </p>
         </div>
         <Button
           onClick={() => navigate('/masters/firm-master/add')}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 text-xs sm:text-sm"
         >
-          <FaPlus />
+          <FaPlus className="text-sm sm:text-base" />
           Add Firm
         </Button>
       </div>
 
       {/* Firms Table */}
-      <DataTable
-        columns={columns}
-        data={firms}
-        actions={actions}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-      />
+      <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+        <DataTable
+          columns={columns}
+          data={firms}
+          actions={actions}
+          searchable={true}
+          sortable={true}
+          pagination={true}
+          minWidth="750px"
+          className="text-xs sm:text-sm"
+        />
+      </div>
     </div>
   );
 };

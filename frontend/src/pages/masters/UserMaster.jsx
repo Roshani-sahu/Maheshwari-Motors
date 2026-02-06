@@ -51,22 +51,37 @@ const UserMaster = () => {
   };
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'username', label: 'Username' },
-    { key: 'email', label: 'Email' },
+    { 
+      key: 'id', 
+      label: 'ID',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
+    },
+    { 
+      key: 'username', 
+      label: 'Username',
+      render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
+    },
+    { 
+      key: 'email', 
+      label: 'Email',
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
+    },
     {
       key: 'password',
       label: 'Password',
       render: (value, row) => (
-        <div className="flex items-center gap-2">
-          <span className="font-mono">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="font-mono text-xs sm:text-sm">
             {showPasswords[row.id] ? value : '••••••••'}
           </span>
           <button
             onClick={() => togglePasswordVisibility(row.id)}
             className="text-gray-500 hover:text-gray-700"
           >
-            {showPasswords[row.id] ? <FaEyeSlash /> : <FaEye />}
+            {showPasswords[row.id] ? 
+              <FaEyeSlash size={12} className="sm:size-4" /> : 
+              <FaEye size={12} className="sm:size-4" />
+            }
           </button>
         </div>
       )
@@ -75,21 +90,21 @@ const UserMaster = () => {
 
   const actions = [
     {
-      label: <FaEdit size={14} />,
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (user) => {
         setEditingUser(user);
         setIsEditModalOpen(true);
       },
-      className: 'bg-blue-600 text-white hover:bg-blue-700'
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
-      label: <FaTrash size={14} />,
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (user) => {
         if (window.confirm(`Are you sure you want to delete user "${user.username}"?`)) {
           deleteUser(user.id);
         }
       },
-      className: 'bg-red-600 text-white hover:bg-red-700'
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
@@ -104,96 +119,114 @@ const UserMaster = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Master</h1>
-          <p className="text-gray-600">Manage system users and permissions</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Master</h1>
+          <p className="text-gray-600 text-xs sm:text-sm">Manage system users and permissions</p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2">
-          <FaPlus />
+        <Button 
+          onClick={() => setIsAddModalOpen(true)} 
+          className="flex items-center gap-2 text-xs sm:text-sm"
+        >
+          <FaPlus className="text-sm sm:text-base" />
           Add User
         </Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={users}
-        actions={actions}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-      />
+      {/* Users Table */}
+      <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+        <DataTable
+          columns={columns}
+          data={users}
+          actions={actions}
+          searchable={true}
+          sortable={true}
+          pagination={true}
+          minWidth="600px"
+          className="text-xs sm:text-sm"
+        />
+      </div>
 
       {/* Add User Modal */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add User" size="md">
-        <div className="space-y-4">
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add User" size="sm md:md">
+        <div className="space-y-3 sm:space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Username</label>
             <Input
               value={newUser.username}
               onChange={(value) => setNewUser(prev => ({ ...prev, username: value }))}
               placeholder="Enter username"
+              className="text-xs sm:text-sm py-1.5 sm:py-2"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
             <Input
               type="email"
               value={newUser.email}
               onChange={(value) => setNewUser(prev => ({ ...prev, email: value }))}
               placeholder="Enter email"
+              className="text-xs sm:text-sm py-1.5 sm:py-2"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Password</label>
             <Input
               type="password"
               value={newUser.password}
               onChange={(value) => setNewUser(prev => ({ ...prev, password: value }))}
               placeholder="Enter password"
+              className="text-xs sm:text-sm py-1.5 sm:py-2"
             />
           </div>
           
-          <div className="flex gap-3 pt-4">
-            <Button onClick={handleAddUser}>Add User</Button>
-            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
+            <Button onClick={handleAddUser} className="text-xs sm:text-sm py-1.5 sm:py-2">Add User</Button>
+            <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="text-xs sm:text-sm py-1.5 sm:py-2">Cancel</Button>
           </div>
         </div>
       </Modal>
 
       {/* Edit User Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User" size="md">
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User" size="sm md:md">
         {editingUser && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-              <Input value={editingUser.username} disabled className="bg-gray-50" />
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Username</label>
+              <Input 
+                value={editingUser.username} 
+                disabled 
+                className="bg-gray-50 text-xs sm:text-sm py-1.5 sm:py-2"
+              />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
               <Input
                 type="email"
                 value={editingUser.email}
                 onChange={(value) => setEditingUser(prev => ({ ...prev, email: value }))}
                 placeholder="Enter email"
+                className="text-xs sm:text-sm py-1.5 sm:py-2"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reset Password</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Reset Password</label>
               <Input
                 type="password"
                 value={newPassword}
                 onChange={(value) => setNewPassword(value)}
                 placeholder="Enter new password"
+                className="text-xs sm:text-sm py-1.5 sm:py-2"
               />
             </div>
             
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
               <Button onClick={() => {
                 const updatedUser = { ...editingUser };
                 if (newPassword) {
@@ -202,10 +235,10 @@ const UserMaster = () => {
                 updateUser(editingUser.id, updatedUser);
                 setIsEditModalOpen(false);
                 setNewPassword('');
-              }}>
+              }} className="text-xs sm:text-sm py-1.5 sm:py-2">
                 Save Changes
               </Button>
-              <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="text-xs sm:text-sm py-1.5 sm:py-2">Cancel</Button>
             </div>
           </div>
         )}
