@@ -8,7 +8,7 @@ import { FormField, Input, Select, Textarea, Button, Card } from '../components/
 const FirmSetup = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { showToast, setLoading } = useStore();
+  const { showToast, setLoading, firms, addFirm, updateFirm } = useStore();
   const [formData, setFormData] = useState({
     name: '',
     // shortName: '',
@@ -48,11 +48,18 @@ const FirmSetup = () => {
   const loadFirm = async () => {
     setLoading(true);
     try {
-      const response = await firmAPI.getById(id);
-      setFormData(response.data);
+      // In a real app, this would be an API call
+      // For now, find the firm from the store
+      const firm = firms.find(f => f.id === parseInt(id));
+      if (firm) {
+        setFormData(firm);
+      } else {
+        showToast('Firm not found', 'error');
+        navigate('/masters/firm-master');
+      }
     } catch (error) {
       showToast('Failed to load firm details', 'error');
-      navigate('/dashboard');
+      navigate('/masters/firm-master');
     } finally {
       setLoading(false);
     }
@@ -93,13 +100,17 @@ const FirmSetup = () => {
     setLoading(true);
     try {
       if (isEdit) {
-        await firmAPI.update(id, formData);
+        updateFirm(parseInt(id), formData);
         showToast('Firm updated successfully', 'success');
       } else {
-        await firmAPI.create(formData);
+        const newFirm = {
+          ...formData,
+          id: Date.now()
+        };
+        addFirm(newFirm);
         showToast('Firm created successfully', 'success');
       }
-      navigate('/dashboard');
+      navigate('/masters/firm-master');
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to save firm', 'error');
     } finally {
@@ -112,7 +123,7 @@ const FirmSetup = () => {
       <div className="flex items-center gap-3 mb-4 md:mb-6">
         <Button
           variant="outline"
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/masters/firm-master')}
           className="flex items-center gap-2"
         >
           <FaArrowLeft />
@@ -387,7 +398,7 @@ const FirmSetup = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/masters/firm-master')}
             >
               Cancel
             </Button>

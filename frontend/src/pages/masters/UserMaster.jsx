@@ -1,83 +1,81 @@
-import React, { useState } from 'react';
-import { FaPlus, FaEdit, FaKey, FaUserShield } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
-import { Button, Input, Select } from '../../components/ui';
+import { Button, Input } from '../../components/ui';
+import useStore from '../../store';
 
 const UserMaster = () => {
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      username: 'admin',
-      type: 'MAIN',
-      assignedFirms: ['Maa Auto', 'Motors Division'],
-      isActive: true
-    },
-    {
-      id: 2,
-      username: 'operator1',
-      type: 'SECONDARY',
-      assignedFirms: ['Maa Auto'],
-      isActive: true
-    },
-    {
-      id: 3,
-      username: 'clerk1',
-      type: 'SECONDARY',
-      assignedFirms: ['Surat Branch'],
-      isActive: false
-    }
-  ]);
-
-  const [firms] = useState([
-    { id: 1, name: 'Maa Auto' },
-    { id: 2, name: 'Motors Division' },
-    { id: 3, name: 'Surat Branch' }
-  ]);
-
+  const { users, setUsers, addUser, updateUser, deleteUser } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [newUser, setNewUser] = useState({
     username: '',
-    password: '',
-    type: 'SECONDARY',
-    assignedFirms: []
+    email: '',
+    password: ''
   });
+  const [showPasswords, setShowPasswords] = useState({});
+  const [newPassword, setNewPassword] = useState('');
+
+  // Initialize with sample data if empty
+  useEffect(() => {
+    if (users.length === 0) {
+      setUsers([
+        {
+          id: 1,
+          username: 'admin',
+          email: 'admin@maheshwarimotors.com',
+          password: 'admin123'
+        },
+        {
+          id: 2,
+          username: 'operator1',
+          email: 'operator1@maheshwarimotors.com',
+          password: 'op123'
+        },
+        {
+          id: 3,
+          username: 'clerk1',
+          email: 'clerk1@maheshwarimotors.com',
+          password: 'clerk123'
+        }
+      ]);
+    }
+  }, [users.length, setUsers]);
+
+  const togglePasswordVisibility = (userId) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
+  };
 
   const columns = [
+    { key: 'id', label: 'ID' },
     { key: 'username', label: 'Username' },
+    { key: 'email', label: 'Email' },
     {
-      key: 'type',
-      label: 'Type',
-      render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          value === 'MAIN' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-        }`}>
-          {value}
-        </span>
-      )
-    },
-    {
-      key: 'assignedFirms',
-      label: 'Assigned Firms',
-      render: (value) => value.join(', ')
-    },
-    {
-      key: 'isActive',
-      label: 'Status',
-      render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
-          {value ? 'Active' : 'Inactive'}
-        </span>
+      key: 'password',
+      label: 'Password',
+      render: (value, row) => (
+        <div className="flex items-center gap-2">
+          <span className="font-mono">
+            {showPasswords[row.id] ? value : '••••••••'}
+          </span>
+          <button
+            onClick={() => togglePasswordVisibility(row.id)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            {showPasswords[row.id] ? <FaEyeSlash /> : <FaEye />}
+          </button>
+        </div>
       )
     }
   ];
 
   const actions = [
     {
-      label: 'Edit',
+      label: <FaEdit size={14} />,
       onClick: (user) => {
         setEditingUser(user);
         setIsEditModalOpen(true);
@@ -85,33 +83,24 @@ const UserMaster = () => {
       className: 'bg-blue-600 text-white hover:bg-blue-700'
     },
     {
-      label: 'Reset Password',
-      onClick: (user) => console.log('Reset password for:', user.username),
-      className: 'bg-orange-600 text-white hover:bg-orange-700'
+      label: <FaTrash size={14} />,
+      onClick: (user) => {
+        if (window.confirm(`Are you sure you want to delete user "${user.username}"?`)) {
+          deleteUser(user.id);
+        }
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700'
     }
   ];
 
   const handleAddUser = () => {
     const user = {
-      id: users.length + 1,
-      ...newUser,
-      isActive: true
+      id: Date.now(),
+      ...newUser
     };
-    setUsers(prev => [...prev, user]);
-    setNewUser({ username: '', password: '', type: 'SECONDARY', assignedFirms: [] });
+    addUser(user);
+    setNewUser({ username: '', email: '', password: '' });
     setIsAddModalOpen(false);
-  };
-
-  const handleFirmToggle = (firmName, isAssigning = true) => {
-    const target = isAssigning ? newUser : editingUser;
-    const setter = isAssigning ? setNewUser : setEditingUser;
-    
-    setter(prev => ({
-      ...prev,
-      assignedFirms: prev.assignedFirms.includes(firmName)
-        ? prev.assignedFirms.filter(f => f !== firmName)
-        : [...prev.assignedFirms, firmName]
-    }));
   };
 
   return (
@@ -149,6 +138,16 @@ const UserMaster = () => {
           </div>
           
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <Input
+              type="email"
+              value={newUser.email}
+              onChange={(value) => setNewUser(prev => ({ ...prev, email: value }))}
+              placeholder="Enter email"
+            />
+          </div>
+          
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <Input
               type="password"
@@ -156,34 +155,6 @@ const UserMaster = () => {
               onChange={(value) => setNewUser(prev => ({ ...prev, password: value }))}
               placeholder="Enter password"
             />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">User Type</label>
-            <Select
-              value={newUser.type}
-              onChange={(value) => setNewUser(prev => ({ ...prev, type: value }))}
-            >
-              <option value="MAIN">MAIN</option>
-              <option value="SECONDARY">SECONDARY</option>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Assigned Firms</label>
-            <div className="space-y-2">
-              {firms.map(firm => (
-                <label key={firm.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={newUser.assignedFirms.includes(firm.name)}
-                    onChange={() => handleFirmToggle(firm.name, true)}
-                    className="rounded"
-                  />
-                  <span className="text-sm">{firm.name}</span>
-                </label>
-              ))}
-            </div>
           </div>
           
           <div className="flex gap-3 pt-4">
@@ -203,37 +174,34 @@ const UserMaster = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">User Type</label>
-              <Select
-                value={editingUser.type}
-                onChange={(value) => setEditingUser(prev => ({ ...prev, type: value }))}
-              >
-                <option value="MAIN">MAIN</option>
-                <option value="SECONDARY">SECONDARY</option>
-              </Select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <Input
+                type="email"
+                value={editingUser.email}
+                onChange={(value) => setEditingUser(prev => ({ ...prev, email: value }))}
+                placeholder="Enter email"
+              />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Assigned Firms</label>
-              <div className="space-y-2">
-                {firms.map(firm => (
-                  <label key={firm.id} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={editingUser.assignedFirms.includes(firm.name)}
-                      onChange={() => handleFirmToggle(firm.name, false)}
-                      className="rounded"
-                    />
-                    <span className="text-sm">{firm.name}</span>
-                  </label>
-                ))}
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reset Password</label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(value) => setNewPassword(value)}
+                placeholder="Enter new password"
+              />
             </div>
             
             <div className="flex gap-3 pt-4">
               <Button onClick={() => {
-                setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u));
+                const updatedUser = { ...editingUser };
+                if (newPassword) {
+                  updatedUser.password = newPassword;
+                }
+                updateUser(editingUser.id, updatedUser);
                 setIsEditModalOpen(false);
+                setNewPassword('');
               }}>
                 Save Changes
               </Button>

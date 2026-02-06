@@ -1,8 +1,19 @@
 import React, { useState } from 'react';
 import { FaChartBar, FaChartLine, FaChartPie, FaBoxes, FaTrophy, FaCalendarAlt, FaArrowUp } from 'react-icons/fa';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { FaChartBar, FaChartLine, FaChartPie, FaBoxes, FaTrophy, FaCalendarAlt, FaArrowUp } from 'react-icons/fa';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 const Reports = () => {
+  const [selectedPeriod, setSelectedPeriod] = useState('year');
+  
+  const monthlyData = [
+    { month: 'Jan', challans: 12, bills: 8, revenue: 125 },
+    { month: 'Feb', challans: 18, bills: 14, revenue: 185 },
+    { month: 'Mar', challans: 15, bills: 12, revenue: 165 },
+    { month: 'Apr', challans: 22, bills: 18, revenue: 245 },
+    { month: 'May', challans: 25, bills: 20, revenue: 285 },
+    { month: 'Jun', challans: 20, bills: 16, revenue: 225 },
   const [selectedPeriod, setSelectedPeriod] = useState('year');
   
   const monthlyData = [
@@ -19,13 +30,29 @@ const Reports = () => {
     { name: 'Bills', value: 200, color: '#10B981' },
     { name: 'Prepaid', value: 45, color: '#8B5CF6' },
     { name: 'Due', value: 32, color: '#F59E0B' }
+  const transactionTypeData = [
+    { name: 'Challans', value: 253, color: '#3B82F6' },
+    { name: 'Bills', value: 200, color: '#10B981' },
+    { name: 'Prepaid', value: 45, color: '#8B5CF6' },
+    { name: 'Due', value: 32, color: '#F59E0B' }
   ];
 
   const gstData = [
     { name: '1 (GST)', value: 320, color: '#10B981' },
     { name: '0 (NON-GST)', value: 210, color: '#3B82F6' }
   ];
+  const gstData = [
+    { name: '1 (GST)', value: 320, color: '#10B981' },
+    { name: '0 (NON-GST)', value: 210, color: '#3B82F6' }
+  ];
 
+  const topPartiesData = [
+    { party: 'ABC Motors', amount: 450 },
+    { party: 'XYZ Parts', amount: 380 },
+    { party: 'PQR Auto', amount: 320 },
+    { party: 'LMN Garage', amount: 280 },
+    { party: 'RST Motors', amount: 250 }
+  ];
   const topPartiesData = [
     { party: 'ABC Motors', amount: 450 },
     { party: 'XYZ Parts', amount: 380 },
@@ -254,6 +281,7 @@ const Reports = () => {
               </div>
             ))}
           </div>
+        </div>
         </div>
 
         {/* Top Parties */}

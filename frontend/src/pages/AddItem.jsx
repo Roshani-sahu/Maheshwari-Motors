@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaSave, FaUpload } from 'react-icons/fa';
+import { FaSave } from 'react-icons/fa';
 import { Button, Input } from '../components/ui';
+import useStore from '../store';
 
 const AddItem = () => {
   const navigate = useNavigate();
+  const { showToast, addItem } = useStore();
   const [formData, setFormData] = useState({
     itemName: '',
     amount: '',
@@ -14,8 +16,7 @@ const AddItem = () => {
   });
   const [errors, setErrors] = useState({});
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -41,8 +42,20 @@ const AddItem = () => {
       return;
     }
 
-    // Save item logic here
-    console.log('Saving item:', formData);
+    // Create new item object
+    const newItem = {
+      id: Date.now(), // Simple ID generation
+      itemName: formData.itemName,
+      amount: parseFloat(formData.amount),
+      threshold: parseInt(formData.threshold),
+      stockCount: parseInt(formData.stockCount),
+      itemMedia: formData.itemMedia ? URL.createObjectURL(formData.itemMedia) : null,
+      status: parseInt(formData.stockCount) <= parseInt(formData.threshold) ? 'LOW' : 'OK'
+    };
+
+    // Add item to global store
+    addItem(newItem);
+    showToast('Item added successfully', 'success');
     navigate('/masters/item-master');
   };
 
@@ -65,7 +78,7 @@ const AddItem = () => {
               <Input
                 name="itemName"
                 value={formData.itemName}
-                onChange={handleChange}
+                onChange={(value) => handleChange('itemName', value)}
                 placeholder="Enter item name"
                 error={errors.itemName}
               />
@@ -81,7 +94,7 @@ const AddItem = () => {
                 type="number"
                 step="0.01"
                 value={formData.amount}
-                onChange={handleChange}
+                onChange={(value) => handleChange('amount', value)}
                 placeholder="0.00"
                 error={errors.amount}
               />
@@ -96,7 +109,7 @@ const AddItem = () => {
                 name="threshold"
                 type="number"
                 value={formData.threshold}
-                onChange={handleChange}
+                onChange={(value) => handleChange('threshold', value)}
                 placeholder="Minimum stock level"
                 error={errors.threshold}
               />
@@ -111,7 +124,7 @@ const AddItem = () => {
                 name="stockCount"
                 type="number"
                 value={formData.stockCount}
-                onChange={handleChange}
+                onChange={(value) => handleChange('stockCount', value)}
                 placeholder="Current stock quantity"
                 error={errors.stockCount}
               />
