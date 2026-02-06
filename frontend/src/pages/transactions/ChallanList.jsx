@@ -37,10 +37,6 @@ const ChallanList = () => {
     }
   ]);
 
-  const [transactionHistory, setTransactionHistory] = useState([]);
-
-  const [transactionHistory, setTransactionHistory] = useState([]);
-
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
