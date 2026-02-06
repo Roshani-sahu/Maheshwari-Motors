@@ -33,13 +33,13 @@ const AccountMaster = () => {
 
   const transactionActions = [
     {
-      label: <FaTrash size={14} />,
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (transaction) => {
         if (window.confirm(`Are you sure you want to delete transaction "${transaction.transactionId}"?`)) {
           setTransactions(prev => prev.filter(t => t.id !== transaction.id));
         }
       },
-      className: 'bg-red-600 text-white hover:bg-red-700'
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
@@ -83,16 +83,36 @@ const AccountMaster = () => {
 
   // Transaction columns
   const transactionColumns = [
-    { key: 'id', label: 'ID' },
-    { key: 'transactionId', label: 'Transaction ID' },
-    { key: 'payerId', label: 'Payer ID' },
-    { key: 'utr', label: 'UTR' },
-    { key: 'firm', label: 'Firm' },
+    { 
+      key: 'id', 
+      label: 'ID',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
+    },
+    { 
+      key: 'transactionId', 
+      label: 'Transaction ID',
+      render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
+    },
+    { 
+      key: 'payerId', 
+      label: 'Payer ID',
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
+    },
+    { 
+      key: 'utr', 
+      label: 'UTR',
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
+    },
+    { 
+      key: 'firm', 
+      label: 'Firm',
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
+    },
     {
       key: 'gstFlag',
       label: 'GST Type',
       render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
+        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
           value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
           {value === 0 ? '1' : '0'}
@@ -102,23 +122,27 @@ const AccountMaster = () => {
     {
       key: 'amount',
       label: 'Amount',
-      render: (value) => `₹${value.toLocaleString()}`
+      render: (value) => <span className="text-xs sm:text-sm">₹{value.toLocaleString()}</span>
     },
     {
       key: 'date',
       label: 'Date',
-      render: (value) => new Date(value).toLocaleDateString()
+      render: (value) => <span className="text-xs sm:text-sm">{new Date(value).toLocaleDateString()}</span>
     }
   ];
 
   // Discount columns
   const discountColumns = [
-    { key: 'id', label: 'ID' },
+    { 
+      key: 'id', 
+      label: 'ID',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
+    },
     {
       key: 'discountType',
       label: 'Type',
       render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
+        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
           value === 'ITEM' ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
         }`}>
           {value}
@@ -128,33 +152,33 @@ const AccountMaster = () => {
     {
       key: 'amount',
       label: 'Amount',
-      render: (value) => `₹${value.toLocaleString()}`
+      render: (value) => <span className="text-xs sm:text-sm">₹{value.toLocaleString()}</span>
     },
     {
       key: 'itemName',
       label: 'Item',
-      render: (value, row) => row.discountType === 'ITEM' ? value : 'N/A'
+      render: (value, row) => <span className="text-xs sm:text-sm truncate">{row.discountType === 'ITEM' ? value : 'N/A'}</span>
     },
     {
       key: 'companyName',
       label: 'Company',
-      render: (value, row) => row.discountType === 'COMPANY' ? value : 'N/A'
+      render: (value, row) => <span className="text-xs sm:text-sm truncate">{row.discountType === 'COMPANY' ? value : 'N/A'}</span>
     }
   ];
 
   const discountActions = [
     {
-      label: <FaEdit size={14} />,
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (discount) => {
         setEditingDiscount(discount);
         setIsEditDiscountModalOpen(true);
       },
-      className: 'bg-blue-600 text-white hover:bg-blue-700'
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
-      label: <FaTrash size={14} />,
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (discount) => setDiscounts(prev => prev.filter(d => d.id !== discount.id)),
-      className: 'bg-red-600 text-white hover:bg-red-700'
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
@@ -188,117 +212,133 @@ const AccountMaster = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Account Master</h1>
-          <p className="text-gray-600">Manage account transactions and discounts</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Account Master</h1>
+          <p className="text-gray-600 text-xs sm:text-sm">Manage account transactions and discounts</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="bg-white rounded-lg border">
-        <div className="border-b">
-          <nav className="flex space-x-8 px-6">
+        <div className="border-b overflow-x-auto">
+          <nav className="flex px-4 sm:px-6">
             <button
               onClick={() => setActiveTab('transactions')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 sm:py-4 px-1 sm:px-2 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'transactions'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <FaMoneyBillWave />
+              <div className="flex items-center gap-1 sm:gap-2">
+                <FaMoneyBillWave className="text-sm sm:text-base" />
                 Transactions
               </div>
             </button>
             <button
               onClick={() => setActiveTab('discounts')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 sm:py-4 px-1 sm:px-2 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'discounts'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <div className="flex items-center gap-2">
-                <FaPercent />
+              <div className="flex items-center gap-1 sm:gap-2">
+                <FaPercent className="text-sm sm:text-base" />
                 Discounts
               </div>
             </button>
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-3 sm:p-4 md:p-6">
           {activeTab === 'transactions' && (
             <div className="space-y-4">
               {/* Transaction Filters */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2 mb-4">
-                  <FaFilter className="text-gray-500" />
-                  <h3 className="font-medium text-gray-900">Filters</h3>
+              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                  <FaFilter className="text-gray-500 text-sm sm:text-base" />
+                  <h3 className="font-medium text-gray-900 text-sm sm:text-base">Filters</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   <Input
                     placeholder="Search firm..."
                     value={filters.firm}
                     onChange={(value) => setFilters(prev => ({ ...prev, firm: value }))}
+                    className="text-xs sm:text-sm py-1.5 sm:py-2"
                   />
                   <Select
                     value={filters.gstType}
                     onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
+                    className="text-xs sm:text-sm py-1.5 sm:py-2"
                   >
-                    <option value="all">All  Types</option>
-                    <option value="gst"> 1 </option>
-                    <option value="non-gst">0 </option>
+                    <option value="all">All Types</option>
+                    <option value="gst">1</option>
+                    <option value="non-gst">0</option>
                   </Select>
                   <Input
                     type="date"
                     value={filters.dateFrom}
                     onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
+                    className="text-xs sm:text-sm py-1.5 sm:py-2"
                   />
                   <Input
                     type="date"
                     value={filters.dateTo}
                     onChange={(value) => setFilters(prev => ({ ...prev, dateTo: value }))}
+                    className="text-xs sm:text-sm py-1.5 sm:py-2"
                   />
                 </div>
               </div>
 
-              <DataTable
-                columns={transactionColumns}
-                data={filteredTransactions}
-                actions={transactionActions}
-                searchable={true}
-                sortable={true}
-                pagination={true}
-              />
+              <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+                <DataTable
+                  columns={transactionColumns}
+                  data={filteredTransactions}
+                  actions={transactionActions}
+                  searchable={true}
+                  sortable={true}
+                  pagination={true}
+                  minWidth="700px"
+                  className="text-xs sm:text-sm"
+                />
+              </div>
             </div>
           )}
 
           {activeTab === 'discounts' && (
             <div className="space-y-4">
               <div className="flex justify-end">
-                <Button onClick={() => setIsAddDiscountModalOpen(true)} className="flex items-center gap-2">
-                  <FaPlus />
-                  Add Discount
-                </Button>
-              </div>
+  <Button 
+    onClick={() => setIsAddDiscountModalOpen(true)} 
+    className="flex items-center gap-2 text-xs sm:text-sm w-full sm:w-auto justify-center sm:justify-start"
+  >
+    <FaPlus className="text-sm sm:text-base" />
+    Add Discount
+  </Button>
+</div>
 
-              <DataTable
-                columns={discountColumns}
-                data={discounts}
-                actions={discountActions}
-                searchable={true}
-                sortable={true}
-                pagination={true}
-              />
+              <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
+                <DataTable
+                  columns={discountColumns}
+                  data={discounts}
+                  actions={discountActions}
+                  searchable={true}
+                  sortable={true}
+                  pagination={true}
+                  minWidth="600px"
+                  className="text-xs sm:text-sm"
+                />
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Add Discount Modal */}
+            {/* Add Discount Modal */}
       <Modal isOpen={isAddDiscountModalOpen} onClose={() => setIsAddDiscountModalOpen(false)} title="Add Discount" size="md">
         <div className="space-y-4">
           <div>
@@ -306,6 +346,7 @@ const AccountMaster = () => {
             <Select
               value={newDiscount.discountType}
               onChange={(value) => setNewDiscount(prev => ({ ...prev, discountType: value }))}
+              className="text-xs sm:text-sm"
             >
               <option value="ITEM">Item Discount</option>
               <option value="COMPANY">Company Discount</option>
@@ -320,6 +361,7 @@ const AccountMaster = () => {
               value={newDiscount.amount}
               onChange={(value) => setNewDiscount(prev => ({ ...prev, amount: value }))}
               placeholder="Enter discount amount"
+              className="text-xs sm:text-sm"
             />
           </div>
 
@@ -330,6 +372,7 @@ const AccountMaster = () => {
                 value={newDiscount.itemName}
                 onChange={(value) => setNewDiscount(prev => ({ ...prev, itemName: value }))}
                 placeholder="Enter item name"
+                className="text-xs sm:text-sm"
               />
             </div>
           )}
@@ -341,26 +384,34 @@ const AccountMaster = () => {
                 value={newDiscount.companyName}
                 onChange={(value) => setNewDiscount(prev => ({ ...prev, companyName: value }))}
                 placeholder="Enter company name"
+                className="text-xs sm:text-sm"
               />
             </div>
           )}
 
-          <div className="flex gap-3 pt-4">
-            <Button onClick={handleAddDiscount}>Add Discount</Button>
-            <Button variant="outline" onClick={() => setIsAddDiscountModalOpen(false)}>Cancel</Button>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4">
+            <Button onClick={handleAddDiscount} className="w-full sm:w-auto text-xs sm:text-sm">
+              Add Discount
+            </Button>
+            <Button variant="outline" onClick={() => setIsAddDiscountModalOpen(false)} className="w-full sm:w-auto text-xs sm:text-sm">
+              Cancel
+            </Button>
           </div>
         </div>
       </Modal>
 
+  
+
       {/* Edit Discount Modal */}
-      <Modal isOpen={isEditDiscountModalOpen} onClose={() => setIsEditDiscountModalOpen(false)} title="Edit Discount" size="md">
+      <Modal isOpen={isEditDiscountModalOpen} onClose={() => setIsEditDiscountModalOpen(false)} title="Edit Discount" size="sm md:md">
         {editingDiscount && (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Discount Type</label>
               <Select
                 value={editingDiscount.discountType}
                 onChange={(value) => setEditingDiscount(prev => ({ ...prev, discountType: value }))}
+                className="text-xs sm:text-sm py-1.5 sm:py-2"
               >
                 <option value="ITEM">Item Discount</option>
                 <option value="COMPANY">Company Discount</option>
@@ -368,41 +419,44 @@ const AccountMaster = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
               <Input
                 type="number"
                 step="0.01"
                 value={editingDiscount.amount}
                 onChange={(value) => setEditingDiscount(prev => ({ ...prev, amount: parseFloat(value) || 0 }))}
                 placeholder="Enter discount amount"
+                className="text-xs sm:text-sm py-1.5 sm:py-2"
               />
             </div>
 
             {editingDiscount.discountType === 'ITEM' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Item Name</label>
                 <Input
                   value={editingDiscount.itemName || ''}
                   onChange={(value) => setEditingDiscount(prev => ({ ...prev, itemName: value }))}
                   placeholder="Enter item name"
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
                 />
               </div>
             )}
 
             {editingDiscount.discountType === 'COMPANY' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Company Name</label>
                 <Input
                   value={editingDiscount.companyName || ''}
                   onChange={(value) => setEditingDiscount(prev => ({ ...prev, companyName: value }))}
                   placeholder="Enter company name"
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
                 />
               </div>
             )}
 
-            <div className="flex gap-3 pt-4">
-              <Button onClick={handleEditDiscount}>Save Changes</Button>
-              <Button variant="outline" onClick={() => setIsEditDiscountModalOpen(false)}>Cancel</Button>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
+              <Button onClick={handleEditDiscount} className="text-xs sm:text-sm py-1.5 sm:py-2">Save Changes</Button>
+              <Button variant="outline" onClick={() => setIsEditDiscountModalOpen(false)} className="text-xs sm:text-sm py-1.5 sm:py-2">Cancel</Button>
             </div>
           </div>
         )}
