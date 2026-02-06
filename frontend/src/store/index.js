@@ -21,6 +21,8 @@ const useStore = create(devtools((set, get) => ({
   // Masters Data
   accounts: [],
   items: [],
+  firms: [],
+  users: [],
   groups: [],
   units: [],
   hsn: [],
@@ -39,6 +41,22 @@ const useStore = create(devtools((set, get) => ({
   
   setFirm: (firm) => set({ selectedFirm: firm }),
   setFirms: (firms) => set({ firms }),
+  addFirm: (firm) => set((state) => ({ firms: [...state.firms, firm] })),
+  updateFirm: (id, updatedFirm) => set((state) => ({
+    firms: state.firms.map(firm => firm.id === id ? updatedFirm : firm)
+  })),
+  deleteFirm: (id) => set((state) => ({
+    firms: state.firms.filter(firm => firm.id !== id)
+  })),
+  
+  setUsers: (users) => set({ users }),
+  addUser: (user) => set((state) => ({ users: [...state.users, user] })),
+  updateUser: (id, updatedUser) => set((state) => ({
+    users: state.users.map(user => user.id === id ? updatedUser : user)
+  })),
+  deleteUser: (id) => set((state) => ({
+    users: state.users.filter(user => user.id !== id)
+  })),
   
   setLoading: (loading) => set({ loading }),
   
@@ -53,6 +71,13 @@ const useStore = create(devtools((set, get) => ({
   // Data setters
   setAccounts: (accounts) => set({ accounts }),
   setItems: (items) => set({ items }),
+  addItem: (item) => set((state) => ({ items: [...state.items, item] })),
+  updateItem: (id, updatedItem) => set((state) => ({
+    items: state.items.map(item => item.id === id ? updatedItem : item)
+  })),
+  deleteItem: (id) => set((state) => ({
+    items: state.items.filter(item => item.id !== id)
+  })),
   setGroups: (groups) => set({ groups }),
   setUnits: (units) => set({ units }),
   setHsn: (hsn) => set({ hsn }),

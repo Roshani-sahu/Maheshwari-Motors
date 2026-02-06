@@ -31,6 +31,18 @@ const AccountMaster = () => {
     }
   ]);
 
+  const transactionActions = [
+    {
+      label: 'Delete',
+      onClick: (transaction) => {
+        if (window.confirm(`Are you sure you want to delete transaction "${transaction.transactionId}"?`)) {
+          setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+        }
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700'
+    }
+  ];
+
   const [discounts, setDiscounts] = useState([
     {
       id: 1,
@@ -60,15 +72,18 @@ const AccountMaster = () => {
   });
 
   const [isAddDiscountModalOpen, setIsAddDiscountModalOpen] = useState(false);
+  const [isEditDiscountModalOpen, setIsEditDiscountModalOpen] = useState(false);
+  const [editingDiscount, setEditingDiscount] = useState(null);
   const [newDiscount, setNewDiscount] = useState({
     discountType: 'ITEM',
     amount: '',
-    itemId: '',
-    companyId: ''
+    itemName: '',
+    companyName: ''
   });
 
   // Transaction columns
   const transactionColumns = [
+    { key: 'id', label: 'ID' },
     { key: 'transactionId', label: 'Transaction ID' },
     { key: 'payerId', label: 'Payer ID' },
     { key: 'utr', label: 'UTR' },
@@ -98,6 +113,7 @@ const AccountMaster = () => {
 
   // Discount columns
   const discountColumns = [
+    { key: 'id', label: 'ID' },
     {
       key: 'discountType',
       label: 'Type',
@@ -129,7 +145,10 @@ const AccountMaster = () => {
   const discountActions = [
     {
       label: 'Edit',
-      onClick: (discount) => console.log('Edit discount:', discount),
+      onClick: (discount) => {
+        setEditingDiscount(discount);
+        setIsEditDiscountModalOpen(true);
+      },
       className: 'bg-blue-600 text-white hover:bg-blue-700'
     },
     {
@@ -151,15 +170,21 @@ const AccountMaster = () => {
 
   const handleAddDiscount = () => {
     const discount = {
-      id: discounts.length + 1,
+      id: Date.now(),
       ...newDiscount,
       amount: parseFloat(newDiscount.amount),
-      itemName: newDiscount.discountType === 'ITEM' ? 'Sample Item' : null,
-      companyName: newDiscount.discountType === 'COMPANY' ? 'Sample Company' : null
+      itemId: newDiscount.discountType === 'ITEM' ? 'ITM' + Date.now() : null,
+      companyId: newDiscount.discountType === 'COMPANY' ? 'COMP' + Date.now() : null
     };
     setDiscounts(prev => [...prev, discount]);
-    setNewDiscount({ discountType: 'ITEM', amount: '', itemId: '', companyId: '' });
+    setNewDiscount({ discountType: 'ITEM', amount: '', itemName: '', companyName: '' });
     setIsAddDiscountModalOpen(false);
+  };
+
+  const handleEditDiscount = () => {
+    setDiscounts(prev => prev.map(d => d.id === editingDiscount.id ? editingDiscount : d));
+    setIsEditDiscountModalOpen(false);
+    setEditingDiscount(null);
   };
 
   return (
@@ -243,6 +268,7 @@ const AccountMaster = () => {
               <DataTable
                 columns={transactionColumns}
                 data={filteredTransactions}
+                actions={transactionActions}
                 searchable={true}
                 sortable={true}
                 pagination={true}
@@ -299,22 +325,22 @@ const AccountMaster = () => {
 
           {newDiscount.discountType === 'ITEM' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Item ID</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
               <Input
-                value={newDiscount.itemId}
-                onChange={(value) => setNewDiscount(prev => ({ ...prev, itemId: value }))}
-                placeholder="Enter item ID"
+                value={newDiscount.itemName}
+                onChange={(value) => setNewDiscount(prev => ({ ...prev, itemName: value }))}
+                placeholder="Enter item name"
               />
             </div>
           )}
 
           {newDiscount.discountType === 'COMPANY' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company ID</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
               <Input
-                value={newDiscount.companyId}
-                onChange={(value) => setNewDiscount(prev => ({ ...prev, companyId: value }))}
-                placeholder="Enter company ID"
+                value={newDiscount.companyName}
+                onChange={(value) => setNewDiscount(prev => ({ ...prev, companyName: value }))}
+                placeholder="Enter company name"
               />
             </div>
           )}
@@ -324,6 +350,62 @@ const AccountMaster = () => {
             <Button variant="outline" onClick={() => setIsAddDiscountModalOpen(false)}>Cancel</Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Edit Discount Modal */}
+      <Modal isOpen={isEditDiscountModalOpen} onClose={() => setIsEditDiscountModalOpen(false)} title="Edit Discount" size="md">
+        {editingDiscount && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
+              <Select
+                value={editingDiscount.discountType}
+                onChange={(value) => setEditingDiscount(prev => ({ ...prev, discountType: value }))}
+              >
+                <option value="ITEM">Item Discount</option>
+                <option value="COMPANY">Company Discount</option>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={editingDiscount.amount}
+                onChange={(value) => setEditingDiscount(prev => ({ ...prev, amount: parseFloat(value) || 0 }))}
+                placeholder="Enter discount amount"
+              />
+            </div>
+
+            {editingDiscount.discountType === 'ITEM' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                <Input
+                  value={editingDiscount.itemName || ''}
+                  onChange={(value) => setEditingDiscount(prev => ({ ...prev, itemName: value }))}
+                  placeholder="Enter item name"
+                />
+              </div>
+            )}
+
+            {editingDiscount.discountType === 'COMPANY' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                <Input
+                  value={editingDiscount.companyName || ''}
+                  onChange={(value) => setEditingDiscount(prev => ({ ...prev, companyName: value }))}
+                  placeholder="Enter company name"
+                />
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <Button onClick={handleEditDiscount}>Save Changes</Button>
+              <Button variant="outline" onClick={() => setIsEditDiscountModalOpen(false)}>Cancel</Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
