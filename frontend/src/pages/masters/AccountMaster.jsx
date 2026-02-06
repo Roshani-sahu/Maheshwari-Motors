@@ -31,6 +31,18 @@ const AccountMaster = () => {
     }
   ]);
 
+  const transactionActions = [
+    {
+      label: 'Delete',
+      onClick: (transaction) => {
+        if (window.confirm(`Are you sure you want to delete transaction "${transaction.transactionId}"?`)) {
+          setTransactions(prev => prev.filter(t => t.id !== transaction.id));
+        }
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700'
+    }
+  ];
+
   const [discounts, setDiscounts] = useState([
     {
       id: 1,
@@ -256,6 +268,7 @@ const AccountMaster = () => {
               <DataTable
                 columns={transactionColumns}
                 data={filteredTransactions}
+                actions={transactionActions}
                 searchable={true}
                 sortable={true}
                 pagination={true}

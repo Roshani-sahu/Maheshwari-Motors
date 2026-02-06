@@ -7,7 +7,7 @@ import useStore from '../../store';
 
 const ItemMaster = () => {
   const navigate = useNavigate();
-  const { items, setItems, updateItem } = useStore();
+  const { items, setItems, updateItem, deleteItem } = useStore();
   const [editingItem, setEditingItem] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editImageFile, setEditImageFile] = useState(null);
@@ -117,6 +117,15 @@ const ItemMaster = () => {
         setIsEditModalOpen(true);
       },
       className: 'bg-blue-600 text-white hover:bg-blue-700'
+    },
+    {
+      label: 'Delete',
+      onClick: (item) => {
+        if (window.confirm(`Are you sure you want to delete "${item.itemName}"?`)) {
+          deleteItem(item.id);
+        }
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700'
     }
   ];
 

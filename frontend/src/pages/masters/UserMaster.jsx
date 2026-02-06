@@ -5,7 +5,7 @@ import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
 
 const UserMaster = () => {
-  const { users, setUsers, addUser, updateUser } = useStore();
+  const { users, setUsers, addUser, updateUser, deleteUser } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -81,6 +81,15 @@ const UserMaster = () => {
         setIsEditModalOpen(true);
       },
       className: 'bg-blue-600 text-white hover:bg-blue-700'
+    },
+    {
+      label: 'Delete',
+      onClick: (user) => {
+        if (window.confirm(`Are you sure you want to delete user "${user.username}"?`)) {
+          deleteUser(user.id);
+        }
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700'
     }
   ];
 

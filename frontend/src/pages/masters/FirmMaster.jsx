@@ -7,7 +7,7 @@ import useStore from '../../store';
 
 const FirmMaster = () => {
   const navigate = useNavigate();
-  const { firms, setFirms } = useStore();
+  const { firms, setFirms, deleteFirm } = useStore();
 
   // Initialize with sample data if empty
   useEffect(() => {
@@ -16,7 +16,7 @@ const FirmMaster = () => {
         {
           id: 1,
           name: 'Maa Auto',
-          type: 0, // GST
+          type: 0, // non gst
           address: '123 Main St, Surat',
           phone: '9876543210',
           city: 'Surat',
@@ -27,7 +27,7 @@ const FirmMaster = () => {
         {
           id: 2,
           name: 'Motors Division',
-          type: 1, // NON-GST
+          type: 1, // GST
           address: '456 Park Ave, Mumbai',
           phone: '9876543211',
           city: 'Mumbai',
@@ -66,7 +66,7 @@ const FirmMaster = () => {
         <span className={`px-2 py-1 text-xs rounded-full ${
           value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
-          {value === 0 ? 'GST' : 'NON-GST'}
+          {value === 0 ? '1' : '0'}
         </span>
       )
     },
@@ -94,6 +94,15 @@ const FirmMaster = () => {
       label: 'Edit',
       onClick: (firm) => navigate(`/masters/firm-master/edit/${firm.id}`),
       className: 'bg-blue-600 text-white hover:bg-blue-700'
+    },
+    {
+      label: 'Delete',
+      onClick: (firm) => {
+        if (window.confirm(`Are you sure you want to delete "${firm.name}"?`)) {
+          deleteFirm(firm.id);
+        }
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700'
     }
   ];
 
