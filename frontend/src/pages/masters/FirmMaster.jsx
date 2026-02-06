@@ -54,67 +54,72 @@ const FirmMaster = () => {
     {
       key: 'id',
       label: 'ID',
-      width: '60px' // Mobile pe thodi width increase
+      width: '50px',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
-{
-  key: 'name',
-  label: 'Firm Name',
-  width: '180px'
-},
+    {
+      key: 'name',
+      label: 'Firm Name',
+      width: '180px',
+      render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
+    },
     {
       key: 'type',
       label: 'Type',
       render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
+        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
           value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
           {value === 0 ? '1' : '0'}
         </span>
       ),
-      width: '70px' // Mobile pe thodi width increase
+      width: '60px'
     },
     {
       key: 'city',
       label: 'City',
-      width: '100px' // Mobile pe thodi width increase
+      width: '90px',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
     {
       key: 'phone',
       label: 'Phone',
-      width: '120px' // Mobile pe thodi width increase
+      width: '110px',
+      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
     {
       key: 'email',
       label: 'Email',
-      width: '150px' // Mobile pe thodi width increase
+      width: '140px',
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
     },
     {
       key: 'gstin',
       label: 'GSTIN',
-      render: (value) => value || 'N/A',
-      width: '140px' // Mobile pe thodi width increase
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value || 'N/A'}</span>,
+      width: '130px'
     }
   ];
 
   const actions = [
     {
-      label: <FaEdit size={12} className="sm:size-4" />,
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (firm) => navigate(`/masters/firm-master/edit/${firm.id}`),
-      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1.5 sm:p-2'
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
-      label: <FaTrash size={12} className="sm:size-4" />,
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (firm) => {
         if (window.confirm(`Are you sure you want to delete "${firm.name}"?`)) {
           deleteFirm(firm.id);
         }
       },
-      className: 'bg-red-600 text-white hover:bg-red-700 p-1.5 sm:p-2'
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
@@ -133,7 +138,7 @@ const FirmMaster = () => {
       </div>
 
       {/* Firms Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
         <DataTable
           columns={columns}
           data={firms}
@@ -141,7 +146,8 @@ const FirmMaster = () => {
           searchable={true}
           sortable={true}
           pagination={true}
-          minWidth="800px" // Minimum width for better mobile scrolling
+          minWidth="750px"
+          className="text-xs sm:text-sm"
         />
       </div>
     </div>
