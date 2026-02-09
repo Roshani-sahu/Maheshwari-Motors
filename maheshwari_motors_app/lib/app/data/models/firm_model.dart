@@ -58,6 +58,7 @@ class FirmModel {
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{
+      '_id': id,
       'name': name,
       'type': type,
       'phone': phone,

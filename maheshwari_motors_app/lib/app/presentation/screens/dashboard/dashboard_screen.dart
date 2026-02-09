@@ -1,57 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/formatters.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/home_controller.dart';
+import '../../controllers/dashboard_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
-import '../../../data/services/api_service.dart';
-
-class DashboardController extends GetxController {
-  final ApiService _api = ApiService();
-  final AuthController _auth = Get.find<AuthController>();
-
-  final RxBool isLoading = true.obs;
-  final RxMap<String, dynamic> dashboardData = <String, dynamic>{}.obs;
-  final RxString errorMessage = ''.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    loadDashboard();
-  }
-
-  Future<void> loadDashboard() async {
-    isLoading.value = true;
-    errorMessage.value = '';
-    try {
-      final firmId = _auth.firmId;
-      if (firmId.isNotEmpty) {
-        final data = await _api.getFirmDashboard(firmId);
-        dashboardData.value = data;
-      }
-    } catch (e) {
-      errorMessage.value = 'Failed to load dashboard';
-    }
-    isLoading.value = false;
-  }
-
-  // Nested keys from backend: data.challans.{total, today, this_month, total_amount}
-  int get totalChallans => (dashboardData['challans'] as Map?)?['total'] ?? 0;
-  int get todayChallans => (dashboardData['challans'] as Map?)?['today'] ?? 0;
-  double get challanAmount =>
-      ((dashboardData['challans'] as Map?)?['total_amount'] ?? 0).toDouble();
-
-  // Nested keys from backend: data.bills.{total, today, due, paid, total_amount, total_paid}
-  int get totalBills => (dashboardData['bills'] as Map?)?['total'] ?? 0;
-  int get dueBills => (dashboardData['bills'] as Map?)?['due'] ?? 0;
-  double get totalRevenue =>
-      ((dashboardData['bills'] as Map?)?['total_amount'] ?? 0).toDouble();
-  double get totalPaid =>
-      ((dashboardData['bills'] as Map?)?['total_paid'] ?? 0).toDouble();
-
-  List get recentChallans => dashboardData['recent_challans'] ?? [];
-  List get recentBills => dashboardData['recent_bills'] ?? [];
-}
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -60,21 +14,15 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(DashboardController());
     final auth = Get.find<AuthController>();
-    final currencyFormat = NumberFormat.currency(
-      locale: 'en_IN',
-      symbol: '₹',
-      decimalDigits: 0,
-    );
+    final home = Get.find<HomeController>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.white,
-        leading: Builder(
-          builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu_rounded),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.menu_rounded),
+          onPressed: home.openDrawer,
         ),
         title: Obx(
           () => Column(
@@ -114,7 +62,6 @@ class DashboardScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Welcome section
               Text(
                 'Welcome back!',
                 style: Theme.of(context).textTheme.headlineSmall,
@@ -125,8 +72,6 @@ class DashboardScreen extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 20),
-
-              // Stats grid
               Row(
                 children: [
                   Expanded(
@@ -171,16 +116,13 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              // Revenue card
               StatCard(
                 title: 'Total Revenue',
-                value: currencyFormat.format(controller.totalRevenue),
+                value: AppFormatters.currency(controller.totalRevenue),
                 icon: Icons.currency_rupee_rounded,
                 color: AppColors.success,
               ),
               const SizedBox(height: 24),
-
-              // Recent Challans
               _SectionHeader(title: 'Recent Challans'),
               const SizedBox(height: 12),
               if (controller.recentChallans.isEmpty)
@@ -190,21 +132,14 @@ class DashboardScreen extends StatelessWidget {
                     .take(5)
                     .map(
                       (ch) => _RecentCard(
-                        number: ch['challan_no'] ?? '',
-                        partyName: ch['party_id'] is Map
-                            ? ch['party_id']['name'] ?? ''
-                            : '',
-                        amount: currencyFormat.format(
-                          (ch['amount'] ?? 0).toDouble(),
-                        ),
-                        date: _formatDate(ch['date']),
+                        number: '#${ch.challanNo}',
+                        partyName: ch.partyName ?? '',
+                        amount: AppFormatters.currency(ch.amount),
+                        date: AppFormatters.dateShort(ch.date),
                         color: AppColors.accent,
                       ),
                     ),
-
               const SizedBox(height: 24),
-
-              // Recent Bills
               _SectionHeader(title: 'Recent Bills'),
               const SizedBox(height: 12),
               if (controller.recentBills.isEmpty)
@@ -214,18 +149,13 @@ class DashboardScreen extends StatelessWidget {
                     .take(5)
                     .map(
                       (bl) => _RecentCard(
-                        number: bl['bill_no'] ?? '',
-                        partyName: bl['party_id'] is Map
-                            ? bl['party_id']['name'] ?? ''
-                            : '',
-                        amount: currencyFormat.format(
-                          (bl['amount'] ?? 0).toDouble(),
-                        ),
-                        date: _formatDate(bl['date']),
+                        number: '#${bl.billNo}',
+                        partyName: bl.partyName ?? '',
+                        amount: AppFormatters.currency(bl.amount),
+                        date: AppFormatters.dateShort(bl.date),
                         color: AppColors.success,
                       ),
                     ),
-
               const SizedBox(height: 20),
             ],
           ),
@@ -233,21 +163,10 @@ class DashboardScreen extends StatelessWidget {
       }),
     );
   }
-
-  static String _formatDate(dynamic date) {
-    if (date == null) return '';
-    try {
-      final d = DateTime.parse(date.toString());
-      return DateFormat('dd/MM/yyyy').format(d);
-    } catch (_) {
-      return date.toString();
-    }
-  }
 }
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-
   const _SectionHeader({required this.title});
 
   @override
@@ -258,18 +177,12 @@ class _SectionHeader extends StatelessWidget {
 
 class _EmptySection extends StatelessWidget {
   final String text;
-
   const _EmptySection({required this.text});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 0.5),
-      ),
       child: Center(
         child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
       ),

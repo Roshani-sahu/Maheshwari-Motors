@@ -29,6 +29,15 @@ class ChallanItemModel {
       amount: (json['amount'] ?? 0).toDouble(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'item_id': itemId,
+    'quantity': quantity,
+    'rate': rate,
+    'discount': discount,
+    'gross_amount': grossAmount,
+    'amount': amount,
+  };
 }
 
 class ChallanModel {
@@ -85,5 +94,23 @@ class ChallanModel {
           ? json['firm_id']['_id'] ?? ''
           : json['firm_id'] ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      '_id': id,
+      'challan_no': challanNo,
+      'date': date.toIso8601String(),
+      'items': items.map((e) => e.toJson()).toList(),
+      'gross_total': grossTotal,
+      'sub_total': subTotal,
+      'amount': amount,
+      'discount': discount,
+      'converted_to_bill': convertedToBill,
+      'firm_id': firmId,
+    };
+    if (partyId != null) map['party_id'] = partyId;
+    if (billId != null) map['bill_id'] = billId;
+    return map;
   }
 }

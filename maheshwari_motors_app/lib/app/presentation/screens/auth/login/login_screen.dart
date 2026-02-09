@@ -1,145 +1,120 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/network/api_client.dart';
-import '../../../controllers/auth_controller.dart';
+import '../../../controllers/login_controller.dart';
 import '../../../shared/widgets/common_widgets.dart';
-import '../../../../routes/app_routes.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-
-  final AuthController _authController = Get.find<AuthController>();
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    try {
-      final success = await _authController.login(
-        _usernameController.text.trim(),
-        _passwordController.text,
-      );
-      if (success) {
-        Get.offAllNamed(AppRoutes.firmSelection);
-      }
-    } catch (e) {
-      AppSnackbar.error(ApiClient.parseError(e));
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final controller = Get.put(LoginController());
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: SizedBox(
-            height: size.height - MediaQuery.of(context).padding.top,
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Spacer(flex: 2),
-                  // Logo
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.precision_manufacturing_rounded,
-                      color: AppColors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'Welcome back',
-                    style: Theme.of(context).textTheme.headlineLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Sign in to continue to your account',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 28),
+          child: Form(
+            key: controller.formKey,
+            child: Column(
+              children: [
+                const SizedBox(height: 60),
 
-                  // Username
-                  AppTextField(
-                    label: 'Username',
-                    hint: 'Enter your username',
-                    controller: _usernameController,
-                    prefixIcon: const Icon(Icons.person_outline, size: 20),
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
-                        return 'Username is required';
-                      }
-                      return null;
-                    },
+                // Logo/Brand
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
+                  child: const Icon(
+                    Icons.directions_car,
+                    color: AppColors.white,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 28),
 
-                  // Password
-                  AppTextField(
+                Text(
+                  'Maheshwari Motors',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Sign in to your account',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 48),
+
+                // Username
+                AppTextField(
+                  label: 'Username',
+                  hint: 'Enter your username',
+                  controller: controller.usernameController,
+                  prefixIcon: const Icon(
+                    Icons.person_outline,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 20),
+
+                // Password
+                Obx(
+                  () => AppTextField(
                     label: 'Password',
                     hint: 'Enter your password',
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                    controller: controller.passwordController,
+                    obscureText: controller.obscurePassword.value,
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
                     suffixIcon: GestureDetector(
-                      onTap: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
+                      onTap: controller.togglePasswordVisibility,
                       child: Icon(
-                        _obscurePassword
+                        controller.obscurePassword.value
                             ? Icons.visibility_off_outlined
                             : Icons.visibility_outlined,
                         size: 20,
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    validator: (val) {
-                      if (val == null || val.isEmpty) {
-                        return 'Password is required';
-                      }
-                      return null;
-                    },
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Required' : null,
                   ),
-                  const SizedBox(height: 32),
+                ),
+                const SizedBox(height: 36),
 
-                  // Login Button
-                  Obx(
-                    () => AppButton(
-                      text: 'Sign In',
-                      isLoading: _authController.isLoading.value,
-                      onPressed: _handleLogin,
-                    ),
+                // Submit
+                Obx(
+                  () => AppButton(
+                    text: 'Sign In',
+                    isLoading: controller.isLoading.value,
+                    onPressed: controller.login,
                   ),
+                ),
 
-                  const Spacer(flex: 3),
-                ],
-              ),
+                const SizedBox(height: 32),
+              ],
             ),
           ),
         ),

@@ -5,7 +5,6 @@ class AppRoutes {
   static const String login = '/login';
   static const String firmSelection = '/firm-selection';
   static const String home = '/home';
-  static const String dashboard = '/dashboard';
 
   // Masters
   static const String firmMaster = '/firm-master';
@@ -24,12 +23,26 @@ class AppRoutes {
 
   static const String partyMaster = '/party-master';
   static const String addParty = '/add-party';
+  static const String editParty = '/edit-party';
+
+  static const String categoryMaster = '/category-master';
+  static const String addCategory = '/add-category';
+  static const String editCategory = '/edit-category';
+
+  static const String supplierMaster = '/supplier-master';
+  static const String addSupplier = '/add-supplier';
+  static const String editSupplier = '/edit-supplier';
+
+  // Account
+  static const String changePassword = '/change-password';
 
   // Transactions
   static const String challanList = '/challan-list';
   static const String createChallan = '/create-challan';
+  static const String editChallan = '/edit-challan';
 
   static const String billList = '/bill-list';
+  static const String generateBill = '/generate-bill';
 
   static const String transactionHistory = '/transaction-history';
 }

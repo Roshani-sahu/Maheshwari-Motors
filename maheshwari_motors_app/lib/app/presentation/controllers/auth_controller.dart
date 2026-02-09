@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
@@ -8,9 +9,14 @@ import '../../data/models/user_model.dart';
 import '../../data/models/firm_model.dart';
 import '../../data/services/api_service.dart';
 import '../../routes/app_routes.dart';
+import 'challan_controller.dart';
+import 'dashboard_controller.dart';
+import 'home_controller.dart';
+import 'item_master_controller.dart';
+import 'party_master_controller.dart';
 
 class AuthController extends GetxController {
-  final ApiService _api = ApiService();
+  final ApiService _api = Get.find<ApiService>();
   final ApiClient _client = Get.find<ApiClient>();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
@@ -29,24 +35,43 @@ class AuthController extends GetxController {
   }
 
   Future<void> checkAuth() async {
-    final token = await _client.getToken();
-    if (token != null) {
-      try {
-        final profile = await _api.getProfile();
-        user.value = profile;
-        // Try to restore selected firm
-        final firmJson = await _storage.read(key: AppConstants.selectedFirmKey);
-        if (firmJson != null) {
-          selectedFirm.value = FirmModel.fromJson(jsonDecode(firmJson));
-          Get.offAllNamed(AppRoutes.home);
-        } else {
-          Get.offAllNamed(AppRoutes.firmSelection);
+    // Minimum splash display time
+    debugPrint('AUTH: checkAuth started');
+    await Future.delayed(const Duration(milliseconds: 1500));
+    debugPrint('AUTH: delay done, checking token...');
+    try {
+      final token = await _client.getToken();
+      debugPrint('AUTH: token = ${token != null ? "exists" : "null"}');
+      if (token != null) {
+        try {
+          debugPrint('AUTH: calling getProfile...');
+          final profile = await _api.getProfile();
+          debugPrint('AUTH: profile loaded');
+          user.value = profile;
+          // Try to restore selected firm
+          final firmJson = await _storage.read(
+            key: AppConstants.selectedFirmKey,
+          );
+          if (firmJson != null) {
+            selectedFirm.value = FirmModel.fromJson(jsonDecode(firmJson));
+            debugPrint('AUTH: navigating to home');
+            Get.offAllNamed(AppRoutes.home);
+          } else {
+            debugPrint('AUTH: navigating to firmSelection');
+            Get.offAllNamed(AppRoutes.firmSelection);
+          }
+        } catch (e) {
+          debugPrint('AUTH: inner catch: $e');
+          await _client.clearToken();
+          Get.offAllNamed(AppRoutes.login);
         }
-      } catch (_) {
-        await _client.clearToken();
+      } else {
+        debugPrint('AUTH: no token, navigating to login');
         Get.offAllNamed(AppRoutes.login);
       }
-    } else {
+    } catch (e) {
+      debugPrint('AUTH: outer catch: $e');
+      // Storage or other platform error — fall back to login
       Get.offAllNamed(AppRoutes.login);
     }
   }
@@ -56,10 +81,10 @@ class AuthController extends GetxController {
     try {
       final res = await _api.login(username, password);
       final data = res['data'];
+      if (data == null) throw Exception('Invalid login response');
       final token = data['token'] ?? data['user']?['token'];
-      if (token != null) {
-        await _client.setToken(token);
-      }
+      if (token == null) throw Exception('No token received');
+      await _client.setToken(token);
       user.value = UserModel.fromJson(data['user'] ?? data);
       isLoading.value = false;
       return true;
@@ -77,6 +102,7 @@ class AuthController extends GetxController {
     selectedFirm.value = null;
     await _client.clearToken();
     await _storage.delete(key: AppConstants.selectedFirmKey);
+    _deleteTabControllers();
     Get.offAllNamed(AppRoutes.login);
   }
 
@@ -84,7 +110,7 @@ class AuthController extends GetxController {
     selectedFirm.value = firm;
     await _storage.write(
       key: AppConstants.selectedFirmKey,
-      value: jsonEncode(firm.toJson()..['_id'] = firm.id),
+      value: jsonEncode(firm.toJson()),
     );
     Get.offAllNamed(AppRoutes.home);
   }
@@ -92,6 +118,17 @@ class AuthController extends GetxController {
   Future<void> switchFirm() async {
     selectedFirm.value = null;
     await _storage.delete(key: AppConstants.selectedFirmKey);
+    // Delete tab controllers so they are re-created with fresh data
+    _deleteTabControllers();
     Get.offAllNamed(AppRoutes.firmSelection);
+  }
+
+  /// Deletes all tab-embedded controllers so they reload on next Home visit.
+  void _deleteTabControllers() {
+    Get.delete<DashboardController>(force: true);
+    Get.delete<ItemMasterController>(force: true);
+    Get.delete<PartyMasterController>(force: true);
+    Get.delete<ChallanListController>(force: true);
+    Get.delete<HomeController>(force: true);
   }
 }

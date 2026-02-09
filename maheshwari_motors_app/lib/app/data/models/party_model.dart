@@ -39,4 +39,20 @@ class PartyModel {
           : json['firm_id'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      '_id': id,
+      'name': name,
+      'balance': balance,
+      'firm_id': firmId,
+    };
+    if (phone != null) map['phone'] = phone;
+    if (email != null) map['email'] = email;
+    if (address != null) map['address'] = address;
+    if (city != null) map['city'] = city;
+    if (state != null) map['state'] = state;
+    if (gstin != null) map['gstin'] = gstin;
+    return map;
+  }
 }

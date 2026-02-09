@@ -33,4 +33,16 @@ class UserModel {
   }
 
   bool get isMain => type == 'main';
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      '_id': id,
+      'username': username,
+      'email': email,
+      'type': type,
+      'firm_ids': firmIds,
+    };
+    if (token != null) map['token'] = token;
+    return map;
+  }
 }

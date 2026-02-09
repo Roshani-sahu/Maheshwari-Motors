@@ -1,168 +1,97 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/network/api_client.dart';
-import '../../controllers/auth_controller.dart';
-import '../../shared/widgets/common_widgets.dart';
 import '../../../data/models/firm_model.dart';
-import '../../../data/services/api_service.dart';
-import '../../../routes/app_routes.dart';
+import '../../controllers/firm_selection_controller.dart';
+import '../../shared/widgets/common_widgets.dart';
 
-class FirmSelectionScreen extends StatefulWidget {
+class FirmSelectionScreen extends StatelessWidget {
   const FirmSelectionScreen({super.key});
 
   @override
-  State<FirmSelectionScreen> createState() => _FirmSelectionScreenState();
-}
-
-class _FirmSelectionScreenState extends State<FirmSelectionScreen> {
-  final AuthController _auth = Get.find<AuthController>();
-  final ApiService _api = ApiService();
-
-  List<FirmModel> _firms = [];
-  bool _isLoading = true;
-  String _error = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadFirms();
-  }
-
-  Future<void> _loadFirms() async {
-    setState(() {
-      _isLoading = true;
-      _error = '';
-    });
-    try {
-      _firms = await _api.getFirms();
-    } catch (e) {
-      _error = ApiClient.parseError(e);
-    }
-    setState(() => _isLoading = false);
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final controller = Get.put(FirmSelectionController());
+
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 24),
-              // Header row
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Select Firm',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Choose a firm to continue',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    onPressed: () => _auth.logout(),
-                    icon: const Icon(Icons.logout_rounded),
-                    tooltip: 'Logout',
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.errorLight,
-                      foregroundColor: AppColors.error,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Add firm button
-              if (_auth.isMainUser)
-                InkWell(
-                  onTap: () async {
-                    final result = await Get.toNamed(AppRoutes.addFirm);
-                    if (result == true) _loadFirms();
-                  },
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
+                  Container(
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: AppColors.accent,
-                        style: BorderStyle.solid,
-                        width: 1.5,
-                      ),
+                      color: AppColors.accentLight,
                       borderRadius: BorderRadius.circular(14),
-                      color: AppColors.accentLight.withValues(alpha: 0.3),
                     ),
-                    child: Row(
+                    child: const Icon(
+                      Icons.business,
+                      color: AppColors.accent,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppColors.accent,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.add_business_rounded,
-                            color: AppColors.white,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
                         Text(
-                          'Add New Firm',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(color: AppColors.accent),
+                          'Select Firm',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
                         ),
-                        const Spacer(),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: AppColors.accent,
+                        Text(
+                          'Choose a firm to continue',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
                   ),
-                ),
-
-              const SizedBox(height: 20),
-
-              // Firms list
+                  IconButton(
+                    onPressed: controller.auth.logout,
+                    icon: const Icon(Icons.logout, color: AppColors.error),
+                    tooltip: 'Logout',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
               Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _error.isNotEmpty
-                    ? ErrorState(message: _error, onRetry: _loadFirms)
-                    : _firms.isEmpty
-                    ? const EmptyState(
-                        icon: Icons.business_outlined,
-                        title: 'No firms yet',
-                        subtitle: 'Create your first firm to get started',
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadFirms,
-                        child: ListView.separated(
-                          itemCount: _firms.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final firm = _firms[index];
-                            return _FirmCard(
-                              firm: firm,
-                              onTap: () => _auth.selectFirm(firm),
-                            );
-                          },
-                        ),
-                      ),
+                child: Obx(() {
+                  if (controller.isLoading.value) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (controller.error.isNotEmpty) {
+                    return ErrorState(
+                      message: controller.error.value,
+                      onRetry: controller.loadFirms,
+                    );
+                  }
+                  if (controller.firms.isEmpty) {
+                    return const EmptyState(
+                      icon: Icons.business_outlined,
+                      title: 'No firms available',
+                      subtitle: 'Contact admin to add you to a firm',
+                    );
+                  }
+                  return ListView.separated(
+                    itemCount: controller.firms.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (_, i) => _FirmTile(
+                      firm: controller.firms[i],
+                      onTap: () =>
+                          controller.auth.selectFirm(controller.firms[i]),
+                    ),
+                  );
+                }),
               ),
             ],
           ),
@@ -172,71 +101,52 @@ class _FirmSelectionScreenState extends State<FirmSelectionScreen> {
   }
 }
 
-class _FirmCard extends StatelessWidget {
+class _FirmTile extends StatelessWidget {
   final FirmModel firm;
   final VoidCallback onTap;
-
-  const _FirmCard({required this.firm, required this.onTap});
+  const _FirmTile({required this.firm, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return AppCard(
+      padding: const EdgeInsets.all(18),
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.secondary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.business_rounded,
-                color: AppColors.secondary,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    firm.name,
-                    style: Theme.of(context).textTheme.titleMedium,
+      child: Row(
+        children: [
+          InitialsAvatar(name: firm.name, radius: 26, fontSize: 22),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  firm.name,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${firm.city} • ${firm.displayType}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${firm.city}, ${firm.state}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            StatusBadge.gst(firm.type),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: AppColors.textSecondary,
-            ),
-          ],
-        ),
+          ),
+          StatusBadge(
+            label: firm.type,
+            color: firm.isGST ? AppColors.successLight : AppColors.infoLight,
+            textColor: firm.isGST ? AppColors.success : AppColors.info,
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 16,
+            color: AppColors.textSecondary.withValues(alpha: 0.5),
+          ),
+        ],
       ),
     );
   }

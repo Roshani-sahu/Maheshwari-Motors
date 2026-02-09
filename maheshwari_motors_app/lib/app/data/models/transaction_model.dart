@@ -63,4 +63,23 @@ class TransactionModel {
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      '_id': id,
+      'type': type,
+      'amount': amount,
+      'payment_mode': paymentMode,
+      'firm_id': firmId,
+      'createdAt': createdAt.toIso8601String(),
+    };
+    if (partyId != null) map['party_id'] = partyId;
+    if (supplierId != null) map['supplier_id'] = supplierId;
+    if (billId != null) map['bill_id'] = billId;
+    if (purchaseId != null) map['purchase_id'] = purchaseId;
+    if (utr != null) map['utr'] = utr;
+    if (transactionRef != null) map['transaction_ref'] = transactionRef;
+    if (remarks != null) map['remarks'] = remarks;
+    return map;
+  }
 }

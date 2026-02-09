@@ -51,4 +51,20 @@ class BillModel {
   }
 
   double get balanceAmount => balance ?? (amount - paidAmount);
+
+  Map<String, dynamic> toJson() {
+    final map = <String, dynamic>{
+      '_id': id,
+      'bill_no': billNo,
+      'date': date.toIso8601String(),
+      'amount': amount,
+      'paid_amount': paidAmount,
+      'payment_status': paymentStatus,
+      'challan_ids': challanIds,
+      'firm_id': firmId,
+    };
+    if (partyId != null) map['party_id'] = partyId;
+    if (balance != null) map['balance'] = balance;
+    return map;
+  }
 }

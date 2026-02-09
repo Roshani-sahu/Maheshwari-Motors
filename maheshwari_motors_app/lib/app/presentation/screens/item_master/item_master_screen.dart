@@ -1,71 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/network/api_client.dart';
+import '../../../core/utils/formatters.dart';
+import '../../controllers/home_controller.dart';
+import '../../controllers/item_master_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 import '../../../data/models/item_model.dart';
-import '../../../data/services/api_service.dart';
 import '../../../routes/app_routes.dart';
-
-class ItemMasterController extends GetxController {
-  final ApiService _api = ApiService();
-
-  final RxList<ItemModel> items = <ItemModel>[].obs;
-  final RxList<ItemModel> filteredItems = <ItemModel>[].obs;
-  final RxBool isLoading = true.obs;
-  final RxString searchQuery = ''.obs;
-  final RxString errorMessage = ''.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    loadItems();
-    debounce(
-      searchQuery,
-      (_) => filterItems(),
-      time: const Duration(milliseconds: 300),
-    );
-  }
-
-  Future<void> loadItems() async {
-    isLoading.value = true;
-    errorMessage.value = '';
-    try {
-      items.value = await _api.getItems();
-      filterItems();
-    } catch (e) {
-      errorMessage.value = 'Failed to load items';
-    }
-    isLoading.value = false;
-  }
-
-  void filterItems() {
-    if (searchQuery.value.isEmpty) {
-      filteredItems.value = items;
-    } else {
-      filteredItems.value = items
-          .where(
-            (i) => i.itemName.toLowerCase().contains(
-              searchQuery.value.toLowerCase(),
-            ),
-          )
-          .toList();
-    }
-  }
-
-  Future<void> deleteItem(String id) async {
-    try {
-      await _api.deleteItem(id);
-      items.removeWhere((i) => i.id == id);
-      filterItems();
-      AppSnackbar.success('Item deleted');
-    } catch (e) {
-      AppSnackbar.error(ApiClient.parseError(e));
-    }
-  }
-}
 
 class ItemMasterScreen extends StatelessWidget {
   const ItemMasterScreen({super.key});
@@ -73,60 +15,33 @@ class ItemMasterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ItemMasterController());
-    final currencyFormat = NumberFormat.currency(
-      locale: 'en_IN',
-      symbol: '₹',
-      decimalDigits: 2,
-    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: Get.isRegistered<HomeController>()
+            ? IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: Get.find<HomeController>().openDrawer,
+              )
+            : null,
         title: const Text('Item Master'),
         actions: [
-          IconButton(
+          AppBarAddButton(
             onPressed: () async {
               final result = await Get.toNamed(AppRoutes.addItem);
               if (result == true) controller.loadItems();
             },
-            icon: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.accent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.add, color: AppColors.white, size: 18),
-            ),
           ),
-          const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          // Search bar
-          Padding(
+          AppSearchBar(
+            hint: 'Search items...',
+            onChanged: (v) => controller.searchQuery.value = v,
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: TextField(
-              onChanged: (v) => controller.searchQuery.value = v,
-              decoration: InputDecoration(
-                hintText: 'Search items...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                filled: true,
-                fillColor: AppColors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
           ),
-
-          // Item count summary
           Obx(
             () => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -149,8 +64,6 @@ class ItemMasterScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-
-          // Items list
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
@@ -179,7 +92,6 @@ class ItemMasterScreen extends StatelessWidget {
                     final item = controller.filteredItems[index];
                     return _ItemCard(
                       item: item,
-                      currencyFormat: currencyFormat,
                       onEdit: () async {
                         final result = await Get.toNamed(
                           AppRoutes.editItem,
@@ -187,8 +99,13 @@ class ItemMasterScreen extends StatelessWidget {
                         );
                         if (result == true) controller.loadItems();
                       },
-                      onDelete: () =>
-                          _showDeleteConfirm(context, controller, item),
+                      onDelete: () => DeleteConfirmSheet.show(
+                        context: context,
+                        title: 'Delete Item?',
+                        subtitle:
+                            'Are you sure you want to delete "${item.itemName}"?',
+                        onConfirm: () => controller.deleteItem(item.id),
+                      ),
                     );
                   },
                 ),
@@ -196,81 +113,6 @@ class ItemMasterScreen extends StatelessWidget {
             }),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showDeleteConfirm(
-    BuildContext context,
-    ItemMasterController controller,
-    ItemModel item,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: AppColors.errorLight,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.delete_outline,
-                color: AppColors.error,
-                size: 28,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text('Delete Item?', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(
-              'Are you sure you want to delete "${item.itemName}"?',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    text: 'Cancel',
-                    isOutlined: true,
-                    onPressed: () => Get.back(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: AppButton(
-                    text: 'Delete',
-                    color: AppColors.error,
-                    onPressed: () {
-                      Get.back();
-                      controller.deleteItem(item.id);
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
       ),
     );
   }
@@ -323,29 +165,21 @@ class _MiniStat extends StatelessWidget {
 
 class _ItemCard extends StatelessWidget {
   final ItemModel item;
-  final NumberFormat currencyFormat;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _ItemCard({
     required this.item,
-    required this.currencyFormat,
     required this.onEdit,
     required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 0.5),
-      ),
       child: Row(
         children: [
-          // Image
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Container(
@@ -372,8 +206,6 @@ class _ItemCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,7 +220,7 @@ class _ItemCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      currencyFormat.format(item.amount),
+                      AppFormatters.currencyDecimal(item.amount),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -419,8 +251,6 @@ class _ItemCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // Status + Actions
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -429,13 +259,13 @@ class _ItemCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ActionIcon(
+                  ActionIcon(
                     icon: Icons.edit_outlined,
                     color: AppColors.accent,
                     onTap: onEdit,
                   ),
                   const SizedBox(width: 6),
-                  _ActionIcon(
+                  ActionIcon(
                     icon: Icons.delete_outline,
                     color: AppColors.error,
                     onTap: onDelete,
@@ -445,33 +275,6 @@ class _ItemCard extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ActionIcon extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionIcon({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Icon(icon, color: color, size: 16),
       ),
     );
   }

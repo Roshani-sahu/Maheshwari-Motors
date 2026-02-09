@@ -29,4 +29,13 @@ class StockAlertModel {
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    '_id': id,
+    'item_id': itemId,
+    'stock_count': stockCount,
+    'threshold': threshold,
+    'is_resolved': isResolved,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }

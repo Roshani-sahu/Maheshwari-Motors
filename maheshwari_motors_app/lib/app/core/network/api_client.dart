@@ -35,6 +35,7 @@ class ApiClient {
           if (error.response?.statusCode == 401) {
             await _storage.deleteAll();
             Get.offAllNamed(AppRoutes.login);
+            return handler.reject(error);
           }
           return handler.next(error);
         },

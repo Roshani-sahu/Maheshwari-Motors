@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   AppColors._();
@@ -59,65 +58,65 @@ class AppTheme {
         onSurface: AppColors.textPrimary,
         onError: AppColors.white,
       ),
-      textTheme: GoogleFonts.dmSansTextTheme().copyWith(
-        headlineLarge: GoogleFonts.dmSans(
+      textTheme: const TextTheme(
+        headlineLarge: TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
         ),
-        headlineMedium: GoogleFonts.dmSans(
+        headlineMedium: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
         ),
-        headlineSmall: GoogleFonts.dmSans(
+        headlineSmall: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        titleLarge: GoogleFonts.dmSans(
+        titleLarge: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        titleMedium: GoogleFonts.dmSans(
+        titleMedium: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        titleSmall: GoogleFonts.dmSans(
+        titleSmall: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: AppColors.textPrimary,
         ),
-        bodyLarge: GoogleFonts.dmSans(
+        bodyLarge: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w400,
           color: AppColors.textPrimary,
         ),
-        bodyMedium: GoogleFonts.dmSans(
+        bodyMedium: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w400,
           color: AppColors.textSecondary,
         ),
-        bodySmall: GoogleFonts.dmSans(
+        bodySmall: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w400,
           color: AppColors.textSecondary,
         ),
-        labelLarge: GoogleFonts.dmSans(
+        labelLarge: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
           color: AppColors.white,
         ),
       ),
-      appBarTheme: AppBarTheme(
+      appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.white,
         elevation: 0,
         scrolledUnderElevation: 0.5,
         centerTitle: false,
-        iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        titleTextStyle: GoogleFonts.dmSans(
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
+        titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
@@ -155,10 +154,7 @@ class AppTheme {
           horizontal: 16,
           vertical: 14,
         ),
-        hintStyle: GoogleFonts.dmSans(
-          color: AppColors.textSecondary,
-          fontSize: 14,
-        ),
+        hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -169,10 +165,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.dmSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -183,10 +176,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.dmSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(

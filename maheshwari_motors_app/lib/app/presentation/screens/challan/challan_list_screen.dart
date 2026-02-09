@@ -1,75 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/network/api_client.dart';
-import '../../controllers/auth_controller.dart';
-import '../../shared/widgets/common_widgets.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../data/models/challan_model.dart';
-import '../../../data/services/api_service.dart';
-
-class ChallanListController extends GetxController {
-  final ApiService _api = ApiService();
-  final AuthController _auth = Get.find<AuthController>();
-
-  final RxList<ChallanModel> challans = <ChallanModel>[].obs;
-  final RxList<ChallanModel> filtered = <ChallanModel>[].obs;
-  final RxBool isLoading = true.obs;
-  final RxString searchQuery = ''.obs;
-  final RxString errorMessage = ''.obs;
-
-  @override
-  void onInit() {
-    super.onInit();
-    loadChallans();
-    debounce(
-      searchQuery,
-      (_) => _filter(),
-      time: const Duration(milliseconds: 300),
-    );
-  }
-
-  Future<void> loadChallans() async {
-    isLoading.value = true;
-    errorMessage.value = '';
-    try {
-      final firmId = _auth.firmId;
-      if (firmId.isNotEmpty) {
-        challans.value = await _api.getChallans(firmId);
-        _filter();
-      }
-    } catch (e) {
-      errorMessage.value = 'Failed to load challans';
-    }
-    isLoading.value = false;
-  }
-
-  void _filter() {
-    if (searchQuery.value.isEmpty) {
-      filtered.value = challans;
-    } else {
-      final q = searchQuery.value.toLowerCase();
-      filtered.value = challans
-          .where(
-            (c) =>
-                c.challanNo.toLowerCase().contains(q) ||
-                (c.partyName?.toLowerCase().contains(q) ?? false),
-          )
-          .toList();
-    }
-  }
-
-  Future<void> deleteChallan(String id) async {
-    try {
-      await _api.deleteChallan(_auth.firmId, id);
-      challans.removeWhere((c) => c.id == id);
-      _filter();
-      AppSnackbar.success('Challan deleted');
-    } catch (e) {
-      AppSnackbar.error(ApiClient.parseError(e));
-    }
-  }
-}
+import '../../../routes/app_routes.dart';
+import '../../controllers/home_controller.dart';
+import '../../controllers/challan_controller.dart';
+import '../../shared/widgets/common_widgets.dart';
 
 class ChallanListScreen extends StatelessWidget {
   const ChallanListScreen({super.key});
@@ -77,41 +14,32 @@ class ChallanListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ChallanListController());
-    final currencyFormat = NumberFormat.currency(
-      locale: 'en_IN',
-      symbol: '₹',
-      decimalDigits: 0,
-    );
-    final dateFormat = DateFormat('dd/MM/yyyy');
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Challan List')),
+      appBar: AppBar(
+        leading: Get.isRegistered<HomeController>()
+            ? IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: Get.find<HomeController>().openDrawer,
+              )
+            : null,
+        title: const Text('Challans'),
+        actions: [
+          AppBarAddButton(
+            onPressed: () async {
+              final result = await Get.toNamed(AppRoutes.createChallan);
+              if (result == true) controller.loadChallans();
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
-          // Search
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: TextField(
-              onChanged: (v) => controller.searchQuery.value = v,
-              decoration: InputDecoration(
-                hintText: 'Search by challan no or party...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                filled: true,
-                fillColor: AppColors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
+          AppSearchBar(
+            hint: 'Search by challan no or party…',
+            onChanged: (v) => controller.searchQuery.value = v,
           ),
-
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
@@ -127,122 +55,24 @@ class ChallanListScreen extends StatelessWidget {
                 return const EmptyState(
                   icon: Icons.receipt_long_outlined,
                   title: 'No challans found',
+                  subtitle: 'Tap + to create a new challan',
                 );
               }
               return RefreshIndicator(
                 onRefresh: controller.loadChallans,
                 child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                  padding: const EdgeInsets.all(16),
                   itemCount: controller.filtered.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final challan = controller.filtered[index];
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border, width: 0.5),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.accentLight,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  challan.challanNo,
-                                  style: Theme.of(context).textTheme.titleSmall
-                                      ?.copyWith(
-                                        color: AppColors.accent,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13,
-                                      ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  challan.partyName ?? '-',
-                                  style: Theme.of(context).textTheme.titleSmall
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Text(
-                                currencyFormat.format(challan.amount),
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                size: 13,
-                                color: AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                dateFormat.format(challan.date),
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(width: 12),
-                              Icon(
-                                Icons.inventory_2_outlined,
-                                size: 13,
-                                color: AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${challan.items.length} item(s)',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const Spacer(),
-                              if (challan.convertedToBill)
-                                StatusBadge(
-                                  label: 'BILLED',
-                                  color: AppColors.successLight,
-                                  textColor: AppColors.success,
-                                )
-                              else
-                                StatusBadge(
-                                  label: 'PENDING',
-                                  color: AppColors.warningLight,
-                                  textColor: AppColors.warning,
-                                ),
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => _confirmDelete(
-                                  context,
-                                  controller,
-                                  challan,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.errorLight,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Icon(
-                                    Icons.delete_outline,
-                                    color: AppColors.error,
-                                    size: 16,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                  itemBuilder: (context, i) {
+                    final challan = controller.filtered[i];
+                    return _ChallanCard(
+                      challan: challan,
+                      onDelete: () => DeleteConfirmSheet.show(
+                        context: context,
+                        title: 'Delete Challan #${challan.challanNo}?',
+                        subtitle: 'This action cannot be undone.',
+                        onConfirm: () => controller.deleteChallan(challan.id),
                       ),
                     );
                   },
@@ -254,64 +84,103 @@ class ChallanListScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  void _confirmDelete(
-    BuildContext context,
-    ChallanListController controller,
-    ChallanModel challan,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
+class _ChallanCard extends StatelessWidget {
+  final ChallanModel challan;
+  final VoidCallback? onDelete;
+  const _ChallanCard({required this.challan, this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.accentLight,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '#${challan.challanNo}',
+                  style: const TextStyle(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            const Icon(Icons.delete_outline, color: AppColors.error, size: 36),
-            const SizedBox(height: 16),
-            Text(
-              'Delete ${challan.challanNo}?',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    text: 'Cancel',
-                    isOutlined: true,
-                    onPressed: () => Get.back(),
-                  ),
+              const Spacer(),
+              if (challan.convertedToBill)
+                const StatusBadge(
+                  label: 'BILLED',
+                  color: AppColors.successLight,
+                  textColor: AppColors.success,
+                )
+              else
+                const StatusBadge(
+                  label: 'OPEN',
+                  color: AppColors.warningLight,
+                  textColor: AppColors.warning,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: AppButton(
-                    text: 'Delete',
-                    color: AppColors.error,
-                    onPressed: () {
-                      Get.back();
-                      controller.deleteChallan(challan.id);
-                    },
-                  ),
+              const SizedBox(width: 4),
+              AppPopupMenu(onDelete: onDelete),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(
+                Icons.person_outline,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  challan.partyName ?? 'N/A',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.calendar_today,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                AppFormatters.dateShort(challan.date),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                '${challan.items.length} items',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const Spacer(),
+              Text(
+                AppFormatters.currency(challan.amount),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.accent,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

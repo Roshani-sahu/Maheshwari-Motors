@@ -1,22 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../routes/app_routes.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/home_controller.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../item_master/item_master_screen.dart';
-import '../stock_alert/stock_alert_screen.dart';
+import '../party/party_master_screen.dart';
 import '../challan/challan_list_screen.dart';
-import '../transaction/transaction_history_screen.dart';
-
-class HomeController extends GetxController {
-  final RxInt currentIndex = 0.obs;
-  final RxSet<int> visitedTabs = {0}.obs; // Dashboard loads immediately
-
-  void switchTab(int index) {
-    currentIndex.value = index;
-    visitedTabs.add(index);
-  }
-}
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -26,127 +17,55 @@ class HomeScreen extends StatelessWidget {
     final controller = Get.put(HomeController());
     final auth = Get.find<AuthController>();
 
-    final screens = <Widget>[
+    final tabs = <Widget>[
       const DashboardScreen(),
       const ItemMasterScreen(),
-      const StockAlertScreen(),
+      const PartyMasterScreen(),
       const ChallanListScreen(),
-      const TransactionHistoryScreen(),
     ];
 
     return Scaffold(
+      key: controller.scaffoldKey,
+      drawer: _AppDrawer(auth: auth),
       body: Obx(
         () => IndexedStack(
           index: controller.currentIndex.value,
-          children: List.generate(screens.length, (i) {
-            // Only build the screen if the tab has been visited
-            if (controller.visitedTabs.contains(i)) {
-              return screens[i];
+          children: List.generate(tabs.length, (i) {
+            if (!controller.visitedTabs.contains(i)) {
+              return const SizedBox.shrink();
             }
-            return const SizedBox.shrink();
+            return tabs[i];
           }),
         ),
       ),
       bottomNavigationBar: Obx(
-        () => Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 20,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _NavItem(
-                    icon: Icons.dashboard_rounded,
-                    label: 'Home',
-                    isSelected: controller.currentIndex.value == 0,
-                    onTap: () => controller.switchTab(0),
-                  ),
-                  _NavItem(
-                    icon: Icons.inventory_2_outlined,
-                    label: 'Items',
-                    isSelected: controller.currentIndex.value == 1,
-                    onTap: () => controller.switchTab(1),
-                  ),
-                  _NavItem(
-                    icon: Icons.warning_amber_rounded,
-                    label: 'Stock',
-                    isSelected: controller.currentIndex.value == 2,
-                    onTap: () => controller.switchTab(2),
-                  ),
-                  _NavItem(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'Challans',
-                    isSelected: controller.currentIndex.value == 3,
-                    onTap: () => controller.switchTab(3),
-                  ),
-                  _NavItem(
-                    icon: Icons.swap_horiz_rounded,
-                    label: 'History',
-                    isSelected: controller.currentIndex.value == 4,
-                    onTap: () => controller.switchTab(4),
-                  ),
-                ],
-              ),
+        () => NavigationBar(
+          selectedIndex: controller.currentIndex.value,
+          onDestinationSelected: controller.switchTab,
+          backgroundColor: AppColors.white,
+          elevation: 3,
+          height: 68,
+          indicatorColor: AppColors.accentLight,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard, color: AppColors.accent),
+              label: 'Dashboard',
             ),
-          ),
-        ),
-      ),
-      drawer: _AppDrawer(auth: auth),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.accentLight : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: isSelected ? AppColors.accent : AppColors.textSecondary,
+            NavigationDestination(
+              icon: Icon(Icons.inventory_2_outlined),
+              selectedIcon: Icon(Icons.inventory_2, color: AppColors.accent),
+              label: 'Items',
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? AppColors.accent : AppColors.textSecondary,
-              ),
+            NavigationDestination(
+              icon: Icon(Icons.people_outline),
+              selectedIcon: Icon(Icons.people, color: AppColors.accent),
+              label: 'Parties',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long, color: AppColors.accent),
+              label: 'Challans',
             ),
           ],
         ),
@@ -157,7 +76,6 @@ class _NavItem extends StatelessWidget {
 
 class _AppDrawer extends StatelessWidget {
   final AuthController auth;
-
   const _AppDrawer({required this.auth});
 
   @override
@@ -171,146 +89,142 @@ class _AppDrawer extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(color: AppColors.secondary),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
                       color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Icon(
-                      Icons.precision_manufacturing_rounded,
+                      Icons.business,
                       color: AppColors.white,
-                      size: 24,
+                      size: 28,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'ERP System',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(color: AppColors.white),
+                  const SizedBox(height: 14),
+                  Obx(
+                    () => Text(
+                      auth.selectedFirm.value?.name ?? 'Maheshwari Motors',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Obx(
                     () => Text(
-                      auth.selectedFirm.value?.name ?? '',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.white.withValues(alpha: 0.7),
+                      auth.user.value?.username ?? '',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+            const Divider(height: 1),
 
             // Menu items
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  _DrawerSection(title: 'Masters'),
-                  _DrawerItem(
-                    icon: Icons.business_rounded,
-                    title: 'Firm Master',
-                    onTap: () {
-                      Get.back();
-                      Get.toNamed('/firm-master');
-                    },
+                  _DrawerSection(
+                    title: 'Masters',
+                    children: [
+                      _DrawerItem(
+                        icon: Icons.business_outlined,
+                        label: 'Firm Master',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.firmMaster);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.people_outline,
+                        label: 'User Master',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.userMaster);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.warning_amber_outlined,
+                        label: 'Stock Alerts',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.stockAlertMaster);
+                        },
+                      ),
+                    ],
                   ),
-                  _DrawerItem(
-                    icon: Icons.inventory_2_outlined,
-                    title: 'Item Master',
-                    onTap: () {
-                      Get.back();
-                      Get.find<HomeController>().switchTab(1);
-                    },
+                  _DrawerSection(
+                    title: 'Transactions',
+                    children: [
+                      _DrawerItem(
+                        icon: Icons.description_outlined,
+                        label: 'Bills',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.billList);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.swap_horiz,
+                        label: 'Transaction History',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.transactionHistory);
+                        },
+                      ),
+                    ],
                   ),
-                  _DrawerItem(
-                    icon: Icons.warning_amber_rounded,
-                    title: 'Stock Alert Master',
-                    onTap: () {
-                      Get.back();
-                      Get.find<HomeController>().switchTab(2);
-                    },
-                  ),
-                  if (auth.isMainUser)
-                    _DrawerItem(
-                      icon: Icons.people_outline,
-                      title: 'User Master',
-                      onTap: () {
-                        Get.back();
-                        Get.toNamed('/user-master');
-                      },
-                    ),
-                  _DrawerItem(
-                    icon: Icons.person_outline,
-                    title: 'Party Master',
-                    onTap: () {
-                      Get.back();
-                      Get.toNamed('/party-master');
-                    },
-                  ),
-                  const Divider(height: 16),
-                  _DrawerSection(title: 'Transactions'),
-                  _DrawerItem(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'Challan List',
-                    onTap: () {
-                      Get.back();
-                      Get.find<HomeController>().switchTab(3);
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.description_outlined,
-                    title: 'Bill List',
-                    onTap: () {
-                      Get.back();
-                      Get.toNamed('/bill-list');
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.swap_horiz_rounded,
-                    title: 'Transaction History',
-                    onTap: () {
-                      Get.back();
-                      Get.find<HomeController>().switchTab(4);
-                    },
+                  _DrawerSection(
+                    title: 'Account',
+                    children: [
+                      _DrawerItem(
+                        icon: Icons.lock_outline,
+                        label: 'Change Password',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.changePassword);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.swap_horiz_outlined,
+                        label: 'Switch Firm',
+                        onTap: () {
+                          Get.back();
+                          auth.switchFirm();
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.logout,
+                        label: 'Logout',
+                        color: AppColors.error,
+                        onTap: () {
+                          Get.back();
+                          auth.logout();
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
 
-            // Footer
-            Container(
+            // Version
+            Padding(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: AppColors.border)),
-              ),
-              child: Column(
-                children: [
-                  _DrawerItem(
-                    icon: Icons.swap_horiz,
-                    title: 'Switch Firm',
-                    onTap: () {
-                      Get.back();
-                      auth.switchFirm();
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.logout_rounded,
-                    title: 'Logout',
-                    color: AppColors.error,
-                    onTap: () {
-                      Get.back();
-                      auth.logout();
-                    },
-                  ),
-                ],
+              child: Text(
+                'v1.0.0',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
               ),
             ),
           ],
@@ -322,35 +236,39 @@ class _AppDrawer extends StatelessWidget {
 
 class _DrawerSection extends StatelessWidget {
   final String title;
-
-  const _DrawerSection({required this.title});
+  final List<Widget> children;
+  const _DrawerSection({required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-      child: Text(
-        title.toUpperCase(),
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.2,
-          color: AppColors.textSecondary,
-          fontSize: 11,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Text(
+            title.toUpperCase(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+            ),
+          ),
         ),
-      ),
+        ...children,
+      ],
     );
   }
 }
 
 class _DrawerItem extends StatelessWidget {
   final IconData icon;
-  final String title;
+  final String label;
   final VoidCallback onTap;
   final Color? color;
-
   const _DrawerItem({
     required this.icon,
-    required this.title,
+    required this.label,
     required this.onTap,
     this.color,
   });
@@ -358,17 +276,13 @@ class _DrawerItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, size: 22, color: color ?? AppColors.textPrimary),
+      leading: Icon(icon, size: 22, color: color ?? AppColors.textSecondary),
       title: Text(
-        title,
-        style: Theme.of(
-          context,
-        ).textTheme.titleSmall?.copyWith(color: color ?? AppColors.textPrimary),
+        label,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
       ),
       onTap: onTap,
       dense: true,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
       visualDensity: VisualDensity.compact,
     );
   }
