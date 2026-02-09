@@ -56,7 +56,7 @@ const AddItem = () => {
     // Add item to global store
     addItem(newItem);
     showToast('Item added successfully', 'success');
-    navigate('/masters/item-master');
+    navigate('/inventory/item-master');
   };
 
   return (
@@ -152,7 +152,7 @@ const AddItem = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/masters/item-master')}
+              onClick={() => navigate('/inventory/item-master')}
             >
               Cancel
             </Button>
