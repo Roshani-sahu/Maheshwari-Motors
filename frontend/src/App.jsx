@@ -57,8 +57,8 @@ const App = () => {
           <Route path="/masters/firm-master" element={<FirmMaster />} />
           <Route path="/masters/firm-master/add" element={<FirmSetup />} />
           <Route path="/masters/firm-master/edit/:id" element={<FirmSetup />} />
-          <Route path="/masters/stock-alert-master" element={<StockAlertMaster />} />
-          <Route path="/masters/item-master" element={<ItemMaster />} />
+          <Route path="/inventory/stock-alert-master" element={<StockAlertMaster />} />
+          <Route path="/inventory/item-master" element={<ItemMaster />} />
           <Route path="/masters/item-master/add" element={<AddItem />} />
           <Route path="/masters/user-master" element={<UserMaster />} />
           <Route path="/masters/account-master" element={<AccountMaster />} />
@@ -77,7 +77,7 @@ const App = () => {
           
           {/* Legacy routes - redirect to new structure */}
           <Route path="/firm-setup" element={<Navigate to="/masters/firm-master" replace />} />
-          <Route path="/item-master" element={<Navigate to="/masters/item-master" replace />} />
+          <Route path="/item-master" element={<Navigate to="/inventory/item-master" replace />} />
           <Route path="/challan-list" element={<Navigate to="/transactions/challan-list" replace />} />
           <Route path="/add-item" element={<Navigate to="/masters/item-master/add" replace />} />
         </Route>

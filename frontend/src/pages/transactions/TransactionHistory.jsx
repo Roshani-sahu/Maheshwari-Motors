@@ -135,7 +135,7 @@ const TransactionHistory = () => {
       label: 'Actions',
       render: (value, txn) => (
         <div className="flex gap-2">
-          <button
+          {/* <button
             onClick={() => {
               setEditingTransaction({...txn});
               setIsEditModalOpen(true);
@@ -155,7 +155,7 @@ const TransactionHistory = () => {
             title="Delete"
           >
             <FaTrash size={14} />
-          </button>
+          </button> */}
           <button
             onClick={() => {
               // Generate PDF
@@ -198,14 +198,14 @@ const TransactionHistory = () => {
     }
   ];
 
-  const handleEditTransaction = () => {
-    setTransactions(prev => prev.map(t => 
-      t.id === editingTransaction.id ? {...editingTransaction, amount: parseFloat(editingTransaction.amount)} : t
-    ));
-    setIsEditModalOpen(false);
-    setEditingTransaction(null);
-    alert('Transaction updated successfully!');
-  };
+  // const handleEditTransaction = () => {
+  //   setTransactions(prev => prev.map(t => 
+  //     t.id === editingTransaction.id ? {...editingTransaction, amount: parseFloat(editingTransaction.amount)} : t
+  //   ));
+  //   setIsEditModalOpen(false);
+  //   setEditingTransaction(null);
+  //   alert('Transaction updated successfully!');
+  // };
 
   const filteredTransactions = transactions.filter(txn => {
     if (filters.type !== 'all' && txn.type !== filters.type) return false;

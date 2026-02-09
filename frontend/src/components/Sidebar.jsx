@@ -94,23 +94,23 @@ const Sidebar = ({ onClose }) => {
               Firm Master
             </NavLink>
             
-            <NavLink
+            {/* <NavLink
               to="/masters/stock-alert-master"
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaReceipt className="w-4 h-4" />
               Stock Alert Master
-            </NavLink>
+            </NavLink> */}
             
-            <NavLink
+            {/* <NavLink
               to="/masters/item-master"
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaReceipt className="w-4 h-4" />
-              Item Master
-            </NavLink>
+              Inventory Master
+            </NavLink> */}
             
             <NavLink
               to="/masters/user-master"
@@ -129,6 +129,29 @@ const Sidebar = ({ onClose }) => {
               <FaDatabase className="w-4 h-4" />
               Account Master
             </NavLink>
+          </SidebarSection>
+
+{/* 2. Masters */}
+          <SidebarSection title="Inventory" defaultOpen={false}>
+            <NavLink
+              to="/inventory/item-master"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaBuilding className="w-4 h-4" />
+              Item Master
+            </NavLink>
+            
+            <NavLink
+              to="/inventory/stock-alert-master"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaReceipt className="w-4 h-4" />
+              Stock Alert Master
+            </NavLink>
+            
+           
           </SidebarSection>
 
           {/* 3. Transactions */}
