@@ -4,6 +4,7 @@ export { default as firmService } from "./firm.service.js";
 export { default as itemService } from "./item.service.js";
 export { default as partyService } from "./party.service.js";
 export { default as supplierService } from "./supplier.service.js";
+export { default as categoryService } from "./category.service.js";
 export { default as challanService } from "./challan.service.js";
 export { default as billService } from "./bill.service.js";
 export { default as purchaseService } from "./purchase.service.js";

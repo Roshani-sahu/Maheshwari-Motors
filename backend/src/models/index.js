@@ -10,4 +10,5 @@ export { default as Report } from "./report.model.js";
 export { default as Discount } from "./discount.model.js";
 export { default as Party } from "./party.model.js";
 export { default as Supplier } from "./supplier.model.js";
+export { default as Category } from "./category.model.js";
 export { default as Purchase } from "./purchase.model.js";

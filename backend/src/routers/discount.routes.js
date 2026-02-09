@@ -8,6 +8,8 @@ router.use(authMiddleware);
 
 router.get("/", discountController.getDiscounts);
 router.post("/", discountController.createDiscount);
+router.get("/item/:itemId", discountController.getItemDiscount);
+router.get("/party/:partyId", discountController.getPartyDiscount);
 router.get("/:discountId", discountController.getDiscountById);
 router.put("/:discountId", discountController.updateDiscount);
 router.delete("/:discountId", discountController.deleteDiscount);

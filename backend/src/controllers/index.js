@@ -4,6 +4,7 @@ export * as firmController from "./firm.controller.js";
 export * as itemController from "./item.controller.js";
 export * as partyController from "./party.controller.js";
 export * as supplierController from "./supplier.controller.js";
+export * as categoryController from "./category.controller.js";
 export * as challanController from "./challan.controller.js";
 export * as billController from "./bill.controller.js";
 export * as purchaseController from "./purchase.controller.js";

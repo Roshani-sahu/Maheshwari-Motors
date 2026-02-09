@@ -14,6 +14,16 @@ const itemSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    category_ids: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Category",
+      },
+    ],
+    supplier_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Supplier",
+    },
   },
   { timestamps: true },
 );

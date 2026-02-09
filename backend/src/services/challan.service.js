@@ -2,6 +2,7 @@ import Challan from "../models/challan.model.js";
 import Firm from "../models/firm.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 import stockService from "./stock.service.js";
+import discountService from "./discount.service.js";
 
 class ChallanService {
   async getChallans(firmId, userId, query) {
@@ -47,12 +48,22 @@ class ChallanService {
   }
 
   async createChallan(challanData, firmId, userId) {
-    const { items, discount = 0, party_id, date } = challanData;
+    const {
+      items,
+      discount: manualChallanDiscount,
+      party_id,
+      date,
+    } = challanData;
 
     const firm = await Firm.findById(firmId);
     if (!firm) {
       throw ApiError.notFound("Firm not found");
     }
+
+    // ── Auto-resolve discount rules (2 queries total) ──
+    const itemIds = items.map((i) => i.item_id);
+    const { itemDiscounts, partyDiscount } =
+      await discountService.resolveDiscounts(itemIds, party_id, userId);
 
     const challanCount = await Challan.countDocuments({ firm_id: firmId });
     const challan_no = `CH-${String(challanCount + 1).padStart(6, "0")}`;
@@ -62,7 +73,25 @@ class ChallanService {
 
     const processedItems = items.map((item) => {
       const grossAmount = item.quantity * item.rate;
-      const itemDiscount = item.discount || 0;
+
+      // Priority: client-sent override > auto-rule > 0
+      let itemDiscount = 0;
+      if (item.discount !== undefined && item.discount !== null) {
+        // Client explicitly sent a discount — use it
+        itemDiscount = item.discount;
+      } else {
+        // Auto-apply from Discount model
+        const rule = itemDiscounts.get(
+          item.item_id.toString?.() ?? item.item_id,
+        );
+        if (rule) {
+          itemDiscount =
+            rule.discount_type === "fixed" ?
+              (rule.value / item.rate) * 100 // convert fixed to % for storage
+            : rule.value;
+        }
+      }
+
       const discountedAmount = grossAmount * (1 - itemDiscount / 100);
 
       grossTotal += grossAmount;
@@ -78,7 +107,18 @@ class ChallanService {
       };
     });
 
-    const challanDiscountAmount = subTotal * (discount / 100);
+    // Challan-level discount: client override > party rule > 0
+    let challanDiscount = 0;
+    if (manualChallanDiscount !== undefined && manualChallanDiscount !== null) {
+      challanDiscount = manualChallanDiscount;
+    } else if (partyDiscount) {
+      challanDiscount =
+        partyDiscount.discount_type === "fixed" ?
+          (partyDiscount.value / subTotal) * 100
+        : partyDiscount.value;
+    }
+
+    const challanDiscountAmount = subTotal * (challanDiscount / 100);
     const totalAmount = subTotal - challanDiscountAmount;
 
     await stockService.deductStock(items, firm.type, userId);
@@ -90,7 +130,7 @@ class ChallanService {
       items: processedItems,
       gross_total: grossTotal,
       sub_total: subTotal,
-      discount,
+      discount: challanDiscount,
       amount: totalAmount,
       firm_id: firmId,
       user_id: userId,
@@ -122,12 +162,36 @@ class ChallanService {
     if (updateData.items) {
       await stockService.restoreStock(challan.items, firm.type, userId);
 
+      // ── Auto-resolve discount rules ──
+      const itemIds = updateData.items.map((i) => i.item_id);
+      const { itemDiscounts, partyDiscount } =
+        await discountService.resolveDiscounts(
+          itemIds,
+          challan.party_id.toString(),
+          userId,
+        );
+
       let grossTotal = 0;
       let subTotal = 0;
 
       const processedItems = updateData.items.map((item) => {
         const grossAmount = item.quantity * item.rate;
-        const itemDiscount = item.discount || 0;
+
+        let itemDiscount = 0;
+        if (item.discount !== undefined && item.discount !== null) {
+          itemDiscount = item.discount;
+        } else {
+          const rule = itemDiscounts.get(
+            item.item_id.toString?.() ?? item.item_id,
+          );
+          if (rule) {
+            itemDiscount =
+              rule.discount_type === "fixed" ?
+                (rule.value / item.rate) * 100
+              : rule.value;
+          }
+        }
+
         const discountedAmount = grossAmount * (1 - itemDiscount / 100);
 
         grossTotal += grossAmount;
@@ -143,7 +207,18 @@ class ChallanService {
         };
       });
 
-      const discount = updateData.discount ?? challan.discount;
+      let discount = updateData.discount ?? challan.discount;
+      if (
+        updateData.discount === undefined &&
+        challan.discount === 0 &&
+        partyDiscount
+      ) {
+        discount =
+          partyDiscount.discount_type === "fixed" ?
+            (partyDiscount.value / subTotal) * 100
+          : partyDiscount.value;
+      }
+
       const challanDiscountAmount = subTotal * (discount / 100);
       const totalAmount = subTotal - challanDiscountAmount;
 
@@ -152,6 +227,7 @@ class ChallanService {
       updateData.items = processedItems;
       updateData.gross_total = grossTotal;
       updateData.sub_total = subTotal;
+      updateData.discount = discount;
       updateData.amount = totalAmount;
     } else if (updateData.discount !== undefined) {
       const challanDiscountAmount =

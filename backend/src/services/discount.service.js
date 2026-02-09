@@ -109,6 +109,44 @@ class DiscountService {
       type: "party",
     });
   }
+
+  /**
+   * Batch-resolve all applicable discount rules for a set of items + a party.
+   * Returns { itemDiscounts: Map<itemId, {discount_type, value}>, partyDiscount: {discount_type, value}|null }
+   * Uses 2 queries total (not N+1).
+   */
+  async resolveDiscounts(itemIds, partyId, userId) {
+    const [itemRules, partyRule] = await Promise.all([
+      Discount.find({
+        user_id: userId,
+        type: "item",
+        item_id: { $in: itemIds },
+      }).lean(),
+      partyId ?
+        Discount.findOne({
+          user_id: userId,
+          type: "party",
+          party_id: partyId,
+        }).lean()
+      : null,
+    ]);
+
+    const itemDiscounts = new Map();
+    for (const rule of itemRules) {
+      itemDiscounts.set(rule.item_id.toString(), {
+        discount_type: rule.discount_type,
+        value: rule.value,
+      });
+    }
+
+    return {
+      itemDiscounts,
+      partyDiscount:
+        partyRule ?
+          { discount_type: partyRule.discount_type, value: partyRule.value }
+        : null,
+    };
+  }
 }
 
 export default new DiscountService();
