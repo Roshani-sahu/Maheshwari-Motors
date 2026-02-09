@@ -34,7 +34,29 @@ const ChallanList = () => {
       items: ['Transmission Fluid'],
       amount: 32000,
       gstType: 1
-    }
+    },
+     {
+      id: 4,
+      challanNo: 'CH004',
+      date: '2025-01-13',
+      party: 'ABC Motors',
+      items: 2,
+      amount: 1800,
+      status: 'Billed',
+      createdBy: 'User1',
+      gstType: 1
+    },
+    {
+      id: 5,
+      challanNo: 'CH005',
+      date: '2025-01-12',
+      party: 'XYZ Parts',
+      items: 3,
+      amount: 2400,
+      status: 'Billed',
+      createdBy: 'User1',
+      gstType: 0
+    },
   ]);
 
   const [filters, setFilters] = useState({
