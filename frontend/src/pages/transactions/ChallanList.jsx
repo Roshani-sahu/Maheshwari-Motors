@@ -114,6 +114,20 @@ const ChallanList = () => {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (challan) => {
         if (confirm(`Delete challan ${challan.challanNo}?`)) {
+          // create a deletion transaction record
+          const delTxn = {
+            id: Date.now() + Math.random(),
+            transactionId: `TXN${String(Date.now()).slice(-6)}`,
+            type: 'Challan',
+            firm: 'Current Firm',
+            amount: challan.amount,
+            date: new Date().toISOString().split('T')[0],
+            party: challan.party,
+            gstType: challan.gstType,
+            status: 'Deleted',
+            reference: challan.challanNo
+          };
+          addTransaction(delTxn);
           setChallans(prev => prev.filter(c => c.id !== challan.id));
         }
       },
@@ -189,20 +203,37 @@ const ChallanList = () => {
     console.log('New bill:', newBill);
     addBill(newBill);
     
-    // Add transactions
+    // Create ONE transaction for the entire bill (not per challan)
+    const billTransaction = {
+      id: Date.now() + Math.random(),
+      transactionId: `TXN${String(Date.now()).slice(-6)}`,
+      type: 'Bill',
+      firm: 'Current Firm',
+      amount: totalAmount,
+      date: currentDate,
+      party: selectedChallans[0].party,
+      gstType: selectedChallans[0].gstType,
+      status: 'Generated',
+      reference: billNo
+    };
+    console.log('New transaction:', billTransaction);
+    addTransaction(billTransaction);
+    
+    // Create "Deleted" transactions for each challan that was converted
     selectedChallans.forEach(challan => {
-      const transaction = {
+      const deletedChallanTxn = {
         id: Date.now() + Math.random(),
         transactionId: `TXN${String(Date.now()).slice(-6)}`,
-        type: 'Bill',
+        type: 'Challan',
         firm: 'Current Firm',
         amount: challan.amount,
         date: currentDate,
         party: challan.party,
-        gstType: challan.gstType
+        gstType: challan.gstType,
+        status: 'Deleted',
+        reference: challan.challanNo
       };
-      console.log('New transaction:', transaction);
-      addTransaction(transaction);
+      addTransaction(deletedChallanTxn);
     });
     
     // Remove converted challans
@@ -225,7 +256,22 @@ const ChallanList = () => {
       gstType: parseInt(newChallan.gstType)
     };
     
-    setChallans(prev => [...prev, challan]);
+    // prepend new challan to top of list
+    setChallans(prev => [challan, ...prev]);
+    // add a transaction record so it appears in Transaction History
+    const txn = {
+      id: Date.now() + Math.random(),
+      transactionId: `TXN${String(Date.now()).slice(-6)}`,
+      type: 'Challan',
+      firm: 'Current Firm',
+      amount: challan.amount,
+      date: challan.date,
+      party: challan.party,
+      gstType: challan.gstType,
+      status: 'Generated',
+      reference: challan.challanNo
+    };
+    addTransaction(txn);
     setNewChallan({ challanNo: '', party: '', items: [], amount: '', gstType: 1 });
     setIsCreateModalOpen(false);
     alert(`Challan ${challan.challanNo} created successfully!`);
@@ -363,6 +409,12 @@ const ChallanList = () => {
                       checked={selectedChallans.length === challans.length && challans.length > 0}
                       onChange={(e) => {
                         if (e.target.checked) {
+                          // ensure all challans are from the same party before selecting all
+                          const parties = Array.from(new Set(challans.map(c => c.party)));
+                          if (parties.length > 1) {
+                            alert('Cannot select challans from different parties. Please select challans of the same party only.');
+                            return;
+                          }
                           setSelectedChallans([...challans]);
                         } else {
                           setSelectedChallans([]);
@@ -385,6 +437,11 @@ const ChallanList = () => {
                         checked={selectedChallans.some(s => s.id === challan.id)}
                         onChange={(e) => {
                           if (e.target.checked) {
+                            // if there are already selected challans enforce same party
+                            if (selectedChallans.length > 0 && selectedChallans[0].party !== challan.party) {
+                              alert('You can only select challans of the same party to convert into a single bill.');
+                              return;
+                            }
                             setSelectedChallans(prev => [...prev, challan]);
                           } else {
                             setSelectedChallans(prev => prev.filter(s => s.id !== challan.id));

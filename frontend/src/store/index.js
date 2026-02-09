@@ -92,6 +92,9 @@ const useStore = create(devtools((set, get) => ({
     console.log('Adding bill to store:', bill);
     set((state) => ({ bills: [...state.bills, bill] }));
   },
+  removeBill: (billId) => set((state) => ({
+    bills: state.bills.filter(b => b.id !== billId)
+  })),
   addTransaction: (transaction) => {
     console.log('Adding transaction to store:', transaction);
     set((state) => ({ transactions: [...state.transactions, transaction] }));

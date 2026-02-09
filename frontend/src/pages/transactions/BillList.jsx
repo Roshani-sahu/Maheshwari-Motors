@@ -5,7 +5,7 @@ import { Button, Select, Input } from '../../components/ui';
 import useStore from '../../store';
 
 const BillList = () => {
-  const { bills: storeBills } = useStore();
+  const { bills: storeBills, addTransaction, removeBill } = useStore();
   const [bills, setBills] = useState([
     {
       id: 1,
@@ -41,7 +41,8 @@ const BillList = () => {
     setBills(prev => {
       const newBills = storeBills.filter(sb => !prev.some(b => b.id === sb.id));
       console.log('BillList - New bills to add:', newBills);
-      return newBills.length > 0 ? [...prev, ...newBills] : prev;
+      // prepend new bills so converted/recent bills appear at the top
+      return newBills.length > 0 ? [...newBills, ...prev] : prev;
     });
   }, [storeBills]);
 
@@ -115,6 +116,21 @@ const BillList = () => {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (bill) => {
         if (confirm(`Delete bill ${bill.billNo}?`)) {
+          // create a deletion transaction record
+          const delTxn = {
+            id: Date.now() + Math.random(),
+            transactionId: `TXN${String(Date.now()).slice(-6)}`,
+            type: 'Bill',
+            firm: 'Current Firm',
+            amount: bill.amount,
+            date: new Date().toISOString().split('T')[0],
+            party: bill.party,
+            gstType: bill.gstType,
+            status: 'Deleted',
+            reference: bill.billNo
+          };
+          addTransaction(delTxn);
+          removeBill(bill.id);
           setBills(prev => prev.filter(b => b.id !== bill.id));
         }
       },

@@ -64,7 +64,8 @@ const TransactionHistory = () => {
     setTransactions(prev => {
       const newTransactions = storeTransactions.filter(st => !prev.some(t => t.id === st.id));
       console.log('TransactionHistory - New transactions to add:', newTransactions);
-      return newTransactions.length > 0 ? [...prev, ...newTransactions] : prev;
+      // prepend new transactions so recent/converted transactions appear at the top
+      return newTransactions.length > 0 ? [...newTransactions, ...prev] : prev;
     });
   }, [storeTransactions]);
 
@@ -108,6 +109,19 @@ const TransactionHistory = () => {
       }
     },
     { key: 'firm', label: 'Firm' },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (value) => value ? (
+        <span className={`px-2 py-1 text-xs rounded-full ${
+          value === 'Generated' ? 'bg-green-100 text-green-800' : value === 'Deleted' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+        }`}>
+          {value}
+        </span>
+      ) : (
+        <span className="text-xs text-gray-500">—</span>
+      )
+    },
     {
       key: 'amount',
       label: 'Amount',
@@ -207,7 +221,32 @@ const TransactionHistory = () => {
   //   alert('Transaction updated successfully!');
   // };
 
-  const filteredTransactions = transactions.filter(txn => {
+  // Deduplicate transactions: keep only the latest status per reference (bill/challan)
+  // so if a bill is generated then deleted, show only the Deleted one
+  const getLatestTransactionPerReference = (txns) => {
+    const refMap = {};
+    // Group transactions by reference, preferring "Deleted" status, otherwise keep the most recent
+    txns.forEach(txn => {
+      if (txn.reference) {
+        const existingTxn = refMap[txn.reference];
+        // If we haven't seen this reference, or if this one is "Deleted" and the existing isn't, update
+        if (!existingTxn || (txn.status === 'Deleted' && existingTxn.status !== 'Deleted')) {
+          refMap[txn.reference] = txn;
+        }
+      }
+    });
+    
+    // Return transactions: keep only latest per reference, or keep all if no reference
+    const latestIds = new Set(Object.values(refMap).map(txn => txn.id));
+    return txns.filter(txn => {
+      if (!txn.reference) return true; // keep transactions without reference
+      return latestIds.has(txn.id); // keep only the latest per reference
+    });
+  };
+
+  const deduplicatedTransactions = getLatestTransactionPerReference(transactions);
+
+  const filteredTransactions = deduplicatedTransactions.filter(txn => {
     if (filters.type !== 'all' && txn.type !== filters.type) return false;
     if (filters.firm !== 'all' && txn.firm !== filters.firm) return false;
     return true;
