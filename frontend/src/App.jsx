@@ -27,6 +27,11 @@ import ChallanList from "./pages/transactions/ChallanList";
 import BillList from "./pages/transactions/BillList";
 import TransactionHistory from "./pages/transactions/TransactionHistory";
 
+//Reports
+import GSTReport from "./pages/reports/GSTReport";
+import PurchaseReport from "./pages/reports/PurchaseReport";
+import SalesReport from "./pages/reports/SalesReport";
+
 // Setup Pages
 import BackupRestore from "./pages/setup/BackupRestore";
 import FinancialYearClose from "./pages/setup/FinancialYearClose";
@@ -70,6 +75,9 @@ const App = () => {
           
           {/* 4. Reports */}
           <Route path="/reports" element={<Reports />} />
+          <Route path="/reports/purchase-report" element={<PurchaseReport />} />
+          <Route path="/reports/gst-report" element={<GSTReport />} />
+          <Route path="/reports/sales-report" element={<SalesReport />} />
           
           {/* 5. Setup & Tools */}
           <Route path="/setup/backup-restore" element={<BackupRestore />} />

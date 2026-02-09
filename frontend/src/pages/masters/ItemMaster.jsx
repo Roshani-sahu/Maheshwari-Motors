@@ -162,7 +162,7 @@ const ItemMaster = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Inventory Master</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Item Management</h1>
           <p className="text-gray-600 text-xs sm:text-sm">Manage inventory items and stock levels</p>
         </div>
         <Button 

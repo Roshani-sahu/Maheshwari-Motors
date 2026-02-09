@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { FaChartBar, FaChartLine, FaChartPie, FaBoxes, FaTrophy, FaCalendarAlt, FaArrowUp } from 'react-icons/fa';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { FaChartBar, FaChartLine, FaChartPie, FaTrophy,  FaArrowUp } from 'react-icons/fa';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('year');
@@ -35,7 +35,7 @@ const Reports = () => {
   ];
 
   return (
-    <div className="space-y-4 sm:space-y-6 bg-gray-50 min-h-screen px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+    <div className="space-y-4 sm:space-y-6 bg-gray-50 min-h-screen ">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>

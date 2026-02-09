@@ -194,6 +194,31 @@ const Sidebar = ({ onClose }) => {
               <FaChartPie className="w-4 h-4" />
               Business Reports
             </NavLink>
+            
+            <NavLink
+              to="/reports/gst-report"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaFileInvoiceDollar className="w-4 h-4" />
+              GST Report
+            </NavLink>
+            <NavLink
+              to="/reports/purchase-report"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaFileInvoiceDollar className="w-4 h-4" />
+              Purchase Report
+            </NavLink>
+            <NavLink
+              to="/reports/sales-report"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaFileInvoiceDollar className="w-4 h-4" />
+              Sales Report
+            </NavLink>
           </SidebarSection>
 
           {/* 5. Setup & Tools */}
