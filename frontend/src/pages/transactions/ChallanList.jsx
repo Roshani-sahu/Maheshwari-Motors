@@ -43,7 +43,8 @@ const ChallanList = () => {
       items: 2,
       amount: 1800,
       status: 'Billed',
-      createdBy: 'User1'
+      createdBy: 'User1',
+      gstType: 1
     },
     {
       id: 5,
@@ -53,7 +54,8 @@ const ChallanList = () => {
       items: 3,
       amount: 2400,
       status: 'Billed',
-      createdBy: 'User1'
+      createdBy: 'User1',
+      gstType: 0
     },
   ]);
 
