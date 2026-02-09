@@ -139,7 +139,16 @@ const Sidebar = ({ onClose }) => {
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaBuilding className="w-4 h-4" />
-              Item Master
+              Item Management
+            </NavLink>
+            
+            <NavLink
+              to="/inventory/item-view"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaReceipt className="w-4 h-4" />
+              Item View
             </NavLink>
             
             <NavLink
