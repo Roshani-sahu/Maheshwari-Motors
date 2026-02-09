@@ -28,7 +28,7 @@ const billSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true },
+  { timestamps: true, id: false },
 );
 
 billSchema.virtual("balance").get(function () {

@@ -25,7 +25,7 @@ const itemSchema = new mongoose.Schema(
       ref: "Supplier",
     },
   },
-  { timestamps: true },
+  { timestamps: true, id: false },
 );
 
 itemSchema.virtual("physical_stock").get(function () {
