@@ -19,6 +19,10 @@ import AddItem from "./pages/AddItem";
 import FirmMaster from "./pages/masters/FirmMaster";
 import StockAlertMaster from "./pages/masters/StockAlertMaster";
 import ItemMaster from "./pages/masters/ItemMaster";
+import CategoryMaster from "./pages/masters/CategoryMaster";
+import ViewCategory from "./pages/masters/ViewCategory";
+import AddSupplier from "./pages/masters/AddSupplier";
+import ViewAllSupplier from "./pages/masters/ViewAllSupplier";
 import UserMaster from "./pages/masters/UserMaster";
 import AccountMaster from "./pages/masters/AccountMaster";
 
@@ -59,6 +63,10 @@ const App = () => {
           <Route path="/masters/firm-master/edit/:id" element={<FirmSetup />} />
           <Route path="/inventory/stock-alert-master" element={<StockAlertMaster />} />
           <Route path="/inventory/item-master" element={<ItemMaster />} />
+          <Route path="/inventory/category-master" element={<CategoryMaster />} />
+          <Route path="/inventory/view-category" element={<ViewCategory />} />
+          <Route path="/inventory/add-supplier" element={<AddSupplier />} />
+          <Route path="/inventory/view-all-supplier" element={<ViewAllSupplier />} />
           <Route path="/masters/item-master/add" element={<AddItem />} />
           <Route path="/masters/user-master" element={<UserMaster />} />
           <Route path="/masters/account-master" element={<AccountMaster />} />
