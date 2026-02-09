@@ -35,6 +35,8 @@ import TransactionHistory from "./pages/transactions/TransactionHistory";
 import GSTReport from "./pages/reports/GSTReport";
 import PurchaseReport from "./pages/reports/PurchaseReport";
 import SalesReport from "./pages/reports/SalesReport";
+import SalesReturnReport from "./pages/reports/SalesReturnReport";
+import PurchaseReturnReport from "./pages/reports/PurchaseReturnReport";
 
 // Setup Pages
 import BackupRestore from "./pages/setup/BackupRestore";
@@ -86,6 +88,8 @@ const App = () => {
           <Route path="/reports/purchase-report" element={<PurchaseReport />} />
           <Route path="/reports/gst-report" element={<GSTReport />} />
           <Route path="/reports/sales-report" element={<SalesReport />} />
+          <Route path="/reports/sales-return-report" element={<SalesReturnReport />} />
+          <Route path="/reports/purchase-return-report" element={<PurchaseReturnReport />} />
           
           {/* 5. Setup & Tools */}
           <Route path="/setup/backup-restore" element={<BackupRestore />} />
