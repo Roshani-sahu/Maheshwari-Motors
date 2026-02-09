@@ -264,6 +264,22 @@ const Sidebar = ({ onClose }) => {
               <FaFileInvoiceDollar className="w-4 h-4" />
               Sales Report
             </NavLink>
+            <NavLink
+              to="/reports/sales-return-report"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaFileInvoiceDollar className="w-4 h-4" />
+              Sales Return Report
+            </NavLink>
+            <NavLink
+              to="/reports/purchase-return-report"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaFileInvoiceDollar className="w-4 h-4" />
+              Purchase Return Report
+            </NavLink>
           </SidebarSection>
 
           {/* 5. Setup & Tools */}
