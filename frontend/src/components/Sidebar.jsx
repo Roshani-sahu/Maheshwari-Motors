@@ -143,6 +143,42 @@ const Sidebar = ({ onClose }) => {
             </NavLink>
             
             <NavLink
+              to="/inventory/category-master"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaReceipt className="w-4 h-4" />
+              Category Master
+            </NavLink>
+            
+            <NavLink
+              to="/inventory/view-category"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaReceipt className="w-4 h-4" />
+              View Category
+            </NavLink>
+            
+            <NavLink
+              to="/inventory/add-supplier"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaReceipt className="w-4 h-4" />
+              Add Supplier
+            </NavLink>
+            
+            <NavLink
+              to="/inventory/view-all-supplier"
+              onClick={onClose}
+              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+            >
+              <FaReceipt className="w-4 h-4" />
+              View All Supplier
+            </NavLink>
+            
+            <NavLink
               to="/inventory/stock-alert-master"
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
