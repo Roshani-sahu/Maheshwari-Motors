@@ -47,7 +47,7 @@ const AddSupplier = () => {
   ];
 
   const handleAdd = () => {
-    const newSuppliers = [...suppliers, { id: Date.now(), ...formData }];
+    const newSuppliers = [...suppliers, { id: suppliers.length +1, ...formData }];
     setSuppliers(newSuppliers);
     localStorage.setItem('suppliers', JSON.stringify(newSuppliers));
     setFormData({ name: '', contact: '', email: '', address: '' });
