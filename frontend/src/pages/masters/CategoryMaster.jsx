@@ -42,7 +42,7 @@ const CategoryMaster = () => {
   ];
 
   const handleAddCategory = () => {
-    setCategories(prev => [...prev, { id: Date.now(), name: newCategoryName }]);
+    setCategories(prev => [...prev, { id: prev.length + 1, name: newCategoryName }]);
     setNewCategoryName('');
     setIsAddModalOpen(false);
     showToast('Category added successfully', 'success');

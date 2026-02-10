@@ -71,7 +71,9 @@ const useStore = create(devtools((set, get) => ({
   // Data setters
   setAccounts: (accounts) => set({ accounts }),
   setItems: (items) => set({ items }),
-  addItem: (item) => set((state) => ({ items: [item, ...state.items] })),
+  addItem: (item) => set((state) => ({ 
+    items: [...state.items, { ...item, id: state.items.length + 1 }] 
+  })),
   updateItem: (id, updatedItem) => set((state) => ({
     items: state.items.map(item => item.id === id ? updatedItem : item)
   })),

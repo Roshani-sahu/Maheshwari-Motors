@@ -76,7 +76,41 @@ const FirmSetup = () => {
 
   const validateForm = () => {
     const newErrors = {};
+    
+    // Required fields
     if (!formData.name.trim()) newErrors.name = 'Firm name is required';
+    if (!formData.type) newErrors.type = 'Company type is required';
+    
+    // Email validation
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    // Mobile validation
+    if (formData.mobile && !/^[6-9]\d{9}$/.test(formData.mobile)) {
+      newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+    }
+    
+    // Pincode validation
+    if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
+      newErrors.pincode = 'Please enter a valid 6-digit pincode';
+    }
+    
+    // PAN validation
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
+      newErrors.pan = 'Please enter a valid PAN (e.g., ABCDE1234F)';
+    }
+    
+    // GSTIN validation (if GST type)
+    if (formData.type === '0' && formData.gstin && !/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/.test(formData.gstin)) {
+      newErrors.gstin = 'Please enter a valid 15-digit GSTIN';
+    }
+    
+    // IFSC validation
+    if (formData.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode)) {
+      newErrors.ifscCode = 'Please enter a valid IFSC code (e.g., SBIN0001234)';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -93,7 +127,7 @@ const FirmSetup = () => {
       } else {
         const newFirm = {
           ...formData,
-          id: Date.now()
+          id: firms.length + 1
         };
         addFirm(newFirm);
         setShowSuccessPopup(true);
@@ -154,7 +188,7 @@ const FirmSetup = () => {
               />
             </FormField> */}
 
-             <FormField label="Email" error={errors.email}>
+            <FormField label="Email" error={errors.email}>
               <Input
                 name="email"
                 type="email"
@@ -196,13 +230,14 @@ const FirmSetup = () => {
               </Select>
             </FormField>
 
-            <FormField label="Pincode">
+            <FormField label="Pincode" error={errors.pincode}>
               <Input
                 name="pincode"
                 value={formData.pincode}
                 onChange={handleChange}
                 placeholder="6 digit pincode"
                 maxLength={6}
+                error={errors.pincode}
               />
             </FormField>
 
@@ -223,12 +258,14 @@ const FirmSetup = () => {
               />
             </FormField> */}
 
-            <FormField label="Mobile No">
+            <FormField label="Mobile No" error={errors.mobile}>
               <Input
                 name="mobile"
                 value={formData.mobile}
                 onChange={handleChange}
-                placeholder="Mobile number"
+                placeholder="10 digit mobile number"
+                maxLength={10}
+                error={errors.mobile}
               />
             </FormField>
 
@@ -360,12 +397,13 @@ const FirmSetup = () => {
                 />
               </FormField>
 
-              <FormField label="IFSCode">
+              <FormField label="IFSCode" error={errors.ifscCode}>
                 <Input
                   name="ifscCode"
                   value={formData.ifscCode}
                   onChange={handleChange}
-                  placeholder="IFSC code"
+                  placeholder="IFSC code (e.g., SBIN0001234)"
+                  error={errors.ifscCode}
                 />
               </FormField>
 
@@ -374,7 +412,7 @@ const FirmSetup = () => {
                   name="pan"
                   value={formData.pan}
                   onChange={handleChange}
-                  placeholder="10 digit PAN"
+                  placeholder="PAN (e.g., ABCDE1234F)"
                   maxLength={10}
                   error={errors.pan}
                 />

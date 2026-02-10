@@ -44,7 +44,7 @@ const AddSupplier = () => {
   ];
 
   const handleAdd = () => {
-    setSuppliers(prev => [...prev, { id: Date.now(), ...formData }]);
+    setSuppliers(prev => [...prev, { id: prev.length + 1, ...formData }]);
     setFormData({ name: '', contact: '', email: '', address: '' });
     setIsAddModalOpen(false);
     showToast('Supplier added successfully', 'success');
