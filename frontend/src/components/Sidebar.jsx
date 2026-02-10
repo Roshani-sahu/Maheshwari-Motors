@@ -23,7 +23,14 @@ import {
   FaList,
   FaUserPlus,
   FaUsersGear,
-  FaBell
+  FaBell,
+  FaFileInvoice,
+  FaClockRotateLeft as FaHistory,
+  FaChartLine,
+  FaArrowTrendUp,
+  FaArrowTrendDown,
+  FaDownload,
+  FaCalendarXmark
 } from "react-icons/fa6";
 
 const SidebarSection = ({ title, children, defaultOpen = false }) => {
@@ -216,7 +223,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaFileInvoice className="w-4 h-4" />
               Bill List
             </NavLink>
             
@@ -225,7 +232,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaHistory className="w-4 h-4" />
               Transaction History
             </NavLink>
           </SidebarSection>
@@ -262,7 +269,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaFileInvoiceDollar className="w-4 h-4" />
+              <FaChartLine className="w-4 h-4" />
               Sales Report
             </NavLink>
             <NavLink
@@ -270,7 +277,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaFileInvoiceDollar className="w-4 h-4" />
+              <FaArrowTrendDown className="w-4 h-4" />
               Sales Return Report
             </NavLink>
             <NavLink
@@ -278,7 +285,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaFileInvoiceDollar className="w-4 h-4" />
+              <FaArrowTrendUp className="w-4 h-4" />
               Purchase Return Report
             </NavLink>
           </SidebarSection>
@@ -290,7 +297,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaDownload className="w-4 h-4" />
               Backup / Restore
             </NavLink>
             
@@ -299,7 +306,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaCalendarXmark className="w-4 h-4" />
               Financial Year Close
             </NavLink>
           </SidebarSection>
