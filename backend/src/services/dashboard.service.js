@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Firm from "../models/firm.model.js";
+import User from "../models/user.model.js";
 import Challan from "../models/challan.model.js";
 import Bill from "../models/bill.model.js";
 import Item from "../models/item.model.js";
@@ -7,6 +8,24 @@ import StockAlert from "../models/stockAlert.model.js";
 
 class DashboardService {
   async getDashboard(userId) {
+    // For secondary users, scope to firms they have access to
+    const user = await User.findById(userId);
+    if (!user) throw new Error("User not found");
+
+    let firmFilter;
+    if (user.type === "main") {
+      firmFilter = { user_id: userId };
+    } else {
+      firmFilter = { _id: { $in: user.firm_ids || [] } };
+    }
+
+    const firmIds = (await Firm.find(firmFilter).select("_id").lean()).map(
+      (f) => f._id,
+    );
+
+    // For data queries, use firm_id scope instead of user_id
+    const dataFilter = { firm_id: { $in: firmIds } };
+
     const [
       firmsCount,
       challansCount,
@@ -15,17 +34,17 @@ class DashboardService {
       recentChallans,
       recentBills,
     ] = await Promise.all([
-      Firm.countDocuments({ user_id: userId }),
-      Challan.countDocuments({ user_id: userId, converted_to_bill: false }),
-      Bill.countDocuments({ user_id: userId }),
+      firmIds.length,
+      Challan.countDocuments({ ...dataFilter, converted_to_bill: false }),
+      Bill.countDocuments(dataFilter),
       StockAlert.countDocuments({ user_id: userId, is_resolved: false }),
-      Challan.find({ user_id: userId, converted_to_bill: false })
+      Challan.find({ ...dataFilter, converted_to_bill: false })
         .populate("party_id", "name")
         .populate("firm_id", "name type")
         .sort({ createdAt: -1 })
         .limit(10)
         .lean(),
-      Bill.find({ user_id: userId })
+      Bill.find(dataFilter)
         .populate("party_id", "name")
         .populate("firm_id", "name type")
         .sort({ createdAt: -1 })

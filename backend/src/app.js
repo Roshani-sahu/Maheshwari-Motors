@@ -12,7 +12,7 @@ const createApp = () => {
     cors({
       origin: process.env.CORS_ORIGIN || "*",
       credentials: true,
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
       allowedHeaders: ["Content-Type", "Authorization"],
     }),
   );
@@ -28,9 +28,7 @@ const createApp = () => {
   });
 
   app.use("/api/v1", routes);
-
   app.use(notFoundHandler);
-
   app.use(errorHandler);
 
   return app;

@@ -19,12 +19,12 @@ class ItemMasterScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: Get.isRegistered<HomeController>()
-            ? IconButton(
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: Get.find<HomeController>().openDrawer,
-              )
-            : null,
+        // leading: Get.isRegistered<HomeController>()
+        //     ? IconButton(
+        //         icon: const Icon(Icons.menu_rounded),
+        //         onPressed: Get.find<HomeController>().openDrawer,
+        //       )
+        //     : null,
         title: const Text('Item Master'),
         actions: [
           AppBarAddButton(

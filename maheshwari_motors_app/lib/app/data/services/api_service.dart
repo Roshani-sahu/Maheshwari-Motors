@@ -30,8 +30,8 @@ class ApiService {
       data: {
         'email': identifier,
         'password': password,
-        if (deviceName != null) 'device_name': deviceName,
-        if (deviceType != null) 'device_type': deviceType,
+        'device_name': ?deviceName,
+        'device_type': ?deviceType,
       },
     );
     return res.data;

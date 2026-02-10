@@ -1,10 +1,30 @@
 import { challanService } from "../services/index.js";
-import { asyncHandler, ApiResponse } from "../utils/index.js";
+import { asyncHandler, ApiResponse, validate } from "../utils/index.js";
+
+const challanItemSchema = {
+  item_id: { required: true, type: "objectId", label: "Item ID" },
+  quantity: { required: true, type: "number", min: 1, label: "Quantity" },
+  rate: { required: true, type: "number", min: 0, label: "Rate" },
+  discount: { required: false, type: "number", min: 0, label: "Discount" },
+};
+
+const challanSchema = {
+  date: { required: false, type: "date", label: "Date" },
+  party_id: { required: true, type: "objectId", label: "Party ID" },
+  items: {
+    required: true,
+    type: "array",
+    min: 1,
+    items: challanItemSchema,
+    label: "Items",
+  },
+  discount: { required: false, type: "number", min: 0, label: "Discount" },
+};
 
 export const getChallans = asyncHandler(async (req, res) => {
   const result = await challanService.getChallans(
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
     req.query,
   );
   res
@@ -16,7 +36,7 @@ export const getChallanById = asyncHandler(async (req, res) => {
   const challan = await challanService.getChallanById(
     req.params.challanId,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(200)
@@ -24,10 +44,11 @@ export const getChallanById = asyncHandler(async (req, res) => {
 });
 
 export const createChallan = asyncHandler(async (req, res) => {
+  const data = validate(req.body, challanSchema);
   const challan = await challanService.createChallan(
-    req.body,
+    data,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(201)
@@ -35,11 +56,12 @@ export const createChallan = asyncHandler(async (req, res) => {
 });
 
 export const updateChallan = asyncHandler(async (req, res) => {
+  const data = validate(req.body, challanSchema, { allowPartial: true });
   const challan = await challanService.updateChallan(
     req.params.challanId,
     req.params.firmId,
-    req.user._id,
-    req.body,
+    req.firmOwnerId,
+    data,
   );
   res
     .status(200)
@@ -50,7 +72,7 @@ export const deleteChallan = asyncHandler(async (req, res) => {
   await challanService.deleteChallan(
     req.params.challanId,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(200)
@@ -61,7 +83,7 @@ export const getUnconvertedChallansForParty = asyncHandler(async (req, res) => {
   const challans = await challanService.getUnconvertedChallansForParty(
     req.params.partyId,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(200)

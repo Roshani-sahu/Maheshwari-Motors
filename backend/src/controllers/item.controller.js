@@ -1,5 +1,41 @@
 import { itemService } from "../services/index.js";
-import { asyncHandler, ApiResponse } from "../utils/index.js";
+import { asyncHandler, ApiResponse, validate } from "../utils/index.js";
+
+const createItemSchema = {
+  item_name: {
+    required: true,
+    type: "string",
+    min: 1,
+    max: 200,
+    label: "Item name",
+  },
+  amount: { required: true, type: "number", min: 0, label: "Amount" },
+  threshold: { required: false, type: "number", min: 0, label: "Threshold" },
+  gst_stock: { required: false, type: "number", min: 0, label: "GST stock" },
+  nongst_stock: {
+    required: false,
+    type: "number",
+    min: 0,
+    label: "Non-GST stock",
+  },
+  category_ids: {
+    required: false,
+    type: "array",
+    arrayType: "objectId",
+    label: "Category IDs",
+  },
+  supplier_id: { required: false, type: "objectId", label: "Supplier ID" },
+};
+
+const updateStockSchema = {
+  gst_stock: { required: false, type: "number", min: 0, label: "GST stock" },
+  nongst_stock: {
+    required: false,
+    type: "number",
+    min: 0,
+    label: "Non-GST stock",
+  },
+};
 
 export const getItems = asyncHandler(async (req, res) => {
   const result = await itemService.getItems(req.user._id, req.query);
@@ -14,15 +50,17 @@ export const getItemById = asyncHandler(async (req, res) => {
 });
 
 export const createItem = asyncHandler(async (req, res) => {
-  const item = await itemService.createItem(req.body, req.user._id, req.file);
+  const data = validate(req.body, createItemSchema);
+  const item = await itemService.createItem(data, req.user._id, req.file);
   res.status(201).json(new ApiResponse(201, item, "Item created successfully"));
 });
 
 export const updateItem = asyncHandler(async (req, res) => {
+  const data = validate(req.body, createItemSchema, { allowPartial: true });
   const item = await itemService.updateItem(
     req.params.itemId,
     req.user._id,
-    req.body,
+    data,
     req.file,
   );
   res.status(200).json(new ApiResponse(200, item, "Item updated successfully"));
@@ -41,11 +79,12 @@ export const getLowStockItems = asyncHandler(async (req, res) => {
 });
 
 export const updateStock = asyncHandler(async (req, res) => {
-  const { gst_stock, nongst_stock } = req.body;
-  const item = await itemService.updateStock(req.params.itemId, req.user._id, {
-    gst_stock,
-    nongst_stock,
-  });
+  const data = validate(req.body, updateStockSchema, { allowPartial: true });
+  const item = await itemService.updateStock(
+    req.params.itemId,
+    req.user._id,
+    data,
+  );
   res
     .status(200)
     .json(new ApiResponse(200, item, "Stock updated successfully"));

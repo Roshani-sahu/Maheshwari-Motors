@@ -1,10 +1,14 @@
 import Category from "../models/category.model.js";
+import Item from "../models/item.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class CategoryService {
   async getCategories(userId, query) {
     const filter = { user_id: userId };
-    if (query.search) filter.name = { $regex: query.search, $options: "i" };
+    if (query.search) {
+      const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.name = { $regex: escaped, $options: "i" };
+    }
 
     return Pagination.paginate(Category, filter, {
       ...query,
@@ -24,8 +28,12 @@ class CategoryService {
   }
 
   async createCategory(categoryData, userId) {
+    const escapedName = categoryData.name.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&",
+    );
     const existingCategory = await Category.findOne({
-      name: { $regex: new RegExp(`^${categoryData.name}$`, "i") },
+      name: { $regex: new RegExp(`^${escapedName}$`, "i") },
       user_id: userId,
     });
 
@@ -65,6 +73,12 @@ class CategoryService {
     if (!category) {
       throw ApiError.notFound("Category not found");
     }
+
+    // Pull this category from all items that reference it
+    await Item.updateMany(
+      { category_ids: categoryId, user_id: userId },
+      { $pull: { category_ids: categoryId } },
+    );
 
     await Category.findByIdAndDelete(categoryId);
   }

@@ -1,16 +1,69 @@
 import { authService } from "../services/index.js";
-import { asyncHandler, ApiResponse } from "../utils/index.js";
+import { asyncHandler, ApiResponse, validate } from "../utils/index.js";
+
+const registerSchema = {
+  username: {
+    required: true,
+    type: "string",
+    min: 3,
+    max: 30,
+    label: "Username",
+  },
+  email: { required: true, type: "string", format: "email", label: "Email" },
+  password: {
+    required: true,
+    type: "string",
+    min: 6,
+    max: 100,
+    label: "Password",
+  },
+};
+
+const loginSchema = {
+  email: { required: true, type: "string", label: "Email" },
+  password: { required: true, type: "string", label: "Password" },
+  device_name: {
+    required: false,
+    type: "string",
+    max: 100,
+    label: "Device name",
+  },
+  device_type: {
+    required: false,
+    type: "string",
+    enum: ["android", "ios", "web", "desktop", "unknown"],
+    label: "Device type",
+  },
+};
+
+const changePasswordSchema = {
+  current_password: {
+    required: true,
+    type: "string",
+    label: "Current password",
+  },
+  new_password: {
+    required: true,
+    type: "string",
+    min: 6,
+    max: 100,
+    label: "New password",
+  },
+};
 
 export const register = asyncHandler(async (req, res) => {
-  const { username, email, password } = req.body;
-  const result = await authService.register({ username, email, password });
+  const data = validate(req.body, registerSchema);
+  const result = await authService.register(data);
   res
     .status(201)
     .json(new ApiResponse(201, result, "User registered successfully"));
 });
 
 export const login = asyncHandler(async (req, res) => {
-  const { email, password, device_name, device_type } = req.body;
+  const { email, password, device_name, device_type } = validate(
+    req.body,
+    loginSchema,
+  );
   const ip_address =
     req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
   const result = await authService.login(email, password, {
@@ -34,7 +87,10 @@ export const getProfile = asyncHandler(async (req, res) => {
 });
 
 export const changePassword = asyncHandler(async (req, res) => {
-  const { current_password, new_password } = req.body;
+  const { current_password, new_password } = validate(
+    req.body,
+    changePasswordSchema,
+  );
   await authService.changePassword(
     req.user._id,
     current_password,

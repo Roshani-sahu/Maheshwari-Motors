@@ -11,7 +11,7 @@ export const getDashboard = asyncHandler(async (req, res) => {
 export const getFirmDashboard = asyncHandler(async (req, res) => {
   const data = await dashboardService.getFirmDashboard(
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(200)

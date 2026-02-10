@@ -155,7 +155,7 @@ class _SessionCard extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: isCurrent
-                    ? AppColors.accent.withOpacity(0.1)
+                    ? AppColors.accent.withValues(alpha: 0.1)
                     : AppColors.background,
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -188,7 +188,7 @@ class _SessionCard extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.accent.withOpacity(0.1),
+                            color: AppColors.accent.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(

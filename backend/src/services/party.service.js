@@ -1,10 +1,17 @@
 import Party from "../models/party.model.js";
+import Challan from "../models/challan.model.js";
+import Bill from "../models/bill.model.js";
+import Transaction from "../models/transaction.model.js";
+import Discount from "../models/discount.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class PartyService {
   async getParties(firmId, userId, query) {
     const filter = { firm_id: firmId, user_id: userId };
-    if (query.search) filter.name = { $regex: query.search, $options: "i" };
+    if (query.search) {
+      const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.name = { $regex: escaped, $options: "i" };
+    }
     if (query.balance_status === "due") filter.balance = { $lt: 0 };
     if (query.balance_status === "overpaid") filter.balance = { $gt: 0 };
 
@@ -62,6 +69,39 @@ class PartyService {
     if (!party) {
       throw ApiError.notFound("Party not found");
     }
+
+    // Check for active (unbilled) challans
+    const activeChallanCount = await Challan.countDocuments({
+      party_id: partyId,
+      firm_id: firmId,
+      converted_to_bill: false,
+    });
+    if (activeChallanCount > 0) {
+      throw ApiError.badRequest(
+        `Cannot delete party with ${activeChallanCount} active challan(s). Delete or bill them first.`,
+      );
+    }
+
+    // Check for unpaid bills
+    const unpaidBillCount = await Bill.countDocuments({
+      party_id: partyId,
+      firm_id: firmId,
+      payment_status: "due",
+    });
+    if (unpaidBillCount > 0) {
+      throw ApiError.badRequest(
+        `Cannot delete party with ${unpaidBillCount} unpaid bill(s). Settle them first.`,
+      );
+    }
+
+    // Cascade: delete associated transactions, bills, challans, discounts
+    await Promise.all([
+      Transaction.deleteMany({ party_id: partyId, firm_id: firmId }),
+      Bill.deleteMany({ party_id: partyId, firm_id: firmId }),
+      Challan.deleteMany({ party_id: partyId, firm_id: firmId }),
+      Discount.deleteMany({ party_id: partyId, user_id: userId }),
+    ]);
+
     await Party.findByIdAndDelete(partyId);
   }
 

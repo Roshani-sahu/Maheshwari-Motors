@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
+import Session from "../models/session.model.js";
 import Firm from "../models/firm.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
@@ -10,15 +11,20 @@ class UserService {
       throw ApiError.forbidden("Only main user can access this");
     }
 
+    // Only return secondary users created by this main user
     return Pagination.paginate(
       User,
-      { type: "secondary" },
+      { type: "secondary", created_by: mainUserId },
       { ...query, select: "-password -token", sort: { createdAt: -1 } },
     );
   }
 
   async getSecondaryUserById(userId, mainUserId) {
-    const user = await User.findOne({ _id: userId, type: "secondary" })
+    const user = await User.findOne({
+      _id: userId,
+      type: "secondary",
+      created_by: mainUserId,
+    })
       .select("-password -token")
       .populate("firm_ids");
 
@@ -53,6 +59,7 @@ class UserService {
       password: hashedPassword,
       type: "secondary",
       firm_ids,
+      created_by: mainUserId,
     });
 
     return {
@@ -65,7 +72,11 @@ class UserService {
   }
 
   async updateSecondaryUser(userId, mainUserId, updateData) {
-    const user = await User.findOne({ _id: userId, type: "secondary" });
+    const user = await User.findOne({
+      _id: userId,
+      type: "secondary",
+      created_by: mainUserId,
+    });
     if (!user) {
       throw ApiError.notFound("Secondary user not found");
     }
@@ -86,11 +97,13 @@ class UserService {
 
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
-      updateData.token = null;
+      // Revoke all sessions when password changes
+      await Session.deleteMany({ user_id: userId });
     }
 
     delete updateData.type;
     delete updateData.firm_ids;
+    delete updateData.created_by;
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
       new: true,
@@ -99,16 +112,26 @@ class UserService {
   }
 
   async deleteSecondaryUser(userId, mainUserId) {
-    const user = await User.findOne({ _id: userId, type: "secondary" });
+    const user = await User.findOne({
+      _id: userId,
+      type: "secondary",
+      created_by: mainUserId,
+    });
     if (!user) {
       throw ApiError.notFound("Secondary user not found");
     }
 
+    // Clean up sessions
+    await Session.deleteMany({ user_id: userId });
     await User.findByIdAndDelete(userId);
   }
 
   async updateSecondaryUserFirms(userId, mainUserId, firmIds) {
-    const user = await User.findOne({ _id: userId, type: "secondary" });
+    const user = await User.findOne({
+      _id: userId,
+      type: "secondary",
+      created_by: mainUserId,
+    });
     if (!user) {
       throw ApiError.notFound("Secondary user not found");
     }

@@ -108,5 +108,19 @@ router.get(
   "/:firmId/transactions/:transactionId",
   transactionController.getTransactionById,
 );
+router.delete(
+  "/:firmId/transactions/:transactionId",
+  transactionController.deleteTransaction,
+);
+
+// Transactions by linked document
+router.get(
+  "/:firmId/bills/:billId/transactions",
+  transactionController.getTransactionsByBill,
+);
+router.get(
+  "/:firmId/purchases/:purchaseId/transactions",
+  transactionController.getTransactionsByPurchase,
+);
 
 export default router;

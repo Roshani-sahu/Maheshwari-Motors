@@ -1,10 +1,43 @@
 import { purchaseService } from "../services/index.js";
-import { asyncHandler, ApiResponse } from "../utils/index.js";
+import { asyncHandler, ApiResponse, validate } from "../utils/index.js";
+
+const purchaseItemSchema = {
+  item_id: { required: true, type: "objectId", label: "Item ID" },
+  quantity: { required: true, type: "number", min: 1, label: "Quantity" },
+  rate: { required: true, type: "number", min: 0, label: "Rate" },
+};
+
+const createPurchaseSchema = {
+  date: { required: false, type: "date", label: "Date" },
+  supplier_id: { required: true, type: "objectId", label: "Supplier ID" },
+  items: {
+    required: true,
+    type: "array",
+    min: 1,
+    items: purchaseItemSchema,
+    label: "Items",
+  },
+  purchase_type: {
+    required: true,
+    type: "string",
+    enum: ["GST", "NON_GST"],
+    label: "Purchase type",
+  },
+};
+
+const purchasePaymentSchema = {
+  amount: {
+    required: true,
+    type: "number",
+    min: 0.01,
+    label: "Payment amount",
+  },
+};
 
 export const getPurchases = asyncHandler(async (req, res) => {
   const result = await purchaseService.getPurchases(
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
     req.query,
   );
   res
@@ -16,7 +49,7 @@ export const getPurchaseById = asyncHandler(async (req, res) => {
   const purchase = await purchaseService.getPurchaseById(
     req.params.purchaseId,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(200)
@@ -24,10 +57,11 @@ export const getPurchaseById = asyncHandler(async (req, res) => {
 });
 
 export const createPurchase = asyncHandler(async (req, res) => {
+  const data = validate(req.body, createPurchaseSchema);
   const purchase = await purchaseService.createPurchase(
-    req.body,
+    data,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(201)
@@ -35,11 +69,12 @@ export const createPurchase = asyncHandler(async (req, res) => {
 });
 
 export const recordPayment = asyncHandler(async (req, res) => {
+  const { amount } = validate(req.body, purchasePaymentSchema);
   const purchase = await purchaseService.recordPayment(
     req.params.purchaseId,
     req.params.firmId,
-    req.user._id,
-    req.body.amount,
+    req.firmOwnerId,
+    amount,
   );
   res
     .status(200)
@@ -50,7 +85,7 @@ export const deletePurchase = asyncHandler(async (req, res) => {
   await purchaseService.deletePurchase(
     req.params.purchaseId,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(200)
@@ -60,7 +95,7 @@ export const deletePurchase = asyncHandler(async (req, res) => {
 export const getPurchasesByType = asyncHandler(async (req, res) => {
   const result = await purchaseService.getPurchases(
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
     {
       ...req.query,
       purchase_type: req.params.type,

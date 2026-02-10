@@ -1,10 +1,48 @@
 import { transactionService } from "../services/index.js";
-import { asyncHandler, ApiResponse } from "../utils/index.js";
+import { asyncHandler, ApiResponse, validate } from "../utils/index.js";
+
+const saleTransactionSchema = {
+  bill_id: { required: true, type: "objectId", label: "Bill ID" },
+  amount: { required: true, type: "number", min: 0.01, label: "Amount" },
+  payment_mode: {
+    required: true,
+    type: "string",
+    enum: ["cash", "bank", "credit"],
+    label: "Payment mode",
+  },
+  utr: { required: false, type: "string", max: 100, label: "UTR" },
+  transaction_ref: {
+    required: false,
+    type: "string",
+    max: 100,
+    label: "Transaction reference",
+  },
+  remarks: { required: false, type: "string", max: 500, label: "Remarks" },
+};
+
+const purchaseTransactionSchema = {
+  purchase_id: { required: true, type: "objectId", label: "Purchase ID" },
+  amount: { required: true, type: "number", min: 0.01, label: "Amount" },
+  payment_mode: {
+    required: true,
+    type: "string",
+    enum: ["cash", "bank", "credit"],
+    label: "Payment mode",
+  },
+  utr: { required: false, type: "string", max: 100, label: "UTR" },
+  transaction_ref: {
+    required: false,
+    type: "string",
+    max: 100,
+    label: "Transaction reference",
+  },
+  remarks: { required: false, type: "string", max: 500, label: "Remarks" },
+};
 
 export const getTransactions = asyncHandler(async (req, res) => {
   const result = await transactionService.getTransactions(
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
     req.query,
   );
   res
@@ -16,7 +54,7 @@ export const getTransactionById = asyncHandler(async (req, res) => {
   const transaction = await transactionService.getTransactionById(
     req.params.transactionId,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(200)
@@ -26,10 +64,11 @@ export const getTransactionById = asyncHandler(async (req, res) => {
 });
 
 export const createSaleTransaction = asyncHandler(async (req, res) => {
+  const data = validate(req.body, saleTransactionSchema);
   const transaction = await transactionService.createSaleTransaction(
-    req.body,
+    data,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(201)
@@ -43,10 +82,11 @@ export const createSaleTransaction = asyncHandler(async (req, res) => {
 });
 
 export const createPurchaseTransaction = asyncHandler(async (req, res) => {
+  const data = validate(req.body, purchaseTransactionSchema);
   const transaction = await transactionService.createPurchaseTransaction(
-    req.body,
+    data,
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(201)
@@ -62,7 +102,7 @@ export const createPurchaseTransaction = asyncHandler(async (req, res) => {
 export const getTransactionSummary = asyncHandler(async (req, res) => {
   const summary = await transactionService.getTransactionSummary(
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
   );
   res
     .status(200)
@@ -74,7 +114,7 @@ export const getTransactionSummary = asyncHandler(async (req, res) => {
 export const getTransactionsByType = asyncHandler(async (req, res) => {
   const result = await transactionService.getTransactions(
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
     {
       ...req.query,
       type: req.params.type,
@@ -88,7 +128,7 @@ export const getTransactionsByType = asyncHandler(async (req, res) => {
 export const getTransactionsByPaymentMode = asyncHandler(async (req, res) => {
   const result = await transactionService.getTransactions(
     req.params.firmId,
-    req.user._id,
+    req.firmOwnerId,
     {
       ...req.query,
       payment_mode: req.params.mode,
@@ -97,4 +137,41 @@ export const getTransactionsByPaymentMode = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, result, "Transactions fetched successfully"));
+});
+
+export const deleteTransaction = asyncHandler(async (req, res) => {
+  await transactionService.deleteTransaction(
+    req.params.transactionId,
+    req.params.firmId,
+    req.firmOwnerId,
+  );
+  res
+    .status(200)
+    .json(new ApiResponse(200, null, "Transaction deleted successfully"));
+});
+
+export const getTransactionsByBill = asyncHandler(async (req, res) => {
+  const transactions = await transactionService.getTransactionsByBill(
+    req.params.billId,
+    req.params.firmId,
+    req.firmOwnerId,
+  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, transactions, "Transactions fetched successfully"),
+    );
+});
+
+export const getTransactionsByPurchase = asyncHandler(async (req, res) => {
+  const transactions = await transactionService.getTransactionsByPurchase(
+    req.params.purchaseId,
+    req.params.firmId,
+    req.firmOwnerId,
+  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, transactions, "Transactions fetched successfully"),
+    );
 });

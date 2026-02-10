@@ -1,10 +1,15 @@
 import Supplier from "../models/supplier.model.js";
+import Purchase from "../models/purchase.model.js";
+import Transaction from "../models/transaction.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class SupplierService {
   async getSuppliers(userId, query) {
     const filter = { user_id: userId };
-    if (query.search) filter.name = { $regex: query.search, $options: "i" };
+    if (query.search) {
+      const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.name = { $regex: escaped, $options: "i" };
+    }
 
     return Pagination.paginate(Supplier, filter, {
       ...query,
@@ -56,6 +61,25 @@ class SupplierService {
     if (!supplier) {
       throw ApiError.notFound("Supplier not found");
     }
+
+    // Check for unpaid purchases
+    const unpaidPurchaseCount = await Purchase.countDocuments({
+      supplier_id: supplierId,
+      user_id: userId,
+      payment_status: "due",
+    });
+    if (unpaidPurchaseCount > 0) {
+      throw ApiError.badRequest(
+        `Cannot delete supplier with ${unpaidPurchaseCount} unpaid purchase(s). Settle them first.`,
+      );
+    }
+
+    // Cascade: delete supplier's transactions and purchases
+    await Promise.all([
+      Transaction.deleteMany({ supplier_id: supplierId, user_id: userId }),
+      Purchase.deleteMany({ supplier_id: supplierId, user_id: userId }),
+    ]);
+
     await Supplier.findByIdAndDelete(supplierId);
   }
 }

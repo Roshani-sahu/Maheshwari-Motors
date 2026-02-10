@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Transaction from "../models/transaction.model.js";
 import Bill from "../models/bill.model.js";
 import Purchase from "../models/purchase.model.js";
+import Party from "../models/party.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class TransactionService {
@@ -75,6 +76,7 @@ class TransactionService {
 
     const newPaidAmount = bill.paid_amount + amount;
     let paymentStatus;
+    let balanceToAdd = 0;
 
     if (newPaidAmount < bill.amount) {
       paymentStatus = "due";
@@ -82,12 +84,20 @@ class TransactionService {
       paymentStatus = "paid";
     } else {
       paymentStatus = "overpaid";
+      balanceToAdd = newPaidAmount - bill.amount;
     }
 
     await Bill.findByIdAndUpdate(bill_id, {
       paid_amount: newPaidAmount,
       payment_status: paymentStatus,
     });
+
+    // Credit excess to party balance
+    if (balanceToAdd > 0) {
+      await Party.findByIdAndUpdate(bill.party_id, {
+        $inc: { balance: balanceToAdd },
+      });
+    }
 
     return transaction.populate([
       { path: "party_id", select: "name" },
@@ -195,6 +205,73 @@ class TransactionService {
       sale_transactions: gstTransactions,
       purchase_transactions: nonGstTransactions,
     };
+  }
+
+  async deleteTransaction(transactionId, firmId, userId) {
+    const transaction = await Transaction.findOne({
+      _id: transactionId,
+      firm_id: firmId,
+      user_id: userId,
+    });
+
+    if (!transaction) {
+      throw ApiError.notFound("Transaction not found");
+    }
+
+    // Reverse the payment on the linked bill or purchase
+    if (transaction.type === "sale" && transaction.bill_id) {
+      const bill = await Bill.findById(transaction.bill_id);
+      if (bill) {
+        const newPaidAmount = Math.max(
+          0,
+          bill.paid_amount - transaction.amount,
+        );
+        let paymentStatus = "due";
+        if (newPaidAmount >= bill.amount) paymentStatus = "paid";
+        if (newPaidAmount > bill.amount) paymentStatus = "overpaid";
+        await Bill.findByIdAndUpdate(transaction.bill_id, {
+          paid_amount: newPaidAmount,
+          payment_status: paymentStatus,
+        });
+      }
+    } else if (transaction.type === "purchase" && transaction.purchase_id) {
+      const purchase = await Purchase.findById(transaction.purchase_id);
+      if (purchase) {
+        const newPaidAmount = Math.max(
+          0,
+          purchase.paid_amount - transaction.amount,
+        );
+        let paymentStatus = "due";
+        if (newPaidAmount >= purchase.amount) paymentStatus = "paid";
+        if (newPaidAmount > purchase.amount) paymentStatus = "overpaid";
+        await Purchase.findByIdAndUpdate(transaction.purchase_id, {
+          paid_amount: newPaidAmount,
+          payment_status: paymentStatus,
+        });
+      }
+    }
+
+    await Transaction.findByIdAndDelete(transactionId);
+  }
+
+  async getTransactionsByBill(billId, firmId, userId) {
+    return Transaction.find({
+      bill_id: billId,
+      firm_id: firmId,
+      user_id: userId,
+    })
+      .populate("party_id", "name")
+      .sort({ createdAt: -1 });
+  }
+
+  async getTransactionsByPurchase(purchaseId, firmId, userId) {
+    return Transaction.find({
+      purchase_id: purchaseId,
+      firm_id: firmId,
+      user_id: userId,
+    })
+      .populate("supplier_id", "name")
+      .sort({ createdAt: -1 });
   }
 }
 

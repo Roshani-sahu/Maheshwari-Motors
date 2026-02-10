@@ -1,12 +1,16 @@
 import Item from "../models/item.model.js";
+import Discount from "../models/discount.model.js";
+import StockAlert from "../models/stockAlert.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 import s3Service from "./s3.service.js";
 
 class ItemService {
   async getItems(userId, query) {
     const filter = { user_id: userId };
-    if (query.search)
-      filter.item_name = { $regex: query.search, $options: "i" };
+    if (query.search) {
+      const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      filter.item_name = { $regex: escaped, $options: "i" };
+    }
 
     return Pagination.paginate(Item, filter, {
       ...query,
@@ -75,6 +79,12 @@ class ItemService {
     if (item.image) {
       await s3Service.deleteFile(item.image);
     }
+
+    // Cascade: remove associated discounts and stock alerts
+    await Promise.all([
+      Discount.deleteMany({ item_id: itemId, user_id: userId }),
+      StockAlert.deleteMany({ item_id: itemId, user_id: userId }),
+    ]);
 
     await Item.findByIdAndDelete(itemId);
   }

@@ -1,6 +1,7 @@
 import Bill from "../models/bill.model.js";
 import Challan from "../models/challan.model.js";
 import Party from "../models/party.model.js";
+import Transaction from "../models/transaction.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class BillService {
@@ -160,12 +161,37 @@ class BillService {
       throw ApiError.notFound("Bill not found");
     }
 
-    const party = await Party.findByIdAndUpdate(
-      bill.party_id,
-      { $inc: { balance: returnAmount } },
+    if (returnAmount > bill.amount) {
+      throw ApiError.badRequest("Return amount cannot exceed bill amount");
+    }
+
+    // Reduce the bill amount and recalculate payment status
+    const newAmount = bill.amount - returnAmount;
+    let paymentStatus;
+    if (bill.paid_amount < newAmount) {
+      paymentStatus = "due";
+    } else if (bill.paid_amount === newAmount) {
+      paymentStatus = "paid";
+    } else {
+      paymentStatus = "overpaid";
+    }
+
+    const updatedBill = await Bill.findByIdAndUpdate(
+      billId,
+      {
+        amount: newAmount,
+        payment_status: paymentStatus,
+        $inc: { return_amount: returnAmount },
+      },
       { new: true },
-    );
-    return party;
+    ).populate("party_id", "name balance");
+
+    // Credit party balance with the return amount
+    await Party.findByIdAndUpdate(bill.party_id, {
+      $inc: { balance: returnAmount },
+    });
+
+    return updatedBill;
   }
 
   async getBillSummary(firmId, userId) {
@@ -197,10 +223,29 @@ class BillService {
       throw ApiError.notFound("Bill not found");
     }
 
+    // If overpaid, the excess was credited to party balance — reverse it
+    if (bill.paid_amount > bill.amount) {
+      const excessAmount = bill.paid_amount - bill.amount;
+      await Party.findByIdAndUpdate(bill.party_id, {
+        $inc: { balance: -excessAmount },
+      });
+    }
+
+    // If returns were processed, reverse the balance credit
+    if (bill.return_amount > 0) {
+      await Party.findByIdAndUpdate(bill.party_id, {
+        $inc: { balance: -bill.return_amount },
+      });
+    }
+
+    // Release challans back to unbilled state
     await Challan.updateMany(
       { _id: { $in: bill.challan_ids } },
       { converted_to_bill: false, bill_id: null },
     );
+
+    // Delete all transactions associated with this bill
+    await Transaction.deleteMany({ bill_id: billId, firm_id: firmId });
 
     await Bill.findByIdAndDelete(billId);
   }

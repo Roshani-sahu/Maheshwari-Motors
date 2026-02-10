@@ -11,6 +11,7 @@ const billSchema = new mongoose.Schema(
     },
     amount: { type: Number, required: true },
     paid_amount: { type: Number, default: 0 },
+    return_amount: { type: Number, default: 0 },
     payment_status: {
       type: String,
       enum: ["due", "paid", "overpaid"],

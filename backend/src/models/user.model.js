@@ -11,6 +11,11 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     type: { type: String, enum: ["main", "secondary"], default: "main" },
     firm_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: "Firm" }],
+    created_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true },
 );

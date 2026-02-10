@@ -1,5 +1,26 @@
 import { supplierService } from "../services/index.js";
-import { asyncHandler, ApiResponse } from "../utils/index.js";
+import { asyncHandler, ApiResponse, validate } from "../utils/index.js";
+
+const supplierSchema = {
+  name: {
+    required: true,
+    type: "string",
+    min: 1,
+    max: 200,
+    label: "Supplier name",
+  },
+  phone: {
+    required: false,
+    type: "string",
+    format: "phone",
+    label: "Phone number",
+  },
+  email: { required: false, type: "string", format: "email", label: "Email" },
+  address: { required: false, type: "string", max: 500, label: "Address" },
+  city: { required: false, type: "string", max: 100, label: "City" },
+  state: { required: false, type: "string", max: 100, label: "State" },
+  gstin: { required: false, type: "string", format: "gstin", label: "GSTIN" },
+};
 
 export const getSuppliers = asyncHandler(async (req, res) => {
   const result = await supplierService.getSuppliers(req.user._id, req.query);
@@ -19,17 +40,19 @@ export const getSupplierById = asyncHandler(async (req, res) => {
 });
 
 export const createSupplier = asyncHandler(async (req, res) => {
-  const supplier = await supplierService.createSupplier(req.body, req.user._id);
+  const data = validate(req.body, supplierSchema);
+  const supplier = await supplierService.createSupplier(data, req.user._id);
   res
     .status(201)
     .json(new ApiResponse(201, supplier, "Supplier created successfully"));
 });
 
 export const updateSupplier = asyncHandler(async (req, res) => {
+  const data = validate(req.body, supplierSchema, { allowPartial: true });
   const supplier = await supplierService.updateSupplier(
     req.params.supplierId,
     req.user._id,
-    req.body,
+    data,
   );
   res
     .status(200)
