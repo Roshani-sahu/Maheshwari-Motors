@@ -85,6 +85,10 @@ const useStore = create(devtools((set, get) => ({
   setTransporters: (transporters) => set({ transporters }),
   setBooks: (books) => set({ books }),
   setChallans: (challans) => set({ challans }),
+  addChallan: (challan) => set((state) => ({ challans: [challan, ...state.challans] })),
+  updateChallan: (id, updated) => set((state) => ({
+    challans: state.challans.map(c => c.id === id ? { ...c, ...updated } : c)
+  })),
   setBills: (bills) => set({ bills }),
   setTransactions: (transactions) => set({ transactions }),
   

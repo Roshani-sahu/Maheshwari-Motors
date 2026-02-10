@@ -6,11 +6,14 @@ import useStore from '../../store';
 
 const CategoryMaster = () => {
   const { showToast } = useStore();
-  const [categories, setCategories] = useState([
-    { id: 1, name: 'Engine Parts' },
-    { id: 2, name: 'Brake System' },
-    { id: 3, name: 'Filters' }
-  ]);
+  const [categories, setCategories] = useState(() => {
+    const saved = localStorage.getItem('categories');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: 'Engine Parts' },
+      { id: 2, name: 'Brake System' },
+      { id: 3, name: 'Filters' }
+    ];
+  });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -42,14 +45,18 @@ const CategoryMaster = () => {
   ];
 
   const handleAddCategory = () => {
-    setCategories(prev => [...prev, { id: Date.now(), name: newCategoryName }]);
+    const newCategories = [...categories, { id: Date.now(), name: newCategoryName }];
+    setCategories(newCategories);
+    localStorage.setItem('categories', JSON.stringify(newCategories));
     setNewCategoryName('');
     setIsAddModalOpen(false);
     showToast('Category added successfully', 'success');
   };
 
   const handleEditCategory = () => {
-    setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, name: newCategoryName } : c));
+    const newCategories = categories.map(c => c.id === editingCategory.id ? { ...c, name: newCategoryName } : c);
+    setCategories(newCategories);
+    localStorage.setItem('categories', JSON.stringify(newCategories));
     setIsEditModalOpen(false);
     setEditingCategory(null);
     setNewCategoryName('');
@@ -118,8 +125,11 @@ const CategoryMaster = () => {
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, category: null })}
         onConfirm={() => {
-          setCategories(prev => prev.filter(c => c.id !== deleteDialog.category.id));
+          const newCategories = categories.filter(c => c.id !== deleteDialog.category.id);
+          setCategories(newCategories);
+          localStorage.setItem('categories', JSON.stringify(newCategories));
           setDeleteDialog({ isOpen: false, category: null });
+          showToast('Category deleted successfully', 'success');
         }}
         itemName={deleteDialog.category?.name}
       />

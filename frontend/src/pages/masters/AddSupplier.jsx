@@ -6,10 +6,13 @@ import useStore from '../../store';
 
 const AddSupplier = () => {
   const { showToast } = useStore();
-  const [suppliers, setSuppliers] = useState([
-    { id: 1, name: 'ABC Suppliers', contact: '9876543210', email: 'abc@supplier.com', address: 'Mumbai' },
-    { id: 2, name: 'XYZ Parts', contact: '9876543211', email: 'xyz@parts.com', address: 'Delhi' }
-  ]);
+  const [suppliers, setSuppliers] = useState(() => {
+    const saved = localStorage.getItem('suppliers');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: 'ABC Suppliers', contact: '9876543210', email: 'abc@supplier.com', address: 'Mumbai' },
+      { id: 2, name: 'XYZ Parts', contact: '9876543211', email: 'xyz@parts.com', address: 'Delhi' }
+    ];
+  });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
@@ -44,14 +47,18 @@ const AddSupplier = () => {
   ];
 
   const handleAdd = () => {
-    setSuppliers(prev => [...prev, { id: Date.now(), ...formData }]);
+    const newSuppliers = [...suppliers, { id: Date.now(), ...formData }];
+    setSuppliers(newSuppliers);
+    localStorage.setItem('suppliers', JSON.stringify(newSuppliers));
     setFormData({ name: '', contact: '', email: '', address: '' });
     setIsAddModalOpen(false);
     showToast('Supplier added successfully', 'success');
   };
 
   const handleEdit = () => {
-    setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? formData : s));
+    const newSuppliers = suppliers.map(s => s.id === editingSupplier.id ? formData : s);
+    setSuppliers(newSuppliers);
+    localStorage.setItem('suppliers', JSON.stringify(newSuppliers));
     setIsEditModalOpen(false);
     setEditingSupplier(null);
     setFormData({ name: '', contact: '', email: '', address: '' });
@@ -136,8 +143,11 @@ const AddSupplier = () => {
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, supplier: null })}
         onConfirm={() => {
-          setSuppliers(prev => prev.filter(s => s.id !== deleteDialog.supplier.id));
+          const newSuppliers = suppliers.filter(s => s.id !== deleteDialog.supplier.id);
+          setSuppliers(newSuppliers);
+          localStorage.setItem('suppliers', JSON.stringify(newSuppliers));
           setDeleteDialog({ isOpen: false, supplier: null });
+          showToast('Supplier deleted successfully', 'success');
         }}
         itemName={deleteDialog.supplier?.name}
       />

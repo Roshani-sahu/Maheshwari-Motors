@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { DataTable } from '../../components/common';
 
 const ViewCategory = () => {
-  const [categories] = useState([
-    { id: 1, name: 'Engine Parts' },
-    { id: 2, name: 'Brake System' },
-    { id: 3, name: 'Filters' }
-  ]);
+  const [categories] = useState(() => {
+    const saved = localStorage.getItem('categories');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: 'Engine Parts' },
+      { id: 2, name: 'Brake System' },
+      { id: 3, name: 'Filters' }
+    ];
+  });
 
   const columns = [
     { key: 'id', label: 'Category ID' },

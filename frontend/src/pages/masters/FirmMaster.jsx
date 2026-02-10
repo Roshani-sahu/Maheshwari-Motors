@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
@@ -10,6 +10,8 @@ const FirmMaster = () => {
   const { firms, setFirms, deleteFirm } = useStore();
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, firm: null });
   const [gstFilter, setGstFilter] = useState('all');
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [selectedFirmView, setSelectedFirmView] = useState(null);
 
   // Initialize with sample data if empty
   useEffect(() => {
@@ -105,6 +107,14 @@ const FirmMaster = () => {
 
   const actions = [
     {
+      label: <FaEye size={10} className="sm:size-3 md:size-4" />,
+      onClick: (firm) => {
+        setSelectedFirmView(firm);
+        setIsViewModalOpen(true);
+      },
+      className: 'bg-green-600 text-white hover:bg-green-700 p-1 sm:p-1.5 md:p-2 text-xs'
+    },
+    {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (firm) => navigate(`/masters/firm-master/edit/${firm.id}`),
       className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
@@ -178,6 +188,97 @@ const FirmMaster = () => {
         onConfirm={() => deleteFirm(deleteDialog.firm.id)}
         itemName={deleteDialog.firm?.name}
       />
+
+      {/* View Firm Modal */}
+      <Modal 
+        isOpen={isViewModalOpen} 
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setSelectedFirmView(null);
+        }} 
+        title="Firm Details" 
+        size="lg"
+      >
+        {selectedFirmView && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Firm Name</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.name}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.type === 1 ? 'GST' : 'Non-GST'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.city}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">State</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.state}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Phone/Mobile</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.mobile || selectedFirmView.phone || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.email || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GSTIN</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.gstin || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">PAN</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.pan || 'N/A'}</p>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Address</label>
+              <p className="text-sm text-gray-900">{selectedFirmView.address || 'N/A'}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.bankName || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Account</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.bankAccount || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.ifscCode || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Fax</label>
+                <p className="text-sm text-gray-900">{selectedFirmView.fax || 'N/A'}</p>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Godown Address</label>
+              <p className="text-sm text-gray-900">{selectedFirmView.godownAddress || 'N/A'}</p>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsViewModalOpen(false);
+                  setSelectedFirmView(null);
+                }}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

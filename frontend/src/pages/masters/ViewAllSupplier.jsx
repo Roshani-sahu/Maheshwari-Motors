@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { DataTable } from '../../components/common';
 
 const ViewAllSupplier = () => {
-  const [suppliers] = useState([
-    { id: 1, name: 'ABC Suppliers', contact: '9876543210', email: 'abc@supplier.com', address: 'Mumbai' },
-    { id: 2, name: 'XYZ Parts', contact: '9876543211', email: 'xyz@parts.com', address: 'Delhi' }
-  ]);
+  const [suppliers] = useState(() => {
+    const saved = localStorage.getItem('suppliers');
+    return saved ? JSON.parse(saved) : [
+      { id: 1, name: 'ABC Suppliers', contact: '9876543210', email: 'abc@supplier.com', address: 'Mumbai' },
+      { id: 2, name: 'XYZ Parts', contact: '9876543211', email: 'xyz@parts.com', address: 'Delhi' }
+    ];
+  });
 
   const columns = [
     { key: 'id', label: 'ID' },

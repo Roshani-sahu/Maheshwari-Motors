@@ -6,7 +6,7 @@ import { Button, Select, Input } from '../../components/ui';
 import useStore from '../../store';
 
 const ChallanList = () => {
-  const { addBill, addTransaction, removeChallans, showToast } = useStore();
+  const { addBill, addTransaction, removeChallans, showToast, setChallans: setStoreChallans, addChallan, updateChallan, challans: storeChallans } = useStore();
   const [challans, setChallans] = useState([
     {
       id: 1,
@@ -59,6 +59,13 @@ const ChallanList = () => {
     },
   ]);
 
+  // seed store challans on mount if store is empty
+  useEffect(() => {
+    if ((storeChallans || []).length === 0) {
+      setStoreChallans(challans);
+    }
+  }, []); // run once
+
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -82,6 +89,7 @@ const ChallanList = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingChallan, setEditingChallan] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, challan: null });
+  const [validationError, setValidationError] = useState('');
 
   const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
   const availableItems = ['Engine Oil', 'Brake Pads', 'Air Filter', 'Spark Plugs', 'Transmission Fluid', 'Coolant', 'Battery'];
@@ -242,7 +250,11 @@ const ChallanList = () => {
       addTransaction(deletedChallanTxn);
     });
     
-    // Remove converted challans
+    // mark converted challans as billed in the store
+    selectedChallans.forEach(c => {
+      updateChallan(c.id, { status: 'Billed' });
+    });
+    // Remove converted challans from this view's local list
     const challanIds = selectedChallans.map(c => c.id);
     setChallans(prev => prev.filter(challan => !challanIds.includes(challan.id)));
     
@@ -264,6 +276,8 @@ const ChallanList = () => {
     
     // prepend new challan to top of list
     setChallans(prev => [challan, ...prev]);
+    // also add to global store so dashboard / other pages see it
+    addChallan({ ...challan, status: 'Generated' });
     // add a transaction record so it appears in Transaction History
     const txn = {
       id: Date.now() + Math.random(),
@@ -437,7 +451,7 @@ const ChallanList = () => {
                           // ensure all challans are from the same party before selecting all
                           const parties = Array.from(new Set(challans.map(c => c.party)));
                           if (parties.length > 1) {
-                            alert('Cannot select challans from different parties. Please select challans of the same party only.');
+                            setValidationError('Cannot select challans from different parties. Please select challans of the same party only.');
                             return;
                           }
                           setSelectedChallans([...challans]);
@@ -464,7 +478,7 @@ const ChallanList = () => {
                           if (e.target.checked) {
                             // if there are already selected challans enforce same party
                             if (selectedChallans.length > 0 && selectedChallans[0].party !== challan.party) {
-                              alert('You can only select challans of the same party to convert into a single bill.');
+                              setValidationError('You can only select challans of the same party to convert into a single bill.');
                               return;
                             }
                             setSelectedChallans(prev => [...prev, challan]);
@@ -757,6 +771,27 @@ const ChallanList = () => {
         }}
         itemName={deleteDialog.challan?.challanNo}
       />
+
+      {/* Validation Error Modal */}
+      <Modal
+        isOpen={!!validationError}
+        onClose={() => setValidationError('')}
+        title="Error"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">{validationError}</p>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setValidationError('')}
+              className="w-full"
+            >
+              OK
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

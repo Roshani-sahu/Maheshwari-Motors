@@ -223,7 +223,7 @@ const FirmSetup = () => {
               />
             </FormField> */}
 
-            <FormField label="Mobile No">
+            <FormField label="Phone No">
               <Input
                 name="mobile"
                 value={formData.mobile}
@@ -257,70 +257,18 @@ const FirmSetup = () => {
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-medium text-gray-900 mb-4">Other Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* <FormField label="GSTIN" error={errors.gstin}>
-                <Input
-                  name="gstin"
-                  value={formData.gstin}
-                  onChange={handleChange}
-                  placeholder="15 digit GSTIN"
-                  maxLength={15}
-                  error={errors.gstin}
-                />
-              </FormField>
+                <FormField label="GSTIN" error={errors.gstin}>
+                  <Input
+                    name="gstin"
+                    value={formData.gstin}
+                    onChange={handleChange}
+                    placeholder="15 digit GSTIN"
+                    maxLength={15}
+                    error={errors.gstin}
+                  />
+                </FormField>
 
-              <FormField label="CIN No">
-                <Input
-                  name="cin"
-                  value={formData.cin}
-                  onChange={handleChange}
-                  placeholder="Corporate Identity Number"
-                />
-              </FormField>
-
-              <FormField label="Regi. No">
-                <Input
-                  name="registrationNo"
-                  value={formData.registrationNo}
-                  onChange={handleChange}
-                  placeholder="Registration number"
-                />
-              </FormField>
-
-              <FormField label="Tin Cst No">
-                <Input
-                  name="tinCst"
-                  value={formData.tinCst}
-                  onChange={handleChange}
-                  placeholder="TIN CST number"
-                />
-              </FormField>
-
-              <FormField label="Ecc No">
-                <Input
-                  name="ecc"
-                  value={formData.ecc}
-                  onChange={handleChange}
-                  placeholder="ECC number"
-                />
-              </FormField>
-
-              <FormField label="Range No">
-                <Input
-                  name="range"
-                  value={formData.range}
-                  onChange={handleChange}
-                  placeholder="Range number"
-                />
-              </FormField>
-
-              <FormField label="Division No">
-                <Input
-                  name="division"
-                  value={formData.division}
-                  onChange={handleChange}
-                  placeholder="Division number"
-                />
-              </FormField> */}
+                {/* Additional optional fields kept commented out for future use */}
 
              
               {/* <FormField label="Rule">

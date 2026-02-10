@@ -176,6 +176,8 @@ const BillList = () => {
   const filteredBills = bills.filter(bill => {
     if (filters.party && !bill.party.toLowerCase().includes(filters.party.toLowerCase())) return false;
     if (filters.gstType !== 'all' && bill.gstType !== parseInt(filters.gstType)) return false;
+    if (filters.dateFrom && new Date(bill.date) < new Date(filters.dateFrom)) return false;
+    if (filters.dateTo && new Date(bill.date) > new Date(filters.dateTo)) return false;
     return true;
   });
 
@@ -228,6 +230,14 @@ const BillList = () => {
             type="date"
             value={filters.dateFrom}
             onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+            placeholder="From Date"
+            className="text-xs sm:text-sm py-1.5 sm:py-2"
+          />
+          <Input
+            type="date"
+            value={filters.dateTo}
+            onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+            placeholder="To Date"
             className="text-xs sm:text-sm py-1.5 sm:py-2"
           />
           <Button

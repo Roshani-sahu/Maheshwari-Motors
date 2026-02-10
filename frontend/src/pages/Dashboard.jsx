@@ -5,6 +5,7 @@ import {
   FaFileInvoiceDollar, 
   FaExclamationTriangle, 
   FaCalendarDay,
+  FaArrowRight,
   // FaToggleOn,
   // FaToggleOff
 } from 'react-icons/fa';
@@ -26,21 +27,41 @@ const Dashboard = () => {
 
   const [billPeriod, setBillPeriod] = useState('today'); // today | month
 
-  const [recentChallans] = useState([
-    { id: 'CH001', party: 'ABC Motors', amount: 25000, date: '2024-01-15' },
-    { id: 'CH002', party: 'XYZ Parts', amount: 18500, date: '2024-01-15' },
-    { id: 'CH003', party: 'PQR Auto', amount: 32000, date: '2024-01-14' },
-    { id: 'CH004', party: 'LMN Garage', amount: 15000, date: '2024-01-14' },
-    { id: 'CH005', party: 'RST Motors', amount: 28000, date: '2024-01-13' }
-  ]);
+const { challans, bills } = useStore();
 
-  const [recentBills] = useState([
-    { id: 'B001', party: 'ABC Motors', amount: 25000, date: '2024-01-15' },
-    { id: 'B002', party: 'XYZ Parts', amount: 18500, date: '2024-01-15' },
-    { id: 'B003', party: 'PQR Auto', amount: 32000, date: '2024-01-14' },
-    { id: 'B004', party: 'LMN Garage', amount: 15000, date: '2024-01-14' },
-    { id: 'B005', party: 'RST Motors', amount: 28000, date: '2024-01-13' }
-  ]);
+// Dummy fallbacks for dashboard when store has fewer items
+const dummyChallans = [
+  { id: 'CHD101', challanNo: 'CHD101', party: 'Demo Motors', amount: 12500, date: '2025-02-09', status: 'Generated' },
+  { id: 'CHD102', challanNo: 'CHD102', party: 'Sample Autos', amount: 9800, date: '2025-02-08', status: 'Generated' },
+  { id: 'CHD103', challanNo: 'CHD103', party: 'Test Garage', amount: 7600, date: '2025-02-07', status: 'Billed' }
+];
+
+const dummyBills = [
+  { id: 'BD101', billNo: 'BD101', party: 'Demo Motors', amount: 12500, date: '2025-02-09' },
+  { id: 'BD102', billNo: 'BD102', party: 'Sample Autos', amount: 9800, date: '2025-02-08' }
+];
+
+const maxItems = 5;
+
+const storeRecentChallans = (challans || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+let recentChallans = storeRecentChallans.slice(0, maxItems);
+if (recentChallans.length < maxItems) {
+  const needed = maxItems - recentChallans.length;
+  const toAdd = dummyChallans
+    .filter(dc => !recentChallans.some(rc => (rc.challanNo || rc.id) === (dc.challanNo || dc.id)))
+    .slice(0, needed);
+  recentChallans = [...recentChallans, ...toAdd];
+}
+
+const storeRecentBills = (bills || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+let recentBills = storeRecentBills.slice(0, maxItems);
+if (recentBills.length < maxItems) {
+  const needed = maxItems - recentBills.length;
+  const toAdd = dummyBills
+    .filter(db => !recentBills.some(rb => (rb.billNo || rb.id) === (db.billNo || db.id)))
+    .slice(0, needed);
+  recentBills = [...recentBills, ...toAdd];
+}
 
   return (
     <div className="space-y-6">
@@ -119,19 +140,31 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Challans */}
         <div className="bg-white rounded-lg border">
-          <div className="p-4 border-b">
+          <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-medium text-gray-900">Recent Challans</h3>
+            <button 
+              onClick={() => navigate('/transactions/challan-list')}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+            >
+              View
+              <FaArrowRight size={12} />
+            </button>
           </div>
           <div className="p-4 space-y-3">
             {recentChallans.map((challan) => (
               <div key={challan.id} className="flex items-center justify-between text-sm">
                 <div>
-                  <span className="font-medium text-gray-900">{challan.id}</span>
+                  <span className="font-medium text-gray-900">{challan.challanNo || challan.id}</span>
                   <span className="text-gray-600 ml-2">{challan.party}</span>
                 </div>
                 <div className="text-right">
                   <div className="font-medium text-gray-900">{formatCurrency(challan.amount)}</div>
                   <div className="text-xs text-gray-500">{formatDate(new Date(challan.date))}</div>
+                  <div className="text-xs mt-1">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${challan.status === 'Billed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                      {challan.status === 'Billed' ? 'Converted' : 'Not Converted'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -140,14 +173,21 @@ const Dashboard = () => {
 
         {/* Recent Bills */}
         <div className="bg-white rounded-lg border">
-          <div className="p-4 border-b">
+          <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-medium text-gray-900">Recent Bills</h3>
+            <button 
+              onClick={() => navigate('/transactions/bill-list')}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+            >
+              View
+              <FaArrowRight size={12} />
+            </button>
           </div>
           <div className="p-4 space-y-3">
             {recentBills.map((bill) => (
               <div key={bill.id} className="flex items-center justify-between text-sm">
                 <div>
-                  <span className="font-medium text-gray-900">{bill.id}</span>
+                  <span className="font-medium text-gray-900">{bill.billNo || bill.id}</span>
                   <span className="text-gray-600 ml-2">{bill.party}</span>
                 </div>
                 <div className="text-right">
