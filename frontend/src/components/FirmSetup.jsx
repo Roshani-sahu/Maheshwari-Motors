@@ -9,6 +9,7 @@ const FirmSetup = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { showToast, setLoading, firms, addFirm, updateFirm } = useStore();
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     // shortName: '',
@@ -76,19 +77,6 @@ const FirmSetup = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Firm name is required';
-    // if (!formData.shortName.trim()) newErrors.shortName = 'Short name is required';
-    if (formData.type === 'GST' && !formData.gstin.trim()) {
-      newErrors.gstin = 'GSTIN is required for GST registered firms';
-    }
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstin)) {
-      newErrors.gstin = 'Invalid GSTIN format';
-    }
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
-      newErrors.pan = 'Invalid PAN format';
-    }
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -108,7 +96,12 @@ const FirmSetup = () => {
           id: Date.now()
         };
         addFirm(newFirm);
-        showToast('Firm created successfully', 'success');
+        setShowSuccessPopup(true);
+        setTimeout(() => {
+          setShowSuccessPopup(false);
+          navigate('/masters/firm-master');
+        }, 2000);
+        return;
       }
       navigate('/masters/firm-master');
     } catch (error) {
@@ -405,6 +398,24 @@ const FirmSetup = () => {
           </div>
         </form>
       </Card>
+
+      {showSuccessPopup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm mx-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Success!</h3>
+                <p className="text-sm text-gray-600">Firm added successfully</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

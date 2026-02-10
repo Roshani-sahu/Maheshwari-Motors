@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Select, Input } from '../../components/ui';
 import useStore from '../../store';
 
@@ -56,6 +56,7 @@ const BillList = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBill, setEditingBill] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, bill: null });
 
   const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
 
@@ -114,26 +115,7 @@ const BillList = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (bill) => {
-        if (confirm(`Delete bill ${bill.billNo}?`)) {
-          // create a deletion transaction record
-          const delTxn = {
-            id: Date.now() + Math.random(),
-            transactionId: `TXN${String(Date.now()).slice(-6)}`,
-            type: 'Bill',
-            firm: 'Current Firm',
-            amount: bill.amount,
-            date: new Date().toISOString().split('T')[0],
-            party: bill.party,
-            gstType: bill.gstType,
-            status: 'Deleted',
-            reference: bill.billNo
-          };
-          addTransaction(delTxn);
-          removeBill(bill.id);
-          setBills(prev => prev.filter(b => b.id !== bill.id));
-        }
-      },
+      onClick: (bill) => setDeleteDialog({ isOpen: true, bill }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
@@ -396,6 +378,29 @@ const BillList = () => {
           </div>
         )}
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, bill: null })}
+        onConfirm={() => {
+          const delTxn = {
+            id: Date.now() + Math.random(),
+            transactionId: `TXN${String(Date.now()).slice(-6)}`,
+            type: 'Bill',
+            firm: 'Current Firm',
+            amount: deleteDialog.bill.amount,
+            date: new Date().toISOString().split('T')[0],
+            party: deleteDialog.bill.party,
+            gstType: deleteDialog.bill.gstType,
+            status: 'Deleted',
+            reference: deleteDialog.bill.billNo
+          };
+          addTransaction(delTxn);
+          removeBill(deleteDialog.bill.id);
+          setBills(prev => prev.filter(b => b.id !== deleteDialog.bill.id));
+        }}
+        itemName={deleteDialog.bill?.billNo}
+      />
     </div>
   );
 };

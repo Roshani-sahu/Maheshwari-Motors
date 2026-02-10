@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaEdit, FaImage, FaTrash, FaTimes } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
 
@@ -12,6 +12,7 @@ const ItemMaster = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editImageFile, setEditImageFile] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, item: null });
   const categories = [
     { id: 1, name: 'Engine Parts' },
     { id: 2, name: 'Brake System' },
@@ -132,11 +133,7 @@ const ItemMaster = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (item) => {
-        if (window.confirm(`Are you sure you want to delete "${item.itemName}"?`)) {
-          deleteItem(item.id);
-        }
-      },
+      onClick: (item) => setDeleteDialog({ isOpen: true, item }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
@@ -338,6 +335,13 @@ const ItemMaster = () => {
           </div>
         )}
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, item: null })}
+        onConfirm={() => deleteItem(deleteDialog.item.id)}
+        itemName={deleteDialog.item?.itemName}
+      />
     </div>
   );
 };

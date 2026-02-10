@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 
 const FirmMaster = () => {
   const navigate = useNavigate();
   const { firms, setFirms, deleteFirm } = useStore();
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, firm: null });
 
   // Initialize with sample data if empty
   useEffect(() => {
@@ -85,7 +86,7 @@ const FirmMaster = () => {
       key: 'phone',
       label: 'Phone',
       width: '110px',
-      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
+      render: (value, row) => <span className="text-xs sm:text-sm">{row.mobile || value || 'N/A'}</span>
     },
     {
       key: 'email',
@@ -109,11 +110,7 @@ const FirmMaster = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (firm) => {
-        if (window.confirm(`Are you sure you want to delete "${firm.name}"?`)) {
-          deleteFirm(firm.id);
-        }
-      },
+      onClick: (firm) => setDeleteDialog({ isOpen: true, firm }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
@@ -150,6 +147,13 @@ const FirmMaster = () => {
           className="text-xs sm:text-sm"
         />
       </div>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, firm: null })}
+        onConfirm={() => deleteFirm(deleteDialog.firm.id)}
+        itemName={deleteDialog.firm?.name}
+      />
     </div>
   );
 };

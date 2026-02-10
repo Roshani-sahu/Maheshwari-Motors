@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 
 const CategoryMaster = () => {
@@ -13,6 +13,7 @@ const CategoryMaster = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, category: null });
 
   const columns = [
     { key: 'id', label: 'Category ID' },
@@ -34,11 +35,7 @@ const CategoryMaster = () => {
             <FaEdit size={14} />
           </button>
           <button
-            onClick={() => {
-              if (window.confirm(`Delete category "${category.name}"?`)) {
-                setCategories(prev => prev.filter(c => c.id !== category.id));
-              }
-            }}
+            onClick={() => setDeleteDialog({ isOpen: true, category })}
             className="p-1.5 text-red-600 hover:bg-red-50 rounded"
             title="Delete"
           >
@@ -118,6 +115,13 @@ const CategoryMaster = () => {
           </div>
         </div>
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, category: null })}
+        onConfirm={() => setCategories(prev => prev.filter(c => c.id !== deleteDialog.category.id))}
+        itemName={deleteDialog.category?.name}
+      />
     </div>
   );
 };

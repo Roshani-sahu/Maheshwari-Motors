@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 
 const AddSupplier = () => {
@@ -12,6 +12,7 @@ const AddSupplier = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [formData, setFormData] = useState({ name: '', contact: '', email: '', address: '' });
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, supplier: null });
 
   const columns = [
     { key: 'id', label: 'ID' },
@@ -36,11 +37,7 @@ const AddSupplier = () => {
             <FaEdit size={14} />
           </button>
           <button
-            onClick={() => {
-              if (window.confirm(`Delete supplier "${supplier.name}"?`)) {
-                setSuppliers(prev => prev.filter(s => s.id !== supplier.id));
-              }
-            }}
+            onClick={() => setDeleteDialog({ isOpen: true, supplier })}
             className="p-1.5 text-red-600 hover:bg-red-50 rounded"
             title="Delete"
           >
@@ -136,6 +133,13 @@ const AddSupplier = () => {
           </div>
         </div>
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, supplier: null })}
+        onConfirm={() => setSuppliers(prev => prev.filter(s => s.id !== deleteDialog.supplier.id))}
+        itemName={deleteDialog.supplier?.name}
+      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaFileInvoiceDollar, FaFilter, FaCheck, FaPlus, FaCheckSquare, FaEdit, FaTrash, FaDownload, FaTimes } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Select, Input } from '../../components/ui';
 import useStore from '../../store';
 
@@ -80,6 +80,7 @@ const ChallanList = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingChallan, setEditingChallan] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, challan: null });
 
   const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
   const availableItems = ['Engine Oil', 'Brake Pads', 'Air Filter', 'Spark Plugs', 'Transmission Fluid', 'Coolant', 'Battery'];
@@ -134,25 +135,7 @@ const ChallanList = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (challan) => {
-        if (confirm(`Delete challan ${challan.challanNo}?`)) {
-          // create a deletion transaction record
-          const delTxn = {
-            id: Date.now() + Math.random(),
-            transactionId: `TXN${String(Date.now()).slice(-6)}`,
-            type: 'Challan',
-            firm: 'Current Firm',
-            amount: challan.amount,
-            date: new Date().toISOString().split('T')[0],
-            party: challan.party,
-            gstType: challan.gstType,
-            status: 'Deleted',
-            reference: challan.challanNo
-          };
-          addTransaction(delTxn);
-          setChallans(prev => prev.filter(c => c.id !== challan.id));
-        }
-      },
+      onClick: (challan) => setDeleteDialog({ isOpen: true, challan }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
@@ -731,6 +714,28 @@ const ChallanList = () => {
           </div>
         )}
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, challan: null })}
+        onConfirm={() => {
+          const delTxn = {
+            id: Date.now() + Math.random(),
+            transactionId: `TXN${String(Date.now()).slice(-6)}`,
+            type: 'Challan',
+            firm: 'Current Firm',
+            amount: deleteDialog.challan.amount,
+            date: new Date().toISOString().split('T')[0],
+            party: deleteDialog.challan.party,
+            gstType: deleteDialog.challan.gstType,
+            status: 'Deleted',
+            reference: deleteDialog.challan.challanNo
+          };
+          addTransaction(delTxn);
+          setChallans(prev => prev.filter(c => c.id !== deleteDialog.challan.id));
+        }}
+        itemName={deleteDialog.challan?.challanNo}
+      />
     </div>
   );
 };
