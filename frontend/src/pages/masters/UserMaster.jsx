@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import { userAPI } from '../../services/api';
 import useStore from '../../store';
 
 const UserMaster = () => {
+
   const { users, setUsers } = useStore();
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, user: null });
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
@@ -78,6 +81,7 @@ const UserMaster = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
+
       onClick: async (user) => {
         if (window.confirm(`Are you sure you want to delete user "${user.username}"?`)) {
           setLoading(true);
@@ -92,9 +96,11 @@ const UserMaster = () => {
           }
         }
       },
+
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
+
 
   const handleAddUser = async () => {
     setLoading(true);
@@ -109,6 +115,7 @@ const UserMaster = () => {
     } finally {
       setLoading(false);
     }
+
   };
 
   return (
@@ -143,7 +150,7 @@ const UserMaster = () => {
       </div>
 
       {/* Add User Modal */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add User" size="sm md:md">
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add User" size="sm">
         <div className="space-y-3 sm:space-y-4">
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Username</label>
@@ -185,7 +192,7 @@ const UserMaster = () => {
       </Modal>
 
       {/* Edit User Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User" size="sm md:md">
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User" size="sm">
         {editingUser && (
           <div className="space-y-3 sm:space-y-4">
             <div>
@@ -237,6 +244,7 @@ const UserMaster = () => {
                 } finally {
                   setLoading(false);
                 }
+               test2
               }} className="text-xs sm:text-sm py-1.5 sm:py-2">
                 Save Changes
               </Button>
@@ -245,6 +253,13 @@ const UserMaster = () => {
           </div>
         )}
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, user: null })}
+        onConfirm={() => deleteUser(deleteDialog.user.id)}
+        itemName={deleteDialog.user?.username}
+      />
     </div>
   );
 };

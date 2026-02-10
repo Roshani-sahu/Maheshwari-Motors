@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaFilter, FaPercent, FaMoneyBillWave, FaEdit, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal, Toggle } from '../../components/common';
+import { DataTable, Modal, Toggle, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input, Select } from '../../components/ui';
 import { transactionAPI, discountAPI } from '../../services/api';
 import useStore from '../../store';
 
 const AccountMaster = () => {
+
   const [activeTab, setActiveTab] = useState('transactions'); // transactions | discounts
   const { selectedFirm, setLoading, showToast } = useStore();
+
   
   const [transactions, setTransactions] = useState([]);
   const [discounts, setDiscounts] = useState([]);
 
+
   useEffect(() => {
     if (selectedFirm?._id || selectedFirm?.id) {
        loadData();
+
     }
   }, [selectedFirm, activeTab]);
 
@@ -35,6 +39,10 @@ const AccountMaster = () => {
       setLoading(false);
     }
   };
+
+  // derive unique company and item name lists from existing discounts
+  const companyOptions = Array.from(new Set(discounts.filter(d => d.companyName).map(d => d.companyName)));
+  const itemOptions = Array.from(new Set(discounts.filter(d => d.itemName).map(d => d.itemName)));
 
   const [filters, setFilters] = useState({
     dateFrom: '',
@@ -170,6 +178,7 @@ const AccountMaster = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
+
       onClick: async (discount) => {
         if (window.confirm('Delete discount?')) {
             setLoading(true);
@@ -184,6 +193,7 @@ const AccountMaster = () => {
             }
         }
       },
+
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
@@ -197,6 +207,7 @@ const AccountMaster = () => {
     }
     return true;
   });
+
 
   const handleAddDiscount = async () => {
     setLoading(true);
@@ -255,6 +266,7 @@ const AccountMaster = () => {
     } finally {
         setLoading(false);
     }
+
   };
 
   const handleEditDiscount = async () => {
@@ -412,7 +424,7 @@ const AccountMaster = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
             <Select
               value={newDiscount.discountType}
-              onChange={(value) => setNewDiscount(prev => ({ ...prev, discountType: value }))}
+              onChange={(value) => setNewDiscount(prev => ({ ...prev, discountType: value, itemName: '', companyName: '' }))}
               className="text-xs sm:text-sm"
             >
               <option value="ITEM">Item Discount</option>
@@ -428,6 +440,7 @@ const AccountMaster = () => {
               value={newDiscount.amount}
               onChange={(value) => setNewDiscount(prev => ({ ...prev, amount: value }))}
               placeholder="Enter discount amount"
+              onWheel={(e) => e.target.blur()}
               className="text-xs sm:text-sm"
             />
           </div>
@@ -435,24 +448,32 @@ const AccountMaster = () => {
           {newDiscount.discountType === 'ITEM' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-              <Input
+              <Select
                 value={newDiscount.itemName}
                 onChange={(value) => setNewDiscount(prev => ({ ...prev, itemName: value }))}
-                placeholder="Enter item name"
                 className="text-xs sm:text-sm"
-              />
+              >
+                <option value="">Select item</option>
+                {itemOptions.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </Select>
             </div>
           )}
 
           {newDiscount.discountType === 'COMPANY' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-              <Input
+              <Select
                 value={newDiscount.companyName}
                 onChange={(value) => setNewDiscount(prev => ({ ...prev, companyName: value }))}
-                placeholder="Enter company name"
                 className="text-xs sm:text-sm"
-              />
+              >
+                <option value="">Select company</option>
+                {companyOptions.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </Select>
             </div>
           )}
 
@@ -470,14 +491,14 @@ const AccountMaster = () => {
   
 
       {/* Edit Discount Modal */}
-      <Modal isOpen={isEditDiscountModalOpen} onClose={() => setIsEditDiscountModalOpen(false)} title="Edit Discount" size="sm md:md">
+      <Modal isOpen={isEditDiscountModalOpen} onClose={() => setIsEditDiscountModalOpen(false)} title="Edit Discount" size="sm">
         {editingDiscount && (
           <div className="space-y-3 sm:space-y-4">
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Discount Type</label>
               <Select
                 value={editingDiscount.discountType}
-                onChange={(value) => setEditingDiscount(prev => ({ ...prev, discountType: value }))}
+                onChange={(value) => setEditingDiscount(prev => ({ ...prev, discountType: value, itemName: '', itemId: null, companyName: '', companyId: null }))}
                 className="text-xs sm:text-sm py-1.5 sm:py-2"
               >
                 <option value="ITEM">Item Discount</option>
@@ -500,24 +521,38 @@ const AccountMaster = () => {
             {editingDiscount.discountType === 'ITEM' && (
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Item Name</label>
-                <Input
+                <Select
                   value={editingDiscount.itemName || ''}
-                  onChange={(value) => setEditingDiscount(prev => ({ ...prev, itemName: value }))}
-                  placeholder="Enter item name"
+                  onChange={(value) => {
+                    const existing = discounts.find(d => d.itemName === value && d.itemId);
+                    setEditingDiscount(prev => ({ ...prev, itemName: value, itemId: existing ? existing.itemId : (prev.itemId || 'ITM' + Date.now()) }));
+                  }}
                   className="text-xs sm:text-sm py-1.5 sm:py-2"
-                />
+                >
+                  <option value="">Select item</option>
+                  {itemOptions.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </Select>
               </div>
             )}
 
             {editingDiscount.discountType === 'COMPANY' && (
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                <Input
+                <Select
                   value={editingDiscount.companyName || ''}
-                  onChange={(value) => setEditingDiscount(prev => ({ ...prev, companyName: value }))}
-                  placeholder="Enter company name"
+                  onChange={(value) => {
+                    const existing = discounts.find(d => d.companyName === value && d.companyId);
+                    setEditingDiscount(prev => ({ ...prev, companyName: value, companyId: existing ? existing.companyId : (prev.companyId || 'COMP' + Date.now()) }));
+                  }}
                   className="text-xs sm:text-sm py-1.5 sm:py-2"
-                />
+                >
+                  <option value="">Select company</option>
+                  {companyOptions.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </Select>
               </div>
             )}
 
@@ -528,6 +563,19 @@ const AccountMaster = () => {
           </div>
         )}
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, item: null, type: '' })}
+        onConfirm={() => {
+          if (deleteDialog.type === 'transaction') {
+            setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item.id));
+          } else if (deleteDialog.type === 'discount') {
+            setDiscounts(prev => prev.filter(d => d.id !== deleteDialog.item.id));
+          }
+        }}
+        itemName={deleteDialog.type === 'transaction' ? deleteDialog.item?.transactionId : `discount for ${deleteDialog.item?.itemName || deleteDialog.item?.companyName}`}
+      />
     </div>
   );
 };

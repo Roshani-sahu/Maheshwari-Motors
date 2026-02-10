@@ -12,9 +12,11 @@ const AddItem = () => {
     item_name: '',
     amount: '',
     threshold: '',
+
     gst_stock: '',
     nongst_stock: '',
     image: null
+
   });
   const [errors, setErrors] = useState({});
 
@@ -47,6 +49,7 @@ const AddItem = () => {
       return;
     }
 
+
     setLoading(true);
     try {
         const formDataPayload = new FormData();
@@ -59,6 +62,7 @@ const AddItem = () => {
         if (formData.image) {
             formDataPayload.append('image', formData.image);
         }
+
 
         // Axios (via itemAPI.create) will automatically set Content-Type to multipart/form-data when data is FormData
         await itemAPI.create(formDataPayload);
@@ -164,6 +168,19 @@ const AddItem = () => {
                 error={errors.nongst_stock}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+            <select
+              value={formData.categoryId}
+              onChange={(e) => handleChange('categoryId', e.target.value)}
+              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value={1}>Engine Parts</option>
+              <option value={2}>Brake System</option>
+              <option value={3}>Filters</option>
+            </select>
           </div>
 
           <div>

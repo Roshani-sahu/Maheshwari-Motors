@@ -14,6 +14,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import CompanySelection from "./pages/CompanySelection";
 import Reports from "./pages/Reports";
 import AddItem from "./pages/AddItem";
+import Settings from "./pages/Settings";
+import UserProfile from "./pages/UserProfile";
 
 // Master Pages
 import FirmMaster from "./pages/masters/FirmMaster";
@@ -42,6 +44,8 @@ import PurchaseReturnReport from "./pages/reports/PurchaseReturnReport";
 // Setup Pages
 import BackupRestore from "./pages/setup/BackupRestore";
 import FinancialYearClose from "./pages/setup/FinancialYearClose";
+
+import HelpSupportPage from "./pages/HelpSupportPage";  
 
 // Components
 import FirmSetup from "./components/FirmSetup";
@@ -97,11 +101,20 @@ const App = () => {
           <Route path="/setup/backup-restore" element={<BackupRestore />} />
           <Route path="/setup/financial-year-close" element={<FinancialYearClose />} />
           
+          {/* Settings */}
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/user-profile" element={<UserProfile />} />
+          
           {/* Legacy routes - redirect to new structure */}
           <Route path="/firm-setup" element={<Navigate to="/masters/firm-master" replace />} />
           <Route path="/item-master" element={<Navigate to="/inventory/item-master" replace />} />
           <Route path="/challan-list" element={<Navigate to="/transactions/challan-list" replace />} />
           <Route path="/add-item" element={<Navigate to="/masters/item-master/add" replace />} />
+
+
+
+          {/* Help & Support */}
+          <Route path="/help-support" element={<HelpSupportPage />} />
         </Route>
         
         {/* Fallback */}

@@ -9,8 +9,7 @@ const Login = () => {
   const { setUser, showToast, setLoading } = useStore();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    companyId: '',
-    email: '',
+    username: '',
     password: ''
   });
   const [errors, setErrors] = useState({});
@@ -25,8 +24,7 @@ const Login = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.companyId) newErrors.companyId = 'Company ID is required';
-    if (!formData.email) newErrors.email = 'Email is required';
+    if (!formData.username) newErrors.username = 'Email/Username is required';
     if (!formData.password) newErrors.password = 'Password is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -38,6 +36,7 @@ const Login = () => {
 
     setLoading(true);
     try {
+
       const response = await authAPI.login(formData);
       // Backend returns { statusCode, success, message, data: { token, ...user } }
       const { data } = response.data;
@@ -47,9 +46,10 @@ const Login = () => {
       setUser(userData);
       showToast('Login successful', 'success');
       navigate('/company-selection');
+
     } catch (error) {
-      showToast(error.response?.data?.message || 'Login failed', 'error');
-      setErrors({ general: 'Invalid credentials. Please try again.' });
+      showToast('Invalid credentials.', 'error');
+      setErrors({ general: 'Invalid credentials.' });
     } finally {
       setLoading(false);
     }
@@ -78,42 +78,23 @@ const Login = () => {
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-5">
               
-              {/* Company ID */}
+              {/* Email/Username */}
               <div>
                 <label className="block text-sm text-neutral-700">
-                  Company ID
+                  Email / Username
                 </label>
                 <input
-                  name="companyId"
+                  name="username"
                   type="text"
                   required
-                  placeholder="e.g., MOTORS-GST"
-                  value={formData.companyId}
+                  placeholder="Enter email or username"
+                  value={formData.username}
                   onChange={handleChange}
                   className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900 ${
-                    errors.companyId ? 'border-red-300' : 'border-neutral-300'
+                    errors.username ? 'border-red-300' : 'border-neutral-300'
                   }`}
                 />
-                {errors.companyId && <p className="mt-1 text-sm text-red-600">{errors.companyId}</p>}
-              </div>
-
-              {/* User Email */}
-              <div>
-                <label className="block text-sm text-neutral-700">
-                  User Email
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="john.doe@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900 ${
-                    errors.email ? 'border-red-300' : 'border-neutral-300'
-                  }`}
-                />
-                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
               </div>
 
               {/* Password */}
@@ -153,7 +134,7 @@ const Login = () => {
                 <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-md p-3 flex items-start gap-3">
                   <FaCircleExclamation className="text-red-600 mt-0.5" />
                   <div>
-                    <p>Invalid Credentials</p>
+                    {/* <p>Invalid Credentials</p> */}
                     <p className="text-red-600">
                       {errors.general}
                     </p>

@@ -4,6 +4,7 @@ import { groupAPI } from '../../services/api';
 import useStore from '../../store';
 
 const ViewCategory = () => {
+
   const { setLoading, showToast } = useStore();
   const [categories, setCategories] = useState([]);
 
@@ -26,6 +27,7 @@ const ViewCategory = () => {
       setLoading(false);
     }
   };
+
 
   const columns = [
     { key: '_id', label: 'Category ID' },

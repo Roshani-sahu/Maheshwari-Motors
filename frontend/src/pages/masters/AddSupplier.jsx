@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
+
 import { supplierAPI } from '../../services/api';
 import useStore from '../../store';
 
@@ -40,6 +41,7 @@ const AddSupplier = () => {
       }
   };
 
+
   const columns = [
     { 
         key: '_id', 
@@ -53,6 +55,7 @@ const AddSupplier = () => {
     },
     { key: 'phone', label: 'Contact' },
     { key: 'email', label: 'Email' },
+
     { key: 'gstin', label: 'GSTIN' },
     {
       key: 'actions',
@@ -142,6 +145,7 @@ const AddSupplier = () => {
       } finally {
           setLoading(false);
       }
+
   };
 
   return (
@@ -163,6 +167,7 @@ const AddSupplier = () => {
       <DataTable
         columns={columns}
         data={suppliers}
+        actions={actions}
         searchable={true}
         sortable={true}
         pagination={true}
@@ -245,6 +250,19 @@ const AddSupplier = () => {
           </div>
         </div>
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, supplier: null })}
+        onConfirm={() => {
+          const newSuppliers = suppliers.filter(s => s.id !== deleteDialog.supplier.id);
+          setSuppliers(newSuppliers);
+          localStorage.setItem('suppliers', JSON.stringify(newSuppliers));
+          setDeleteDialog({ isOpen: false, supplier: null });
+          showToast('Supplier deleted successfully', 'success');
+        }}
+        itemName={deleteDialog.supplier?.name}
+      />
     </div>
   );
 };

@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
+
 import { groupAPI } from '../../services/api';
 import useStore from '../../store';
 
 const CategoryMaster = () => {
   const [categories, setCategories] = useState([]);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+
   const { setLoading, showToast } = useStore();
 
   useEffect(() => {
@@ -103,6 +106,7 @@ const CategoryMaster = () => {
     } finally {
       setLoading(false);
     }
+
   };
 
   return (
@@ -121,6 +125,7 @@ const CategoryMaster = () => {
       <DataTable
         columns={columns}
         data={categories}
+        actions={actions}
         searchable={true}
         sortable={true}
         pagination={true}
@@ -161,6 +166,19 @@ const CategoryMaster = () => {
           </div>
         </div>
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, category: null })}
+        onConfirm={() => {
+          const newCategories = categories.filter(c => c.id !== deleteDialog.category.id);
+          setCategories(newCategories);
+          localStorage.setItem('categories', JSON.stringify(newCategories));
+          setDeleteDialog({ isOpen: false, category: null });
+          showToast('Category deleted successfully', 'success');
+        }}
+        itemName={deleteDialog.category?.name}
+      />
     </div>
   );
 };

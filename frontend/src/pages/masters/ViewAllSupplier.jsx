@@ -4,6 +4,7 @@ import { supplierAPI } from '../../services/api';
 import useStore from '../../store';
 
 const ViewAllSupplier = () => {
+
   const { setLoading, showToast } = useStore();
   const [suppliers, setSuppliers] = useState([]);
 
@@ -26,6 +27,7 @@ const ViewAllSupplier = () => {
           setLoading(false);
       }
   };
+
 
   const columns = [
     { 

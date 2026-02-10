@@ -71,7 +71,9 @@ const useStore = create(devtools((set, get) => ({
   // Data setters
   setAccounts: (accounts) => set({ accounts }),
   setItems: (items) => set({ items }),
-  addItem: (item) => set((state) => ({ items: [...state.items, item] })),
+  addItem: (item) => set((state) => ({ 
+    items: [...state.items, { ...item, id: state.items.length + 1 }] 
+  })),
   updateItem: (id, updatedItem) => set((state) => ({
     items: state.items.map(item => (item._id || item.id) === id ? updatedItem : item)
   })),
@@ -85,6 +87,10 @@ const useStore = create(devtools((set, get) => ({
   setTransporters: (transporters) => set({ transporters }),
   setBooks: (books) => set({ books }),
   setChallans: (challans) => set({ challans }),
+  addChallan: (challan) => set((state) => ({ challans: [challan, ...state.challans] })),
+  updateChallan: (id, updated) => set((state) => ({
+    challans: state.challans.map(c => c.id === id ? { ...c, ...updated } : c)
+  })),
   setBills: (bills) => set({ bills }),
   setTransactions: (transactions) => set({ transactions }),
   

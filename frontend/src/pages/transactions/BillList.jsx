@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Select, Input } from '../../components/ui';
 import { billAPI } from '../../services/api';
 import useStore from '../../store';
 
 const BillList = () => {
+
   const { bills: storeBills, setBills: setStoreBills, selectedFirm, setLoading, showToast, addTransaction, removeBill } = useStore();
   const [bills, setBills] = useState([]);
+
 
   useEffect(() => {
     if (selectedFirm?._id || selectedFirm?.id) {
@@ -33,13 +35,15 @@ const BillList = () => {
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    party: ''
+    party: '',
+    gstType: 'all'
   });
 
   const [selectedBill, setSelectedBill] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBill, setEditingBill] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, bill: null });
 
   const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
 
@@ -98,26 +102,7 @@ const BillList = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (bill) => {
-        if (confirm(`Delete bill ${bill.billNo}?`)) {
-          // create a deletion transaction record
-          const delTxn = {
-            id: Date.now() + Math.random(),
-            transactionId: `TXN${String(Date.now()).slice(-6)}`,
-            type: 'Bill',
-            firm: 'Current Firm',
-            amount: bill.amount,
-            date: new Date().toISOString().split('T')[0],
-            party: bill.party,
-            gstType: bill.gstType,
-            status: 'Deleted',
-            reference: bill.billNo
-          };
-          addTransaction(delTxn);
-          removeBill(bill.id);
-          setBills(prev => prev.filter(b => b.id !== bill.id));
-        }
-      },
+      onClick: (bill) => setDeleteDialog({ isOpen: true, bill }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
@@ -170,12 +155,15 @@ const BillList = () => {
     ));
     setIsEditModalOpen(false);
     setEditingBill(null);
-    alert('Bill updated successfully!');
+    showToast('Bill updated successfully!', 'success');
   };
 
   // Apply filters
   const filteredBills = bills.filter(bill => {
     if (filters.party && !bill.party.toLowerCase().includes(filters.party.toLowerCase())) return false;
+    if (filters.gstType !== 'all' && bill.gstType !== parseInt(filters.gstType)) return false;
+    if (filters.dateFrom && new Date(bill.date) < new Date(filters.dateFrom)) return false;
+    if (filters.dateTo && new Date(bill.date) > new Date(filters.dateTo)) return false;
     return true;
   });
 
@@ -209,23 +197,39 @@ const BillList = () => {
           <FaFilter className="text-gray-500 text-sm sm:text-base" />
           <h3 className="font-medium text-gray-900 text-sm sm:text-base">Filters</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4">
           <Input
             placeholder="Search party..."
             value={filters.party}
             onChange={(e) => setFilters(prev => ({ ...prev, party: e.target.value }))}
             className="text-xs sm:text-sm py-1.5 sm:py-2"
           />
+          <Select
+            value={filters.gstType}
+            onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
+          >
+            <option value="all">All Types</option>
+            <option value="1">1 (GST)</option>
+            <option value="0">0 (Non GST)</option>
+          </Select>
           <Input
             type="date"
             value={filters.dateFrom}
             onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+            placeholder="From Date"
+            className="text-xs sm:text-sm py-1.5 sm:py-2"
+          />
+          <Input
+            type="date"
+            value={filters.dateTo}
+            onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+            placeholder="To Date"
             className="text-xs sm:text-sm py-1.5 sm:py-2"
           />
           <Button
             variant="outline"
             onClick={() => setFilters({
-              dateFrom: '', dateTo: '', party: ''
+              dateFrom: '', dateTo: '', party: '', gstType: 'all'
             })}
             className="text-xs sm:text-sm py-1.5 sm:py-2"
           >
@@ -342,6 +346,7 @@ const BillList = () => {
                 value={editingBill.amount}
                 onChange={(e) => setEditingBill(prev => ({ ...prev, amount: e.target.value }))}
                 placeholder="Enter amount"
+                onWheel={(e) => e.target.blur()}
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -353,8 +358,8 @@ const BillList = () => {
                 onChange={(e) => setEditingBill(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value={1}>1</option>
-                <option value={0}>0</option>
+                <option value={1}>1 (GST)</option>
+                <option value={0}>0 (Non GST)</option>
               </select>
             </div>
             
@@ -380,6 +385,29 @@ const BillList = () => {
           </div>
         )}
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, bill: null })}
+        onConfirm={() => {
+          const delTxn = {
+            id: Date.now() + Math.random(),
+            transactionId: `TXN${String(Date.now()).slice(-6)}`,
+            type: 'Bill',
+            firm: 'Current Firm',
+            amount: deleteDialog.bill.amount,
+            date: new Date().toISOString().split('T')[0],
+            party: deleteDialog.bill.party,
+            gstType: deleteDialog.bill.gstType,
+            status: 'Deleted',
+            reference: deleteDialog.bill.billNo
+          };
+          addTransaction(delTxn);
+          removeBill(deleteDialog.bill.id);
+          setBills(prev => prev.filter(b => b.id !== deleteDialog.bill.id));
+        }}
+        itemName={deleteDialog.bill?.billNo}
+      />
     </div>
   );
 };

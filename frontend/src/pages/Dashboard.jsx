@@ -5,6 +5,7 @@ import {
   FaFileInvoiceDollar, 
   FaExclamationTriangle, 
   FaCalendarDay,
+  FaArrowRight,
   // FaToggleOn,
   // FaToggleOff
 } from 'react-icons/fa';
@@ -26,6 +27,7 @@ const Dashboard = () => {
   });
 
   const [billPeriod, setBillPeriod] = useState('today'); // today | month
+
 
   const [recentChallans, setRecentChallans] = useState([]);
   const [recentBills, setRecentBills] = useState([]);
@@ -61,6 +63,7 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -131,7 +134,7 @@ const Dashboard = () => {
     subtitle="Below threshold"
     icon={FaExclamationTriangle}
     color="red"
-    onClick={() => navigate('/masters/stock-alert-master')}
+    onClick={() => navigate('/inventory/stock-alert-master')}
     className="p-3 sm:p-4 md:p-6"
   />
 </div> 
@@ -139,19 +142,31 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Challans */}
         <div className="bg-white rounded-lg border">
-          <div className="p-4 border-b">
+          <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-medium text-gray-900">Recent Challans</h3>
+            <button 
+              onClick={() => navigate('/transactions/challan-list')}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+            >
+              View
+              <FaArrowRight size={12} />
+            </button>
           </div>
           <div className="p-4 space-y-3">
             {recentChallans.map((challan) => (
               <div key={challan.id} className="flex items-center justify-between text-sm">
                 <div>
-                  <span className="font-medium text-gray-900">{challan.id}</span>
+                  <span className="font-medium text-gray-900">{challan.challanNo || challan.id}</span>
                   <span className="text-gray-600 ml-2">{challan.party}</span>
                 </div>
                 <div className="text-right">
                   <div className="font-medium text-gray-900">{formatCurrency(challan.amount)}</div>
                   <div className="text-xs text-gray-500">{formatDate(new Date(challan.date))}</div>
+                  <div className="text-xs mt-1">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${challan.status === 'Billed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                      {challan.status === 'Billed' ? 'Converted' : 'Not Converted'}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -160,14 +175,21 @@ const Dashboard = () => {
 
         {/* Recent Bills */}
         <div className="bg-white rounded-lg border">
-          <div className="p-4 border-b">
+          <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-medium text-gray-900">Recent Bills</h3>
+            <button 
+              onClick={() => navigate('/transactions/bill-list')}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+            >
+              View
+              <FaArrowRight size={12} />
+            </button>
           </div>
           <div className="p-4 space-y-3">
             {recentBills.map((bill) => (
               <div key={bill.id} className="flex items-center justify-between text-sm">
                 <div>
-                  <span className="font-medium text-gray-900">{bill.id}</span>
+                  <span className="font-medium text-gray-900">{bill.billNo || bill.id}</span>
                   <span className="text-gray-600 ml-2">{bill.party}</span>
                 </div>
                 <div className="text-right">

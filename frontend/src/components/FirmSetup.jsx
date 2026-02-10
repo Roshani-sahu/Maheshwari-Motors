@@ -9,6 +9,7 @@ const FirmSetup = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { showToast, setLoading, firms, addFirm, updateFirm } = useStore();
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     // shortName: '',
@@ -75,20 +76,41 @@ const FirmSetup = () => {
 
   const validateForm = () => {
     const newErrors = {};
+    
+    // Required fields
     if (!formData.name.trim()) newErrors.name = 'Firm name is required';
-    // if (!formData.shortName.trim()) newErrors.shortName = 'Short name is required';
-    if (formData.type === 'GST' && !formData.gstin.trim()) {
-      newErrors.gstin = 'GSTIN is required for GST registered firms';
-    }
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstin)) {
-      newErrors.gstin = 'Invalid GSTIN format';
-    }
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
-      newErrors.pan = 'Invalid PAN format';
-    }
+    if (!formData.type) newErrors.type = 'Company type is required';
+    
+    // Email validation
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
+      newErrors.email = 'Please enter a valid email address';
     }
+    
+    // Mobile validation
+    if (formData.mobile && !/^[6-9]\d{9}$/.test(formData.mobile)) {
+      newErrors.mobile = 'Please enter a valid 10-digit mobile number';
+    }
+    
+    // Pincode validation
+    if (formData.pincode && !/^\d{6}$/.test(formData.pincode)) {
+      newErrors.pincode = 'Please enter a valid 6-digit pincode';
+    }
+    
+    // PAN validation
+    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
+      newErrors.pan = 'Please enter a valid PAN (e.g., ABCDE1234F)';
+    }
+    
+    // GSTIN validation (if GST type)
+    if (formData.type === '0' && formData.gstin && !/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$/.test(formData.gstin)) {
+      newErrors.gstin = 'Please enter a valid 15-digit GSTIN';
+    }
+    
+    // IFSC validation
+    if (formData.ifscCode && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode)) {
+      newErrors.ifscCode = 'Please enter a valid IFSC code (e.g., SBIN0001234)';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -105,10 +127,15 @@ const FirmSetup = () => {
       } else {
         const newFirm = {
           ...formData,
-          id: Date.now()
+          id: firms.length + 1
         };
         addFirm(newFirm);
-        showToast('Firm created successfully', 'success');
+        setShowSuccessPopup(true);
+        setTimeout(() => {
+          setShowSuccessPopup(false);
+          navigate('/masters/firm-master');
+        }, 2000);
+        return;
       }
       navigate('/masters/firm-master');
     } catch (error) {
@@ -161,7 +188,7 @@ const FirmSetup = () => {
               />
             </FormField> */}
 
-             <FormField label="Email" error={errors.email}>
+            <FormField label="Email" error={errors.email}>
               <Input
                 name="email"
                 type="email"
@@ -203,13 +230,14 @@ const FirmSetup = () => {
               </Select>
             </FormField>
 
-            <FormField label="Pincode">
+            <FormField label="Pincode" error={errors.pincode}>
               <Input
                 name="pincode"
                 value={formData.pincode}
                 onChange={handleChange}
                 placeholder="6 digit pincode"
                 maxLength={6}
+                error={errors.pincode}
               />
             </FormField>
 
@@ -230,12 +258,14 @@ const FirmSetup = () => {
               />
             </FormField> */}
 
-            <FormField label="Mobile No">
+            <FormField label="Phone No">
               <Input
                 name="mobile"
                 value={formData.mobile}
                 onChange={handleChange}
-                placeholder="Mobile number"
+                placeholder="10 digit mobile number"
+                maxLength={10}
+                error={errors.mobile}
               />
             </FormField>
 
@@ -264,70 +294,18 @@ const FirmSetup = () => {
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-medium text-gray-900 mb-4">Other Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* <FormField label="GSTIN" error={errors.gstin}>
-                <Input
-                  name="gstin"
-                  value={formData.gstin}
-                  onChange={handleChange}
-                  placeholder="15 digit GSTIN"
-                  maxLength={15}
-                  error={errors.gstin}
-                />
-              </FormField>
+                <FormField label="GSTIN" error={errors.gstin}>
+                  <Input
+                    name="gstin"
+                    value={formData.gstin}
+                    onChange={handleChange}
+                    placeholder="15 digit GSTIN"
+                    maxLength={15}
+                    error={errors.gstin}
+                  />
+                </FormField>
 
-              <FormField label="CIN No">
-                <Input
-                  name="cin"
-                  value={formData.cin}
-                  onChange={handleChange}
-                  placeholder="Corporate Identity Number"
-                />
-              </FormField>
-
-              <FormField label="Regi. No">
-                <Input
-                  name="registrationNo"
-                  value={formData.registrationNo}
-                  onChange={handleChange}
-                  placeholder="Registration number"
-                />
-              </FormField>
-
-              <FormField label="Tin Cst No">
-                <Input
-                  name="tinCst"
-                  value={formData.tinCst}
-                  onChange={handleChange}
-                  placeholder="TIN CST number"
-                />
-              </FormField>
-
-              <FormField label="Ecc No">
-                <Input
-                  name="ecc"
-                  value={formData.ecc}
-                  onChange={handleChange}
-                  placeholder="ECC number"
-                />
-              </FormField>
-
-              <FormField label="Range No">
-                <Input
-                  name="range"
-                  value={formData.range}
-                  onChange={handleChange}
-                  placeholder="Range number"
-                />
-              </FormField>
-
-              <FormField label="Division No">
-                <Input
-                  name="division"
-                  value={formData.division}
-                  onChange={handleChange}
-                  placeholder="Division number"
-                />
-              </FormField> */}
+                {/* Additional optional fields kept commented out for future use */}
 
              
               {/* <FormField label="Rule">
@@ -367,12 +345,13 @@ const FirmSetup = () => {
                 />
               </FormField>
 
-              <FormField label="IFSCode">
+              <FormField label="IFSCode" error={errors.ifscCode}>
                 <Input
                   name="ifscCode"
                   value={formData.ifscCode}
                   onChange={handleChange}
-                  placeholder="IFSC code"
+                  placeholder="IFSC code (e.g., SBIN0001234)"
+                  error={errors.ifscCode}
                 />
               </FormField>
 
@@ -381,7 +360,7 @@ const FirmSetup = () => {
                   name="pan"
                   value={formData.pan}
                   onChange={handleChange}
-                  placeholder="10 digit PAN"
+                  placeholder="PAN (e.g., ABCDE1234F)"
                   maxLength={10}
                   error={errors.pan}
                 />
@@ -405,6 +384,24 @@ const FirmSetup = () => {
           </div>
         </form>
       </Card>
+
+      {showSuccessPopup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 shadow-xl max-w-sm mx-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Success!</h3>
+                <p className="text-sm text-gray-600">Firm added successfully</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

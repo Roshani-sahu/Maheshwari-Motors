@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaEye, FaFileInvoiceDollar, FaFilter, FaCheck, FaPlus, FaCheckSquare, FaEdit, FaTrash, FaDownload, FaTimes } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Select, Input } from '../../components/ui';
 import { challanAPI } from '../../services/api';
 import useStore from '../../store';
 
 const ChallanList = () => {
+
   const { addBill, addTransaction, removeChallans, selectedFirm, setLoading, showToast } = useStore();
   const [challans, setChallans] = useState([]);
 
@@ -29,10 +30,19 @@ const ChallanList = () => {
     }
   };
 
+
+  // seed store challans on mount if store is empty
+  useEffect(() => {
+    if ((storeChallans || []).length === 0) {
+      setStoreChallans(challans);
+    }
+  }, []); // run once
+
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    party: ''
+    party: '',
+    gstType: 'all'
   });
 
   const [selectedChallan, setSelectedChallan] = useState(null);
@@ -50,6 +60,8 @@ const ChallanList = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingChallan, setEditingChallan] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, challan: null });
+  const [validationError, setValidationError] = useState('');
 
   const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
   const availableItems = ['Engine Oil', 'Brake Pads', 'Air Filter', 'Spark Plugs', 'Transmission Fluid', 'Coolant', 'Battery'];
@@ -104,25 +116,7 @@ const ChallanList = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (challan) => {
-        if (confirm(`Delete challan ${challan.challanNo}?`)) {
-          // create a deletion transaction record
-          const delTxn = {
-            id: Date.now() + Math.random(),
-            transactionId: `TXN${String(Date.now()).slice(-6)}`,
-            type: 'Challan',
-            firm: 'Current Firm',
-            amount: challan.amount,
-            date: new Date().toISOString().split('T')[0],
-            party: challan.party,
-            gstType: challan.gstType,
-            status: 'Deleted',
-            reference: challan.challanNo
-          };
-          addTransaction(delTxn);
-          setChallans(prev => prev.filter(c => c.id !== challan.id));
-        }
-      },
+      onClick: (challan) => setDeleteDialog({ isOpen: true, challan }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
@@ -228,13 +222,17 @@ const ChallanList = () => {
       addTransaction(deletedChallanTxn);
     });
     
-    // Remove converted challans
+    // mark converted challans as billed in the store
+    selectedChallans.forEach(c => {
+      updateChallan(c.id, { status: 'Billed' });
+    });
+    // Remove converted challans from this view's local list
     const challanIds = selectedChallans.map(c => c.id);
     setChallans(prev => prev.filter(challan => !challanIds.includes(challan.id)));
     
     setSelectedChallans([]);
     setIsConvertModalOpen(false);
-    alert(`Bill ${billNo} created successfully! Check Bill List and Transaction History.`);
+    showToast(`Bill ${billNo} created successfully! Check Bill List and Transaction History.`, 'success');
   };
 
   const handleCreateChallan = () => {
@@ -250,6 +248,8 @@ const ChallanList = () => {
     
     // prepend new challan to top of list
     setChallans(prev => [challan, ...prev]);
+    // also add to global store so dashboard / other pages see it
+    addChallan({ ...challan, status: 'Generated' });
     // add a transaction record so it appears in Transaction History
     const txn = {
       id: Date.now() + Math.random(),
@@ -266,7 +266,7 @@ const ChallanList = () => {
     addTransaction(txn);
     setNewChallan({ challanNo: '', party: '', items: [], amount: '', gstType: 1 });
     setIsCreateModalOpen(false);
-    alert(`Challan ${challan.challanNo} created successfully!`);
+    showToast(`Challan ${challan.challanNo} created successfully!`, 'success');
   };
 
   const handleEditChallan = () => {
@@ -275,7 +275,7 @@ const ChallanList = () => {
     ));
     setIsEditModalOpen(false);
     setEditingChallan(null);
-    alert('Challan updated successfully!');
+    showToast('Challan updated successfully!', 'success');
   };
 
   const toggleItemSelection = (item, isEditing = false) => {
@@ -298,6 +298,9 @@ const ChallanList = () => {
 
   const filteredChallans = challans.filter(challan => {
     if (filters.party && !challan.party.toLowerCase().includes(filters.party.toLowerCase())) {
+      return false;
+    }
+    if (filters.gstType !== 'all' && challan.gstType !== parseInt(filters.gstType)) {
       return false;
     }
     return true;
@@ -335,7 +338,7 @@ const ChallanList = () => {
           <FaFilter className="text-gray-500 text-sm sm:text-base" />
           <h3 className="font-medium text-gray-900 text-sm sm:text-base">Filters</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Party
@@ -349,13 +352,29 @@ const ChallanList = () => {
             />
           </div>
           
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+              GST Type
+            </label>
+            <select
+              value={filters.gstType}
+              onChange={(e) => setFilters(prev => ({ ...prev, gstType: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
+            >
+              <option value="all">All Types</option>
+              <option value="1">1 (GST)</option>
+              <option value="0">0 (Non GST)</option>
+            </select>
+          </div>
+          
           <div className="flex items-end">
             <Button
               variant="outline"
               onClick={() => setFilters({
                 dateFrom: '',
                 dateTo: '',
-                party: ''
+                party: '',
+                gstType: 'all'
               })}
               className="w-full sm:w-auto text-xs sm:text-sm py-2"
             >
@@ -404,7 +423,7 @@ const ChallanList = () => {
                           // ensure all challans are from the same party before selecting all
                           const parties = Array.from(new Set(challans.map(c => c.party)));
                           if (parties.length > 1) {
-                            alert('Cannot select challans from different parties. Please select challans of the same party only.');
+                            setValidationError('Cannot select challans from different parties. Please select challans of the same party only.');
                             return;
                           }
                           setSelectedChallans([...challans]);
@@ -431,7 +450,7 @@ const ChallanList = () => {
                           if (e.target.checked) {
                             // if there are already selected challans enforce same party
                             if (selectedChallans.length > 0 && selectedChallans[0].party !== challan.party) {
-                              alert('You can only select challans of the same party to convert into a single bill.');
+                              setValidationError('You can only select challans of the same party to convert into a single bill.');
                               return;
                             }
                             setSelectedChallans(prev => [...prev, challan]);
@@ -553,6 +572,7 @@ const ChallanList = () => {
               value={newChallan.amount}
               onChange={(e) => setNewChallan(prev => ({ ...prev, amount: e.target.value }))}
               placeholder="Enter amount"
+              onWheel={(e) => e.target.blur()}
               className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
             />
           </div>
@@ -564,8 +584,8 @@ const ChallanList = () => {
               onChange={(e) => setNewChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
               className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
             >
-              <option value={1}>1</option>
-              <option value={0}>0</option>
+              <option value={1}>1 (GST)</option>
+              <option value={0}>0 (Non GST)</option>
             </select>
           </div>
           
@@ -596,7 +616,7 @@ const ChallanList = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title="Edit Challan"
-        size="sm md:md"
+        size="sm"
       >
         {editingChallan && (
           <div className="space-y-3 sm:space-y-4">
@@ -673,8 +693,8 @@ const ChallanList = () => {
                 onChange={(e) => setEditingChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
               >
-                <option value={1}>1</option>
-                <option value={0}>0</option>
+                <option value={1}>1 (GST)</option>
+                <option value={0}>0 (Non GST)</option>
               </select>
             </div>
             
@@ -700,6 +720,49 @@ const ChallanList = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, challan: null })}
+        onConfirm={() => {
+          const delTxn = {
+            id: Date.now() + Math.random(),
+            transactionId: `TXN${String(Date.now()).slice(-6)}`,
+            type: 'Challan',
+            firm: 'Current Firm',
+            amount: deleteDialog.challan.amount,
+            date: new Date().toISOString().split('T')[0],
+            party: deleteDialog.challan.party,
+            gstType: deleteDialog.challan.gstType,
+            status: 'Deleted',
+            reference: deleteDialog.challan.challanNo
+          };
+          addTransaction(delTxn);
+          setChallans(prev => prev.filter(c => c.id !== deleteDialog.challan.id));
+        }}
+        itemName={deleteDialog.challan?.challanNo}
+      />
+
+      {/* Validation Error Modal */}
+      <Modal
+        isOpen={!!validationError}
+        onClose={() => setValidationError('')}
+        title="Error"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">{validationError}</p>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setValidationError('')}
+              className="w-full"
+            >
+              OK
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
