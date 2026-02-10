@@ -26,10 +26,11 @@ const CompanySelection = () => {
     setLoading(true);
     try {
       const response = await firmAPI.getAll();
-      setFirms(response.data);
-      // Set default selection to last used or first firm
-      if (response.data.length > 0) {
-        const lastUsed = response.data.find(f => f.isLastUsed) || response.data[0];
+      const firmsList = response.data?.data?.data || [];
+      setFirms(firmsList);
+      // Set default selection
+      if (firmsList.length > 0) {
+        const lastUsed = firmsList.find(f => f.isLastUsed) || firmsList[0];
         setSelectedCompany(lastUsed.name);
       }
     } catch (error) {
@@ -114,7 +115,7 @@ const CompanySelection = () => {
                 
                 return (
                   <div 
-                    key={company.id}
+                    key={company._id || company.id}
                     onClick={() => handleCompanySelect(company.name)}
                     className={`group flex items-center p-4 border rounded-md cursor-pointer transition-all ${
                       isSelected 

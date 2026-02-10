@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Input } from '../../components/ui';
+import { userAPI } from '../../services/api';
 import useStore from '../../store';
 
 const UserMaster = () => {
-  const { users, setUsers, addUser, updateUser, deleteUser } = useStore();
+  const { users, setUsers } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -16,32 +17,23 @@ const UserMaster = () => {
   });
   const [showPasswords, setShowPasswords] = useState({});
   const [newPassword, setNewPassword] = useState('');
+  const { setLoading, showToast } = useStore();
 
-  // Initialize with sample data if empty
   useEffect(() => {
-    if (users.length === 0) {
-      setUsers([
-        {
-          id: 1,
-          username: 'admin',
-          email: 'admin@maheshwarimotors.com',
-          password: 'admin123'
-        },
-        {
-          id: 2,
-          username: 'operator1',
-          email: 'operator1@maheshwarimotors.com',
-          password: 'op123'
-        },
-        {
-          id: 3,
-          username: 'clerk1',
-          email: 'clerk1@maheshwarimotors.com',
-          password: 'clerk123'
-        }
-      ]);
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const response = await userAPI.getAll();
+      setUsers(response.data?.data?.data || []);
+    } catch (error) {
+      showToast('Failed to load users', 'error');
+    } finally {
+      setLoading(false);
     }
-  }, [users.length, setUsers]);
+  };
 
   const togglePasswordVisibility = (userId) => {
     setShowPasswords(prev => ({
@@ -52,7 +44,7 @@ const UserMaster = () => {
 
   const columns = [
     { 
-      key: 'id', 
+      key: '_id', 
       label: 'ID',
       render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
@@ -67,23 +59,10 @@ const UserMaster = () => {
       render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
     },
     {
-      key: 'password',
-      label: 'Password',
+      key: 'password', // Backend likely doesn't return password usually, but assuming it's managed or hidden
+      label: 'Access',
       render: (value, row) => (
-        <div className="flex items-center gap-1 sm:gap-2">
-          <span className="font-mono text-xs sm:text-sm">
-            {showPasswords[row.id] ? value : '••••••••'}
-          </span>
-          <button
-            onClick={() => togglePasswordVisibility(row.id)}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            {showPasswords[row.id] ? 
-              <FaEyeSlash size={12} className="sm:size-4" /> : 
-              <FaEye size={12} className="sm:size-4" />
-            }
-          </button>
-        </div>
+        <span className="text-xs text-gray-500">Managed by Admin</span>
       )
     }
   ];
@@ -99,23 +78,37 @@ const UserMaster = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (user) => {
+      onClick: async (user) => {
         if (window.confirm(`Are you sure you want to delete user "${user.username}"?`)) {
-          deleteUser(user.id);
+          setLoading(true);
+          try {
+            await userAPI.delete(user._id);
+            showToast('User deleted successfully', 'success');
+            loadUsers();
+          } catch (error) {
+            showToast('Failed to delete user', 'error');
+          } finally {
+            setLoading(false);
+          }
         }
       },
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
-  const handleAddUser = () => {
-    const user = {
-      id: Date.now(),
-      ...newUser
-    };
-    addUser(user);
-    setNewUser({ username: '', email: '', password: '' });
-    setIsAddModalOpen(false);
+  const handleAddUser = async () => {
+    setLoading(true);
+    try {
+      await userAPI.create(newUser);
+      showToast('User created successfully', 'success');
+      setNewUser({ username: '', email: '', password: '' });
+      setIsAddModalOpen(false);
+      loadUsers();
+    } catch (error) {
+      showToast('Failed to create user', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -227,14 +220,23 @@ const UserMaster = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
-              <Button onClick={() => {
-                const updatedUser = { ...editingUser };
-                if (newPassword) {
-                  updatedUser.password = newPassword;
+              <Button onClick={async () => {
+                setLoading(true);
+                try {
+                  const updatedUser = { ...editingUser };
+                  if (newPassword) {
+                    updatedUser.password = newPassword;
+                  }
+                  await userAPI.update(editingUser._id || editingUser.id, updatedUser); // Using userAPI directly since no store action for API update
+                  showToast('User updated successfully', 'success');
+                  setIsEditModalOpen(false);
+                  setNewPassword('');
+                  loadUsers();
+                } catch (error) {
+                  showToast('Failed to update user', 'error');
+                } finally {
+                  setLoading(false);
                 }
-                updateUser(editingUser.id, updatedUser);
-                setIsEditModalOpen(false);
-                setNewPassword('');
               }} className="text-xs sm:text-sm py-1.5 sm:py-2">
                 Save Changes
               </Button>

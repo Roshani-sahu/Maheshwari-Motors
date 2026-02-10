@@ -2,72 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { FaFilter, FaHistory, FaFileInvoiceDollar, FaReceipt, FaMoneyBillWave, FaCheckCircle, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Select, Input, Button } from '../../components/ui';
+import { transactionAPI } from '../../services/api';
 import useStore from '../../store';
 
 const TransactionHistory = () => {
-  const { transactions: storeTransactions } = useStore();
-  const [transactions, setTransactions] = useState([
-    {
-      id: 1,
-      transactionId: 'TXN001',
-      type: 'Challan',
-      firm: 'Maa Auto',
-      amount: 25000,
-      date: '2024-01-15',
-      party: 'ABC Motors',
-      gstType: 1
-    },
-    {
-      id: 2,
-      transactionId: 'TXN002',
-      type: 'Bill',
-      firm: 'Motors Division',
-      amount: 18500,
-      date: '2024-01-15',
-      party: 'XYZ Parts',
-      gstType: 0
-    },
-    {
-      id: 3,
-      transactionId: 'TXN003',
-      type: 'Prepaid',
-      firm: 'Maa Auto',
-      amount: 15000,
-      date: '2024-01-14',
-      party: 'PQR Auto',
-      gstType: 1
-    },
-    {
-      id: 4,
-      transactionId: 'TXN004',
-      type: 'Challan',
-      firm: 'Surat Branch',
-      amount: 32000,
-      date: '2024-01-14',
-      party: 'LMN Garage',
-      gstType: 0
-    },
-    {
-      id: 5,
-      transactionId: 'TXN005',
-      type: 'Due',
-      firm: 'Motors Division',
-      amount: 28000,
-      date: '2024-01-13',
-      party: 'RST Motors',
-      gstType: 1
-    }
-  ]);
+  const { selectedFirm, setLoading, showToast } = useStore();
+  const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
-    console.log('TransactionHistory - Store transactions updated:', storeTransactions);
-    setTransactions(prev => {
-      const newTransactions = storeTransactions.filter(st => !prev.some(t => t.id === st.id));
-      console.log('TransactionHistory - New transactions to add:', newTransactions);
-      // prepend new transactions so recent/converted transactions appear at the top
-      return newTransactions.length > 0 ? [...newTransactions, ...prev] : prev;
-    });
-  }, [storeTransactions]);
+    if (selectedFirm?._id || selectedFirm?.id) {
+       loadTransactions();
+    }
+  }, [selectedFirm]);
+
+  const loadTransactions = async () => {
+    setLoading(true);
+    try {
+      const firmId = selectedFirm._id || selectedFirm.id;
+      const response = await transactionAPI.getAll(firmId);
+      setTransactions(response.data?.data?.data || []);
+    } catch (error) {
+      showToast('Failed to load transactions', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [filters, setFilters] = useState({
     dateFrom: '',

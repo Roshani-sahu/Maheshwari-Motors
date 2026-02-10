@@ -1,67 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaImage, FaTimes } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable } from '../../components/common';
+import { itemAPI, groupAPI } from '../../services/api';
+import useStore from '../../store';
 
 const ItemView = () => {
-  const [items] = useState([
-    {
-      id: 1,
-      itemName: 'Engine Oil 5W-30',
-      amount: 450.00,
-      threshold: 10,
-      stockCount: 5,
-      itemMedia: null,
-      status: 'LOW',
-      categoryId: 1
-    },
-    {
-      id: 2,
-      itemName: 'Brake Pads',
-      amount: 1200.00,
-      threshold: 8,
-      stockCount: 3,
-      itemMedia: null,
-      status: 'LOW',
-      categoryId: 2
-    },
-    {
-      id: 3,
-      itemName: 'Air Filter',
-      amount: 350.00,
-      threshold: 12,
-      stockCount: 15,
-      itemMedia: null,
-      status: 'OK',
-      categoryId: 3
-    }
-  ]);
-
-  const categories = [
-    { id: 1, name: 'Engine Parts' },
-    { id: 2, name: 'Brake System' },
-    { id: 3, name: 'Filters' }
-  ];
-
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
+  const { setLoading, showToast } = useStore();
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [itemsRes, categoriesRes] = await Promise.all([
+        itemAPI.getAll(),
+        groupAPI.getAll()
+      ]);
+      setItems(itemsRes.data?.data?.data || []);
+      setCategories(categoriesRes.data?.data?.data || []);
+    } catch (error) {
+      showToast('Failed to load data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'itemName', label: 'Item Name' },
+    { key: '_id', label: 'ID' },
+    { key: 'item_name', label: 'Item Name' },
     {
-      key: 'categoryId',
+      key: 'category_ids', // Backend uses 'category_ids' array which might be populated
       label: 'Category',
       render: (value) => {
-        const cat = categories.find(c => c.id === value);
-        return cat ? cat.name : 'N/A';
+        // If value is array and has elements
+        if (Array.isArray(value) && value.length > 0) {
+             const cat = value[0];
+             return cat.name || categories.find(c => c._id === cat)?.name || 'N/A';
+        }
+        return 'N/A';
       }
     },
     {
-      key: 'amount',
+      key: 'amount', 
       label: 'Amount',
-      render: (value) => `₹${value.toFixed(2)}`
+      render: (value) => `₹${Number(value).toFixed(2)}`
     },
     {
-      key: 'itemMedia',
+      key: 'image',
       label: 'Image',
       render: (value) => (
         <div 

@@ -39,10 +39,12 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await authAPI.login(formData);
-      const { user, token } = response.data;
+      // Backend returns { statusCode, success, message, data: { token, ...user } }
+      const { data } = response.data;
+      const { token, ...userData } = data;
       
       localStorage.setItem('token', token);
-      setUser(user);
+      setUser(userData);
       showToast('Login successful', 'success');
       navigate('/company-selection');
     } catch (error) {

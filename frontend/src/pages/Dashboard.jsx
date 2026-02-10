@@ -11,36 +11,56 @@ import {
 import useStore from '../store';
 import { StatsCard, Toggle } from '../components/common';
 import { formatCurrency, formatDate } from '../utils';
+import { firmAPI } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { selectedFirm } = useStore();
+  const { selectedFirm, setLoading, showToast } = useStore();
   
   const [dashboardData, setDashboardData] = useState({
-    totalFirms: 3,
-    todaysChallans: 12,
-    todaysBills: 8,
-    thisMonthBills: 32,
-    lowStockAlerts: 15
+    totalFirms: 0,
+    todaysChallans: 0,
+    todaysBills: 0,
+    thisMonthBills: 0,
+    lowStockAlerts: 0
   });
 
   const [billPeriod, setBillPeriod] = useState('today'); // today | month
 
-  const [recentChallans] = useState([
-    { id: 'CH001', party: 'ABC Motors', amount: 25000, date: '2024-01-15' },
-    { id: 'CH002', party: 'XYZ Parts', amount: 18500, date: '2024-01-15' },
-    { id: 'CH003', party: 'PQR Auto', amount: 32000, date: '2024-01-14' },
-    { id: 'CH004', party: 'LMN Garage', amount: 15000, date: '2024-01-14' },
-    { id: 'CH005', party: 'RST Motors', amount: 28000, date: '2024-01-13' }
-  ]);
+  const [recentChallans, setRecentChallans] = useState([]);
+  const [recentBills, setRecentBills] = useState([]);
 
-  const [recentBills] = useState([
-    { id: 'B001', party: 'ABC Motors', amount: 25000, date: '2024-01-15' },
-    { id: 'B002', party: 'XYZ Parts', amount: 18500, date: '2024-01-15' },
-    { id: 'B003', party: 'PQR Auto', amount: 32000, date: '2024-01-14' },
-    { id: 'B004', party: 'LMN Garage', amount: 15000, date: '2024-01-14' },
-    { id: 'B005', party: 'RST Motors', amount: 28000, date: '2024-01-13' }
-  ]);
+  useEffect(() => {
+    if (selectedFirm?._id || selectedFirm?.id) {
+       loadDashboardData();
+    }
+  }, [selectedFirm]);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const firmId = selectedFirm._id || selectedFirm.id;
+      const response = await firmAPI.getDashboard(firmId);
+      const data = response.data?.data;
+      if (data) {
+        setDashboardData({
+            totalFirms: data.totalFirms || 0, // This might differ if dashboard is per firm
+            todaysChallans: data.todaysChallans || 0,
+            todaysBills: data.todaysBills || 0,
+            thisMonthBills: data.thisMonthBills || 0,
+            lowStockAlerts: data.lowStockAlerts || 0
+        });
+        setRecentChallans(data.recentChallans || []);
+        setRecentBills(data.recentBills || []);
+      }
+    } catch (error) {
+      // showToast('Failed to load dashboard data', 'error'); 
+      // Silently fail or minimal error if backend endpoint is not ready
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">

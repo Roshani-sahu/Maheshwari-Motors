@@ -1,24 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Input } from '../../components/ui';
+import { accountAPI } from '../../services/api'; // Using accountAPI for parties
+import useStore from '../../store';
 
 const AddSupplier = () => {
-  const [suppliers, setSuppliers] = useState([
-    { id: 1, name: 'ABC Suppliers', contact: '9876543210', email: 'abc@supplier.com', address: 'Mumbai' },
-    { id: 2, name: 'XYZ Parts', contact: '9876543211', email: 'xyz@parts.com', address: 'Delhi' }
-  ]);
+  const { selectedFirm, setLoading, showToast } = useStore();
+  const [suppliers, setSuppliers] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
-  const [formData, setFormData] = useState({ name: '', contact: '', email: '', address: '' });
+  const [formData, setFormData] = useState({ 
+      name: '', 
+      phone_number: '', 
+      email: '', 
+      address: '', 
+      gstin: '',
+      type: 'supplier' // Fixed type
+  });
+
+  useEffect(() => {
+    if (selectedFirm?._id || selectedFirm?.id) {
+        loadSuppliers();
+    }
+  }, [selectedFirm]);
+
+  const loadSuppliers = async () => {
+      setLoading(true);
+      try {
+          const firmId = selectedFirm._id || selectedFirm.id;
+          const response = await accountAPI.getAll(firmId);
+          // Filter only suppliers if endpoint returns mixed
+          const allParties = response.data?.data?.data || [];
+          setSuppliers(allParties.filter(p => p.type === 'supplier'));
+      } catch (error) {
+          showToast('Failed to load suppliers', 'error');
+      } finally {
+          setLoading(false);
+      }
+  };
 
   const columns = [
-    { key: 'id', label: 'ID' },
-    { key: 'name', label: 'Supplier Name' },
-    { key: 'contact', label: 'Contact' },
+    { 
+        key: '_id', 
+        label: 'ID',
+        render: (value) => <span className="text-xs sm:text-sm">{value}</span>
+    },
+    { 
+        key: 'name', 
+        label: 'Supplier Name',
+        render: (value) => <span className="text-xs sm:text-sm font-medium">{value}</span>
+    },
+    { key: 'phone_number', label: 'Contact' },
     { key: 'email', label: 'Email' },
-    { key: 'address', label: 'Address' },
+    { key: 'gstin', label: 'GSTIN' }, // Added GSTIN
     {
       key: 'actions',
       label: 'Actions',
@@ -27,7 +63,14 @@ const AddSupplier = () => {
           <button
             onClick={() => {
               setEditingSupplier(supplier);
-              setFormData(supplier);
+              setFormData({
+                  name: supplier.name,
+                  phone_number: supplier.phone_number || '',
+                  email: supplier.email || '',
+                  address: supplier.address || '',
+                  gstin: supplier.gstin || '',
+                  type: 'supplier'
+              });
               setIsEditModalOpen(true);
             }}
             className="p-1.5 text-green-600 hover:bg-green-50 rounded"
@@ -36,9 +79,19 @@ const AddSupplier = () => {
             <FaEdit size={14} />
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (window.confirm(`Delete supplier "${supplier.name}"?`)) {
-                setSuppliers(prev => prev.filter(s => s.id !== supplier.id));
+                setLoading(true);
+                try {
+                    const firmId = selectedFirm._id || selectedFirm.id;
+                    await accountAPI.delete(firmId, supplier._id);
+                    showToast('Supplier deleted', 'success');
+                    loadSuppliers();
+                } catch (error) {
+                    showToast('Failed to delete', 'error');
+                } finally {
+                    setLoading(false);
+                }
               }
             }}
             className="p-1.5 text-red-600 hover:bg-red-50 rounded"
@@ -51,27 +104,52 @@ const AddSupplier = () => {
     }
   ];
 
-  const handleAdd = () => {
-    setSuppliers(prev => [...prev, { id: Date.now(), ...formData }]);
-    setFormData({ name: '', contact: '', email: '', address: '' });
-    setIsAddModalOpen(false);
+  const handleAdd = async () => {
+      if (!formData.name) return;
+      setLoading(true);
+      try {
+          const firmId = selectedFirm._id || selectedFirm.id;
+          await accountAPI.create(firmId, formData);
+          showToast('Supplier added successfully', 'success');
+          setFormData({ name: '', phone_number: '', email: '', address: '', gstin: '', type: 'supplier' });
+          setIsAddModalOpen(false);
+          loadSuppliers();
+      } catch (error) {
+          showToast('Failed to add supplier', 'error');
+      } finally {
+          setLoading(false);
+      }
   };
 
-  const handleEdit = () => {
-    setSuppliers(prev => prev.map(s => s.id === editingSupplier.id ? formData : s));
-    setIsEditModalOpen(false);
-    setEditingSupplier(null);
-    setFormData({ name: '', contact: '', email: '', address: '' });
+  const handleEdit = async () => {
+      if (!formData.name || !editingSupplier) return;
+      setLoading(true);
+      try {
+          const firmId = selectedFirm._id || selectedFirm.id;
+          await accountAPI.update(firmId, editingSupplier._id, formData);
+          showToast('Supplier updated successfully', 'success');
+          setIsEditModalOpen(false);
+          setEditingSupplier(null);
+          setFormData({ name: '', phone_number: '', email: '', address: '', gstin: '', type: 'supplier' });
+          loadSuppliers();
+      } catch (error) {
+          showToast('Failed to update supplier', 'error');
+      } finally {
+          setLoading(false);
+      }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Add Supplier</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Supplier Master</h1>
           <p className="text-gray-600">Manage suppliers</p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2">
+        <Button onClick={() => {
+            setFormData({ name: '', phone_number: '', email: '', address: '', gstin: '', type: 'supplier' });
+            setIsAddModalOpen(true);
+        }} className="flex items-center gap-2">
           <FaPlus />
           Add Supplier
         </Button>
@@ -89,16 +167,20 @@ const AddSupplier = () => {
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Supplier" size="md">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name *</label>
             <Input value={formData.name} onChange={(v) => setFormData(prev => ({ ...prev, name: v }))} placeholder="Enter name" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
-            <Input value={formData.contact} onChange={(v) => setFormData(prev => ({ ...prev, contact: v }))} placeholder="Enter contact" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact (Phone)</label>
+            <Input value={formData.phone_number} onChange={(v) => setFormData(prev => ({ ...prev, phone_number: v }))} placeholder="Enter phone" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <Input value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} placeholder="Enter email" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
+            <Input value={formData.gstin} onChange={(v) => setFormData(prev => ({ ...prev, gstin: v }))} placeholder="Enter GSTIN" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
@@ -115,16 +197,20 @@ const AddSupplier = () => {
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Supplier" size="md">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name *</label>
             <Input value={formData.name} onChange={(v) => setFormData(prev => ({ ...prev, name: v }))} placeholder="Enter name" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
-            <Input value={formData.contact} onChange={(v) => setFormData(prev => ({ ...prev, contact: v }))} placeholder="Enter contact" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Contact (Phone)</label>
+            <Input value={formData.phone_number} onChange={(v) => setFormData(prev => ({ ...prev, phone_number: v }))} placeholder="Enter phone" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <Input value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} placeholder="Enter email" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
+            <Input value={formData.gstin} onChange={(v) => setFormData(prev => ({ ...prev, gstin: v }))} placeholder="Enter GSTIN" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>

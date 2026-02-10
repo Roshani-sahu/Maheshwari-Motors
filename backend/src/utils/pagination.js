@@ -38,8 +38,7 @@ class Pagination {
         .skip(skip)
         .limit(limit)
         .populate(populate)
-        .select(select)
-        .lean(),
+        .select(select),
       model.countDocuments(query),
     ]);
 

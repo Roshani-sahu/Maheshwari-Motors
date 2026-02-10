@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api-maheshwari-motors.koyeb.app/api/v1';
+const BASE_URL = API_BASE_URL.replace('/api/v1', '');
+
+export const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath;
+  return `${BASE_URL}${imagePath.startsWith('/') ? imagePath : '/' + imagePath}`;
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -24,170 +31,127 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Only redirect if not already on login page to avoid loops
+      if (!window.location.pathname.includes('/login')) {
+         window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
 );
 
 export const authAPI = {
-  login: (credentials) => {
-    // Mock login - accepts any credentials
-    return Promise.resolve({
-      data: {
-        user: { id: 1, name: 'Admin User', email: credentials.email },
-        token: 'mock-jwt-token'
-      }
-    });
+  login: (credentials) => api.post('/auth/login', credentials),
+  register: (data) => api.post('/auth/register', data),
+  logout: () => api.post('/auth/logout'),
+  getProfile: () => api.get('/auth/me'),
+  // Helper to store token/user
+  setAuth: (user, token) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
   },
-  logout: () => Promise.resolve({ data: {} }),
-  refreshToken: () => Promise.resolve({ data: {} }),
+  clearAuth: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  }
 };
 
 export const firmAPI = {
-  getAll: () => Promise.resolve({ 
-    data: [
-      { id: 1, name: "Maa Auto", type: "NON_GST", address: "Surat, Gujarat", isLastUsed: true },
-      { id: 2, name: "Motors GST", type: "GST", address: "Mumbai, Maharashtra", gstin: "27AAAAA0000A1Z5" },
-      { id: 3, name: "Surat Branch", type: "BILL_ONLY", address: "Surat, Gujarat" }
-    ]
-  }),
-  getById: (id) => Promise.resolve({ data: {} }),
-  create: (data) => Promise.resolve({ data }),
-  update: (id, data) => Promise.resolve({ data }),
-  delete: (id) => Promise.resolve({ data: {} }),
+  getAll: () => api.get('/firms'),
+  getById: (id) => api.get(`/firms/${id}`),
+  create: (data) => api.post('/firms', data),
+  update: (id, data) => api.put(`/firms/${id}`, data),
+  delete: (id) => api.delete(`/firms/${id}`),
+  getDashboard: (id) => api.get(`/firms/${id}/dashboard`),
 };
 
+// Maps to Parties (Customers/Suppliers)
 export const accountAPI = {
-  getAll: (firmId) => Promise.resolve({ 
-    data: [
-      { id: 1, name: "CASH", type: "CASH", balance: 50000 },
-      { id: 2, name: "HDFC BANK", type: "BANK", balance: 125000 },
-      { id: 3, name: "MARUTI PARTS SUPPLIER", type: "SUPPLIER", balance: -25000 },
-      { id: 4, name: "TATA MOTORS DEALER", type: "CUSTOMER", balance: 15000 },
-      { id: 5, name: "HERO HONDA PARTS", type: "SUPPLIER", balance: -8500 }
-    ]
-  }),
-  create: (data) => Promise.resolve({ data }),
-  update: (id, data) => Promise.resolve({ data }),
-  delete: (id) => Promise.resolve({ data: {} }),
+  getAll: (firmId) => api.get(`/firms/${firmId}/parties`),
+  getById: (firmId, id) => api.get(`/firms/${firmId}/parties/${id}`),
+  create: (firmId, data) => api.post(`/firms/${firmId}/parties`, data),
+  update: (firmId, id, data) => api.put(`/firms/${firmId}/parties/${id}`, data),
+  delete: (firmId, id) => api.delete(`/firms/${firmId}/parties/${id}`),
+  getDue: (firmId) => api.get(`/firms/${firmId}/parties/due`),
+  getOverpaid: (firmId) => api.get(`/firms/${firmId}/parties/overpaid`),
 };
 
 export const itemAPI = {
-  getAll: (firmId) => Promise.resolve({ 
-    data: [
-      {
-        id: 1,
-        name: "BRAKE MASTER CYLINDER BOSCH",
-        gstCode: "14564",
-        nonGstCode: "14564",
-        unit: "PCS",
-        gstFlag: "GST",
-        saleRate: 850.00,
-        purchaseRate: 750.00,
-        mrp: 950.00,
-        stock: 25,
-        barcode: "BC14564"
-      },
-      {
-        id: 2,
-        name: "CLUTCH RING TYPE PURD",
-        gstCode: "1",
-        nonGstCode: "1",
-        unit: "PCS",
-        gstFlag: "GST",
-        saleRate: 320.00,
-        purchaseRate: 280.00,
-        mrp: 380.00,
-        stock: 15,
-        barcode: "BC001"
-      },
-      {
-        id: 3,
-        name: "1 LTR CLOTH & STAR FULL KIT HATHI",
-        gstCode: "2",
-        nonGstCode: "2",
-        unit: "SET",
-        gstFlag: "GST",
-        saleRate: 450.00,
-        purchaseRate: 400.00,
-        mrp: 520.00,
-        stock: 8,
-        barcode: "BC002"
-      },
-      {
-        id: 4,
-        name: "1 LTR 10W40 BISCOL",
-        gstCode: "11574",
-        nonGstCode: "11574",
-        unit: "LTR",
-        gstFlag: "GST",
-        saleRate: 180.00,
-        purchaseRate: 160.00,
-        mrp: 220.00,
-        stock: 50,
-        barcode: "BC11574"
-      },
-      {
-        id: 5,
-        name: "1 LTR 10W40 HP PURD",
-        gstCode: "14920",
-        nonGstCode: "14920",
-        unit: "LTR",
-        gstFlag: "GST",
-        saleRate: 195.00,
-        purchaseRate: 175.00,
-        mrp: 240.00,
-        stock: 30,
-        barcode: "BC14920"
-      }
-    ]
-  }),
-  create: (data) => Promise.resolve({ data }),
-  update: (id, data) => Promise.resolve({ data }),
-  delete: (id) => Promise.resolve({ data: {} }),
-  checkStock: (itemId, qty) => Promise.resolve({ data: { available: true } }),
+  getAll: () => api.get('/items'),
+  getById: (id) => api.get(`/items/${id}`),
+  create: (data) => api.post('/items', data),
+  update: (id, data, config) => api.put(`/items/${id}`, data, config),
+  delete: (id) => api.delete(`/items/${id}`),
+  checkStock: (itemId, qty) => Promise.resolve({ data: { available: true } }), 
 };
 
 export const challanAPI = {
-  getAll: (firmId) => Promise.resolve({ data: [] }),
-  getNextNumber: (firmId) => Promise.resolve({ data: { nextNumber: 'CH001' } }),
-  create: (data) => Promise.resolve({ data }),
-  update: (id, data) => Promise.resolve({ data }),
-  delete: (id) => Promise.resolve({ data: {} }),
-  convertToBill: (challanIds) => Promise.resolve({ data: {} }),
+  getAll: (firmId) => api.get(`/firms/${firmId}/challans`),
+  getById: (firmId, id) => api.get(`/firms/${firmId}/challans/${id}`),
+  create: (firmId, data) => api.post(`/firms/${firmId}/challans`, data),
+  update: (firmId, id, data) => api.put(`/firms/${firmId}/challans/${id}`, data),
+  delete: (firmId, id) => api.delete(`/firms/${firmId}/challans/${id}`),
+  // Conversion likely happens via bill creation referencing challans
+  convertToBill: (firmId, data) => api.post(`/firms/${firmId}/bills`, data), 
 };
 
 export const billAPI = {
-  getAll: (firmId) => api.get(`/bills?firmId=${firmId}`),
-  create: (data) => api.post('/bills', data),
-  update: (id, data) => api.put(`/bills/${id}`, data),
-  delete: (id) => api.delete(`/bills/${id}`),
+  getAll: (firmId) => api.get(`/firms/${firmId}/bills`),
+  getById: (firmId, id) => api.get(`/firms/${firmId}/bills/${id}`),
+  create: (firmId, data) => api.post(`/firms/${firmId}/bills`, data),
+  update: (firmId, id, data) => Promise.reject(new Error("Update bill not fully supported, try delete and create")), // API might not support PUT on bills directly
+  delete: (firmId, id) => api.delete(`/firms/${firmId}/bills/${id}`),
+  byStatus: (firmId, status) => api.get(`/firms/${firmId}/bills/status/${status}`),
 };
 
-export const paymentAPI = {
-  create: (data) => api.post('/payments', data),
-  getAll: (firmId) => api.get(`/payments?firmId=${firmId}`),
+
+export const transactionAPI = {
+  // Transactions (Payments)
+  getAll: (firmId) => api.get(`/firms/${firmId}/transactions`),
+  create: (firmId, data) => api.post(`/firms/${firmId}/transactions/sale`, data), // Default to sale transaction
+  createPurchase: (firmId, data) => api.post(`/firms/${firmId}/transactions/purchase`, data),
+  summary: (firmId) => api.get(`/firms/${firmId}/transactions/summary`),
+  delete: (id) => Promise.reject(new Error("Delete transaction not supported directly")), // Placeholder as no route exists yet
+};
+
+export const discountAPI = {
+  getAll: () => api.get('/discounts'),
+  getById: (id) => api.get(`/discounts/${id}`),
+  create: (data) => api.post('/discounts', data),
+  update: (id, data) => api.put(`/discounts/${id}`, data),
+  delete: (id) => api.delete(`/discounts/${id}`),
 };
 
 export const reportAPI = {
-  gst: (firmId, params) => api.get(`/reports/gst?firmId=${firmId}`, { params }),
-  sales: (firmId, params) => api.get(`/reports/sales?firmId=${firmId}`, { params }),
-  purchase: (firmId, params) => api.get(`/reports/purchase?firmId=${firmId}`, { params }),
-  stock: (firmId, params) => api.get(`/reports/stock?firmId=${firmId}`, { params }),
-  ledger: (firmId, accountId, params) => api.get(`/reports/ledger/${accountId}?firmId=${firmId}`, { params }),
+ // Mapping reports to existing list endpoints with filters
+  gst: (firmId, params) => api.get(`/firms/${firmId}/bills`, { params: { ...params, gst: true } }),
+  sales: (firmId, params) => api.get(`/firms/${firmId}/bills`, { params }),
+  purchase: (firmId, params) => api.get(`/firms/${firmId}/purchases`, { params }),
+  stock: (firmId, params) => api.get('/items', { params }), // Stock is global
+  ledger: (firmId, partyId) => api.get(`/firms/${firmId}/parties/${partyId}/balance`), // Ledger usually means party balance/history
 };
 
 export default api;
 
+// Categories
 export const groupAPI = {
-  getAll: () => Promise.resolve({ data: [] }),
+  getAll: () => api.get('/categories'),
+  create: (data) => api.post('/categories', data),
+  update: (id, data) => api.put(`/categories/${id}`, data),
+  delete: (id) => api.delete(`/categories/${id}`),
 };
 
+// Mocks for missing endpoints
 export const unitAPI = {
-  getAll: () => Promise.resolve({ data: [] }),
+  getAll: () => Promise.resolve({ data: { data: [{id: 1, name: 'PCS'}, {id: 2, name: 'KG'}, {id: 3, name: 'LTR'}, {id: 4, name: 'MTR'}, {id: 5, name: 'SET'}] } }),
 };
 
 export const hsnAPI = {
-  getAll: () => Promise.resolve({ data: [] }),
+  getAll: () => Promise.resolve({ data: { data: [] } }),
+};
+
+export const userAPI = {
+    getAll: () => api.get('/users'),
+    create: (data) => api.post('/users', data), // Only admin/main user can likely do this
+    delete: (id) => api.delete(`/users/${id}`),
 };

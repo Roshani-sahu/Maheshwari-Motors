@@ -21,13 +21,13 @@ const CompanySelector = () => {
         <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-neutral-300 rounded-md shadow-lg z-50">
           {firms.map((firm) => (
             <button
-              key={firm.id}
+              key={firm._id || firm.id}
               onClick={() => {
                 setFirm(firm);
                 setIsOpen(false);
               }}
               className={`w-full flex items-center justify-between px-3 py-2 text-xs md:text-sm text-left hover:bg-neutral-50 ${
-                selectedFirm?.id === firm.id ? 'bg-blue-50' : ''
+                (selectedFirm?._id || selectedFirm?.id) === (firm._id || firm.id) ? 'bg-blue-50' : ''
               }`}
             >
               <span className="text-neutral-800">{firm.name}</span>

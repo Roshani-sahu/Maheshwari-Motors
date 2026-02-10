@@ -2,49 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Select, Input } from '../../components/ui';
+import { billAPI } from '../../services/api';
 import useStore from '../../store';
 
 const BillList = () => {
-  const { bills: storeBills, addTransaction, removeBill } = useStore();
-  const [bills, setBills] = useState([
-    {
-      id: 1,
-      billNo: 'B001',
-      date: '2024-01-15',
-      party: 'ABC Motors',
-      amount: 25000,
-      linkedChallans: ['CH001', 'CH002'],
-      gstType: 1
-    },
-    {
-      id: 2,
-      billNo: 'B002',
-      date: '2024-01-14',
-      party: 'XYZ Parts',
-      amount: 18500,
-      linkedChallans: ['CH003'],
-      gstType: 0
-    },
-    {
-      id: 3,
-      billNo: 'B003',
-      date: '2024-01-13',
-      party: 'PQR Auto',
-      amount: 32000,
-      linkedChallans: ['CH004', 'CH005', 'CH006'],
-      gstType: 1
-    }
-  ]);
+  const { bills: storeBills, setBills: setStoreBills, selectedFirm, setLoading, showToast, addTransaction, removeBill } = useStore();
+  const [bills, setBills] = useState([]);
 
   useEffect(() => {
-    console.log('BillList - Store bills updated:', storeBills);
-    setBills(prev => {
-      const newBills = storeBills.filter(sb => !prev.some(b => b.id === sb.id));
-      console.log('BillList - New bills to add:', newBills);
-      // prepend new bills so converted/recent bills appear at the top
-      return newBills.length > 0 ? [...newBills, ...prev] : prev;
-    });
-  }, [storeBills]);
+    if (selectedFirm?._id || selectedFirm?.id) {
+       loadBills();
+    }
+  }, [selectedFirm]);
+
+  const loadBills = async () => {
+    setLoading(true);
+    try {
+      const firmId = selectedFirm._id || selectedFirm.id;
+      const response = await billAPI.getAll(firmId);
+      const fetchedBills = response.data?.data?.data || [];
+      setBills(fetchedBills);
+      setStoreBills(fetchedBills);
+    } catch (error) {
+      showToast('Failed to load bills', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [filters, setFilters] = useState({
     dateFrom: '',

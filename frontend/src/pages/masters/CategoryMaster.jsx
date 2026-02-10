@@ -1,21 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Input } from '../../components/ui';
+import { groupAPI } from '../../services/api';
+import useStore from '../../store';
 
 const CategoryMaster = () => {
-  const [categories, setCategories] = useState([
-    { id: 1, name: 'Engine Parts' },
-    { id: 2, name: 'Brake System' },
-    { id: 3, name: 'Filters' }
-  ]);
+  const [categories, setCategories] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const { setLoading, showToast } = useStore();
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    setLoading(true);
+    try {
+      const response = await groupAPI.getAll();
+      // Handle response.data.data.data structure
+      setCategories(response.data?.data?.data || []);
+    } catch (error) {
+      showToast('Failed to load categories', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const columns = [
-    { key: 'id', label: 'Category ID' },
+    { key: '_id', label: 'Category ID' },
     { key: 'name', label: 'Category Name' },
     {
       key: 'actions',
@@ -34,9 +50,18 @@ const CategoryMaster = () => {
             <FaEdit size={14} />
           </button>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (window.confirm(`Delete category "${category.name}"?`)) {
-                setCategories(prev => prev.filter(c => c.id !== category.id));
+                setLoading(true);
+                try {
+                  await groupAPI.delete(category._id);
+                  showToast('Category deleted successfully', 'success');
+                  loadCategories();
+                } catch (error) {
+                  showToast('Failed to delete category', 'error');
+                } finally {
+                  setLoading(false);
+                }
               }
             }}
             className="p-1.5 text-red-600 hover:bg-red-50 rounded"
@@ -49,17 +74,35 @@ const CategoryMaster = () => {
     }
   ];
 
-  const handleAddCategory = () => {
-    setCategories(prev => [...prev, { id: Date.now(), name: newCategoryName }]);
-    setNewCategoryName('');
-    setIsAddModalOpen(false);
+  const handleAddCategory = async () => {
+    setLoading(true);
+    try {
+      await groupAPI.create({ name: newCategoryName });
+      showToast('Category added successfully', 'success');
+      setNewCategoryName('');
+      setIsAddModalOpen(false);
+      loadCategories();
+    } catch (error) {
+      showToast('Failed to add category', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditCategory = () => {
-    setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, name: newCategoryName } : c));
-    setIsEditModalOpen(false);
-    setEditingCategory(null);
-    setNewCategoryName('');
+  const handleEditCategory = async () => {
+    setLoading(true);
+    try {
+      await groupAPI.update(editingCategory._id, { name: newCategoryName });
+      showToast('Category updated successfully', 'success');
+      setIsEditModalOpen(false);
+      setEditingCategory(null);
+      setNewCategoryName('');
+      loadCategories();
+    } catch (error) {
+      showToast('Failed to update category', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

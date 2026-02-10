@@ -3,107 +3,92 @@ import { useNavigate } from 'react-router-dom';
 import { FaPlus, FaEdit, FaImage, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Input } from '../../components/ui';
+import { itemAPI, getImageUrl } from '../../services/api';
 import useStore from '../../store';
 
 const ItemMaster = () => {
   const navigate = useNavigate();
-  const { items, setItems, updateItem, deleteItem } = useStore();
+  const { items, setItems } = useStore();
   const [editingItem, setEditingItem] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editImageFile, setEditImageFile] = useState(null);
+  const { setLoading, showToast } = useStore();
 
-  // Initialize with sample data if empty
   useEffect(() => {
-    if (items.length === 0) {
-      setItems([
-        {
-          id: 1,
-          itemName: 'Engine Oil 5W-30',
-          amount: 450.00,
-          threshold: 10,
-          stockCount: 5,
-          itemMedia: null,
-          status: 'LOW'
-        },
-        {
-          id: 2,
-          itemName: 'Brake Pads',
-          amount: 1200.00,
-          threshold: 8,
-          stockCount: 3,
-          itemMedia: null,
-          status: 'LOW'
-        },
-        {
-          id: 3,
-          itemName: 'Air Filter',
-          amount: 350.00,
-          threshold: 12,
-          stockCount: 15,
-          itemMedia: null,
-          status: 'OK'
-        },
-        {
-          id: 4,
-          itemName: 'Spark Plugs',
-          amount: 180.00,
-          threshold: 6,
-          stockCount: 2,
-          itemMedia: null,
-          status: 'LOW'
-        }
-      ]);
+    loadItems();
+  }, []);
+
+  const loadItems = async () => {
+    setLoading(true);
+    try {
+      const response = await itemAPI.getAll();
+      const itemsData = response.data?.data?.data || [];
+      console.log('Items loaded:', itemsData);
+      setItems(itemsData);
+    } catch (error) {
+      showToast('Failed to load items', 'error');
+    } finally {
+      setLoading(false);
     }
-  }, [items.length, setItems]);
+  };
 
   const columns = [
     {
-      key: 'id',
+      key: '_id',
       label: 'ID',
       render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
     {
-      key: 'itemName',
+      key: 'item_name', 
       label: 'Item Name',
       render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
     },
     {
-      key: 'amount',
+      key: 'amount', 
       label: 'Amount',
-      render: (value) => <span className="text-xs sm:text-sm">₹{value.toFixed(2)}</span>
+      render: (value) => <span className="text-xs sm:text-sm">₹{Number(value).toFixed(2)}</span>
     },
     {
-      key: 'stockCount',
+      key: 'physical_stock', // Backend virtual
       label: 'Stock Count',
       render: (value, row) => (
-        <span className={`text-xs sm:text-sm ${row.status === 'LOW' ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-          {value}
+        <span className={`text-xs sm:text-sm ${(value <= (row.threshold || 0)) ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+          {value !== undefined ? value : (row.gst_stock + row.nongst_stock)}
         </span>
       )
     },
     {
       key: 'threshold',
       label: 'Threshold',
-      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
+      render: (value) => <span className="text-xs sm:text-sm">{value || 0}</span>
     },
     {
-      key: 'status',
+      key: 'status', 
       label: 'Stock Status',
-      render: (value) => (
+      render: (value, row) => {
+        const stock = row.physical_stock !== undefined ? row.physical_stock : (row.gst_stock + row.nongst_stock);
+        const status = (stock <= (row.threshold || 0)) ? 'LOW' : 'OK';
+        return (
         <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
-          value === 'LOW' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+          status === 'LOW' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
         }`}>
-          {value}
+          {status}
         </span>
-      )
+        );
+      }
     },
     {
-      key: 'itemMedia',
+      key: 'image',
       label: 'Image',
       render: (value) => (
         <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gray-100 rounded flex items-center justify-center">
           {value ? (
-            <img src={value} alt="Item" className="w-full h-full object-cover rounded" />
+            <img 
+              src={value.startsWith('http') ? value : getImageUrl(value)} 
+              alt="Item" 
+              className="w-full h-full object-cover rounded"
+              crossOrigin="anonymous"
+            />
           ) : (
             <FaImage className="text-gray-400 text-xs sm:text-sm" />
           )}
@@ -123,32 +108,53 @@ const ItemMaster = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (item) => {
-        if (window.confirm(`Are you sure you want to delete "${item.itemName}"?`)) {
-          deleteItem(item.id);
+      onClick: async (item) => {
+        if (window.confirm(`Are you sure you want to delete "${item.name}"?`)) {
+          setLoading(true);
+          try {
+            await itemAPI.delete(item._id); // Assuming backend uses _id
+            showToast('Item deleted successfully', 'success');
+            loadItems();
+          } catch (error) {
+            showToast('Failed to delete item', 'error');
+          } finally {
+            setLoading(false);
+          }
         }
       },
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingItem) {
-      let updatedItem = {
-        ...editingItem,
-        status: editingItem.stockCount <= editingItem.threshold ? 'LOW' : 'OK'
-      };
-      
-      // Handle image update
-      if (editImageFile) {
-        const imageUrl = URL.createObjectURL(editImageFile);
-        updatedItem.itemMedia = imageUrl;
+      setLoading(true);
+      try {
+        const formDataPayload = new FormData();
+        formDataPayload.append('item_name', editingItem.item_name);
+        formDataPayload.append('amount', Number(editingItem.amount));
+        formDataPayload.append('threshold', Number(editingItem.threshold) || 0);
+        formDataPayload.append('gst_stock', Number(editingItem.gst_stock) || 0);
+        formDataPayload.append('nongst_stock', Number(editingItem.nongst_stock) || 0);
+        
+        if (editImageFile) {
+            formDataPayload.append('image', editImageFile);
+        }
+
+        await itemAPI.update(editingItem._id, formDataPayload, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        showToast('Item updated successfully', 'success');
+        setIsEditModalOpen(false);
+        setEditingItem(null);
+        setEditImageFile(null);
+        loadItems();
+      } catch (error) {
+        console.error(error);
+        showToast('Failed to update item', 'error');
+      } finally {
+        setLoading(false);
       }
-      
-      updateItem(editingItem.id, updatedItem);
-      setIsEditModalOpen(false);
-      setEditingItem(null);
-      setEditImageFile(null);
     }
   };
 
@@ -202,10 +208,10 @@ const ItemMaster = () => {
                 Item Name
               </label>
               <Input
-                value={editingItem.itemName}
+                value={editingItem.item_name}
                 onChange={(value) => setEditingItem(prev => ({
                   ...prev,
-                  itemName: value
+                  item_name: value
                 }))}
                 disabled
                 className="bg-gray-50 text-xs sm:text-sm py-1.5 sm:py-2"
@@ -247,17 +253,30 @@ const ItemMaster = () => {
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                Current Stock Count
+                Stock (GST / Non-GST)
               </label>
-              <Input
-                type="number"
-                value={editingItem.stockCount}
-                onChange={(value) => setEditingItem(prev => ({
-                  ...prev,
-                  stockCount: parseInt(value) || 0
-                }))}
-                className="text-xs sm:text-sm py-1.5 sm:py-2"
-              />
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="GST"
+                  value={editingItem.gst_stock}
+                  onChange={(value) => setEditingItem(prev => ({
+                    ...prev,
+                    gst_stock: parseInt(value) || 0
+                  }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+                <Input
+                  type="number"
+                  placeholder="Non-GST"
+                  value={editingItem.nongst_stock}
+                  onChange={(value) => setEditingItem(prev => ({
+                    ...prev,
+                    nongst_stock: parseInt(value) || 0
+                  }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
             </div>
 
             <div>
@@ -270,9 +289,9 @@ const ItemMaster = () => {
                 onChange={handleImageChange}
                 className="w-full text-xs sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-1.5  file:px-2 sm:file:px-4 file:rounded-md file:border-0 file:text-xs sm:file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
-              {editingItem.itemMedia && (
+              {editingItem.image && (
                 <div className="mt-2">
-                  <img src={editingItem.itemMedia} alt="Current" className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 object-cover rounded" />
+                  <img src={getImageUrl(editingItem.image)} alt="Current" className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 object-cover rounded" />
                 </div>
               )}
             </div>

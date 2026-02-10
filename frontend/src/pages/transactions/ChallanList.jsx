@@ -3,61 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { FaEye, FaFileInvoiceDollar, FaFilter, FaCheck, FaPlus, FaCheckSquare, FaEdit, FaTrash, FaDownload, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import { Button, Select, Input } from '../../components/ui';
+import { challanAPI } from '../../services/api';
 import useStore from '../../store';
 
 const ChallanList = () => {
-  const { addBill, addTransaction, removeChallans } = useStore();
-  const [challans, setChallans] = useState([
-    {
-      id: 1,
-      challanNo: 'CH001',
-      date: '2024-01-15',
-      party: 'ABC Motors',
-      items: ['Engine Oil', 'Brake Pads'],
-      amount: 25000,
-      gstType: 1 // 1 = GST, 0 = NON-GST
-    },
-    {
-      id: 2,
-      challanNo: 'CH002',
-      date: '2024-01-15',
-      party: 'XYZ Parts',
-      items: ['Air Filter', 'Spark Plugs'],
-      amount: 18500,
-      gstType: 0
-    },
-    {
-      id: 3,
-      challanNo: 'CH003',
-      date: '2024-01-14',
-      party: 'PQR Auto',
-      items: ['Transmission Fluid'],
-      amount: 32000,
-      gstType: 1
-    },
-     {
-      id: 4,
-      challanNo: 'CH004',
-      date: '2025-01-13',
-      party: 'ABC Motors',
-      items: 2,
-      amount: 1800,
-      status: 'Billed',
-      createdBy: 'User1',
-      gstType: 1
-    },
-    {
-      id: 5,
-      challanNo: 'CH005',
-      date: '2025-01-12',
-      party: 'XYZ Parts',
-      items: 3,
-      amount: 2400,
-      status: 'Billed',
-      createdBy: 'User1',
-      gstType: 0
-    },
-  ]);
+  const { addBill, addTransaction, removeChallans, selectedFirm, setLoading, showToast } = useStore();
+  const [challans, setChallans] = useState([]);
+
+  useEffect(() => {
+    if (selectedFirm?._id || selectedFirm?.id) {
+       loadChallans();
+    }
+  }, [selectedFirm]);
+
+  const loadChallans = async () => {
+    setLoading(true);
+    try {
+      const firmId = selectedFirm._id || selectedFirm.id;
+      const response = await challanAPI.getAll(firmId);
+      setChallans(response.data?.data?.data || []);
+    } catch (error) {
+      showToast('Failed to load challans', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [filters, setFilters] = useState({
     dateFrom: '',
