@@ -5,7 +5,7 @@ import { Button, Select, Input } from '../../components/ui';
 import useStore from '../../store';
 
 const BillList = () => {
-  const { bills: storeBills, addTransaction, removeBill } = useStore();
+  const { bills: storeBills, addTransaction, removeBill, showToast } = useStore();
   const [bills, setBills] = useState([
     {
       id: 1,
@@ -169,7 +169,7 @@ const BillList = () => {
     ));
     setIsEditModalOpen(false);
     setEditingBill(null);
-    alert('Bill updated successfully!');
+    showToast('Bill updated successfully!', 'success');
   };
 
   // Apply filters

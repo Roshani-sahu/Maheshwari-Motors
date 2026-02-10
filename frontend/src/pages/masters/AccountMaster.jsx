@@ -400,7 +400,7 @@ const AccountMaster = () => {
   
 
       {/* Edit Discount Modal */}
-      <Modal isOpen={isEditDiscountModalOpen} onClose={() => setIsEditDiscountModalOpen(false)} title="Edit Discount" size="sm md:md">
+      <Modal isOpen={isEditDiscountModalOpen} onClose={() => setIsEditDiscountModalOpen(false)} title="Edit Discount" size="sm">
         {editingDiscount && (
           <div className="space-y-3 sm:space-y-4">
             <div>

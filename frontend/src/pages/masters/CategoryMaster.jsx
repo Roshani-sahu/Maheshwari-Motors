@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
+import useStore from '../../store';
 
 const CategoryMaster = () => {
+  const { showToast } = useStore();
   const [categories, setCategories] = useState([
     { id: 1, name: 'Engine Parts' },
     { id: 2, name: 'Brake System' },
@@ -17,36 +19,25 @@ const CategoryMaster = () => {
 
   const columns = [
     { key: 'id', label: 'Category ID' },
-    { key: 'name', label: 'Category Name' },
+    { key: 'name', label: 'Category Name' }
+  ];
+
+  const actions = [
     {
-      key: 'actions',
-      label: 'Actions',
-      render: (value, category) => (
-        <div className="flex gap-2">
-          <button
-            onClick={(category) => {
-              setEditingCategory(category);
-              setNewCategoryName(category.name);
-              setIsEditModalOpen(true);
-            }}
-            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-            title="Edit"
-          >
-            <FaEdit size={14} />
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm(`Delete category "${category.name}"?`)) {
-                setCategories(prev => prev.filter(c => c.id !== category.id));
-              }
-            }}
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-            title="Delete"
-          >
-            <FaTrash size={14} />
-          </button>
-        </div>
-      )
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
+      onClick: (category) => {
+        setEditingCategory(category);
+        setNewCategoryName(category.name);
+        setIsEditModalOpen(true);
+      },
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
+    },
+    {
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
+      onClick: (category) => {
+        setDeleteDialog({ isOpen: true, category });
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
@@ -54,6 +45,7 @@ const CategoryMaster = () => {
     setCategories(prev => [...prev, { id: Date.now(), name: newCategoryName }]);
     setNewCategoryName('');
     setIsAddModalOpen(false);
+    showToast('Category added successfully', 'success');
   };
 
   const handleEditCategory = () => {
@@ -61,6 +53,7 @@ const CategoryMaster = () => {
     setIsEditModalOpen(false);
     setEditingCategory(null);
     setNewCategoryName('');
+    showToast('Category updated successfully', 'success');
   };
 
   return (
@@ -124,7 +117,10 @@ const CategoryMaster = () => {
       <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, category: null })}
-        onConfirm={() => setCategories(prev => prev.filter(c => c.id !== deleteDialog.category.id))}
+        onConfirm={() => {
+          setCategories(prev => prev.filter(c => c.id !== deleteDialog.category.id));
+          setDeleteDialog({ isOpen: false, category: null });
+        }}
         itemName={deleteDialog.category?.name}
       />
     </div>

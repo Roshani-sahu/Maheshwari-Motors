@@ -6,7 +6,7 @@ import { Button, Select, Input } from '../../components/ui';
 import useStore from '../../store';
 
 const ChallanList = () => {
-  const { addBill, addTransaction, removeChallans } = useStore();
+  const { addBill, addTransaction, removeChallans, showToast } = useStore();
   const [challans, setChallans] = useState([
     {
       id: 1,
@@ -248,7 +248,7 @@ const ChallanList = () => {
     
     setSelectedChallans([]);
     setIsConvertModalOpen(false);
-    alert(`Bill ${billNo} created successfully! Check Bill List and Transaction History.`);
+    showToast(`Bill ${billNo} created successfully! Check Bill List and Transaction History.`, 'success');
   };
 
   const handleCreateChallan = () => {
@@ -280,7 +280,7 @@ const ChallanList = () => {
     addTransaction(txn);
     setNewChallan({ challanNo: '', party: '', items: [], amount: '', gstType: 1 });
     setIsCreateModalOpen(false);
-    alert(`Challan ${challan.challanNo} created successfully!`);
+    showToast(`Challan ${challan.challanNo} created successfully!`, 'success');
   };
 
   const handleEditChallan = () => {
@@ -289,7 +289,7 @@ const ChallanList = () => {
     ));
     setIsEditModalOpen(false);
     setEditingChallan(null);
-    alert('Challan updated successfully!');
+    showToast('Challan updated successfully!', 'success');
   };
 
   const toggleItemSelection = (item, isEditing = false) => {
@@ -629,7 +629,7 @@ const ChallanList = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title="Edit Challan"
-        size="sm md:md"
+        size="sm"
       >
         {editingChallan && (
           <div className="space-y-3 sm:space-y-4">

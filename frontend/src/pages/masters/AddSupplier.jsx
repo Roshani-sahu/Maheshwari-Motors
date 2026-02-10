@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
+import useStore from '../../store';
 
 const AddSupplier = () => {
+  const { showToast } = useStore();
   const [suppliers, setSuppliers] = useState([
     { id: 1, name: 'ABC Suppliers', contact: '9876543210', email: 'abc@supplier.com', address: 'Mumbai' },
     { id: 2, name: 'XYZ Parts', contact: '9876543211', email: 'xyz@parts.com', address: 'Delhi' }
@@ -19,36 +21,25 @@ const AddSupplier = () => {
     { key: 'name', label: 'Supplier Name' },
     { key: 'contact', label: 'Contact' },
     { key: 'email', label: 'Email' },
-    { key: 'address', label: 'Address' },
+    { key: 'address', label: 'Address' }
+  ];
+
+  const actions = [
     {
-      key: 'actions',
-      label: 'Actions',
-      render: (value, supplier) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setEditingSupplier(supplier);
-              setFormData(supplier);
-              setIsEditModalOpen(true);
-            }}
-            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-            title="Edit"
-          >
-            <FaEdit size={14} />
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm(`Delete supplier "${supplier.name}"?`)) {
-                setSuppliers(prev => prev.filter(s => s.id !== supplier.id));
-              }
-            }}
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-            title="Delete"
-          >
-            <FaTrash size={14} />
-          </button>
-        </div>
-      )
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
+      onClick: (supplier) => {
+        setEditingSupplier(supplier);
+        setFormData(supplier);
+        setIsEditModalOpen(true);
+      },
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
+    },
+    {
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
+      onClick: (supplier) => {
+        setDeleteDialog({ isOpen: true, supplier });
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
@@ -56,6 +47,7 @@ const AddSupplier = () => {
     setSuppliers(prev => [...prev, { id: Date.now(), ...formData }]);
     setFormData({ name: '', contact: '', email: '', address: '' });
     setIsAddModalOpen(false);
+    showToast('Supplier added successfully', 'success');
   };
 
   const handleEdit = () => {
@@ -63,6 +55,7 @@ const AddSupplier = () => {
     setIsEditModalOpen(false);
     setEditingSupplier(null);
     setFormData({ name: '', contact: '', email: '', address: '' });
+    showToast('Supplier updated successfully', 'success');
   };
 
   return (
@@ -142,7 +135,10 @@ const AddSupplier = () => {
       <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, supplier: null })}
-        onConfirm={() => setSuppliers(prev => prev.filter(s => s.id !== deleteDialog.supplier.id))}
+        onConfirm={() => {
+          setSuppliers(prev => prev.filter(s => s.id !== deleteDialog.supplier.id));
+          setDeleteDialog({ isOpen: false, supplier: null });
+        }}
         itemName={deleteDialog.supplier?.name}
       />
     </div>

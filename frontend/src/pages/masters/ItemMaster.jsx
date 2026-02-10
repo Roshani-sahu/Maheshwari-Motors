@@ -7,7 +7,7 @@ import useStore from '../../store';
 
 const ItemMaster = () => {
   const navigate = useNavigate();
-  const { items, setItems, updateItem, deleteItem } = useStore();
+  const { items, setItems, updateItem, deleteItem, showToast } = useStore();
   const [editingItem, setEditingItem] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editImageFile, setEditImageFile] = useState(null);
@@ -155,6 +155,7 @@ const ItemMaster = () => {
       setIsEditModalOpen(false);
       setEditingItem(null);
       setEditImageFile(null);
+      showToast('Item updated successfully', 'success');
     }
   };
 

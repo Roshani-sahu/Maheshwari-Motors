@@ -5,7 +5,7 @@ import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
 
 const UserMaster = () => {
-  const { users, setUsers, addUser, updateUser, deleteUser } = useStore();
+  const { users, setUsers, addUser, updateUser, deleteUser, showToast } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -113,6 +113,7 @@ const UserMaster = () => {
     addUser(user);
     setNewUser({ username: '', email: '', password: '' });
     setIsAddModalOpen(false);
+    showToast('User added successfully', 'success');
   };
 
   return (
@@ -232,6 +233,7 @@ const UserMaster = () => {
                 updateUser(editingUser.id, updatedUser);
                 setIsEditModalOpen(false);
                 setNewPassword('');
+                showToast('User updated successfully', 'success');
               }} className="text-xs sm:text-sm py-1.5 sm:py-2">
                 Save Changes
               </Button>
