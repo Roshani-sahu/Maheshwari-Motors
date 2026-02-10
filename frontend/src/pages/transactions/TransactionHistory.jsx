@@ -64,8 +64,25 @@ const TransactionHistory = () => {
     setTransactions(prev => {
       const newTransactions = storeTransactions.filter(st => !prev.some(t => t.id === st.id));
       console.log('TransactionHistory - New transactions to add:', newTransactions);
-      // prepend new transactions so recent/converted transactions appear at the top
-      return newTransactions.length > 0 ? [...newTransactions, ...prev] : prev;
+      
+      // Only prepend new transactions that are not "Deleted" status
+      const nonDeletedNewTransactions = newTransactions.filter(txn => txn.status !== 'Deleted');
+      
+      // For deleted transactions, update existing ones instead of adding to top
+      const deletedTransactions = newTransactions.filter(txn => txn.status === 'Deleted');
+      let updatedTransactions = [...prev];
+      
+      deletedTransactions.forEach(deletedTxn => {
+        const existingIndex = updatedTransactions.findIndex(t => t.reference === deletedTxn.reference && t.status !== 'Deleted');
+        if (existingIndex !== -1) {
+          updatedTransactions[existingIndex] = deletedTxn; // Update status in place
+        } else {
+          updatedTransactions.push(deletedTxn); // Add if no existing found
+        }
+      });
+      
+      // Prepend only non-deleted new transactions to top
+      return nonDeletedNewTransactions.length > 0 ? [...nonDeletedNewTransactions, ...updatedTransactions] : updatedTransactions;
     });
   }, [storeTransactions]);
 
