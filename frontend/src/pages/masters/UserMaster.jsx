@@ -150,7 +150,7 @@ const UserMaster = () => {
       </div>
 
       {/* Add User Modal */}
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add User" size="sm md:md">
+      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add User" size="sm">
         <div className="space-y-3 sm:space-y-4">
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Username</label>
@@ -192,7 +192,7 @@ const UserMaster = () => {
       </Modal>
 
       {/* Edit User Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User" size="sm md:md">
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User" size="sm">
         {editingUser && (
           <div className="space-y-3 sm:space-y-4">
             <div>

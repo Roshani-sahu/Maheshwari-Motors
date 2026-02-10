@@ -225,7 +225,7 @@ const ItemMaster = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title="Edit Item"
-        size="sm md:md"
+        size="sm"
       >
         {editingItem && (
           <div className="space-y-3 sm:space-y-4">
@@ -239,8 +239,7 @@ const ItemMaster = () => {
                   ...prev,
                   itemName: value
                 }))}
-                disabled
-                className="bg-gray-50 text-xs sm:text-sm py-1.5 sm:py-2"
+                className="text-xs sm:text-sm py-1.5 sm:py-2"
               />
             </div>
 

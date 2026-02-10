@@ -62,7 +62,8 @@ const ChallanList = () => {
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    party: ''
+    party: '',
+    gstType: 'all'
   });
 
   const [selectedChallan, setSelectedChallan] = useState(null);
@@ -330,6 +331,9 @@ const ChallanList = () => {
     if (filters.party && !challan.party.toLowerCase().includes(filters.party.toLowerCase())) {
       return false;
     }
+    if (filters.gstType !== 'all' && challan.gstType !== parseInt(filters.gstType)) {
+      return false;
+    }
     return true;
   });
 
@@ -365,7 +369,7 @@ const ChallanList = () => {
           <FaFilter className="text-gray-500 text-sm sm:text-base" />
           <h3 className="font-medium text-gray-900 text-sm sm:text-base">Filters</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
               Party
@@ -379,13 +383,29 @@ const ChallanList = () => {
             />
           </div>
           
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+              GST Type
+            </label>
+            <select
+              value={filters.gstType}
+              onChange={(e) => setFilters(prev => ({ ...prev, gstType: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
+            >
+              <option value="all">All Types</option>
+              <option value="1">1 (GST)</option>
+              <option value="0">0 (Non GST)</option>
+            </select>
+          </div>
+          
           <div className="flex items-end">
             <Button
               variant="outline"
               onClick={() => setFilters({
                 dateFrom: '',
                 dateTo: '',
-                party: ''
+                party: '',
+                gstType: 'all'
               })}
               className="w-full sm:w-auto text-xs sm:text-sm py-2"
             >
@@ -594,8 +614,8 @@ const ChallanList = () => {
               onChange={(e) => setNewChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
               className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
             >
-              <option value={1}>1</option>
-              <option value={0}>0</option>
+              <option value={1}>1 (GST)</option>
+              <option value={0}>0 (Non GST)</option>
             </select>
           </div>
           
@@ -703,8 +723,8 @@ const ChallanList = () => {
                 onChange={(e) => setEditingChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
               >
-                <option value={1}>1</option>
-                <option value={0}>0</option>
+                <option value={1}>1 (GST)</option>
+                <option value={0}>0 (Non GST)</option>
               </select>
             </div>
             

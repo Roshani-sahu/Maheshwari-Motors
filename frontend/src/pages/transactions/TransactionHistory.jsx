@@ -73,7 +73,8 @@ const TransactionHistory = () => {
     dateFrom: '',
     dateTo: '',
     type: 'all',
-    firm: 'all'
+    firm: 'all',
+    gstType: 'all'
   });
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -249,6 +250,7 @@ const TransactionHistory = () => {
   const filteredTransactions = deduplicatedTransactions.filter(txn => {
     if (filters.type !== 'all' && txn.type !== filters.type) return false;
     if (filters.firm !== 'all' && txn.firm !== filters.firm) return false;
+    if (filters.gstType !== 'all' && txn.gstType !== parseInt(filters.gstType)) return false;
     return true;
   });
 
@@ -322,7 +324,7 @@ const TransactionHistory = () => {
           <FaFilter className="text-gray-500" />
           <h3 className="font-medium text-gray-900">Filters</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Select
             value={filters.type}
             onChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
@@ -344,6 +346,15 @@ const TransactionHistory = () => {
             ))}
           </Select>
           
+          <Select
+            value={filters.gstType}
+            onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
+          >
+            <option value="all">All Types</option>
+            <option value="1">1 (GST)</option>
+            <option value="0">0 (Non GST)</option>
+          </Select>
+          
           <Input
             type="date"
             value={filters.dateFrom}
@@ -354,7 +365,7 @@ const TransactionHistory = () => {
           <Button
             variant="outline"
             onClick={() => setFilters({
-              dateFrom: '', dateTo: '', type: 'all', firm: 'all'
+              dateFrom: '', dateTo: '', type: 'all', firm: 'all', gstType: 'all'
             })}
           >
             Clear All

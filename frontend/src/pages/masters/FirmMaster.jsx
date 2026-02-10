@@ -8,6 +8,7 @@ import useStore from '../../store';
 const FirmMaster = () => {
   const navigate = useNavigate();
   const { firms, setFirms, deleteFirm } = useStore();
+  const [gstFilter, setGstFilter] = useState('all');
 
   // Initialize with sample data if empty
   useEffect(() => {
@@ -68,9 +69,9 @@ const FirmMaster = () => {
       label: 'Type',
       render: (value) => (
         <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
-          value === 0 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+          value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
         }`}>
-          {value === 0 ? '1' : '0'}
+          {value === 1 ? '1 ' : '0 '}
         </span>
       ),
       width: '60px'
@@ -118,6 +119,13 @@ const FirmMaster = () => {
     }
   ];
 
+  const filteredFirms = firms.filter(firm => {
+    if (gstFilter !== 'all' && firm.type !== parseInt(gstFilter)) {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
@@ -137,11 +145,27 @@ const FirmMaster = () => {
         </Button>
       </div>
 
+      {/* Filter */}
+      <div className="bg-white p-4 rounded-lg border">
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-medium text-gray-700">Filter by Type:</label>
+          <select
+            value={gstFilter}
+            onChange={(e) => setGstFilter(e.target.value)}
+            className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="all">All Types</option>
+            <option value="1">1 (GST)</option>
+            <option value="0">0 (Non GST)</option>
+          </select>
+        </div>
+      </div>
+
       {/* Firms Table */}
       <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
         <DataTable
           columns={columns}
-          data={firms}
+          data={filteredFirms}
           actions={actions}
           searchable={true}
           sortable={true}

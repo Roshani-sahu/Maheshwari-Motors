@@ -18,36 +18,27 @@ const AddSupplier = () => {
     { key: 'name', label: 'Supplier Name' },
     { key: 'contact', label: 'Contact' },
     { key: 'email', label: 'Email' },
-    { key: 'address', label: 'Address' },
+    { key: 'address', label: 'Address' }
+  ];
+
+  const actions = [
     {
-      key: 'actions',
-      label: 'Actions',
-      render: (value, supplier) => (
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setEditingSupplier(supplier);
-              setFormData(supplier);
-              setIsEditModalOpen(true);
-            }}
-            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-            title="Edit"
-          >
-            <FaEdit size={14} />
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm(`Delete supplier "${supplier.name}"?`)) {
-                setSuppliers(prev => prev.filter(s => s.id !== supplier.id));
-              }
-            }}
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-            title="Delete"
-          >
-            <FaTrash size={14} />
-          </button>
-        </div>
-      )
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
+      onClick: (supplier) => {
+        setEditingSupplier(supplier);
+        setFormData(supplier);
+        setIsEditModalOpen(true);
+      },
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
+    },
+    {
+      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
+      onClick: (supplier) => {
+        if (window.confirm(`Are you sure you want to delete "${supplier.name}"?`)) {
+          setSuppliers(prev => prev.filter(s => s.id !== supplier.id));
+        }
+      },
+      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
@@ -80,6 +71,7 @@ const AddSupplier = () => {
       <DataTable
         columns={columns}
         data={suppliers}
+        actions={actions}
         searchable={true}
         sortable={true}
         pagination={true}

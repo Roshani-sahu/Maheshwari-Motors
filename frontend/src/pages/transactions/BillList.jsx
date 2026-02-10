@@ -49,7 +49,8 @@ const BillList = () => {
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
-    party: ''
+    party: '',
+    gstType: 'all'
   });
 
   const [selectedBill, setSelectedBill] = useState(null);
@@ -192,6 +193,7 @@ const BillList = () => {
   // Apply filters
   const filteredBills = bills.filter(bill => {
     if (filters.party && !bill.party.toLowerCase().includes(filters.party.toLowerCase())) return false;
+    if (filters.gstType !== 'all' && bill.gstType !== parseInt(filters.gstType)) return false;
     return true;
   });
 
@@ -225,13 +227,21 @@ const BillList = () => {
           <FaFilter className="text-gray-500 text-sm sm:text-base" />
           <h3 className="font-medium text-gray-900 text-sm sm:text-base">Filters</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4">
           <Input
             placeholder="Search party..."
             value={filters.party}
             onChange={(e) => setFilters(prev => ({ ...prev, party: e.target.value }))}
             className="text-xs sm:text-sm py-1.5 sm:py-2"
           />
+          <Select
+            value={filters.gstType}
+            onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
+          >
+            <option value="all">All Types</option>
+            <option value="1">1 (GST)</option>
+            <option value="0">0 (Non GST)</option>
+          </Select>
           <Input
             type="date"
             value={filters.dateFrom}
@@ -241,7 +251,7 @@ const BillList = () => {
           <Button
             variant="outline"
             onClick={() => setFilters({
-              dateFrom: '', dateTo: '', party: ''
+              dateFrom: '', dateTo: '', party: '', gstType: 'all'
             })}
             className="text-xs sm:text-sm py-1.5 sm:py-2"
           >
@@ -369,8 +379,8 @@ const BillList = () => {
                 onChange={(e) => setEditingBill(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value={1}>1</option>
-                <option value={0}>0</option>
+                <option value={1}>1 (GST)</option>
+                <option value={0}>0 (Non GST)</option>
               </select>
             </div>
             

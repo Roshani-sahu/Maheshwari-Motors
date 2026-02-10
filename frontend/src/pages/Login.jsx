@@ -36,16 +36,21 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const response = await authAPI.login(formData);
-      const { user, token } = response.data;
-      
-      localStorage.setItem('token', token);
-      setUser(user);
-      showToast('Login successful', 'success');
-      navigate('/company-selection');
+      // Hardcoded credentials check
+      if (formData.username === 'admin' && formData.password === 'admin123') {
+        const user = { id: 1, username: 'admin', email: 'admin@maheshwarimotors.com' };
+        const token = 'mock-jwt-token';
+        
+        localStorage.setItem('token', token);
+        setUser(user);
+        showToast('Login successful', 'success');
+        navigate('/company-selection');
+      } else {
+        throw new Error('Invalid credentials');
+      }
     } catch (error) {
-      showToast(error.response?.data?.message || 'Login failed', 'error');
-      setErrors({ general: 'Invalid credentials. Please try again.' });
+      showToast('Invalid credentials.', 'error');
+      setErrors({ general: 'Invalid credentials.' });
     } finally {
       setLoading(false);
     }
@@ -130,7 +135,7 @@ const Login = () => {
                 <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-md p-3 flex items-start gap-3">
                   <FaCircleExclamation className="text-red-600 mt-0.5" />
                   <div>
-                    <p>Invalid Credentials</p>
+                    {/* <p>Invalid Credentials</p> */}
                     <p className="text-red-600">
                       {errors.general}
                     </p>
