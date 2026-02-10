@@ -45,7 +45,7 @@ const CategoryMaster = () => {
   ];
 
   const handleAddCategory = () => {
-    const newCategories = [...categories, { id: Date.now(), name: newCategoryName }];
+    const newCategories = [...categories, { id: categories.length +1, name: newCategoryName }];
     setCategories(newCategories);
     localStorage.setItem('categories', JSON.stringify(newCategories));
     setNewCategoryName('');
