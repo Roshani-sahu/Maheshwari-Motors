@@ -350,6 +350,7 @@ const BillList = () => {
                 value={editingBill.amount}
                 onChange={(e) => setEditingBill(prev => ({ ...prev, amount: e.target.value }))}
                 placeholder="Enter amount"
+                onWheel={(e) => e.target.blur()}
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>

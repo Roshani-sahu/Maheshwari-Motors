@@ -61,6 +61,10 @@ const AccountMaster = () => {
     }
   ]);
 
+  // derive unique company and item name lists from existing discounts
+  const companyOptions = Array.from(new Set(discounts.filter(d => d.companyName).map(d => d.companyName)));
+  const itemOptions = Array.from(new Set(discounts.filter(d => d.itemName).map(d => d.itemName)));
+
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -190,12 +194,15 @@ const AccountMaster = () => {
   });
 
   const handleAddDiscount = () => {
+    // attempt to reuse existing ids when a matching name exists
+    const existingItem = discounts.find(d => d.itemName === newDiscount.itemName && d.itemId);
+    const existingCompany = discounts.find(d => d.companyName === newDiscount.companyName && d.companyId);
     const discount = {
       id: Date.now(),
       ...newDiscount,
       amount: parseFloat(newDiscount.amount),
-      itemId: newDiscount.discountType === 'ITEM' ? 'ITM' + Date.now() : null,
-      companyId: newDiscount.discountType === 'COMPANY' ? 'COMP' + Date.now() : null
+      itemId: newDiscount.discountType === 'ITEM' ? (existingItem ? existingItem.itemId : 'ITM' + Date.now()) : null,
+      companyId: newDiscount.discountType === 'COMPANY' ? (existingCompany ? existingCompany.companyId : 'COMP' + Date.now()) : null
     };
     setDiscounts(prev => [...prev, discount]);
     setNewDiscount({ discountType: 'ITEM', amount: '', itemName: '', companyName: '' });
@@ -342,7 +349,7 @@ const AccountMaster = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
             <Select
               value={newDiscount.discountType}
-              onChange={(value) => setNewDiscount(prev => ({ ...prev, discountType: value }))}
+              onChange={(value) => setNewDiscount(prev => ({ ...prev, discountType: value, itemName: '', companyName: '' }))}
               className="text-xs sm:text-sm"
             >
               <option value="ITEM">Item Discount</option>
@@ -358,6 +365,7 @@ const AccountMaster = () => {
               value={newDiscount.amount}
               onChange={(value) => setNewDiscount(prev => ({ ...prev, amount: value }))}
               placeholder="Enter discount amount"
+              onWheel={(e) => e.target.blur()}
               className="text-xs sm:text-sm"
             />
           </div>
@@ -365,24 +373,32 @@ const AccountMaster = () => {
           {newDiscount.discountType === 'ITEM' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-              <Input
+              <Select
                 value={newDiscount.itemName}
                 onChange={(value) => setNewDiscount(prev => ({ ...prev, itemName: value }))}
-                placeholder="Enter item name"
                 className="text-xs sm:text-sm"
-              />
+              >
+                <option value="">Select item</option>
+                {itemOptions.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </Select>
             </div>
           )}
 
           {newDiscount.discountType === 'COMPANY' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-              <Input
+              <Select
                 value={newDiscount.companyName}
                 onChange={(value) => setNewDiscount(prev => ({ ...prev, companyName: value }))}
-                placeholder="Enter company name"
                 className="text-xs sm:text-sm"
-              />
+              >
+                <option value="">Select company</option>
+                {companyOptions.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </Select>
             </div>
           )}
 
@@ -407,7 +423,7 @@ const AccountMaster = () => {
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Discount Type</label>
               <Select
                 value={editingDiscount.discountType}
-                onChange={(value) => setEditingDiscount(prev => ({ ...prev, discountType: value }))}
+                onChange={(value) => setEditingDiscount(prev => ({ ...prev, discountType: value, itemName: '', itemId: null, companyName: '', companyId: null }))}
                 className="text-xs sm:text-sm py-1.5 sm:py-2"
               >
                 <option value="ITEM">Item Discount</option>
@@ -430,24 +446,38 @@ const AccountMaster = () => {
             {editingDiscount.discountType === 'ITEM' && (
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Item Name</label>
-                <Input
+                <Select
                   value={editingDiscount.itemName || ''}
-                  onChange={(value) => setEditingDiscount(prev => ({ ...prev, itemName: value }))}
-                  placeholder="Enter item name"
+                  onChange={(value) => {
+                    const existing = discounts.find(d => d.itemName === value && d.itemId);
+                    setEditingDiscount(prev => ({ ...prev, itemName: value, itemId: existing ? existing.itemId : (prev.itemId || 'ITM' + Date.now()) }));
+                  }}
                   className="text-xs sm:text-sm py-1.5 sm:py-2"
-                />
+                >
+                  <option value="">Select item</option>
+                  {itemOptions.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </Select>
               </div>
             )}
 
             {editingDiscount.discountType === 'COMPANY' && (
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                <Input
+                <Select
                   value={editingDiscount.companyName || ''}
-                  onChange={(value) => setEditingDiscount(prev => ({ ...prev, companyName: value }))}
-                  placeholder="Enter company name"
+                  onChange={(value) => {
+                    const existing = discounts.find(d => d.companyName === value && d.companyId);
+                    setEditingDiscount(prev => ({ ...prev, companyName: value, companyId: existing ? existing.companyId : (prev.companyId || 'COMP' + Date.now()) }));
+                  }}
                   className="text-xs sm:text-sm py-1.5 sm:py-2"
-                />
+                >
+                  <option value="">Select company</option>
+                  {companyOptions.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </Select>
               </div>
             )}
 
