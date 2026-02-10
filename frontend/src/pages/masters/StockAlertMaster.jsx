@@ -1,44 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataTable } from '../../components/common';
+import api from '../../services/api';
 
 const StockAlertMaster = () => {
-  const [stockAlerts, setStockAlerts] = useState([
-    {
-      id: 1,
-      itemName: 'Engine Oil 5W-30',
-      stockCount: 5,
-      threshold: 10,
-      status: 'LOW'
-    },
-    {
-      id: 2,
-      itemName: 'Brake Pads',
-      stockCount: 3,
-      threshold: 8,
-      status: 'LOW'
-    },
-    {
-      id: 3,
-      itemName: 'Air Filter',
-      stockCount: 15,
-      threshold: 12,
-      status: 'OK'
-    },
-    {
-      id: 4,
-      itemName: 'Spark Plugs',
-      stockCount: 2,
-      threshold: 6,
-      status: 'LOW'
-    },
-    {
-      id: 5,
-      itemName: 'Transmission Fluid',
-      stockCount: 8,
-      threshold: 5,
-      status: 'OK'
+  const [stockAlerts, setStockAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStockAlerts();
+  }, []);
+
+  const fetchStockAlerts = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/stock-alerts/items');
+      const items = response.data?.data || [];
+      setStockAlerts(items);
+    } catch (error) {
+      console.error('Error fetching stock alerts:', error);
+      setStockAlerts([]);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const columns = [
     {
@@ -110,21 +94,24 @@ const StockAlertMaster = () => {
 
       {/* Stock Alerts Table */}
       <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          searchable={true}
-          sortable={true}
-          pagination={true}
-          minWidth="600px"
-          className="text-xs sm:text-sm"
-          onRowClick={(row) => {
-            if (row.status === 'LOW') {
-              // Navigate to item master or show reorder dialog
-              console.log('Reorder item:', row.itemName);
-            }
-          }}
-        />
+        {loading ? (
+          <div className="text-center py-8">Loading...</div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            searchable={true}
+            sortable={true}
+            pagination={true}
+            minWidth="600px"
+            className="text-xs sm:text-sm"
+            onRowClick={(row) => {
+              if (row.status === 'LOW') {
+                console.log('Reorder item:', row.itemName);
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );

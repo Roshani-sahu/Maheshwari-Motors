@@ -1,15 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataTable } from '../../components/common';
+import { groupAPI } from '../../services/api';
+import useStore from '../../store';
 
 const ViewCategory = () => {
-  const [categories] = useState([
-    { id: 1, name: 'Engine Parts' },
-    { id: 2, name: 'Brake System' },
-    { id: 3, name: 'Filters' }
-  ]);
+  const { setLoading, showToast } = useStore();
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    loadCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadCategories = async () => {
+    setLoading(true);
+    try {
+      const response = await groupAPI.getAll();
+      // response.data -> ApiResponse { status, data, message }
+      // data may contain pagination: { data: [...], meta: {...} }
+      const list = response.data?.data?.data || response.data?.data || [];
+      setCategories(list);
+    } catch (error) {
+      showToast('Failed to load categories', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const columns = [
-    { key: 'id', label: 'Category ID' },
+    { key: '_id', label: 'Category ID' },
     { key: 'name', label: 'Category Name' }
   ];
 

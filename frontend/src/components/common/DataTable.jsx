@@ -3,7 +3,7 @@ import { FaSort, FaSortUp, FaSortDown, FaSearch } from 'react-icons/fa';
 
 const DataTable = ({ 
   columns, 
-  data, 
+  data = [], 
   searchable = true,
   sortable = true,
   pagination = true,
@@ -15,12 +15,14 @@ const DataTable = ({
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
 
+  const dataArray = Array.isArray(data) ? data : [];
+
   // Filter data based on search
-  const filteredData = searchable ? data.filter(row =>
+  const filteredData = searchable ? dataArray.filter(row =>
     columns.some(col => 
       String(row[col.key] || '').toLowerCase().includes(searchTerm.toLowerCase())
     )
-  ) : data;
+  ) : dataArray;
 
   // Sort data
   const sortedData = sortable && sortConfig.key ? 

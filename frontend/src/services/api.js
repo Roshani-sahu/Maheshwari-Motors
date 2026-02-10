@@ -150,8 +150,16 @@ export const hsnAPI = {
   getAll: () => Promise.resolve({ data: { data: [] } }),
 };
 
+export const supplierAPI = {
+  getAll: () => api.get('/suppliers', { params: { page: 1, limit: 100 } }),
+  getById: (id) => api.get(`/suppliers/${id}`),
+  create: (data) => api.post('/suppliers', data),
+  update: (id, data) => api.put(`/suppliers/${id}`, data),
+  delete: (id) => api.delete(`/suppliers/${id}`),
+};
+
 export const userAPI = {
     getAll: () => api.get('/users'),
-    create: (data) => api.post('/users', data), // Only admin/main user can likely do this
+    create: (data) => api.post('/users', data),
     delete: (id) => api.delete(`/users/${id}`),
 };
