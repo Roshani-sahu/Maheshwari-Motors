@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 
 const CategoryMaster = () => {
@@ -13,30 +13,40 @@ const CategoryMaster = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, category: null });
 
   const columns = [
     { key: 'id', label: 'Category ID' },
-    { key: 'name', label: 'Category Name' }
-  ];
-
-  const actions = [
+    { key: 'name', label: 'Category Name' },
     {
-      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
-      onClick: (category) => {
-        setEditingCategory(category);
-        setNewCategoryName(category.name);
-        setIsEditModalOpen(true);
-      },
-      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
-    },
-    {
-      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (category) => {
-        if (window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
-          setCategories(prev => prev.filter(c => c.id !== category.id));
-        }
-      },
-      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
+      key: 'actions',
+      label: 'Actions',
+      render: (value, category) => (
+        <div className="flex gap-2">
+          <button
+            onClick={(category) => {
+              setEditingCategory(category);
+              setNewCategoryName(category.name);
+              setIsEditModalOpen(true);
+            }}
+            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+            title="Edit"
+          >
+            <FaEdit size={14} />
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm(`Delete category "${category.name}"?`)) {
+                setCategories(prev => prev.filter(c => c.id !== category.id));
+              }
+            }}
+            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+            title="Delete"
+          >
+            <FaTrash size={14} />
+          </button>
+        </div>
+      )
     }
   ];
 
@@ -110,6 +120,13 @@ const CategoryMaster = () => {
           </div>
         </div>
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, category: null })}
+        onConfirm={() => setCategories(prev => prev.filter(c => c.id !== deleteDialog.category.id))}
+        itemName={deleteDialog.category?.name}
+      />
     </div>
   );
 };

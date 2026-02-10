@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FaFileInvoiceDollar, FaChartPie, FaCalculator, FaDownload, FaFilter, FaArrowUp } from 'react-icons/fa';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
+import { exportToPDF } from '../../utils/pdfExport';
 
 const GSTReport = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('year');
@@ -46,6 +47,12 @@ const GSTReport = () => {
           <p className="text-gray-500 mt-1">Comprehensive GST reporting and analysis</p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={() => exportToPDF('gst-report-content', 'GST_Report.pdf')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition"
+          >
+            <FaDownload /> Download PDF
+          </button>
           <select
             value={selectedGSTRate}
             onChange={(e) => setSelectedGSTRate(e.target.value)}
@@ -69,6 +76,7 @@ const GSTReport = () => {
         </div>
       </div>
 
+      <div id="gst-report-content">
       {/* GST Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
@@ -316,6 +324,7 @@ const GSTReport = () => {
 
      
     
+    </div>
     </div>
   );
 };

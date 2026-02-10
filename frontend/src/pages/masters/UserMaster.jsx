@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
 
@@ -9,6 +9,7 @@ const UserMaster = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, user: null });
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
@@ -99,11 +100,7 @@ const UserMaster = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (user) => {
-        if (window.confirm(`Are you sure you want to delete user "${user.username}"?`)) {
-          deleteUser(user.id);
-        }
-      },
+      onClick: (user) => setDeleteDialog({ isOpen: true, user }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
@@ -243,6 +240,13 @@ const UserMaster = () => {
           </div>
         )}
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, user: null })}
+        onConfirm={() => deleteUser(deleteDialog.user.id)}
+        itemName={deleteDialog.user?.username}
+      />
     </div>
   );
 };

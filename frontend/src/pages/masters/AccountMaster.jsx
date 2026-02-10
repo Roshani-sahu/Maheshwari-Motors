@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { FaPlus, FaFilter, FaPercent, FaMoneyBillWave, FaEdit, FaTrash } from 'react-icons/fa';
-import { DataTable, Modal, Toggle } from '../../components/common';
+import { DataTable, Modal, Toggle, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input, Select } from '../../components/ui';
 
 const AccountMaster = () => {
-  const [activeTab, setActiveTab] = useState('transactions'); // transactions | discounts
+  const [activeTab, setActiveTab] = useState('transactions');
+  const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, item: null, type: '' }); // transactions | discounts
   
   const [transactions, setTransactions] = useState([
     {
@@ -34,11 +35,7 @@ const AccountMaster = () => {
   const transactionActions = [
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (transaction) => {
-        if (window.confirm(`Are you sure you want to delete transaction "${transaction.transactionId}"?`)) {
-          setTransactions(prev => prev.filter(t => t.id !== transaction.id));
-        }
-      },
+      onClick: (transaction) => setDeleteDialog({ isOpen: true, item: transaction, type: 'transaction' }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
@@ -177,7 +174,7 @@ const AccountMaster = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (discount) => setDiscounts(prev => prev.filter(d => d.id !== discount.id)),
+      onClick: (discount) => setDeleteDialog({ isOpen: true, item: discount, type: 'discount' }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
@@ -461,6 +458,19 @@ const AccountMaster = () => {
           </div>
         )}
       </Modal>
+
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, item: null, type: '' })}
+        onConfirm={() => {
+          if (deleteDialog.type === 'transaction') {
+            setTransactions(prev => prev.filter(t => t.id !== deleteDialog.item.id));
+          } else if (deleteDialog.type === 'discount') {
+            setDiscounts(prev => prev.filter(d => d.id !== deleteDialog.item.id));
+          }
+        }}
+        itemName={deleteDialog.type === 'transaction' ? deleteDialog.item?.transactionId : `discount for ${deleteDialog.item?.itemName || deleteDialog.item?.companyName}`}
+      />
     </div>
   );
 };

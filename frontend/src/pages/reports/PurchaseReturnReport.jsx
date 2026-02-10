@@ -4,6 +4,7 @@ import {
   FaExclamationTriangle,
   FaTruck,
   FaArrowUp,
+  FaDownload,
 } from "react-icons/fa";
 import {
   ResponsiveContainer,
@@ -20,6 +21,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { exportToPDF } from '../../utils/pdfExport';
 
 const PurchaseReturnReport = () => {
   const [period, setPeriod] = useState("year");
@@ -60,7 +62,14 @@ const PurchaseReturnReport = () => {
           </p>
         </div>
 
-        <select
+        <div className="flex gap-3">
+          <button
+            onClick={() => exportToPDF('purchase-return-report-content', 'Purchase_Return_Report.pdf')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition"
+          >
+            <FaDownload /> Download PDF
+          </button>
+          <select
           value={period}
           onChange={(e) => setPeriod(e.target.value)}
           className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -69,7 +78,10 @@ const PurchaseReturnReport = () => {
           <option value="quarter">This Quarter</option>
           <option value="year">This Year</option>
         </select>
+        </div>
       </div>
+
+      <div id="purchase-return-report-content">
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -212,6 +224,7 @@ const PurchaseReturnReport = () => {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
