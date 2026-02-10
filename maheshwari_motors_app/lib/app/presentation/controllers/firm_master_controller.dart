@@ -38,7 +38,7 @@ class FirmMasterController extends GetxController {
 
   void _filter() {
     if (searchQuery.value.isEmpty) {
-      filteredFirms.value = firms;
+      filteredFirms.value = firms.toList();
     } else {
       filteredFirms.value = firms
           .where(

@@ -7,7 +7,11 @@ import '../../routes/app_routes.dart';
 
 class ApiClient {
   late final Dio _dio;
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      resetOnError: true,
+    ),
+  );
 
   ApiClient() {
     _dio = Dio(
@@ -25,15 +29,21 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _storage.read(key: AppConstants.tokenKey);
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
+          try {
+            final token = await _storage
+                .read(key: AppConstants.tokenKey)
+                .timeout(const Duration(seconds: 3), onTimeout: () => null);
+            if (token != null) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          } catch (_) {
+            // Proceed without token if storage fails
           }
           return handler.next(options);
         },
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
-            await _storage.deleteAll();
+            await _storage.delete(key: AppConstants.tokenKey);
             Get.offAllNamed(AppRoutes.login);
             return handler.reject(error);
           }
@@ -134,6 +144,11 @@ class ApiClient {
       final data = error.response?.data;
       if (data is Map<String, dynamic>) {
         final msg = data['message'] ?? data['error'];
+        // Include specific validation errors if present
+        final errors = data['errors'];
+        if (errors is List && errors.isNotEmpty) {
+          return errors.join(', ');
+        }
         if (msg != null && msg.toString().isNotEmpty) {
           return msg.toString();
         }

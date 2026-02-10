@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -82,27 +83,37 @@ class AddItemController extends GetxController {
     isLoading.value = true;
 
     try {
-      final data = {
+      final data = <String, dynamic>{
         'item_name': nameController.text.trim(),
-        'amount': double.parse(amountController.text.trim()),
-        'threshold': int.parse(
-          thresholdController.text.trim().isEmpty
-              ? '0'
-              : thresholdController.text.trim(),
-        ),
-        'gst_stock': int.parse(
-          gstStockController.text.trim().isEmpty
-              ? '0'
-              : gstStockController.text.trim(),
-        ),
-        'nongst_stock': int.parse(
-          nongstStockController.text.trim().isEmpty
-              ? '0'
-              : nongstStockController.text.trim(),
-        ),
-        'category_ids': selectedCategoryIds,
-        'supplier_id': selectedSupplierId.value,
+        'amount': amountController.text.trim(),
+        'threshold': thresholdController.text.trim().isEmpty
+            ? '0'
+            : thresholdController.text.trim(),
+        'gst_stock': gstStockController.text.trim().isEmpty
+            ? '0'
+            : gstStockController.text.trim(),
+        'nongst_stock': nongstStockController.text.trim().isEmpty
+            ? '0'
+            : nongstStockController.text.trim(),
       };
+
+      // Send category_ids as individual entries so FormData serializes
+      // them as repeated fields that Express/multer parses into an array.
+      final validCatIds = selectedCategoryIds
+          .where((id) => id.isNotEmpty)
+          .toList();
+      if (validCatIds.isNotEmpty) {
+        data['category_ids'] = validCatIds;
+      }
+
+      // Only include supplier_id when actually selected and non-empty —
+      // sending null or "" causes mongoose to fail casting to ObjectId.
+      final suppId = selectedSupplierId.value;
+      if (suppId != null && suppId.isNotEmpty) {
+        data['supplier_id'] = suppId;
+      }
+
+      debugPrint('[AddItem] payload: $data');
 
       if (isEdit) {
         await _api.updateItem(
@@ -116,11 +127,15 @@ class AddItemController extends GetxController {
         AppSnackbar.success('Item created');
       }
       Get.back(result: true);
-      return;
     } catch (e) {
+      debugPrint('[AddItem] error: $e');
+      if (e is DioException) {
+        debugPrint('[AddItem] response: ${e.response?.data}');
+      }
       AppSnackbar.error(ApiClient.parseError(e));
+    } finally {
+      isLoading.value = false;
     }
-    isLoading.value = false;
   }
 
   @override

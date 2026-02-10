@@ -38,7 +38,7 @@ class UserMasterController extends GetxController {
 
   void _filter() {
     if (searchQuery.value.isEmpty) {
-      filtered.value = users;
+      filtered.value = users.toList();
     } else {
       final q = searchQuery.value.toLowerCase();
       filtered.value = users

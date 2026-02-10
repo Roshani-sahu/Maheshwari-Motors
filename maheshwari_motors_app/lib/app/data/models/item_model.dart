@@ -10,6 +10,7 @@ class ItemModel {
   final int? physicalStock;
   final int? nongstAvailable;
   final List<String> categoryIds;
+  final List<String> categoryNames;
   final String? supplierId;
 
   ItemModel({
@@ -24,6 +25,7 @@ class ItemModel {
     this.physicalStock,
     this.nongstAvailable,
     this.categoryIds = const [],
+    this.categoryNames = const [],
     this.supplierId,
   });
 
@@ -42,6 +44,12 @@ class ItemModel {
       categoryIds:
           (json['category_ids'] as List?)
               ?.map((e) => e is Map ? e['_id'].toString() : e.toString())
+              .toList() ??
+          [],
+      categoryNames:
+          (json['category_ids'] as List?)
+              ?.where((e) => e is Map && e['name'] != null)
+              .map((e) => e['name'].toString())
               .toList() ??
           [],
       supplierId: json['supplier_id'] is Map

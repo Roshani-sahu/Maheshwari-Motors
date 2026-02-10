@@ -15,7 +15,6 @@ class MaheshwariMotorsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('=== APP BUILD CALLED ===');
     return GetMaterialApp(
       title: 'Maheshwari Motors',
       debugShowCheckedModeBanner: false,

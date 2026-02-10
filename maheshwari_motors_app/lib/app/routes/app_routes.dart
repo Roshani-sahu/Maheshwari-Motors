@@ -12,6 +12,7 @@ class AppRoutes {
   static const String editFirm = '/edit-firm';
 
   static const String itemMaster = '/item-master';
+  static const String itemView = '/item-view';
   static const String addItem = '/add-item';
   static const String editItem = '/edit-item';
 
@@ -26,12 +27,16 @@ class AppRoutes {
   static const String editParty = '/edit-party';
 
   static const String categoryMaster = '/category-master';
+  static const String viewCategory = '/view-category';
   static const String addCategory = '/add-category';
   static const String editCategory = '/edit-category';
 
   static const String supplierMaster = '/supplier-master';
+  static const String viewAllSupplier = '/view-all-supplier';
   static const String addSupplier = '/add-supplier';
   static const String editSupplier = '/edit-supplier';
+
+  static const String accountMaster = '/account-master';
 
   // Account
   static const String changePassword = '/change-password';
@@ -45,4 +50,17 @@ class AppRoutes {
   static const String generateBill = '/generate-bill';
 
   static const String transactionHistory = '/transaction-history';
+
+  static const String purchaseMaster = '/purchase-master';
+  static const String addPurchase = '/add-purchase';
+
+  static const String discountMaster = '/discount-master';
+  static const String addDiscount = '/add-discount';
+  static const String editDiscount = '/edit-discount';
+
+  // Reports
+  static const String report = '/report';
+
+  // Help
+  static const String helpSupport = '/help-support';
 }

@@ -12,6 +12,8 @@ import '../models/transaction_model.dart';
 import '../models/stock_alert_model.dart';
 import '../models/category_model.dart';
 import '../models/supplier_model.dart';
+import '../models/purchase_model.dart';
+import '../models/discount_model.dart';
 
 class ApiService {
   final ApiClient _client = Get.find<ApiClient>();
@@ -20,7 +22,7 @@ class ApiService {
   Future<Map<String, dynamic>> login(String identifier, String password) async {
     final res = await _client.post(
       '/auth/login',
-      data: {'username': identifier, 'password': password},
+      data: {'email': identifier, 'password': password},
     );
     return res.data;
   }
@@ -41,14 +43,14 @@ class ApiService {
   ) async {
     await _client.put(
       '/auth/change-password',
-      data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      data: {'current_password': currentPassword, 'new_password': newPassword},
     );
   }
 
   // ─── FIRMS ────────────────────────────────────────
   Future<List<FirmModel>> getFirms() async {
     final res = await _client.get('/firms');
-    final data = res.data['data'] as List;
+    final data = res.data['data']['data'] as List;
     return data.map((e) => FirmModel.fromJson(e)).toList();
   }
 
@@ -74,7 +76,7 @@ class ApiService {
   // ─── ITEMS ────────────────────────────────────────
   Future<List<ItemModel>> getItems() async {
     final res = await _client.get('/items');
-    final data = res.data['data'] as List;
+    final data = res.data['data']['data'] as List;
     return data.map((e) => ItemModel.fromJson(e)).toList();
   }
 
@@ -131,7 +133,7 @@ class ApiService {
   // ─── PARTIES ──────────────────────────────────────
   Future<List<PartyModel>> getParties(String firmId) async {
     final res = await _client.get('/firms/$firmId/parties');
-    final data = res.data['data'] as List;
+    final data = res.data['data']['data'] as List;
     return data.map((e) => PartyModel.fromJson(e)).toList();
   }
 
@@ -162,7 +164,7 @@ class ApiService {
   // ─── CHALLANS ─────────────────────────────────────
   Future<List<ChallanModel>> getChallans(String firmId) async {
     final res = await _client.get('/firms/$firmId/challans');
-    final data = res.data['data'] as List;
+    final data = res.data['data']['data'] as List;
     return data.map((e) => ChallanModel.fromJson(e)).toList();
   }
 
@@ -195,7 +197,7 @@ class ApiService {
   // ─── BILLS ────────────────────────────────────────
   Future<List<BillModel>> getBills(String firmId) async {
     final res = await _client.get('/firms/$firmId/bills');
-    final data = res.data['data'] as List;
+    final data = res.data['data']['data'] as List;
     return data.map((e) => BillModel.fromJson(e)).toList();
   }
 
@@ -233,7 +235,7 @@ class ApiService {
   // ─── TRANSACTIONS ─────────────────────────────────
   Future<List<TransactionModel>> getTransactions(String firmId) async {
     final res = await _client.get('/firms/$firmId/transactions');
-    final data = res.data['data'] as List;
+    final data = res.data['data']['data'] as List;
     return data.map((e) => TransactionModel.fromJson(e)).toList();
   }
 
@@ -242,18 +244,32 @@ class ApiService {
     return res.data['data'];
   }
 
-  Future<TransactionModel> createTransaction(
+  Future<TransactionModel> createSaleTransaction(
     String firmId,
     Map<String, dynamic> data,
   ) async {
-    final res = await _client.post('/firms/$firmId/transactions', data: data);
+    final res = await _client.post(
+      '/firms/$firmId/transactions/sale',
+      data: data,
+    );
+    return TransactionModel.fromJson(res.data['data']);
+  }
+
+  Future<TransactionModel> createPurchaseTransaction(
+    String firmId,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await _client.post(
+      '/firms/$firmId/transactions/purchase',
+      data: data,
+    );
     return TransactionModel.fromJson(res.data['data']);
   }
 
   // ─── STOCK ALERTS ─────────────────────────────────
   Future<List<StockAlertModel>> getStockAlerts() async {
     final res = await _client.get('/stock-alerts');
-    final data = res.data['data'] as List;
+    final data = res.data['data']['data'] as List;
     return data.map((e) => StockAlertModel.fromJson(e)).toList();
   }
 
@@ -269,7 +285,7 @@ class ApiService {
   // ─── USERS (SECONDARY) ───────────────────────────
   Future<List<UserModel>> getUsers() async {
     final res = await _client.get('/users');
-    final data = res.data['data'] as List;
+    final data = res.data['data']['data'] as List;
     return data.map((e) => UserModel.fromJson(e)).toList();
   }
 
@@ -348,6 +364,32 @@ class ApiService {
   }
 
   // ─── DISCOUNTS ────────────────────────────────────
+  Future<List<DiscountModel>> getDiscounts() async {
+    final res = await _client.get(
+      '/discounts',
+      queryParameters: {'limit': 1000},
+    );
+    final data = res.data['data']['data'] as List;
+    return data.map((e) => DiscountModel.fromJson(e)).toList();
+  }
+
+  Future<DiscountModel> createDiscount(Map<String, dynamic> data) async {
+    final res = await _client.post('/discounts', data: data);
+    return DiscountModel.fromJson(res.data['data']);
+  }
+
+  Future<DiscountModel> updateDiscount(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await _client.put('/discounts/$id', data: data);
+    return DiscountModel.fromJson(res.data['data']);
+  }
+
+  Future<void> deleteDiscount(String id) async {
+    await _client.delete('/discounts/$id');
+  }
+
   Future<Map<String, dynamic>?> getItemDiscount(String itemId) async {
     try {
       final res = await _client.get('/discounts/item/$itemId');
@@ -374,5 +416,33 @@ class ApiService {
     final res = await _client.get('/firms/$firmId/parties/$partyId/challans');
     final data = res.data['data'] as List;
     return data.map((e) => ChallanModel.fromJson(e)).toList();
+  }
+
+  // ─── PURCHASES ────────────────────────────────────
+  Future<List<PurchaseModel>> getPurchases(String firmId) async {
+    final res = await _client.get('/firms/$firmId/purchases');
+    final data = res.data['data']['data'] as List;
+    return data.map((e) => PurchaseModel.fromJson(e)).toList();
+  }
+
+  Future<PurchaseModel> createPurchase(
+    String firmId,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await _client.post('/firms/$firmId/purchases', data: data);
+    return PurchaseModel.fromJson(res.data['data']);
+  }
+
+  Future<void> deletePurchase(String firmId, String id) async {
+    await _client.delete('/firms/$firmId/purchases/$id');
+  }
+
+  // ─── BILL RETURN ──────────────────────────────────
+  Future<void> recordBillReturn(
+    String firmId,
+    String billId,
+    Map<String, dynamic> data,
+  ) async {
+    await _client.post('/firms/$firmId/bills/$billId/return', data: data);
   }
 }

@@ -1,29 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../data/models/bill_model.dart';
+import '../../../data/models/purchase_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../controllers/auth_controller.dart';
-import '../../controllers/bill_controller.dart';
+import '../../controllers/purchase_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
-class BillListScreen extends StatelessWidget {
-  const BillListScreen({super.key});
+class PurchaseMasterScreen extends StatelessWidget {
+  const PurchaseMasterScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(BillListController());
+    final controller = Get.put(PurchaseMasterController());
+    final auth = Get.find<AuthController>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Bills'),
+        title: const Text('Purchases'),
         actions: [
           AppBarAddButton(
             onPressed: () async {
-              final result = await Get.toNamed(AppRoutes.generateBill);
-              if (result == true) controller.loadBills();
+              final result = await Get.toNamed(AppRoutes.addPurchase);
+              if (result == true) controller.loadPurchases();
             },
           ),
         ],
@@ -31,14 +33,14 @@ class BillListScreen extends StatelessWidget {
       body: Column(
         children: [
           AppSearchBar(
-            hint: 'Search by bill no or party…',
+            hint: 'Search by purchase no or supplier…',
             onChanged: (v) => controller.searchQuery.value = v,
           ),
           Obx(
             () => AppFilterChips(
-              options: const ['all', 'paid', 'partial', 'due'],
-              selected: controller.statusFilter.value,
-              onSelected: (v) => controller.statusFilter.value = v,
+              options: const ['all', 'GST', 'NON_GST'],
+              selected: controller.typeFilter.value,
+              onSelected: (v) => controller.typeFilter.value = v,
             ),
           ),
           const SizedBox(height: 4),
@@ -50,49 +52,44 @@ class BillListScreen extends StatelessWidget {
               if (controller.errorMessage.isNotEmpty) {
                 return ErrorState(
                   message: controller.errorMessage.value,
-                  onRetry: controller.loadBills,
+                  onRetry: controller.loadPurchases,
                 );
               }
               if (controller.filtered.isEmpty) {
                 return const EmptyState(
-                  icon: Icons.description_outlined,
-                  title: 'No bills found',
-                  subtitle: 'Bills will appear here',
+                  icon: Icons.shopping_cart_outlined,
+                  title: 'No purchases found',
+                  subtitle: 'Tap + to record a new purchase',
                 );
               }
               return RefreshIndicator(
-                onRefresh: controller.loadBills,
+                onRefresh: controller.loadPurchases,
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: controller.filtered.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, i) {
-                    final bill = controller.filtered[i];
-                    return _BillCard(
-                      bill: bill,
-                      onRecordPayment: bill.paymentStatus == 'paid'
-                          ? null
-                          : () async {
-                              final firmId = Get.find<AuthController>()
-                                  .selectedFirm
-                                  .value!
-                                  .id;
-                              final result = await RecordPaymentSheet.show(
-                                context: context,
-                                firmId: firmId,
-                                referenceId: bill.id,
-                                referenceLabel: 'Bill #${bill.billNo}',
-                                totalAmount: bill.amount,
-                                paidAmount: bill.paidAmount,
-                                isSale: true,
-                              );
-                              if (result == true) controller.loadBills();
-                            },
+                    final purchase = controller.filtered[i];
+                    return _PurchaseCard(
+                      purchase: purchase,
+                      onRecordPayment: () async {
+                        final result = await RecordPaymentSheet.show(
+                          context: context,
+                          firmId: auth.firmId,
+                          referenceId: purchase.id,
+                          referenceLabel: 'Purchase #${purchase.purchaseNo}',
+                          totalAmount: purchase.amount,
+                          paidAmount: purchase.paidAmount,
+                          isSale: false,
+                        );
+                        if (result == true) controller.loadPurchases();
+                      },
                       onDelete: () => DeleteConfirmSheet.show(
                         context: context,
-                        title: 'Delete Bill #${bill.billNo}?',
-                        subtitle: 'This action cannot be undone.',
-                        onConfirm: () => controller.deleteBill(bill.id),
+                        title: 'Delete Purchase #${purchase.purchaseNo}?',
+                        subtitle:
+                            'Stock will be reversed. This cannot be undone.',
+                        onConfirm: () => controller.deletePurchase(purchase.id),
                       ),
                     );
                   },
@@ -106,11 +103,16 @@ class BillListScreen extends StatelessWidget {
   }
 }
 
-class _BillCard extends StatelessWidget {
-  final BillModel bill;
+class _PurchaseCard extends StatelessWidget {
+  final PurchaseModel purchase;
   final VoidCallback? onRecordPayment;
   final VoidCallback? onDelete;
-  const _BillCard({required this.bill, this.onRecordPayment, this.onDelete});
+
+  const _PurchaseCard({
+    required this.purchase,
+    this.onRecordPayment,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +132,7 @@ class _BillCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  '#${bill.billNo}',
+                  '#${purchase.purchaseNo}',
                   style: const TextStyle(
                     color: AppColors.accent,
                     fontWeight: FontWeight.w700,
@@ -138,15 +140,27 @@ class _BillCard extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
+              StatusBadge(
+                label: purchase.purchaseType,
+                color: purchase.purchaseType == 'GST'
+                    ? AppColors.infoLight
+                    : AppColors.warningLight,
+                textColor: purchase.purchaseType == 'GST'
+                    ? AppColors.info
+                    : AppColors.warning,
+              ),
               const Spacer(),
-              StatusBadge.payment(bill.paymentStatus),
+              StatusBadge.payment(purchase.paymentStatus),
               const SizedBox(width: 4),
               PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, size: 20),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                icon: const Icon(
+                  Icons.more_vert,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 onSelected: (v) {
                   if (v == 'payment') onRecordPayment?.call();
@@ -161,30 +175,28 @@ class _BillCard extends StatelessWidget {
                           Icon(
                             Icons.payment,
                             size: 18,
-                            color: AppColors.accent,
+                            color: AppColors.success,
                           ),
                           SizedBox(width: 8),
                           Text('Record Payment'),
                         ],
                       ),
                     ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.delete_outline,
-                          size: 18,
-                          color: AppColors.error,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Delete',
-                          style: TextStyle(color: AppColors.error),
-                        ),
-                      ],
+                  if (onDelete != null)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: AppColors.error,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Delete'),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -193,14 +205,14 @@ class _BillCard extends StatelessWidget {
           Row(
             children: [
               const Icon(
-                Icons.person_outline,
+                Icons.store_outlined,
                 size: 16,
                 color: AppColors.textSecondary,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  bill.partyName ?? 'N/A',
+                  purchase.supplierName ?? 'N/A',
                   style: Theme.of(context).textTheme.bodyMedium,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -212,7 +224,7 @@ class _BillCard extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                AppFormatters.dateShort(bill.date),
+                AppFormatters.dateShort(purchase.date),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -224,15 +236,15 @@ class _BillCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Paid: ${AppFormatters.currency(bill.paidAmount)}',
+                    'Paid: ${AppFormatters.currency(purchase.paidAmount)}',
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: AppColors.success),
                   ),
                   Text(
-                    'Balance: ${AppFormatters.currency(bill.balanceAmount)}',
+                    'Balance: ${AppFormatters.currency(purchase.balanceAmount)}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: bill.balanceAmount > 0
+                      color: purchase.balanceAmount > 0
                           ? AppColors.error
                           : AppColors.textSecondary,
                     ),
@@ -241,7 +253,7 @@ class _BillCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                AppFormatters.currency(bill.amount),
+                AppFormatters.currency(purchase.amount),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: AppColors.accent,

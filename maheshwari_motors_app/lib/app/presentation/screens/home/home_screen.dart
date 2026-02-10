@@ -153,8 +153,69 @@ class _AppDrawer extends StatelessWidget {
                         },
                       ),
                       _DrawerItem(
+                        icon: Icons.account_balance_outlined,
+                        label: 'Account Master',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.accountMaster);
+                        },
+                      ),
+                    ],
+                  ),
+                  _DrawerSection(
+                    title: 'Inventory',
+                    children: [
+                      _DrawerItem(
+                        icon: Icons.inventory_2_outlined,
+                        label: 'Item Management',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.itemMaster);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.view_list_outlined,
+                        label: 'Item View',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.itemView);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.category_outlined,
+                        label: 'Category Master',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.categoryMaster);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.grid_view_outlined,
+                        label: 'View Category',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.viewCategory);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.person_add_outlined,
+                        label: 'Add Supplier',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.supplierMaster);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.local_shipping_outlined,
+                        label: 'View All Supplier',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.viewAllSupplier);
+                        },
+                      ),
+                      _DrawerItem(
                         icon: Icons.warning_amber_outlined,
-                        label: 'Stock Alerts',
+                        label: 'Stock Alert Master',
                         onTap: () {
                           Get.back();
                           Get.toNamed(AppRoutes.stockAlertMaster);
@@ -166,8 +227,16 @@ class _AppDrawer extends StatelessWidget {
                     title: 'Transactions',
                     children: [
                       _DrawerItem(
+                        icon: Icons.receipt_long_outlined,
+                        label: 'Challan List',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.challanList);
+                        },
+                      ),
+                      _DrawerItem(
                         icon: Icons.description_outlined,
-                        label: 'Bills',
+                        label: 'Bill List',
                         onTap: () {
                           Get.back();
                           Get.toNamed(AppRoutes.billList);
@@ -183,6 +252,87 @@ class _AppDrawer extends StatelessWidget {
                       ),
                     ],
                   ),
+                  _DrawerSection(
+                    title: 'Reports',
+                    children: [
+                      _DrawerItem(
+                        icon: Icons.bar_chart_outlined,
+                        label: 'Business Reports',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(
+                            AppRoutes.report,
+                            arguments: 'Business Reports',
+                          );
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.receipt_outlined,
+                        label: 'GST Report',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(
+                            AppRoutes.report,
+                            arguments: 'GST Report',
+                          );
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.shopping_cart_outlined,
+                        label: 'Purchase Report',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(
+                            AppRoutes.report,
+                            arguments: 'Purchase Report',
+                          );
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.point_of_sale_outlined,
+                        label: 'Sales Report',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(
+                            AppRoutes.report,
+                            arguments: 'Sales Report',
+                          );
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.assignment_return_outlined,
+                        label: 'Sales Return Report',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(
+                            AppRoutes.report,
+                            arguments: 'Sales Return Report',
+                          );
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.keyboard_return_outlined,
+                        label: 'Purchase Return Report',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(
+                            AppRoutes.report,
+                            arguments: 'Purchase Return Report',
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  _DrawerItem(
+                    icon: Icons.help_outline,
+                    label: 'Help & Support',
+                    onTap: () {
+                      Get.back();
+                      Get.toNamed(AppRoutes.helpSupport);
+                    },
+                  ),
+                  const Divider(height: 24),
                   _DrawerSection(
                     title: 'Account',
                     children: [

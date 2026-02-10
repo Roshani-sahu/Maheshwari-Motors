@@ -3,7 +3,7 @@ class AppConstants {
 
   static const String appName = 'Maheshwari Motors';
   static const String baseUrl =
-      'https://maheshwari-motors-backend.vercel.app/api/v1';
+      'https://api-maheshwari-motors.koyeb.app/api/v1';
 
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';

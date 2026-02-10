@@ -133,13 +133,24 @@ class AddItemScreen extends StatelessWidget {
                       vertical: 12,
                     ),
                   ),
-                  initialValue: controller.selectedSupplierId.value,
-                  items: controller.supplierList.map((sup) {
-                    return DropdownMenuItem(
-                      value: sup.id,
-                      child: Text(sup.name),
-                    );
-                  }).toList(),
+                  initialValue:
+                      controller.supplierList.any(
+                        (s) => s.id == controller.selectedSupplierId.value,
+                      )
+                      ? controller.selectedSupplierId.value
+                      : null,
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    ...controller.supplierList.map((sup) {
+                      return DropdownMenuItem(
+                        value: sup.id,
+                        child: Text(sup.name),
+                      );
+                    }),
+                  ],
                   onChanged: (val) => controller.selectedSupplierId.value = val,
                 ),
               ),

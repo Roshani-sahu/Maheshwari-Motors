@@ -68,12 +68,24 @@ class ChallanListScreen extends StatelessWidget {
                     final challan = controller.filtered[i];
                     return _ChallanCard(
                       challan: challan,
-                      onDelete: () => DeleteConfirmSheet.show(
-                        context: context,
-                        title: 'Delete Challan #${challan.challanNo}?',
-                        subtitle: 'This action cannot be undone.',
-                        onConfirm: () => controller.deleteChallan(challan.id),
-                      ),
+                      onEdit: challan.convertedToBill
+                          ? null
+                          : () async {
+                              final result = await Get.toNamed(
+                                AppRoutes.editChallan,
+                                arguments: challan,
+                              );
+                              if (result == true) controller.loadChallans();
+                            },
+                      onDelete: challan.convertedToBill
+                          ? null
+                          : () => DeleteConfirmSheet.show(
+                              context: context,
+                              title: 'Delete Challan #${challan.challanNo}?',
+                              subtitle: 'This action cannot be undone.',
+                              onConfirm: () =>
+                                  controller.deleteChallan(challan.id),
+                            ),
                     );
                   },
                 ),
@@ -88,8 +100,9 @@ class ChallanListScreen extends StatelessWidget {
 
 class _ChallanCard extends StatelessWidget {
   final ChallanModel challan;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
-  const _ChallanCard({required this.challan, this.onDelete});
+  const _ChallanCard({required this.challan, this.onEdit, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +144,7 @@ class _ChallanCard extends StatelessWidget {
                   textColor: AppColors.warning,
                 ),
               const SizedBox(width: 4),
-              AppPopupMenu(onDelete: onDelete),
+              AppPopupMenu(onEdit: onEdit, onDelete: onDelete),
             ],
           ),
           const SizedBox(height: 12),

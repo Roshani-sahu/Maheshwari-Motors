@@ -44,7 +44,7 @@ class ChallanListController extends GetxController {
 
   void _filter() {
     if (searchQuery.value.isEmpty) {
-      filtered.value = challans;
+      filtered.value = challans.toList();
     } else {
       final q = searchQuery.value.toLowerCase();
       filtered.value = challans

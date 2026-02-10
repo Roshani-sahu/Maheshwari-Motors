@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
@@ -18,7 +17,11 @@ import 'party_master_controller.dart';
 class AuthController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
   final ApiClient _client = Get.find<ApiClient>();
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      resetOnError: true,
+    ),
+  );
 
   final Rx<UserModel?> user = Rx<UserModel?>(null);
   final Rx<FirmModel?> selectedFirm = Rx<FirmModel?>(null);
@@ -35,42 +38,34 @@ class AuthController extends GetxController {
   }
 
   Future<void> checkAuth() async {
-    // Minimum splash display time
-    debugPrint('AUTH: checkAuth started');
     await Future.delayed(const Duration(milliseconds: 1500));
-    debugPrint('AUTH: delay done, checking token...');
     try {
-      final token = await _client.getToken();
-      debugPrint('AUTH: token = ${token != null ? "exists" : "null"}');
+      final token = await _client.getToken().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () => null,
+      );
       if (token != null) {
         try {
-          debugPrint('AUTH: calling getProfile...');
           final profile = await _api.getProfile();
-          debugPrint('AUTH: profile loaded');
           user.value = profile;
           // Try to restore selected firm
-          final firmJson = await _storage.read(
-            key: AppConstants.selectedFirmKey,
-          );
+          final firmJson = await _storage
+              .read(key: AppConstants.selectedFirmKey)
+              .timeout(const Duration(seconds: 3), onTimeout: () => null);
           if (firmJson != null) {
             selectedFirm.value = FirmModel.fromJson(jsonDecode(firmJson));
-            debugPrint('AUTH: navigating to home');
             Get.offAllNamed(AppRoutes.home);
           } else {
-            debugPrint('AUTH: navigating to firmSelection');
             Get.offAllNamed(AppRoutes.firmSelection);
           }
         } catch (e) {
-          debugPrint('AUTH: inner catch: $e');
           await _client.clearToken();
           Get.offAllNamed(AppRoutes.login);
         }
       } else {
-        debugPrint('AUTH: no token, navigating to login');
         Get.offAllNamed(AppRoutes.login);
       }
     } catch (e) {
-      debugPrint('AUTH: outer catch: $e');
       // Storage or other platform error — fall back to login
       Get.offAllNamed(AppRoutes.login);
     }

@@ -81,7 +81,7 @@ class TransactionHistoryScreen extends StatelessWidget {
           ),
           Obx(
             () => AppFilterChips(
-              options: const ['all', 'sale', 'purchase', 'payment', 'receipt'],
+              options: const ['all', 'sale', 'purchase'],
               selected: controller.typeFilter.value,
               onSelected: (v) => controller.typeFilter.value = v,
             ),

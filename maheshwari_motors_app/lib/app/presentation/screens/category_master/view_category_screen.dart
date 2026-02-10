@@ -2,62 +2,95 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../routes/app_routes.dart';
-import '../../controllers/category_master_controller.dart';
+import '../../../data/models/category_model.dart';
+import '../../../data/services/api_service.dart';
 import '../../shared/widgets/common_widgets.dart';
 
-class CategoryMasterScreen extends StatelessWidget {
-  const CategoryMasterScreen({super.key});
+class _ViewCategoryController extends GetxController {
+  final ApiService _api = Get.find<ApiService>();
+  final RxList<CategoryModel> categories = <CategoryModel>[].obs;
+  final RxList<CategoryModel> filtered = <CategoryModel>[].obs;
+  final RxBool isLoading = true.obs;
+  final RxString searchQuery = ''.obs;
+  final RxString errorMessage = ''.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadCategories();
+    debounce(
+      searchQuery,
+      (_) => _filter(),
+      time: const Duration(milliseconds: 300),
+    );
+  }
+
+  Future<void> loadCategories() async {
+    isLoading.value = true;
+    errorMessage.value = '';
+    try {
+      categories.value = await _api.getCategories();
+      _filter();
+    } catch (e) {
+      errorMessage.value = 'Failed to load categories';
+    }
+    isLoading.value = false;
+  }
+
+  void _filter() {
+    if (searchQuery.value.isEmpty) {
+      filtered.value = categories;
+    } else {
+      final q = searchQuery.value.toLowerCase();
+      filtered.value = categories
+          .where((c) => c.name.toLowerCase().contains(q))
+          .toList();
+    }
+  }
+}
+
+class ViewCategoryScreen extends StatelessWidget {
+  const ViewCategoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(CategoryMasterController());
+    final c = Get.put(_ViewCategoryController());
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Category Master'),
-        actions: [
-          AppBarAddButton(
-            onPressed: () async {
-              final result = await Get.toNamed(AppRoutes.addCategory);
-              if (result == true) controller.fetchCategories();
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('View Category')),
       body: Column(
         children: [
           AppSearchBar(
             hint: 'Search categories...',
-            onChanged: (v) => controller.searchQuery.value = v,
+            onChanged: (v) => c.searchQuery.value = v,
           ),
           Expanded(
             child: Obx(() {
-              if (controller.isLoading.value) {
+              if (c.isLoading.value) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (controller.errorMessage.isNotEmpty) {
+              if (c.errorMessage.isNotEmpty) {
                 return ErrorState(
-                  message: controller.errorMessage.value,
-                  onRetry: controller.fetchCategories,
+                  message: c.errorMessage.value,
+                  onRetry: c.loadCategories,
                 );
               }
-              if (controller.filtered.isEmpty) {
+              if (c.filtered.isEmpty) {
                 return const EmptyState(
                   icon: Icons.category_outlined,
                   title: 'No categories found',
-                  subtitle: 'Tap + to add a category',
+                  subtitle: 'Categories will appear here',
                 );
               }
               return RefreshIndicator(
-                onRefresh: controller.fetchCategories,
+                onRefresh: c.loadCategories,
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
-                  itemCount: controller.filtered.length,
+                  itemCount: c.filtered.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    final category = controller.filtered[index];
+                    final category = c.filtered[index];
                     return AppCard(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -88,30 +121,6 @@ class CategoryMasterScreen extends StatelessWidget {
                               category.name,
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          ActionIcon(
-                            icon: Icons.edit_outlined,
-                            color: AppColors.accent,
-                            onTap: () async {
-                              final result = await Get.toNamed(
-                                AppRoutes.editCategory,
-                                arguments: category,
-                              );
-                              if (result == true) controller.fetchCategories();
-                            },
-                          ),
-                          const SizedBox(width: 6),
-                          ActionIcon(
-                            icon: Icons.delete_outline,
-                            color: AppColors.error,
-                            onTap: () => DeleteConfirmSheet.show(
-                              context: context,
-                              title: 'Delete Category?',
-                              subtitle:
-                                  'Are you sure you want to delete "${category.name}"?',
-                              onConfirm: () =>
-                                  controller.deleteCategory(category.id),
                             ),
                           ),
                         ],

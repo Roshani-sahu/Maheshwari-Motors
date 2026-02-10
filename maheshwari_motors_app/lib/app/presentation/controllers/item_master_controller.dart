@@ -39,7 +39,7 @@ class ItemMasterController extends GetxController {
 
   void filterItems() {
     if (searchQuery.value.isEmpty) {
-      filteredItems.value = items;
+      filteredItems.value = items.toList();
     } else {
       filteredItems.value = items
           .where(
