@@ -40,6 +40,7 @@ class AppRoutes {
 
   // Account
   static const String changePassword = '/change-password';
+  static const String activeSessions = '/active-sessions';
 
   // Transactions
   static const String challanList = '/challan-list';

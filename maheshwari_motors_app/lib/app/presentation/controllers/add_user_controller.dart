@@ -53,11 +53,11 @@ class AddUserController extends GetxController {
         AppSnackbar.success('User created');
       }
       Get.back(result: true);
-      return;
     } catch (e) {
       AppSnackbar.error(ApiClient.parseError(e));
+    } finally {
+      isLoading.value = false;
     }
-    isLoading.value = false;
   }
 
   @override

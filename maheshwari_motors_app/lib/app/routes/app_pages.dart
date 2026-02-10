@@ -26,6 +26,8 @@ import '../presentation/screens/party/party_master_screen.dart';
 import '../presentation/screens/party/add_party_screen.dart';
 import '../presentation/screens/auth/change_password_screen.dart';
 import '../presentation/controllers/change_password_controller.dart';
+import '../presentation/controllers/active_sessions_controller.dart';
+import '../presentation/screens/sessions/active_sessions_screen.dart';
 import '../presentation/screens/category_master/category_master_screen.dart';
 import '../presentation/screens/category_master/view_category_screen.dart';
 import '../presentation/screens/category_master/add_category_screen.dart';
@@ -141,6 +143,13 @@ class AppPages {
       page: () => const ChangePasswordScreen(),
       binding: BindingsBuilder(
         () => Get.lazyPut(() => ChangePasswordController()),
+      ),
+    ),
+    GetPage(
+      name: AppRoutes.activeSessions,
+      page: () => const ActiveSessionsScreen(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => ActiveSessionsController()),
       ),
     ),
     GetPage(

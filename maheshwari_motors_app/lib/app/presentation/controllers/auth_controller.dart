@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:convert';
+import 'dart:io';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/network/api_client.dart';
@@ -18,9 +20,7 @@ class AuthController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
   final ApiClient _client = Get.find<ApiClient>();
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      resetOnError: true,
-    ),
+    aOptions: AndroidOptions(resetOnError: true),
   );
 
   final Rx<UserModel?> user = Rx<UserModel?>(null);
@@ -74,7 +74,15 @@ class AuthController extends GetxController {
   Future<bool> login(String username, String password) async {
     isLoading.value = true;
     try {
-      final res = await _api.login(username, password);
+      // Get device info
+      final deviceInfo = await _getDeviceInfo();
+
+      final res = await _api.login(
+        username,
+        password,
+        deviceName: deviceInfo['device_name'],
+        deviceType: deviceInfo['device_type'],
+      );
       final data = res['data'];
       if (data == null) throw Exception('Invalid login response');
       final token = data['token'] ?? data['user']?['token'];
@@ -87,6 +95,23 @@ class AuthController extends GetxController {
       isLoading.value = false;
       rethrow;
     }
+  }
+
+  Future<Map<String, String>> _getDeviceInfo() async {
+    final deviceInfoPlugin = DeviceInfoPlugin();
+    try {
+      if (Platform.isAndroid) {
+        final info = await deviceInfoPlugin.androidInfo;
+        return {
+          'device_name': '${info.brand} ${info.model}',
+          'device_type': 'android',
+        };
+      } else if (Platform.isIOS) {
+        final info = await deviceInfoPlugin.iosInfo;
+        return {'device_name': info.utsname.machine, 'device_type': 'ios'};
+      }
+    } catch (_) {}
+    return {'device_name': 'Unknown Device', 'device_type': 'unknown'};
   }
 
   Future<void> logout() async {

@@ -133,34 +133,37 @@ class _AppDrawer extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  _DrawerSection(
-                    title: 'Masters',
-                    children: [
-                      _DrawerItem(
-                        icon: Icons.business_outlined,
-                        label: 'Firm Master',
-                        onTap: () {
-                          Get.back();
-                          Get.toNamed(AppRoutes.firmMaster);
-                        },
-                      ),
-                      _DrawerItem(
-                        icon: Icons.people_outline,
-                        label: 'User Master',
-                        onTap: () {
-                          Get.back();
-                          Get.toNamed(AppRoutes.userMaster);
-                        },
-                      ),
-                      _DrawerItem(
-                        icon: Icons.account_balance_outlined,
-                        label: 'Account Master',
-                        onTap: () {
-                          Get.back();
-                          Get.toNamed(AppRoutes.accountMaster);
-                        },
-                      ),
-                    ],
+                  Obx(
+                    () => _DrawerSection(
+                      title: 'Masters',
+                      children: [
+                        _DrawerItem(
+                          icon: Icons.business_outlined,
+                          label: 'Firm Master',
+                          onTap: () {
+                            Get.back();
+                            Get.toNamed(AppRoutes.firmMaster);
+                          },
+                        ),
+                        if (auth.isMainUser)
+                          _DrawerItem(
+                            icon: Icons.people_outline,
+                            label: 'User Master',
+                            onTap: () {
+                              Get.back();
+                              Get.toNamed(AppRoutes.userMaster);
+                            },
+                          ),
+                        _DrawerItem(
+                          icon: Icons.account_balance_outlined,
+                          label: 'Account Master',
+                          onTap: () {
+                            Get.back();
+                            Get.toNamed(AppRoutes.accountMaster);
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                   _DrawerSection(
                     title: 'Inventory',
@@ -342,6 +345,14 @@ class _AppDrawer extends StatelessWidget {
                         onTap: () {
                           Get.back();
                           Get.toNamed(AppRoutes.changePassword);
+                        },
+                      ),
+                      _DrawerItem(
+                        icon: Icons.devices_outlined,
+                        label: 'Active Sessions',
+                        onTap: () {
+                          Get.back();
+                          Get.toNamed(AppRoutes.activeSessions);
                         },
                       ),
                       _DrawerItem(

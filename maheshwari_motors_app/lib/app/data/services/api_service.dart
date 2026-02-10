@@ -19,10 +19,20 @@ class ApiService {
   final ApiClient _client = Get.find<ApiClient>();
 
   // ─── AUTH ─────────────────────────────────────────
-  Future<Map<String, dynamic>> login(String identifier, String password) async {
+  Future<Map<String, dynamic>> login(
+    String identifier,
+    String password, {
+    String? deviceName,
+    String? deviceType,
+  }) async {
     final res = await _client.post(
       '/auth/login',
-      data: {'email': identifier, 'password': password},
+      data: {
+        'email': identifier,
+        'password': password,
+        if (deviceName != null) 'device_name': deviceName,
+        if (deviceType != null) 'device_type': deviceType,
+      },
     );
     return res.data;
   }
@@ -45,6 +55,21 @@ class ApiService {
       '/auth/change-password',
       data: {'current_password': currentPassword, 'new_password': newPassword},
     );
+  }
+
+  // ─── SESSIONS (Multi-Device) ─────────────────────
+  Future<List<Map<String, dynamic>>> getSessions() async {
+    final res = await _client.get('/auth/sessions');
+    final data = res.data['data'] as List;
+    return data.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> revokeSession(String sessionId) async {
+    await _client.delete('/auth/sessions/$sessionId');
+  }
+
+  Future<void> revokeAllOtherSessions() async {
+    await _client.delete('/auth/sessions');
   }
 
   // ─── FIRMS ────────────────────────────────────────

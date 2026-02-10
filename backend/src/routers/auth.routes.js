@@ -12,4 +12,9 @@ router.post("/logout", authController.logout);
 router.get("/me", authController.getProfile);
 router.put("/change-password", authController.changePassword);
 
+// Session management (multi-device)
+router.get("/sessions", authController.getSessions);
+router.delete("/sessions/:sessionId", authController.revokeSession);
+router.delete("/sessions", authController.revokeAllOtherSessions);
+
 export default router;

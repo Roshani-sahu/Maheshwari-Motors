@@ -9,7 +9,6 @@ const userSchema = new mongoose.Schema(
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    token: { type: String },
     type: { type: String, enum: ["main", "secondary"], default: "main" },
     firm_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: "Firm" }],
   },
@@ -24,7 +23,6 @@ userSchema.methods.generateToken = function () {
       expiresIn: env.JWT_EXPIRES_IN,
     },
   );
-  this.token = token;
   return token;
 };
 
