@@ -5,6 +5,7 @@ import {
   FaRupeeSign,
   FaArrowUp,
   FaChartBar,
+  FaDownload,
 } from "react-icons/fa";
 import {
   ResponsiveContainer,
@@ -20,6 +21,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+import { exportToPDF } from '../../utils/pdfExport';
 
 const PurchaseReport = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("year");
@@ -59,7 +61,14 @@ const PurchaseReport = () => {
           </p>
         </div>
 
-        <select
+        <div className="flex gap-3">
+          <button
+            onClick={() => exportToPDF('purchase-report-content', 'Purchase_Report.pdf')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition text-sm"
+          >
+            <FaDownload /> Download PDF
+          </button>
+          <select
           value={selectedPeriod}
           onChange={(e) => setSelectedPeriod(e.target.value)}
           className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
@@ -68,7 +77,10 @@ const PurchaseReport = () => {
           <option value="quarter">This Quarter</option>
           <option value="year">This Year</option>
         </select>
+        </div>
       </div>
+
+      <div id="purchase-report-content">
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
@@ -219,6 +231,7 @@ const PurchaseReport = () => {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { FaChartBar, FaChartLine, FaChartPie, FaTrophy,  FaArrowUp } from 'react-icons/fa';
+import { FaChartBar, FaChartLine, FaChartPie, FaTrophy,  FaArrowUp, FaDownload } from 'react-icons/fa';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { exportToPDF } from '../utils/pdfExport';
 
 const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('year');
@@ -42,7 +43,14 @@ const Reports = () => {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Business Analytics</h1>
           <p className="text-gray-500 mt-1 text-xs sm:text-sm md:text-base">Track your business performance</p>
         </div>
-        <select
+        <div className="flex gap-3">
+          <button
+            onClick={() => exportToPDF('business-report-content', 'Business_Report.pdf')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition text-sm"
+          >
+            <FaDownload /> Download PDF
+          </button>
+          <select
           value={selectedPeriod}
           onChange={(e) => setSelectedPeriod(e.target.value)}
           className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
@@ -51,7 +59,10 @@ const Reports = () => {
           <option value="quarter">This Quarter</option>
           <option value="year">This Year</option>
         </select>
+        </div>
       </div>
+
+      <div id="business-report-content">
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
@@ -239,6 +250,7 @@ const Reports = () => {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
