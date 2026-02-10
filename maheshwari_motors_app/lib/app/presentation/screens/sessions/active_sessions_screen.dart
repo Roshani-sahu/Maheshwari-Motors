@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../controllers/active_sessions_controller.dart';
+import '../../shared/widgets/common_widgets.dart';
 
 class ActiveSessionsScreen extends StatelessWidget {
   const ActiveSessionsScreen({super.key});
@@ -12,7 +13,9 @@ class ActiveSessionsScreen extends StatelessWidget {
     final controller = Get.find<ActiveSessionsController>();
 
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
+        leading: const AppDrawerButton(),
         title: const Text('Active Sessions'),
         actions: [
           PopupMenuButton<String>(

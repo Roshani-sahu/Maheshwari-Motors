@@ -14,8 +14,10 @@ class SupplierMasterScreen extends StatelessWidget {
     final controller = Get.put(SupplierMasterController());
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: const AppDrawerButton(),
         title: const Text('Manage Suppliers'),
         actions: [
           AppBarAddButton(

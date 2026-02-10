@@ -57,8 +57,12 @@ class ViewCategoryScreen extends StatelessWidget {
     final c = Get.put(_ViewCategoryController());
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('View Category')),
+      appBar: AppBar(
+        leading: const AppDrawerButton(),
+        title: const Text('View Category'),
+      ),
       body: Column(
         children: [
           AppSearchBar(

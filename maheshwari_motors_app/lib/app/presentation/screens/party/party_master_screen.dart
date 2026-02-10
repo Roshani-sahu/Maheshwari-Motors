@@ -16,14 +16,15 @@ class PartyMasterScreen extends StatelessWidget {
     final controller = Get.put(PartyMasterController());
 
     return Scaffold(
+      drawer: Get.currentRoute == AppRoutes.home ? null : const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: Get.isRegistered<HomeController>()
+        leading: Get.currentRoute == AppRoutes.home
             ? IconButton(
                 icon: const Icon(Icons.menu_rounded),
                 onPressed: Get.find<HomeController>().openDrawer,
               )
-            : null,
+            : const AppDrawerButton(),
         title: const Text('Party Master'),
       ),
       floatingActionButton: FloatingActionButton(

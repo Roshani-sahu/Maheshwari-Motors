@@ -62,8 +62,12 @@ class ViewSupplierScreen extends StatelessWidget {
     final c = Get.put(_ViewSupplierController());
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('View All Supplier')),
+      appBar: AppBar(
+        leading: const AppDrawerButton(),
+        title: const Text('View All Supplier'),
+      ),
       body: Column(
         children: [
           AppSearchBar(

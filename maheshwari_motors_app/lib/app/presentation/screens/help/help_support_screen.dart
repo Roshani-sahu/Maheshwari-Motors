@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../shared/widgets/common_widgets.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
@@ -10,8 +11,12 @@ class HelpSupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Help & Support')),
+      appBar: AppBar(
+        leading: const AppDrawerButton(),
+        title: const Text('Help & Support'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

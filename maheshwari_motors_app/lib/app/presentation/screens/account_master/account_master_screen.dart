@@ -19,8 +19,10 @@ class AccountMasterScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        drawer: const AppDrawer(),
         backgroundColor: AppColors.background,
         appBar: AppBar(
+          leading: const AppDrawerButton(),
           title: const Text('Account Master'),
           bottom: const TabBar(
             labelColor: AppColors.accent,

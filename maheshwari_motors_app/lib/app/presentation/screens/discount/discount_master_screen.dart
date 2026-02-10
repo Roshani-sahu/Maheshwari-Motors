@@ -15,8 +15,10 @@ class DiscountMasterScreen extends StatelessWidget {
     final controller = Get.find<DiscountMasterController>();
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: const AppDrawerButton(),
         title: const Text('Discount Rules'),
         actions: [
           AppBarAddButton(

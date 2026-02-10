@@ -13,8 +13,12 @@ class ChangePasswordScreen extends StatelessWidget {
     final controller = Get.find<ChangePasswordController>();
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.white,
-      appBar: AppBar(title: const Text('Change Password')),
+      appBar: AppBar(
+        leading: const AppDrawerButton(),
+        title: const Text('Change Password'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(

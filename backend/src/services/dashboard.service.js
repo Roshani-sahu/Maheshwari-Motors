@@ -64,69 +64,53 @@ class DashboardService {
     };
   }
 
-  async getFirmDashboard(firmId, userId) {
+  async getFirmDashboard(firmId, userId, period = "all_time") {
+    // Build date filter based on period
+    const now = new Date();
+    let dateFilter = {};
+
+    if (period === "today") {
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      dateFilter = { createdAt: { $gte: startOfDay } };
+    } else if (period === "last_month") {
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      dateFilter = { createdAt: { $gte: thirtyDaysAgo } };
+    } else if (period === "last_year") {
+      const oneYearAgo = new Date(now);
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      dateFilter = { createdAt: { $gte: oneYearAgo } };
+    }
+    // all_time → no dateFilter
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
+    const baseChallanFilter = { firm_id: firmId, user_id: userId };
+    const baseBillFilter = { firm_id: firmId, user_id: userId };
+    const periodChallanFilter = { ...baseChallanFilter, ...dateFilter };
+    const periodBillFilter = { ...baseBillFilter, ...dateFilter };
+
     const [
-      todayChallans,
-      monthChallans,
-      totalChallans,
-      todayBills,
-      monthBills,
-      totalBills,
+      periodChallans,
+      periodBills,
       dueBills,
       paidBills,
       recentChallans,
       recentBills,
     ] = await Promise.all([
-      Challan.countDocuments({
-        firm_id: firmId,
-        user_id: userId,
-        createdAt: { $gte: today },
-      }),
-      Challan.countDocuments({
-        firm_id: firmId,
-        user_id: userId,
-        createdAt: { $gte: thisMonth },
-      }),
-      Challan.countDocuments({
-        firm_id: firmId,
-        user_id: userId,
-        converted_to_bill: false,
-      }),
-      Bill.countDocuments({
-        firm_id: firmId,
-        user_id: userId,
-        createdAt: { $gte: today },
-      }),
-      Bill.countDocuments({
-        firm_id: firmId,
-        user_id: userId,
-        createdAt: { $gte: thisMonth },
-      }),
-      Bill.countDocuments({ firm_id: firmId, user_id: userId }),
-      Bill.countDocuments({
-        firm_id: firmId,
-        user_id: userId,
-        payment_status: "due",
-      }),
-      Bill.countDocuments({
-        firm_id: firmId,
-        user_id: userId,
-        payment_status: "paid",
-      }),
-      Challan.find({
-        firm_id: firmId,
-        user_id: userId,
-        converted_to_bill: false,
-      })
+      Challan.countDocuments(periodChallanFilter),
+      Bill.countDocuments(periodBillFilter),
+      Bill.countDocuments({ ...periodBillFilter, payment_status: "due" }),
+      Bill.countDocuments({ ...periodBillFilter, payment_status: "paid" }),
+      Challan.find({ ...periodChallanFilter, converted_to_bill: false })
         .populate("party_id", "name")
         .sort({ createdAt: -1 })
         .limit(10)
         .lean(),
-      Bill.find({ firm_id: firmId, user_id: userId })
+      Bill.find(periodBillFilter)
         .populate("party_id", "name")
         .sort({ createdAt: -1 })
         .limit(10)
@@ -136,43 +120,92 @@ class DashboardService {
     const firmObjectId = new mongoose.Types.ObjectId(firmId);
     const userObjectId = new mongoose.Types.ObjectId(userId);
 
+    // Build aggregation match with date filter
+    const aggChallanMatch = {
+      firm_id: firmObjectId,
+      user_id: userObjectId,
+      ...(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}),
+    };
+    const aggBillMatch = {
+      firm_id: firmObjectId,
+      user_id: userObjectId,
+      ...(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}),
+    };
+
     const [totalChallanAmount, totalBillAmount, totalPaidAmount] =
       await Promise.all([
         Challan.aggregate([
-          {
-            $match: {
-              firm_id: firmObjectId,
-              user_id: userObjectId,
-              converted_to_bill: false,
-            },
-          },
+          { $match: aggChallanMatch },
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
         Bill.aggregate([
-          { $match: { firm_id: firmObjectId, user_id: userObjectId } },
+          { $match: aggBillMatch },
           { $group: { _id: null, total: { $sum: "$amount" } } },
         ]),
         Bill.aggregate([
-          { $match: { firm_id: firmObjectId, user_id: userObjectId } },
+          { $match: aggBillMatch },
           { $group: { _id: null, total: { $sum: "$paid_amount" } } },
         ]),
       ]);
 
+    // Monthly chart data: last 6 months of challans & bills
+    const sixMonthsAgo = new Date(now);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const [challansByMonth, billsByMonth] = await Promise.all([
+      Challan.aggregate([
+        {
+          $match: {
+            firm_id: firmObjectId,
+            user_id: userObjectId,
+            createdAt: { $gte: sixMonthsAgo },
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            count: { $sum: 1 },
+            amount: { $sum: "$amount" },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+      Bill.aggregate([
+        {
+          $match: {
+            firm_id: firmObjectId,
+            user_id: userObjectId,
+            createdAt: { $gte: sixMonthsAgo },
+          },
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+            count: { $sum: 1 },
+            amount: { $sum: "$amount" },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+    ]);
+
     return {
       challans: {
-        today: todayChallans,
-        this_month: monthChallans,
-        total: totalChallans,
+        total: periodChallans,
         total_amount: totalChallanAmount[0]?.total || 0,
       },
       bills: {
-        today: todayBills,
-        this_month: monthBills,
-        total: totalBills,
+        total: periodBills,
         due: dueBills,
         paid: paidBills,
         total_amount: totalBillAmount[0]?.total || 0,
         total_paid: totalPaidAmount[0]?.total || 0,
+      },
+      chart: {
+        challans_by_month: challansByMonth,
+        bills_by_month: billsByMonth,
       },
       recent_challans: recentChallans,
       recent_bills: recentBills,

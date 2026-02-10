@@ -18,8 +18,10 @@ class PurchaseMasterScreen extends StatelessWidget {
     final auth = Get.find<AuthController>();
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: const AppDrawerButton(),
         title: const Text('Purchases'),
         actions: [
           AppBarAddButton(

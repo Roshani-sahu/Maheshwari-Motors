@@ -59,8 +59,12 @@ class ItemViewScreen extends StatelessWidget {
     final c = Get.put(_ItemViewController());
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Item View')),
+      appBar: AppBar(
+        leading: const AppDrawerButton(),
+        title: const Text('Item View'),
+      ),
       body: Column(
         children: [
           AppSearchBar(

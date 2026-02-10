@@ -16,14 +16,15 @@ class ChallanListScreen extends StatelessWidget {
     final controller = Get.put(ChallanListController());
 
     return Scaffold(
+      drawer: Get.currentRoute == AppRoutes.home ? null : const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: Get.isRegistered<HomeController>()
+        leading: Get.currentRoute == AppRoutes.home
             ? IconButton(
                 icon: const Icon(Icons.menu_rounded),
                 onPressed: Get.find<HomeController>().openDrawer,
               )
-            : null,
+            : const AppDrawerButton(),
         title: const Text('Challans'),
         actions: [
           AppBarAddButton(

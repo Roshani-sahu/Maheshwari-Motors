@@ -329,8 +329,14 @@ class ApiService {
   }
 
   // ─── DASHBOARD ────────────────────────────────────
-  Future<Map<String, dynamic>> getFirmDashboard(String firmId) async {
-    final res = await _client.get('/firms/$firmId/dashboard');
+  Future<Map<String, dynamic>> getFirmDashboard(
+    String firmId, {
+    String period = 'all_time',
+  }) async {
+    final res = await _client.get(
+      '/firms/$firmId/dashboard',
+      queryParameters: {'period': period},
+    );
     return res.data['data'] ?? {};
   }
 

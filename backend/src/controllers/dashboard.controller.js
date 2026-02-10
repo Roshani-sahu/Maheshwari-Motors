@@ -12,6 +12,7 @@ export const getFirmDashboard = asyncHandler(async (req, res) => {
   const data = await dashboardService.getFirmDashboard(
     req.params.firmId,
     req.firmOwnerId,
+    req.query.period,
   );
   res
     .status(200)

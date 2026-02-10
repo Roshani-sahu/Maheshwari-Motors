@@ -14,8 +14,10 @@ class FirmMasterScreen extends StatelessWidget {
     final controller = Get.put(FirmMasterController());
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: const AppDrawerButton(),
         title: const Text('Firm Master'),
         actions: [
           AppBarAddButton(

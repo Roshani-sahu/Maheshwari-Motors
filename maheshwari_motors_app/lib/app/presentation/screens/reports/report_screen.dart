@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../shared/widgets/common_widgets.dart';
 
 class ReportScreen extends StatelessWidget {
   const ReportScreen({super.key});
@@ -11,8 +12,9 @@ class ReportScreen extends StatelessWidget {
     final String reportType = Get.arguments as String? ?? 'Report';
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text(reportType)),
+      appBar: AppBar(leading: const AppDrawerButton(), title: Text(reportType)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),

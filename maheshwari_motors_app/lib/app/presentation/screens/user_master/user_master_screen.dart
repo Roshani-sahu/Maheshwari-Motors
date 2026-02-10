@@ -14,8 +14,10 @@ class UserMasterScreen extends StatelessWidget {
     final controller = Get.put(UserMasterController());
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: const AppDrawerButton(),
         title: const Text('User Master'),
         actions: [
           AppBarAddButton(

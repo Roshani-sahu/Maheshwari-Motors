@@ -14,8 +14,12 @@ class TransactionHistoryScreen extends StatelessWidget {
     final controller = Get.put(TransactionHistoryController());
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Transactions')),
+      appBar: AppBar(
+        leading: const AppDrawerButton(),
+        title: const Text('Transactions'),
+      ),
       body: Column(
         children: [
           Obx(() {

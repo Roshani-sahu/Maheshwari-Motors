@@ -14,23 +14,11 @@ class StockAlertScreen extends StatelessWidget {
     final controller = Get.put(StockAlertController());
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: const AppDrawerButton(),
         title: const Text('Stock Alert Master'),
-        actions: [
-          Obx(
-            () => FilterChip(
-              label: Text(
-                controller.showOnlyLow.value ? 'Low Only' : 'All Items',
-              ),
-              selected: controller.showOnlyLow.value,
-              onSelected: (v) => controller.showOnlyLow.value = v,
-              selectedColor: AppColors.accentLight,
-              checkmarkColor: AppColors.accent,
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: Column(
         children: [
@@ -38,20 +26,10 @@ class StockAlertScreen extends StatelessWidget {
           Obx(
             () => Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(
-                children: [
-                  _SummaryCard(
-                    label: 'Low Stock Items',
-                    value: '${controller.lowStockItems.length}',
-                    color: AppColors.error,
-                  ),
-                  const SizedBox(width: 12),
-                  _SummaryCard(
-                    label: 'Total Items',
-                    value: '${controller.allItems.length}',
-                    color: AppColors.info,
-                  ),
-                ],
+              child: _SummaryCard(
+                label: 'Low Stock Items',
+                value: '${controller.lowStockItems.length}',
+                color: AppColors.error,
               ),
             ),
           ),
@@ -109,34 +87,33 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border(left: BorderSide(color: color, width: 3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w500,
-              ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border(left: BorderSide(color: color, width: 3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
