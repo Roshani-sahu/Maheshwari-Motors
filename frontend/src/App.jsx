@@ -14,6 +14,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import CompanySelection from "./pages/CompanySelection";
 import Reports from "./pages/Reports";
 import AddItem from "./pages/AddItem";
+import Settings from "./pages/Settings";
+import UserProfile from "./pages/UserProfile";
 
 // Master Pages
 import FirmMaster from "./pages/masters/FirmMaster";
@@ -96,6 +98,10 @@ const App = () => {
           {/* 5. Setup & Tools */}
           <Route path="/setup/backup-restore" element={<BackupRestore />} />
           <Route path="/setup/financial-year-close" element={<FinancialYearClose />} />
+          
+          {/* Settings */}
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/user-profile" element={<UserProfile />} />
           
           {/* Legacy routes - redirect to new structure */}
           <Route path="/firm-setup" element={<Navigate to="/masters/firm-master" replace />} />
