@@ -107,7 +107,7 @@ const UserMaster = () => {
 
   const handleAddUser = () => {
     const user = {
-      id: Date.now(),
+      id: users.length + 1,
       ...newUser
     };
     addUser(user);

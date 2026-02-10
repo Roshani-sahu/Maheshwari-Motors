@@ -45,7 +45,6 @@ const AddItem = () => {
 
     // Create new item object
     const newItem = {
-      id: Date.now(), // Simple ID generation
       itemName: formData.itemName,
       amount: parseFloat(formData.amount),
       threshold: parseInt(formData.threshold),

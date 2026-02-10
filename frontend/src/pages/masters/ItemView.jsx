@@ -6,6 +6,17 @@ import useStore from '../../store';
 const ItemView = () => {
   const { items } = useStore();
 
+  // Static items data with categories
+  const staticItems = [
+    { id: 1, itemName: 'Engine Oil 5W-30', categoryId: 1, amount: 450.00, itemMedia: null },
+    { id: 2, itemName: 'Brake Pads', categoryId: 2, amount: 1200.00, itemMedia: null },
+    { id: 3, itemName: 'Air Filter', categoryId: 3, amount: 350.00, itemMedia: null },
+    { id: 4, itemName: 'Spark Plugs', categoryId: 1, amount: 180.00, itemMedia: null }
+  ];
+
+  // Use static data if store items is empty, otherwise use store items
+  const displayItems = items.length > 0 ? items : staticItems;
+
   const categories = [
     { id: 1, name: 'Engine Parts' },
     { id: 2, name: 'Brake System' },
@@ -49,7 +60,7 @@ const ItemView = () => {
     }
   ];
 
-  const filteredItems = items.filter(item => {
+  const filteredItems = displayItems.filter(item => {
     if (categoryFilter !== 'all' && item.categoryId !== parseInt(categoryFilter)) {
       return false;
     }

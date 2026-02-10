@@ -198,7 +198,7 @@ const AccountMaster = () => {
     const existingItem = discounts.find(d => d.itemName === newDiscount.itemName && d.itemId);
     const existingCompany = discounts.find(d => d.companyName === newDiscount.companyName && d.companyId);
     const discount = {
-      id: Date.now(),
+      id: discounts.length + 1,
       ...newDiscount,
       amount: parseFloat(newDiscount.amount),
       itemId: newDiscount.discountType === 'ITEM' ? (existingItem ? existingItem.itemId : 'ITM' + Date.now()) : null,

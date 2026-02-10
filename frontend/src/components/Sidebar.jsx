@@ -317,6 +317,8 @@ const Sidebar = ({ onClose }) => {
 
           {/* 4. Reports */}
           <SidebarSection title="Reports">
+
+
             <NavLink
               to="/reports"
               onClick={onClose}
@@ -327,6 +329,7 @@ const Sidebar = ({ onClose }) => {
                     : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
                 }`
               }
+              end
             >
               <FaChartPie className="w-4 h-4" />
               Business Reports
@@ -346,6 +349,7 @@ const Sidebar = ({ onClose }) => {
               <FaFileInvoiceDollar className="w-4 h-4" />
               GST Report
             </NavLink>
+            
             <NavLink
               to="/reports/purchase-report"
               onClick={onClose}
@@ -447,9 +451,9 @@ const Sidebar = ({ onClose }) => {
           </div>
           <div>
             <p className="text-sm text-[#CBD5E1]">
-              <span className="hover:text-white transition cursor-pointer">
+              <NavLink to="/help-support" onClick={onClose} className="hover:text-white transition cursor-pointer">
                 Help & Support
-              </span>
+              </NavLink>
             </p>
             <p className="text-xs text-neutral-500">Get assistance</p>
           </div>

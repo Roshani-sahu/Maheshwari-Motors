@@ -45,6 +45,8 @@ import PurchaseReturnReport from "./pages/reports/PurchaseReturnReport";
 import BackupRestore from "./pages/setup/BackupRestore";
 import FinancialYearClose from "./pages/setup/FinancialYearClose";
 
+import HelpSupportPage from "./pages/HelpSupportPage";  
+
 // Components
 import FirmSetup from "./components/FirmSetup";
 
@@ -108,6 +110,11 @@ const App = () => {
           <Route path="/item-master" element={<Navigate to="/inventory/item-master" replace />} />
           <Route path="/challan-list" element={<Navigate to="/transactions/challan-list" replace />} />
           <Route path="/add-item" element={<Navigate to="/masters/item-master/add" replace />} />
+
+
+
+          {/* Help & Support */}
+          <Route path="/help-support" element={<HelpSupportPage />} />
         </Route>
         
         {/* Fallback */}

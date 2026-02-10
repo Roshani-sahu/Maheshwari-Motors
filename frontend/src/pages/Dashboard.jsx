@@ -132,7 +132,7 @@ if (recentBills.length < maxItems) {
     subtitle="Below threshold"
     icon={FaExclamationTriangle}
     color="red"
-    onClick={() => navigate('/masters/stock-alert-master')}
+    onClick={() => navigate('/inventory/stock-alert-master')}
     className="p-3 sm:p-4 md:p-6"
   />
 </div> 
