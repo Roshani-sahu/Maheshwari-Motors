@@ -1,40 +1,10 @@
 import React, { useState } from 'react';
 import { FaImage, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
+import useStore from '../../store';
 
 const ItemView = () => {
-  const [items] = useState([
-    {
-      id: 1,
-      itemName: 'Engine Oil 5W-30',
-      amount: 450.00,
-      threshold: 10,
-      stockCount: 5,
-      itemMedia: null,
-      status: 'LOW',
-      categoryId: 1
-    },
-    {
-      id: 2,
-      itemName: 'Brake Pads',
-      amount: 1200.00,
-      threshold: 8,
-      stockCount: 3,
-      itemMedia: null,
-      status: 'LOW',
-      categoryId: 2
-    },
-    {
-      id: 3,
-      itemName: 'Air Filter',
-      amount: 350.00,
-      threshold: 12,
-      stockCount: 15,
-      itemMedia: null,
-      status: 'OK',
-      categoryId: 3
-    }
-  ]);
+  const { items } = useStore();
 
   const categories = [
     { id: 1, name: 'Engine Parts' },

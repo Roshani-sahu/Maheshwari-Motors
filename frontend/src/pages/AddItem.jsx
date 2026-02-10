@@ -12,7 +12,8 @@ const AddItem = () => {
     amount: '',
     threshold: '',
     stockCount: '',
-    itemMedia: null
+    itemMedia: null,
+    categoryId: 1
   });
   const [errors, setErrors] = useState({});
 
@@ -50,7 +51,8 @@ const AddItem = () => {
       threshold: parseInt(formData.threshold),
       stockCount: parseInt(formData.stockCount),
       itemMedia: formData.itemMedia ? URL.createObjectURL(formData.itemMedia) : null,
-      status: parseInt(formData.stockCount) <= parseInt(formData.threshold) ? 'LOW' : 'OK'
+      status: parseInt(formData.stockCount) <= parseInt(formData.threshold) ? 'LOW' : 'OK',
+      categoryId: parseInt(formData.categoryId || 1)
     };
 
     // Add item to global store
@@ -130,6 +132,19 @@ const AddItem = () => {
               />
               {errors.stockCount && <p className="text-red-600 text-sm mt-1">{errors.stockCount}</p>}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+            <select
+              value={formData.categoryId}
+              onChange={(e) => handleChange('categoryId', e.target.value)}
+              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+            >
+              <option value={1}>Engine Parts</option>
+              <option value={2}>Brake System</option>
+              <option value={3}>Filters</option>
+            </select>
           </div>
 
           <div>

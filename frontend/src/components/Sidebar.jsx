@@ -96,7 +96,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/masters/firm-master"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaBuilding className="w-4 h-4" />
               Firm Master
@@ -123,7 +129,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/masters/user-master"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaUsers className="w-4 h-4" />
               User Master
@@ -132,7 +144,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/masters/account-master"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaDatabase className="w-4 h-4" />
               Account Master
@@ -144,7 +162,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/inventory/item-master"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaBuilding className="w-4 h-4" />
               Item Management
@@ -153,7 +177,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/inventory/item-view"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaEye className="w-4 h-4" />
               Item View
@@ -162,7 +192,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/inventory/category-master"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaTags className="w-4 h-4" />
               Category Master
@@ -171,7 +207,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/inventory/view-category"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaList className="w-4 h-4" />
               View Category
@@ -180,7 +222,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/inventory/add-supplier"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaUserPlus className="w-4 h-4" />
               Add Supplier
@@ -189,7 +237,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/inventory/view-all-supplier"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaUsersGear className="w-4 h-4" />
               View All Supplier
@@ -198,7 +252,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/inventory/stock-alert-master"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaBell className="w-4 h-4" />
               Stock Alert Master
@@ -212,7 +272,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/transactions/challan-list"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaListCheck className="w-4 h-4" />
               Challan List
@@ -221,7 +287,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/transactions/bill-list"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaFileInvoice className="w-4 h-4" />
               Bill List
@@ -230,7 +302,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/transactions/transaction-history"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaHistory className="w-4 h-4" />
               Transaction History
@@ -242,7 +320,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/reports"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaChartPie className="w-4 h-4" />
               Business Reports
@@ -251,7 +335,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/reports/gst-report"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaFileInvoiceDollar className="w-4 h-4" />
               GST Report
@@ -259,7 +349,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/reports/purchase-report"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaFileInvoiceDollar className="w-4 h-4" />
               Purchase Report
@@ -267,7 +363,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/reports/sales-report"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaChartLine className="w-4 h-4" />
               Sales Report
@@ -275,7 +377,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/reports/sales-return-report"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaArrowTrendDown className="w-4 h-4" />
               Sales Return Report
@@ -283,7 +391,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/reports/purchase-return-report"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaArrowTrendUp className="w-4 h-4" />
               Purchase Return Report
@@ -295,7 +409,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/setup/backup-restore"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaDownload className="w-4 h-4" />
               Backup / Restore
@@ -304,7 +424,13 @@ const Sidebar = ({ onClose }) => {
             <NavLink
               to="/setup/financial-year-close"
               onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
             >
               <FaCalendarXmark className="w-4 h-4" />
               Financial Year Close
