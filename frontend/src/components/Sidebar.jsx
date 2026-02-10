@@ -16,13 +16,14 @@ import {
   FaChevronDown,
   FaChevronRight,
   FaUsers,
-  // FaBoxes,
-  // FaExclamationTriangle,
   FaReceipt,
   FaMoneyBillWave,
-  // FaReceipt,
-  // FaBackup,
-  // FaCalendarTimes
+  FaEye,
+  FaTags,
+  FaList,
+  FaUserPlus,
+  FaUsersGear,
+  FaBell
 } from "react-icons/fa6";
 
 const SidebarSection = ({ title, children, defaultOpen = false }) => {
@@ -147,7 +148,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaEye className="w-4 h-4" />
               Item View
             </NavLink>
             
@@ -156,7 +157,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaTags className="w-4 h-4" />
               Category Master
             </NavLink>
             
@@ -165,7 +166,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaList className="w-4 h-4" />
               View Category
             </NavLink>
             
@@ -174,7 +175,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaUserPlus className="w-4 h-4" />
               Add Supplier
             </NavLink>
             
@@ -183,7 +184,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaUsersGear className="w-4 h-4" />
               View All Supplier
             </NavLink>
             
@@ -192,7 +193,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
+              <FaBell className="w-4 h-4" />
               Stock Alert Master
             </NavLink>
             
