@@ -8,6 +8,7 @@ const Layout = () => {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
+      
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -19,11 +20,10 @@ const Layout = () => {
       {/* Sidebar */}
       <div
         className={`
-          fixed z-50 inset-y-0 left-0 transform bg-[#0F172A]
-          transition-transform duration-300 ease-in-out
-          w-60
+          fixed inset-y-0 left-0 z-50 w-60 bg-[#0F172A]
+          transform transition-transform duration-300 ease-in-out
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:static lg:translate-x-0
+          lg:relative lg:translate-x-0
         `}
       >
         <Sidebar onClose={() => setSidebarOpen(false)} />
@@ -36,6 +36,7 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
+
     </div>
   );
 };

@@ -170,6 +170,7 @@ const FirmSetup = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField label="Firm Name" error={errors.name} required>
               <Input
+                
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
@@ -211,8 +212,9 @@ const FirmSetup = () => {
               </Select>
             </FormField>
 
-            <FormField label="Address" className="md:col-span-3">
+            <FormField label="Address" className="md:col-span-3" required>
               <Textarea
+              required
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
@@ -230,8 +232,9 @@ const FirmSetup = () => {
               </Select>
             </FormField>
 
-            <FormField label="Pincode" error={errors.pincode}>
+            <FormField label="Pincode" error={errors.pincode} required>
               <Input
+              required
                 name="pincode"
                 value={formData.pincode}
                 onChange={handleChange}
@@ -258,8 +261,9 @@ const FirmSetup = () => {
               />
             </FormField> */}
 
-            <FormField label="Phone No">
+            <FormField label="Phone No" required>
               <Input
+              required
                 name="mobile"
                 value={formData.mobile}
                 onChange={handleChange}
@@ -294,8 +298,9 @@ const FirmSetup = () => {
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-medium text-gray-900 mb-4">Other Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField label="GSTIN" error={errors.gstin}>
+                <FormField label="GSTIN" error={errors.gstin} required>
                   <Input
+                  required
                     name="gstin"
                     value={formData.gstin}
                     onChange={handleChange}
@@ -327,8 +332,9 @@ const FirmSetup = () => {
                 />
               </FormField>
 
-              <FormField label="Bank Name">
+              <FormField label="Bank Name" required>
                 <Input
+                required
                   name="bankName"
                   value={formData.bankName}
                   onChange={handleChange}
@@ -336,8 +342,9 @@ const FirmSetup = () => {
                 />
               </FormField>
 
-              <FormField label="Bank Ac No.">
+              <FormField label="Bank Ac No." required>
                 <Input
+                required
                   name="bankAccount"
                   value={formData.bankAccount}
                   onChange={handleChange}
@@ -345,8 +352,9 @@ const FirmSetup = () => {
                 />
               </FormField>
 
-              <FormField label="IFSCode" error={errors.ifscCode}>
+              <FormField label="IFSCode" error={errors.ifscCode} required>
                 <Input
+                required
                   name="ifscCode"
                   value={formData.ifscCode}
                   onChange={handleChange}
@@ -355,8 +363,9 @@ const FirmSetup = () => {
                 />
               </FormField>
 
-               <FormField label="Pan No" error={errors.pan}>
+               <FormField label="Pan No" error={errors.pan} required>
                 <Input
+                required
                   name="pan"
                   value={formData.pan}
                   onChange={handleChange}

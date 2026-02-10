@@ -59,7 +59,7 @@ const Sidebar = ({ onClose }) => {
     "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition";
 
   return (
-    <aside className="flex flex-col w-60 h-screen border-r border-neutral-200 bg-[#0F172A] relative">
+    <aside className="flex flex-col w-60 min-h-screen max-h-full fixed border-r pb-3 border-neutral-200 bg-[#0F172A] ">
       {/* Header */}
       <div className="flex items-center h-16 px-4 border-b border-neutral-200">
         <div className="flex items-center gap-2">
@@ -71,7 +71,7 @@ const Sidebar = ({ onClose }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 overflow-y-auto pb-16" style={{msOverflowStyle: 'none', scrollbarWidth: 'none'}} onScroll={(e) => e.target.style.setProperty('--webkit-scrollbar', 'display: none')}>
+      <nav className="flex-1 p-4 overflow-y-auto pb-16 scrollbar-hide">
         <ul className="space-y-1">
           {/* 1. Dashboard */}
           <li>
@@ -159,6 +159,22 @@ const Sidebar = ({ onClose }) => {
 
 {/* 2. Masters */}
           <SidebarSection title="Inventory" defaultOpen={false}>
+
+             <NavLink
+              to="/inventory/item-view"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaEye className="w-4 h-4" />
+              Item View
+            </NavLink>
+
             <NavLink
               to="/inventory/item-master"
               onClick={onClose}
@@ -174,35 +190,9 @@ const Sidebar = ({ onClose }) => {
               Item Management
             </NavLink>
             
-            <NavLink
-              to="/inventory/item-view"
-              onClick={onClose}
-              className={({ isActive }) =>
-                `${linkBase} ${
-                  isActive
-                    ? "bg-neutral-100 text-neutral-900"
-                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
-                }`
-              }
-            >
-              <FaEye className="w-4 h-4" />
-              Item View
-            </NavLink>
+           
             
-            <NavLink
-              to="/inventory/category-master"
-              onClick={onClose}
-              className={({ isActive }) =>
-                `${linkBase} ${
-                  isActive
-                    ? "bg-neutral-100 text-neutral-900"
-                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
-                }`
-              }
-            >
-              <FaTags className="w-4 h-4" />
-              Category Master
-            </NavLink>
+            
             
             <NavLink
               to="/inventory/view-category"
@@ -217,6 +207,21 @@ const Sidebar = ({ onClose }) => {
             >
               <FaList className="w-4 h-4" />
               View Category
+            </NavLink>
+
+            <NavLink
+              to="/inventory/category-master"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaTags className="w-4 h-4" />
+              Category Master
             </NavLink>
             
             <NavLink

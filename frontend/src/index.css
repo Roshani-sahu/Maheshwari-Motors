@@ -1,8 +1,14 @@
-/* Hide scrollbar for webkit browsers */
-nav::-webkit-scrollbar {
-  display: none;
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Hide scrollbar utility */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -226,7 +226,7 @@ const BillList = () => {
             <option value="1">1 (GST)</option>
             <option value="0">0 (Non GST)</option>
           </Select>
-          <Input
+          {/* <Input
             type="date"
             value={filters.dateFrom}
             onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
@@ -239,7 +239,7 @@ const BillList = () => {
             onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
             placeholder="To Date"
             className="text-xs sm:text-sm py-1.5 sm:py-2"
-          />
+          /> */}
           <Button
             variant="outline"
             onClick={() => setFilters({
