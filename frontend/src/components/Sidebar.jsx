@@ -108,14 +108,14 @@ const Sidebar = ({ onClose }) => {
               Firm Master
             </NavLink>
             
-            {/* <NavLink
-              to="/masters/stock-alert-master"
+             <NavLink
+              to="/masters/party-master"
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaReceipt className="w-4 h-4" />
-              Stock Alert Master
-            </NavLink> */}
+              <FaBuilding className="w-4 h-4" />
+              Party Master
+            </NavLink>
             
             {/* <NavLink
               to="/masters/item-master"
