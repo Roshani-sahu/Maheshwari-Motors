@@ -11,7 +11,6 @@ import { Toast, ConfirmDialog, LoadingOverlay } from "./components/GlobalCompone
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
-import CompanySelection from "./pages/CompanySelection";
 import Reports from "./pages/Reports";
 import AddItem from "./pages/AddItem";
 
@@ -58,7 +57,6 @@ const App = () => {
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/company-selection" element={<CompanySelection />} />
 
         {/* ERP Layout */}
         <Route element={<Layout />}>

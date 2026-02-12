@@ -17,20 +17,20 @@ const ItemMaster = () => {
   const gridRef = useRef(null);
 
   const columns = [
-    { key: 'code', header: 'Code', width: '120px', editable: true },
-    { key: 'name', header: 'Item Name', width: '200px', editable: true },
-    { key: 'alias', header: 'Alias/Description', width: '180px', editable: true },
+    { key: 'item_code', header: 'Code', width: '120px', editable: true },
+    { key: 'item_name', header: 'Item Name', width: '200px', editable: true },
+    { key: 'description', header: 'Alias/Description', width: '180px', editable: true },
     { key: 'barcode', header: 'Barcode', width: '150px', editable: true },
     { key: 'unit', header: 'Unit', width: '100px', editable: true, type: 'select' },
-    { key: 'group', header: 'Main Group', width: '150px', editable: true, type: 'select' },
-    { key: 'subGroup', header: 'Sub Group', width: '150px', editable: true, type: 'select' },
-    { key: 'gstCode', header: 'GST Code', width: '120px', editable: true },
-    { key: 'nonGstCode', header: 'Non-GST Code', width: '120px', editable: true },
-    { key: 'gstRate', header: 'GST %', width: '80px', editable: true, type: 'number' },
-    { key: 'saleRate', header: 'Sale Rate', width: '100px', editable: true, type: 'number' },
-    { key: 'purchaseRate', header: 'Purchase Rate', width: '120px', editable: true, type: 'number' },
-    { key: 'discount', header: 'Discount %', width: '100px', editable: true, type: 'number' },
-    { key: 'currentStock', header: 'Stock', width: '100px', editable: false },
+    { key: 'category_id', header: 'Group', width: '150px', editable: true, type: 'select' },
+    // { key: 'sub_category_id', header: 'Sub Group', width: '150px', editable: true, type: 'select' }, // Removed simplified
+    { key: 'hsn_code', header: 'HSN Code', width: '120px', editable: true },
+    // { key: 'nonGstCode', header: 'Non-GST Code', width: '120px', editable: true },
+    { key: 'tax_slab', header: 'GST %', width: '80px', editable: true, type: 'number' },
+    { key: 'sale_price', header: 'Sale Rate', width: '100px', editable: true, type: 'number' },
+    { key: 'purchase_price', header: 'Purchase Rate', width: '120px', editable: true, type: 'number' },
+    { key: 'discount_value', header: 'Discount %', width: '100px', editable: true, type: 'number' },
+    { key: 'current_stock', header: 'Stock', width: '100px', editable: false },
     { key: 'actions', header: 'Actions', width: '100px', editable: false }
   ];
 
@@ -49,10 +49,10 @@ const ItemMaster = () => {
         unitAPI.getAll(),
         hsnAPI.getAll()
       ]);
-      setItems(itemsRes.data);
-      setGroups(groupsRes.data);
-      setUnits(unitsRes.data);
-      setHsnCodes(hsnRes.data);
+      setItems(itemsRes.data?.data?.data || itemsRes.data || []);
+      setGroups(groupsRes.data?.data?.data || groupsRes.data || []);
+      setUnits(unitsRes.data?.data?.data || unitsRes.data || []);
+      setHsnCodes(hsnRes.data?.data?.data || hsnRes.data || []);
     } catch (error) {
       showToast('Failed to load data', 'error');
     } finally {
@@ -76,9 +76,9 @@ const ItemMaster = () => {
   const handleCellBlur = async (rowIndex, columnKey) => {
     setEditingCell(null);
     const item = items[rowIndex];
-    if (item.id) {
+    if (item._id || item.id) {
       try {
-        await itemAPI.update(item.id, item);
+        await itemAPI.update(item._id || item.id, item);
         showToast('Item updated', 'success');
       } catch (error) {
         showToast('Failed to update item', 'error');
@@ -109,25 +109,25 @@ const ItemMaster = () => {
 
   const addNewRow = () => {
     const newItem = {
-      id: null,
-      code: '',
-      name: '',
-      alias: '',
+      // id: null, // Backend assigns ID
+      item_code: '',
+      item_name: '',
+      description: '',
       barcode: '',
       unit: '',
-      group: '',
-      subGroup: '',
-      gstCode: '',
-      nonGstCode: '',
-      gstRate: 0,
-      saleRate: 0,
-      purchaseRate: 0,
-      discount: 0,
-      currentStock: 0,
-      firmId: selectedFirm.id
+      category_id: '',
+      // subGroup: '',
+      hsn_code: '',
+      // nonGstCode: '',
+      tax_slab: 0,
+      sale_price: 0,
+      purchase_price: 0,
+      discount_value: 0,
+      current_stock: 0,
+      firm_id: selectedFirm?._id || selectedFirm?.id
     };
     setItems([...items, newItem]);
-    setEditingCell({ rowIndex: items.length, columnKey: 'code' });
+    setEditingCell({ rowIndex: items.length, columnKey: 'item_code' });
   };
 
   const deleteItem = async (rowIndex) => {

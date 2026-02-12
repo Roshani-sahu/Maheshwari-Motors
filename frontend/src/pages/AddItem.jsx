@@ -10,10 +10,10 @@ const AddItem = () => {
   const { showToast, setLoading } = useStore();
   const [formData, setFormData] = useState({
     item_name: '',
-    amount: '',
-    threshold: '',
-    gst_stock: '',
-    nongst_stock: '',
+    sale_price: '',
+    min_stock: '',
+    current_stock: '',
+    tax_slab: '',
     image: null
   });
   const [errors, setErrors] = useState({});
@@ -35,12 +35,11 @@ const AddItem = () => {
     const newErrors = {};
     
     if (!formData.item_name.trim()) newErrors.item_name = 'Item name is required';
-    if (!formData.amount || parseFloat(formData.amount) <= 0) newErrors.amount = 'Valid amount is required';
-    if (!formData.threshold && formData.threshold !== 0) newErrors.threshold = 'Threshold is required';
+    if (!formData.sale_price || parseFloat(formData.sale_price) <= 0) newErrors.sale_price = 'Valid price is required';
+    if (!formData.min_stock && formData.min_stock !== 0) newErrors.min_stock = 'Min stock is required';
     
-    // Optional stocks, but warn if negative
-    if (formData.gst_stock && parseInt(formData.gst_stock) < 0) newErrors.gst_stock = 'Cannot be negative';
-    if (formData.nongst_stock && parseInt(formData.nongst_stock) < 0) newErrors.nongst_stock = 'Cannot be negative';
+    // Optional checks
+    if (formData.current_stock && parseInt(formData.current_stock) < 0) newErrors.current_stock = 'Cannot be negative';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -51,10 +50,10 @@ const AddItem = () => {
     try {
         const formDataPayload = new FormData();
         formDataPayload.append('item_name', formData.item_name);
-        formDataPayload.append('amount', parseFloat(formData.amount));
-        formDataPayload.append('threshold', parseInt(formData.threshold) || 0);
-        formDataPayload.append('gst_stock', parseInt(formData.gst_stock) || 0);
-        formDataPayload.append('nongst_stock', parseInt(formData.nongst_stock) || 0);
+        formDataPayload.append('sale_price', parseFloat(formData.sale_price));
+        formDataPayload.append('current_stock', parseInt(formData.current_stock) || 0);
+        formDataPayload.append('min_stock', parseInt(formData.min_stock) || 0);
+        formDataPayload.append('tax_slab', parseInt(formData.tax_slab) || 0);
         
         if (formData.image) {
             formDataPayload.append('image', formData.image);
@@ -108,60 +107,60 @@ const AddItem = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount (₹) *
+                Sale Price (₹) *
               </label>
               <Input
-                name="amount"
+                name="sale_price"
                 type="number"
                 step="0.01"
-                value={formData.amount}
-                onChange={(value) => handleChange('amount', value)}
+                value={formData.sale_price}
+                onChange={(value) => handleChange('sale_price', value)}
                 placeholder="0.00"
-                error={errors.amount}
+                error={errors.sale_price}
               />
-              {errors.amount && <p className="text-red-600 text-sm mt-1">{errors.amount}</p>}
+              {errors.sale_price && <p className="text-red-600 text-sm mt-1">{errors.sale_price}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Threshold *
+                Min Stock Level *
               </label>
               <Input
-                name="threshold"
+                name="min_stock"
                 type="number"
-                value={formData.threshold}
-                onChange={(value) => handleChange('threshold', value)}
-                placeholder="Minimum stock level"
-                error={errors.threshold}
+                value={formData.min_stock}
+                onChange={(value) => handleChange('min_stock', value)}
+                placeholder="Minimum stock alert"
+                error={errors.min_stock}
               />
-              {errors.threshold && <p className="text-red-600 text-sm mt-1">{errors.threshold}</p>}
+              {errors.min_stock && <p className="text-red-600 text-sm mt-1">{errors.min_stock}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                 GST Stock
+                 Current Stock
               </label>
               <Input
-                name="gst_stock"
+                name="current_stock"
                 type="number"
-                value={formData.gst_stock}
-                onChange={(value) => handleChange('gst_stock', value)}
-                placeholder="GST Stock Quantity"
-                error={errors.gst_stock}
+                value={formData.current_stock}
+                onChange={(value) => handleChange('current_stock', value)}
+                placeholder="Quantity in hand"
+                error={errors.current_stock}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                 Non-GST Stock
+                 GST Tax Slab (%)
               </label>
               <Input
-                name="nongst_stock"
+                name="tax_slab"
                 type="number"
-                value={formData.nongst_stock}
-                onChange={(value) => handleChange('nongst_stock', value)}
-                placeholder="Non-GST Stock Quantity"
-                error={errors.nongst_stock}
+                value={formData.tax_slab}
+                onChange={(value) => handleChange('tax_slab', value)}
+                placeholder="e.g. 18"
+                error={errors.tax_slab}
               />
             </div>
           </div>

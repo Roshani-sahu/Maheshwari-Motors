@@ -36,7 +36,7 @@ const ItemMaster = () => {
     {
       key: '_id',
       label: 'ID',
-      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
+      render: (value) => <span className="text-xs sm:text-sm">{value?.slice(-6)}</span>
     },
     {
       key: 'item_name', 
@@ -44,30 +44,30 @@ const ItemMaster = () => {
       render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
     },
     {
-      key: 'amount', 
-      label: 'Amount',
-      render: (value) => <span className="text-xs sm:text-sm">₹{Number(value).toFixed(2)}</span>
+      key: 'sale_price', 
+      label: 'Price',
+      render: (value) => <span className="text-xs sm:text-sm">₹{Number(value || 0).toFixed(2)}</span>
     },
     {
-      key: 'physical_stock', // Backend virtual
+      key: 'current_stock',
       label: 'Stock Count',
       render: (value, row) => (
-        <span className={`text-xs sm:text-sm ${(value <= (row.threshold || 0)) ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
-          {value !== undefined ? value : (row.gst_stock + row.nongst_stock)}
+        <span className={`text-xs sm:text-sm ${(value <= (row.min_stock || 0)) ? 'text-red-600 font-medium' : 'text-gray-900'}`}>
+          {value || 0}
         </span>
       )
     },
     {
-      key: 'threshold',
-      label: 'Threshold',
+      key: 'min_stock', // threshold -> min_stock
+      label: 'Min Stock',
       render: (value) => <span className="text-xs sm:text-sm">{value || 0}</span>
     },
     {
       key: 'status', 
       label: 'Stock Status',
       render: (value, row) => {
-        const stock = row.physical_stock !== undefined ? row.physical_stock : (row.gst_stock + row.nongst_stock);
-        const status = (stock <= (row.threshold || 0)) ? 'LOW' : 'OK';
+        const stock = row.current_stock || 0;
+        const status = (stock <= (row.min_stock || 0)) ? 'LOW' : 'OK';
         return (
         <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
           status === 'LOW' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
@@ -109,7 +109,7 @@ const ItemMaster = () => {
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: async (item) => {
-        if (window.confirm(`Are you sure you want to delete "${item.name}"?`)) {
+        if (window.confirm(`Are you sure you want to delete "${item.item_name}"?`)) {
           setLoading(true);
           try {
             await itemAPI.delete(item._id); // Assuming backend uses _id
@@ -132,10 +132,9 @@ const ItemMaster = () => {
       try {
         const formDataPayload = new FormData();
         formDataPayload.append('item_name', editingItem.item_name);
-        formDataPayload.append('amount', Number(editingItem.amount));
-        formDataPayload.append('threshold', Number(editingItem.threshold) || 0);
-        formDataPayload.append('gst_stock', Number(editingItem.gst_stock) || 0);
-        formDataPayload.append('nongst_stock', Number(editingItem.nongst_stock) || 0);
+        formDataPayload.append('sale_price', Number(editingItem.sale_price));
+        formDataPayload.append('min_stock', Number(editingItem.min_stock) || 0);
+        formDataPayload.append('current_stock', Number(editingItem.current_stock) || 0);
         
         if (editImageFile) {
             formDataPayload.append('image', editImageFile);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaFilter, FaHistory, FaFileInvoiceDollar, FaReceipt, FaMoneyBillWave, FaCheckCircle, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import { FaFilter, FaFileInvoiceDollar, FaReceipt, FaMoneyBillWave, FaCheckCircle, FaDownload } from 'react-icons/fa';
+import { DataTable } from '../../components/common';
 import { Select, Input, Button } from '../../components/ui';
 import { transactionAPI } from '../../services/api';
 import useStore from '../../store';
@@ -35,108 +35,67 @@ const TransactionHistory = () => {
     firm: 'all'
   });
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState(null);
-
-  const firms = ['Maa Auto', 'Motors Division', 'Surat Branch'];
-  const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
-
   const columns = [
-    { key: 'transactionId', label: 'Transaction ID' },
+    { 
+      key: '_id', 
+      label: 'Transaction ID',
+      render: (value) => <span className="text-xs text-gray-500">{value.slice(-6)}</span>
+    },
     {
       key: 'type',
       label: 'Type',
       render: (value) => {
-        const icons = {
-          'Challan': <FaFileInvoiceDollar className="inline mr-1" />,
-          'Bill': <FaReceipt className="inline mr-1" />,
-          'Prepaid': <FaCheckCircle className="inline mr-1" />,
-          'Due': <FaMoneyBillWave className="inline mr-1" />
-        };
         const colors = {
-          'Challan': 'bg-blue-100 text-blue-800',
-          'Bill': 'bg-green-100 text-green-800',
-          'Prepaid': 'bg-purple-100 text-purple-800',
-          'Due': 'bg-orange-100 text-orange-800'
+          'SALE': 'bg-green-100 text-green-800',
+          'PURCHASE': 'bg-blue-100 text-blue-800',
+          'PAYMENT_IN': 'bg-purple-100 text-purple-800',
+          'PAYMENT_OUT': 'bg-orange-100 text-orange-800',
+          'EXPENSE': 'bg-red-100 text-red-800'
         };
         return (
-          <span className={`px-2 py-1 text-xs rounded-full ${colors[value]}`}>
-            {icons[value]}
+          <span className={`px-2 py-1 text-xs rounded-full ${colors[value] || 'bg-gray-100'}`}>
             {value}
           </span>
         );
       }
     },
-    { key: 'firm', label: 'Firm' },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (value) => value ? (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          value === 'Generated' ? 'bg-green-100 text-green-800' : value === 'Deleted' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-        }`}>
-          {value}
-        </span>
-      ) : (
-        <span className="text-xs text-gray-500">—</span>
-      )
+    { 
+        key: 'amount', 
+        label: 'Amount',
+        render: (value) => <span className="font-medium">₹{value?.toLocaleString()}</span>
     },
     {
-      key: 'amount',
-      label: 'Amount',
-      render: (value) => `₹${value.toLocaleString()}`
+      key: 'payment_mode',
+      label: 'Mode',
+      render: (value) => <span className="capitalize text-sm">{value}</span>
     },
     {
-      key: 'date',
-      label: 'Date',
-      render: (value) => new Date(value).toLocaleDateString()
+        key: 'date',
+        label: 'Date',
+        render: (value) => new Date(value).toLocaleDateString()
     },
-    { key: 'party', label: 'Party' },
     {
-      key: 'gstType',
-      label: 'Type',
-      render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-        }`}>
-          {value}
-        </span>
-      )
+        key: 'party_id',
+        label: 'Party',
+        render: (value) => <span className="text-sm font-medium">{value?.name || 'N/A'}</span>
+    },
+    {
+        key: 'description',
+        label: 'Description',
+        render: (value) => <span className="text-xs text-gray-500 truncate max-w-[150px] block" title={value}>{value || '-'}</span>
     },
     {
       key: 'actions',
       label: 'Actions',
       render: (value, txn) => (
         <div className="flex gap-2">
-          {/* <button
-            onClick={() => {
-              setEditingTransaction({...txn});
-              setIsEditModalOpen(true);
-            }}
-            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-            title="Edit"
-          >
-            <FaEdit size={14} />
-          </button>
           <button
             onClick={() => {
-              if (confirm(`Delete transaction ${txn.transactionId}?`)) {
-                setTransactions(prev => prev.filter(t => t.id !== txn.id));
-              }
-            }}
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-            title="Delete"
-          >
-            <FaTrash size={14} />
-          </button> */}
-          <button
-            onClick={() => {
-              // Generate PDF
               const printWindow = window.open('', '', 'width=800,height=600');
               printWindow.document.write(`
                 <html>
                   <head>
-                    <title>Transaction ${txn.transactionId}</title>
+                    <title>Transaction ${txn._id}</title>
                     <style>
                       body { font-family: Arial, sans-serif; padding: 40px; }
                       h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
@@ -147,13 +106,13 @@ const TransactionHistory = () => {
                   <body>
                     <h1>Transaction Details</h1>
                     <div class="info">
-                      <p><span class="label">Transaction ID:</span> ${txn.transactionId}</p>
+                      <p><span class="label">ID:</span> ${txn._id}</p>
                       <p><span class="label">Type:</span> ${txn.type}</p>
-                      <p><span class="label">Firm:</span> ${txn.firm}</p>
-                      <p><span class="label">Party:</span> ${txn.party}</p>
+                      <p><span class="label">Amount:</span> ₹${txn.amount}</p>
+                      <p><span class="label">Mode:</span> ${txn.payment_mode}</p>
                       <p><span class="label">Date:</span> ${new Date(txn.date).toLocaleDateString()}</p>
-                      <p><span class="label">Amount:</span> ₹${txn.amount.toLocaleString()}</p>
-                      <p><span class="label">GST Type:</span> ${txn.gstType}</p>
+                      <p><span class="label">Party:</span> ${txn.party_id?.name || 'N/A'}</p>
+                      <p><span class="label">Description:</span> ${txn.description || '-'}</p>
                     </div>
                   </body>
                 </html>
@@ -162,7 +121,7 @@ const TransactionHistory = () => {
               printWindow.print();
             }}
             className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-            title="Download"
+            title="Download Receipt"
           >
             <FaDownload size={14} />
           </button>
@@ -180,45 +139,30 @@ const TransactionHistory = () => {
   //   alert('Transaction updated successfully!');
   // };
 
-  // Deduplicate transactions: keep only the latest status per reference (bill/challan)
-  // so if a bill is generated then deleted, show only the Deleted one
-  const getLatestTransactionPerReference = (txns) => {
-    const refMap = {};
-    // Group transactions by reference, preferring "Deleted" status, otherwise keep the most recent
-    txns.forEach(txn => {
-      if (txn.reference) {
-        const existingTxn = refMap[txn.reference];
-        // If we haven't seen this reference, or if this one is "Deleted" and the existing isn't, update
-        if (!existingTxn || (txn.status === 'Deleted' && existingTxn.status !== 'Deleted')) {
-          refMap[txn.reference] = txn;
-        }
-      }
-    });
-    
-    // Return transactions: keep only latest per reference, or keep all if no reference
-    const latestIds = new Set(Object.values(refMap).map(txn => txn.id));
-    return txns.filter(txn => {
-      if (!txn.reference) return true; // keep transactions without reference
-      return latestIds.has(txn.id); // keep only the latest per reference
-    });
-  };
-
-  const deduplicatedTransactions = getLatestTransactionPerReference(transactions);
-
-  const filteredTransactions = deduplicatedTransactions.filter(txn => {
+  const filteredTransactions = transactions.filter(txn => {
     if (filters.type !== 'all' && txn.type !== filters.type) return false;
-    if (filters.firm !== 'all' && txn.firm !== filters.firm) return false;
+    // Firm filter might not work if firm name is not populated, but we are fetching for selectedFirm anyway.
+    // If we want to filter by other firms (global view), we need to fetch all firms' transactions which current API might not support directly 
+    // without iterating. But here we are fetching transactions for 'selectedFirm'.
+    // So filter by firm is redundant unless we have mixed data.
+    // Let's assume we are ignoring firm filter for now as we are scoped to selectedFirm.
+    if (filters.dateFrom) {
+        const txnDate = new Date(txn.date).setHours(0,0,0,0);
+        const filterDate = new Date(filters.dateFrom).setHours(0,0,0,0);
+        if (txnDate < filterDate) return false;
+    }
     return true;
   });
 
   const stats = {
     total: filteredTransactions.length,
-    totalAmount: filteredTransactions.reduce((sum, txn) => sum + txn.amount, 0),
+    totalAmount: filteredTransactions.reduce((sum, txn) => sum + (txn.amount || 0), 0),
     byType: {
-      Challan: filteredTransactions.filter(t => t.type === 'Challan').length,
-      Bill: filteredTransactions.filter(t => t.type === 'Bill').length,
-      Prepaid: filteredTransactions.filter(t => t.type === 'Prepaid').length,
-      Due: filteredTransactions.filter(t => t.type === 'Due').length
+      SALE: filteredTransactions.filter(t => t.type === 'SALE').length,
+      PURCHASE: filteredTransactions.filter(t => t.type === 'PURCHASE').length,
+      PAYMENT_IN: filteredTransactions.filter(t => t.type === 'PAYMENT_IN').length,
+      PAYMENT_OUT: filteredTransactions.filter(t => t.type === 'PAYMENT_OUT').length,
+      EXPENSE: filteredTransactions.filter(t => t.type === 'EXPENSE').length
     }
   };
 
@@ -245,33 +189,33 @@ const TransactionHistory = () => {
       <div className="bg-white p-4 rounded-lg border">
         <h3 className="font-medium text-gray-900 mb-3">Transaction Breakdown</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <FaFileInvoiceDollar className="text-blue-600" />
-              <span className="text-sm font-medium">Challans</span>
-            </div>
-            <span className="text-lg font-bold text-blue-600">{stats.byType.Challan}</span>
-          </div>
           <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
             <div className="flex items-center gap-2">
               <FaReceipt className="text-green-600" />
-              <span className="text-sm font-medium">Bills</span>
+              <span className="text-sm font-medium">Sales</span>
             </div>
-            <span className="text-lg font-bold text-green-600">{stats.byType.Bill}</span>
+            <span className="text-lg font-bold text-green-600">{stats.byType.SALE}</span>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <FaFileInvoiceDollar className="text-blue-600" />
+              <span className="text-sm font-medium">Purchases</span>
+            </div>
+            <span className="text-lg font-bold text-blue-600">{stats.byType.PURCHASE}</span>
           </div>
           <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
             <div className="flex items-center gap-2">
-              <FaCheckCircle className="text-purple-600" />
-              <span className="text-sm font-medium">Prepaid</span>
+              <FaMoneyBillWave className="text-purple-600" />
+              <span className="text-sm font-medium">Received</span>
             </div>
-            <span className="text-lg font-bold text-purple-600">{stats.byType.Prepaid}</span>
+            <span className="text-lg font-bold text-purple-600">{stats.byType.PAYMENT_IN}</span>
           </div>
           <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
             <div className="flex items-center gap-2">
-              <FaMoneyBillWave className="text-orange-600" />
-              <span className="text-sm font-medium">Due Amount</span>
+              <FaCheckCircle className="text-orange-600" />
+              <span className="text-sm font-medium">Paid</span>
             </div>
-            <span className="text-lg font-bold text-orange-600">{stats.byType.Due}</span>
+            <span className="text-lg font-bold text-orange-600">{stats.byType.PAYMENT_OUT}</span>
           </div>
         </div>
       </div>
@@ -287,20 +231,19 @@ const TransactionHistory = () => {
             onChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
           >
             <option value="all">All Types</option>
-            <option value="Challan">Challan</option>
-            <option value="Bill">Bill</option>
-            <option value="Prepaid">Prepaid</option>
-            <option value="Due">Due</option>
+            <option value="SALE">Sale</option>
+            <option value="PURCHASE">Purchase</option>
+            <option value="PAYMENT_IN">Payment In</option>
+            <option value="PAYMENT_OUT">Payment Out</option>
+            <option value="EXPENSE">Expense</option>
           </Select>
           
           <Select
-            value={filters.firm}
+            value={filters.firm} // This is likely redundant as we don't have multiple firms in filteredTransactions usually, but kept for consistency
             onChange={(value) => setFilters(prev => ({ ...prev, firm: value }))}
+            disabled={true} // Disable strict firm filter as we are already firmly scoped
           >
-            <option value="all">All Firms</option>
-            {firms.map(firm => (
-              <option key={firm} value={firm}>{firm}</option>
-            ))}
+             <option value="all">Current Firm</option>
           </Select>
           
           <Input
@@ -329,111 +272,6 @@ const TransactionHistory = () => {
         pagination={true}
         pageSize={15}
       />
-
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Edit Transaction"
-        size="md"
-      >
-        {editingTransaction && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Transaction ID</label>
-              <input
-                type="text"
-                value={editingTransaction.transactionId}
-                disabled
-                className="w-full px-3 py-2 border rounded-md bg-gray-100 cursor-not-allowed"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
-              <select
-                value={editingTransaction.type}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, type: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="Challan">Challan</option>
-                <option value="Bill">Bill</option>
-                <option value="Prepaid">Prepaid</option>
-                <option value="Due">Due</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Firm *</label>
-              <select
-                value={editingTransaction.firm}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, firm: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {firms.map(firm => (
-                  <option key={firm} value={firm}>{firm}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
-              <select
-                value={editingTransaction.party}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, party: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select Party</option>
-                {parties.map(party => (
-                  <option key={party} value={party}>{party}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
-              <input
-                type="number"
-                value={editingTransaction.amount}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, amount: e.target.value }))}
-                placeholder="Enter amount"
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">GST Type *</label>
-              <select
-                value={editingTransaction.gstType}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value={1}>1</option>
-                <option value={0}>0</option>
-              </select>
-            </div>
-            
-            <div className="flex gap-3 pt-4">
-              <Button 
-                onClick={handleEditTransaction}
-                disabled={!editingTransaction.party || !editingTransaction.amount}
-                className="flex items-center gap-2"
-              >
-                <FaEdit />
-                Update Transaction
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsEditModalOpen(false);
-                  setEditingTransaction(null);
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 };

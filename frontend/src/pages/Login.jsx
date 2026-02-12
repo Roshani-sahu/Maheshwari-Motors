@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { FaLayerGroup, FaExclamationCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import useStore from '../store';
-import { authAPI } from '../services/api';
+import { authAPI, firmAPI } from '../services/api';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { setUser, showToast, setLoading } = useStore();
+  const { setUser, showToast, setLoading, setFirms, setFirm } = useStore();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -43,8 +43,25 @@ const Login = () => {
       
       localStorage.setItem('token', token);
       setUser(userData);
-      showToast('Login successful', 'success');
-      navigate('/company-selection');
+
+      // Auto-select firm
+      try {
+        const firmResponse = await firmAPI.getAll();
+        const firms = firmResponse.data?.data?.data || [];
+        setFirms(firms);
+        
+        if (firms.length > 0) {
+           setFirm(firms[0]);
+           showToast(`Login successful. Selected ${firms[0].name}`, 'success');
+        } else {
+           showToast('Login successful. No firms found.', 'info');
+        }
+      } catch (firmError) {
+        // console.error("Failed to fetch firms on login", firmError);
+        // showToast('Login successful, but failed to load firms.', 'warning');
+      }
+
+      navigate('/dashboard');
     } catch (error) {
       showToast(error.response?.data?.message || 'Login failed', 'error');
       setErrors({ general: 'Invalid credentials. Please try again.' });
@@ -83,9 +100,9 @@ const Login = () => {
                 </label>
                 <input
                   name="email"
-                  type="email"
+                  type="text"
                   required
-                  placeholder="john.doe@example.com"
+                  placeholder="john.doe@example.com / username"
                   value={formData.email}
                   onChange={handleChange}
                   className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900 ${

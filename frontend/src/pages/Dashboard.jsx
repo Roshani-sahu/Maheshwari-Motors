@@ -11,7 +11,7 @@ import {
 import useStore from '../store';
 import { StatsCard, Toggle } from '../components/common';
 import { formatCurrency, formatDate } from '../utils';
-import { firmAPI } from '../services/api';
+import { firmAPI, challanAPI, billAPI, itemAPI } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -40,23 +40,64 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const firmId = selectedFirm._id || selectedFirm.id;
-      const response = await firmAPI.getDashboard(firmId);
-      const data = response.data?.data;
-      if (data) {
-        setDashboardData({
-            totalFirms: data.totalFirms || 0, // This might differ if dashboard is per firm
-            todaysChallans: data.todaysChallans || 0,
-            todaysBills: data.todaysBills || 0,
-            thisMonthBills: data.thisMonthBills || 0,
-            lowStockAlerts: data.lowStockAlerts || 0
-        });
-        setRecentChallans(data.recentChallans || []);
-        setRecentBills(data.recentBills || []);
-      }
+      const [firmsRes, challansRes, billsRes, itemsRes] = await Promise.all([
+          firmAPI.getAll(),
+          challanAPI.getAll(firmId),
+          billAPI.getAll(firmId),
+          itemAPI.getAll()
+      ]);
+      
+      const firms = firmsRes.data?.data?.data || []; // or firmsRes.data?.data
+      // Adjust depending on actual API response structure for getAll
+      const firmCount = Array.isArray(firms) ? firms.length : (firms.firms ? firms.firms.length : 0);
+
+      const challans = challansRes.data?.data?.data || [];
+      const bills = billsRes.data?.data?.data || [];
+      const items = itemsRes.data?.data?.data || [];
+
+      const today = new Date().toISOString().split('T')[0];
+      const currentMonth = new Date().getMonth();
+
+      // Challan stats
+      const todaysChallansCount = challans.filter(c => c.date?.startsWith(today)).length;
+      
+      // Bill stats
+      const todaysBillsCount = bills.filter(b => b.date?.startsWith(today)).length;
+      const thisMonthBillsCount = bills.filter(b => new Date(b.date).getMonth() === currentMonth).length;
+
+      // Stock alerts
+      const lowStockCount = items.filter(i => (i.current_stock || 0) <= (i.min_stock || 5)).length; // Default threshold 5 if not set
+
+      setDashboardData({
+        totalFirms: firmCount, 
+        todaysChallans: todaysChallansCount,
+        todaysBills: todaysBillsCount,
+        thisMonthBills: thisMonthBillsCount,
+        lowStockAlerts: lowStockCount
+      });
+
+      // Recent Activity (Top 5)
+      // Sorting should be done by backend usually, but here we sort desc by date
+      const sortedChallans = [...challans].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+      const sortedBills = [...bills].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+
+      setRecentChallans(sortedChallans.map(c => ({
+          id: c.challan_number,
+          party: c.party_id?.name || 'N/A',
+          amount: c.grand_total,
+          date: c.date
+      })));
+
+      setRecentBills(sortedBills.map(b => ({
+          id: b.bill_number,
+          party: b.party_id?.name || 'N/A',
+          amount: b.grand_total,
+          date: b.date
+      })));
+
     } catch (error) {
-      // showToast('Failed to load dashboard data', 'error'); 
-      // Silently fail or minimal error if backend endpoint is not ready
       console.error(error);
+      // Optional: showToast('Failed to load dashboard', 'error');
     } finally {
       setLoading(false);
     }

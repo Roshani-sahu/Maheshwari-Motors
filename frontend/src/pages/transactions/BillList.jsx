@@ -45,7 +45,7 @@ const BillList = () => {
 
   const columns = [
     { 
-      key: 'billNo', 
+      key: 'bill_number', 
       label: 'Bill No',
       render: (value) => <span className="text-xs sm:text-sm font-medium">{value}</span>
     },
@@ -55,36 +55,28 @@ const BillList = () => {
       render: (value) => <span className="text-xs sm:text-sm">{new Date(value).toLocaleDateString()}</span>
     },
     { 
-      key: 'party', 
+      key: 'party_id', 
       label: 'Party',
-      render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
+      render: (value) => <span className="text-xs sm:text-sm truncate">{value?.name || 'N/A'}</span>
     },
     {
-      key: 'amount',
+      key: 'grand_total',
       label: 'Amount',
-      render: (value) => <span className="text-xs sm:text-sm">₹{value.toLocaleString()}</span>
+      render: (value) => <span className="text-xs sm:text-sm">₹{value?.toLocaleString()}</span>
     },
     {
-      key: 'linkedChallans',
+      key: 'challans',
       label: 'Linked Challans',
       render: (value) => (
         <div className="flex items-center gap-1">
           <FaLink className="text-gray-400 text-xs" />
-          <span className="text-xs sm:text-sm">{value.length} challan(s)</span>
+          <span className="text-xs sm:text-sm">{value?.length || 0} challan(s)</span>
         </div>
       )
     },
-    {
-      key: 'gstType',
-      label: 'Type',
-      render: (value) => (
-        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
-          value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-        }`}>
-          {value}
-        </span>
-      )
-    }
+    // GST Type might be derived or direct field. backend likely has 'type' or similar. 
+    // If not present, we skip or show N/A. Let's assume 'type' field exists if needed.
+    // For now, removing gstType column as it might not be direct. Or checking 'bill_type'.
   ];
 
   const actions = [

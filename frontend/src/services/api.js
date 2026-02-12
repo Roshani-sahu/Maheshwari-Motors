@@ -147,6 +147,15 @@ export const groupAPI = {
   delete: (id) => api.delete(`/categories/${id}`),
 };
 
+// Suppliers (Global per User)
+export const supplierAPI = {
+  getAll: (params) => api.get('/suppliers', { params }),
+  getById: (id) => api.get(`/suppliers/${id}`),
+  create: (data) => api.post('/suppliers', data),
+  update: (id, data) => api.put(`/suppliers/${id}`, data),
+  delete: (id) => api.delete(`/suppliers/${id}`),
+};
+
 // Mocks for missing endpoints
 export const unitAPI = {
   getAll: () => Promise.resolve({ data: { data: [{id: 1, name: 'PCS'}, {id: 2, name: 'KG'}, {id: 3, name: 'LTR'}, {id: 4, name: 'MTR'}, {id: 5, name: 'SET'}] } }),
@@ -154,14 +163,6 @@ export const unitAPI = {
 
 export const hsnAPI = {
   getAll: () => Promise.resolve({ data: { data: [] } }),
-};
-
-export const supplierAPI = {
-  getAll: () => api.get('/suppliers', { params: { page: 1, limit: 100 } }),
-  getById: (id) => api.get(`/suppliers/${id}`),
-  create: (data) => api.post('/suppliers', data),
-  update: (id, data) => api.put(`/suppliers/${id}`, data),
-  delete: (id) => api.delete(`/suppliers/${id}`),
 };
 
 export const userAPI = {
