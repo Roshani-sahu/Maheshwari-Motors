@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaLayerGroup, FaCircleExclamation, FaEye, FaEyeSlash } from "react-icons/fa6";
+import { FaLayerGroup, FaExclamationCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import useStore from '../store';
 import { authAPI } from '../services/api';
@@ -9,7 +9,6 @@ const Login = () => {
   const { setUser, showToast, setLoading } = useStore();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    companyId: '',
     email: '',
     password: ''
   });
@@ -25,7 +24,6 @@ const Login = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.companyId) newErrors.companyId = 'Company ID is required';
     if (!formData.email) newErrors.email = 'Email is required';
     if (!formData.password) newErrors.password = 'Password is required';
     setErrors(newErrors);
@@ -78,25 +76,6 @@ const Login = () => {
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-5">
               
-              {/* Company ID */}
-              <div>
-                <label className="block text-sm text-neutral-700">
-                  Company ID
-                </label>
-                <input
-                  name="companyId"
-                  type="text"
-                  required
-                  placeholder="e.g., MOTORS-GST"
-                  value={formData.companyId}
-                  onChange={handleChange}
-                  className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md text-sm placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900 ${
-                    errors.companyId ? 'border-red-300' : 'border-neutral-300'
-                  }`}
-                />
-                {errors.companyId && <p className="mt-1 text-sm text-red-600">{errors.companyId}</p>}
-              </div>
-
               {/* User Email */}
               <div>
                 <label className="block text-sm text-neutral-700">
@@ -151,7 +130,7 @@ const Login = () => {
               {/* Validation Message */}
               {errors.general && (
                 <div className="bg-red-50 border border-red-200 text-red-800 text-sm rounded-md p-3 flex items-start gap-3">
-                  <FaCircleExclamation className="text-red-600 mt-0.5" />
+                  <FaExclamationCircle className="text-red-600 mt-0.5" />
                   <div>
                     <p>Invalid Credentials</p>
                     <p className="text-red-600">

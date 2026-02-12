@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaBuilding, FaArrowLeft } from 'react-icons/fa6';
+import { FaBuilding, FaArrowLeft } from 'react-icons/fa';
 import useStore from '../store';
 import { firmAPI } from '../services/api';
 import { FormField, Input, Select, Textarea, Button, Card } from '../components/ui/FormComponents';
@@ -11,30 +11,20 @@ const FirmSetup = () => {
   const { showToast, setLoading, firms, addFirm, updateFirm } = useStore();
   const [formData, setFormData] = useState({
     name: '',
-    // shortName: '',
     type: 'GST',
     address: '',
     city: '',
-    pincode: '',
     state: '',
-    // phone: '',
-    mobile: '',
+    phone: '',
     email: '',
-    fax: '',
-    signature: '',
-    gstin: '',
-    cin: '',
-    registrationNo: '',
-    // tinCst: '',
-    // ecc: '',
-    // range: '',
-    // division: '',
-    pan: '',
-    rule: '',
-    godownAddress: '',
-    bankName: '',
-    bankAccount: '',
-    ifscCode: ''
+    godown_address: '',
+    GSTIN: '',
+    CIN: '',
+    reg_number: '',
+    bank_name: '',
+    bank_branch: '',
+    ifsc_code: '',
+    account_number: ''
   });
   const [errors, setErrors] = useState({});
   const isEdit = !!id;
@@ -48,9 +38,8 @@ const FirmSetup = () => {
   const loadFirm = async () => {
     setLoading(true);
     try {
-      // In a real app, this would be an API call
-      // For now, find the firm from the store
-      const firm = firms.find(f => f.id === parseInt(id));
+      const response = await firmAPI.getById(id);
+      const firm = response.data?.data;
       if (firm) {
         setFormData(firm);
       } else {
@@ -76,15 +65,16 @@ const FirmSetup = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Firm name is required';
-    // if (!formData.shortName.trim()) newErrors.shortName = 'Short name is required';
-    if (formData.type === 'GST' && !formData.gstin.trim()) {
-      newErrors.gstin = 'GSTIN is required for GST registered firms';
+    if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
+    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!formData.address.trim()) newErrors.address = 'Address is required';
+    if (!formData.city.trim()) newErrors.city = 'City is required';
+    if (!formData.state.trim()) newErrors.state = 'State is required';
+    if (formData.type === 'GST' && !formData.GSTIN.trim()) {
+      newErrors.GSTIN = 'GSTIN is required for GST registered firms';
     }
-    if (formData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.gstin)) {
-      newErrors.gstin = 'Invalid GSTIN format';
-    }
-    if (formData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan)) {
-      newErrors.pan = 'Invalid PAN format';
+    if (formData.GSTIN && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(formData.GSTIN)) {
+      newErrors.GSTIN = 'Invalid GSTIN format';
     }
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Invalid email format';
@@ -100,13 +90,12 @@ const FirmSetup = () => {
     setLoading(true);
     try {
       if (isEdit) {
-        updateFirm(parseInt(id), formData);
+        await firmAPI.update(id, formData);
+        updateFirm(id, formData);
         showToast('Firm updated successfully', 'success');
       } else {
-        const newFirm = {
-          ...formData,
-          id: Date.now()
-        };
+        const response = await firmAPI.create(formData);
+        const newFirm = response.data?.data;
         addFirm(newFirm);
         showToast('Firm created successfully', 'success');
       }
@@ -161,7 +150,7 @@ const FirmSetup = () => {
               />
             </FormField> */}
 
-             <FormField label="Email" error={errors.email}>
+            <FormField label="Email" error={errors.email} required>
               <Input
                 name="email"
                 type="email"
@@ -172,6 +161,16 @@ const FirmSetup = () => {
               />
             </FormField>
 
+            <FormField label="Phone No" error={errors.phone} required>
+              <Input
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="Phone number"
+                error={errors.phone}
+              />
+            </FormField>
+
             <FormField label="Company Type" error={errors.type} required>
               <Select
                 name="type"
@@ -179,23 +178,24 @@ const FirmSetup = () => {
                 onChange={handleChange}
                 error={errors.type}
               >
-                <option value="0">GST Registered</option>
-                <option value="1">Non-GST</option>
+                <option value="GST">GST Registered</option>
+                <option value="NON_GST">Non-GST</option>
               </Select>
             </FormField>
 
-            <FormField label="Address" className="md:col-span-3">
+            <FormField label="Address" className="md:col-span-3" error={errors.address} required>
               <Textarea
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
                 placeholder="Complete address"
                 rows={3}
+                error={errors.address}
               />
             </FormField>
 
-            <FormField label="City">
-              <Select name="city" value={formData.city} onChange={handleChange}>
+            <FormField label="City" error={errors.city} required>
+              <Select name="city" value={formData.city} onChange={handleChange} error={errors.city}>
                 <option value="">Select City</option>
                 <option value="Surat">Surat</option>
                 <option value="Mumbai">Mumbai</option>
@@ -203,146 +203,51 @@ const FirmSetup = () => {
               </Select>
             </FormField>
 
-            <FormField label="Pincode">
-              <Input
-                name="pincode"
-                value={formData.pincode}
-                onChange={handleChange}
-                placeholder="6 digit pincode"
-                maxLength={6}
-              />
-            </FormField>
-
-            <FormField label="State">
-              <Select name="state" value={formData.state} onChange={handleChange}>
+            <FormField label="State" error={errors.state} required>
+              <Select name="state" value={formData.state} onChange={handleChange} error={errors.state}>
                 <option value="">Select State</option>
                 <option value="Gujarat">Gujarat</option>
                 <option value="Maharashtra">Maharashtra</option>
               </Select>
             </FormField>
-
-            {/* <FormField label="Phone No">
-              <Input
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="Phone number"
-              />
-            </FormField> */}
-
-            <FormField label="Mobile No">
-              <Input
-                name="mobile"
-                value={formData.mobile}
-                onChange={handleChange}
-                placeholder="Mobile number"
-              />
-            </FormField>
-
-           
-
-            <FormField label="Fax No">
-              <Input
-                name="fax"
-                value={formData.fax}
-                onChange={handleChange}
-                placeholder="Fax number"
-              />
-            </FormField>
-
-            <FormField label="Signature" className="md:col-span-1">
-              <Input
-                name="signature"
-                value={formData.signature}
-                onChange={handleChange}
-                placeholder="Authorized signature"
-              />
-            </FormField>
           </div>
 
-          {/* Other Details Section */}
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-sm font-medium text-gray-900 mb-4">Other Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* <FormField label="GSTIN" error={errors.gstin}>
+              <FormField label="GSTIN" error={errors.GSTIN}>
                 <Input
-                  name="gstin"
-                  value={formData.gstin}
+                  name="GSTIN"
+                  value={formData.GSTIN}
                   onChange={handleChange}
                   placeholder="15 digit GSTIN"
                   maxLength={15}
-                  error={errors.gstin}
+                  error={errors.GSTIN}
                 />
               </FormField>
 
               <FormField label="CIN No">
                 <Input
-                  name="cin"
-                  value={formData.cin}
+                  name="CIN"
+                  value={formData.CIN}
                   onChange={handleChange}
                   placeholder="Corporate Identity Number"
                 />
               </FormField>
 
-              <FormField label="Regi. No">
+              <FormField label="Registration No">
                 <Input
-                  name="registrationNo"
-                  value={formData.registrationNo}
+                  name="reg_number"
+                  value={formData.reg_number}
                   onChange={handleChange}
                   placeholder="Registration number"
                 />
               </FormField>
 
-              <FormField label="Tin Cst No">
-                <Input
-                  name="tinCst"
-                  value={formData.tinCst}
-                  onChange={handleChange}
-                  placeholder="TIN CST number"
-                />
-              </FormField>
-
-              <FormField label="Ecc No">
-                <Input
-                  name="ecc"
-                  value={formData.ecc}
-                  onChange={handleChange}
-                  placeholder="ECC number"
-                />
-              </FormField>
-
-              <FormField label="Range No">
-                <Input
-                  name="range"
-                  value={formData.range}
-                  onChange={handleChange}
-                  placeholder="Range number"
-                />
-              </FormField>
-
-              <FormField label="Division No">
-                <Input
-                  name="division"
-                  value={formData.division}
-                  onChange={handleChange}
-                  placeholder="Division number"
-                />
-              </FormField> */}
-
-             
-              {/* <FormField label="Rule">
-                <Input
-                  name="rule"
-                  value={formData.rule}
-                  onChange={handleChange}
-                  placeholder="Rule"
-                />
-              </FormField> */}
-
-              <FormField label="Godown Add." className="md:col-span-3">
+              <FormField label="Godown Address" className="md:col-span-3">
                 <Textarea
-                  name="godownAddress"
-                  value={formData.godownAddress}
+                  name="godown_address"
+                  value={formData.godown_address}
                   onChange={handleChange}
                   placeholder="Godown address"
                   rows={2}
@@ -351,42 +256,39 @@ const FirmSetup = () => {
 
               <FormField label="Bank Name">
                 <Input
-                  name="bankName"
-                  value={formData.bankName}
+                  name="bank_name"
+                  value={formData.bank_name}
                   onChange={handleChange}
                   placeholder="Bank name"
                 />
               </FormField>
 
-              <FormField label="Bank Ac No.">
+              <FormField label="Bank Branch">
                 <Input
-                  name="bankAccount"
-                  value={formData.bankAccount}
+                  name="bank_branch"
+                  value={formData.bank_branch}
+                  onChange={handleChange}
+                  placeholder="Bank branch"
+                />
+              </FormField>
+
+              <FormField label="Account Number">
+                <Input
+                  name="account_number"
+                  value={formData.account_number}
                   onChange={handleChange}
                   placeholder="Bank account number"
                 />
               </FormField>
 
-              <FormField label="IFSCode">
+              <FormField label="IFSC Code">
                 <Input
-                  name="ifscCode"
-                  value={formData.ifscCode}
+                  name="ifsc_code"
+                  value={formData.ifsc_code}
                   onChange={handleChange}
                   placeholder="IFSC code"
                 />
               </FormField>
-
-               <FormField label="Pan No" error={errors.pan}>
-                <Input
-                  name="pan"
-                  value={formData.pan}
-                  onChange={handleChange}
-                  placeholder="10 digit PAN"
-                  maxLength={10}
-                  error={errors.pan}
-                />
-              </FormField>
-
             </div>
           </div>
 

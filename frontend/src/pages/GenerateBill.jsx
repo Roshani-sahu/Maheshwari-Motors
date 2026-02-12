@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { FaFloppyDisk, FaEye, FaPrint } from "react-icons/fa6";
+import { FaFloppyDisk, FaEye, FaPrint } from "react-icons/fa";
 import PDFPreview from "../components/PDFPreview";
 
 const GenerateBill = () => {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { FaArrowLeft, FaEnvelope } from "react-icons/fa6";
+import { FaArrowLeft, FaEnvelope } from "react-icons/fa";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");

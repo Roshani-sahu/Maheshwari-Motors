@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaBuilding, FaChevronDown } from "react-icons/fa6";
+import { FaBuilding, FaChevronDown } from "react-icons/fa";
 import useStore from '../store';
 
 const CompanySelector = () => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaPlus, FaTrash, FaDownload, FaUpload } from 'react-icons/fa6';
+import { FaPlus, FaTrash, FaDownload, FaUpload } from 'react-icons/fa';
 import useStore from '../store';
 import { itemAPI, groupAPI, unitAPI, hsnAPI } from '../services/api';
 import { Button, Input, Select, Modal } from '../components/ui/FormComponents';

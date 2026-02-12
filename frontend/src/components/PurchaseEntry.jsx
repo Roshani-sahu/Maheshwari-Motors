@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaTrash } from 'react-icons/fa6';
+import { FaPlus, FaTrash } from 'react-icons/fa';
 import useStore from '../store';
 import { itemAPI, accountAPI } from '../services/api';
 import { FormField, Input, Select, Button, Card } from '../components/ui/FormComponents';

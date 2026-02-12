@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaFilter, FaFileExport, FaUser, FaFileInvoiceDollar, FaCheck, FaTrashCan, FaEye } from "react-icons/fa6";
+import { FaFilter, FaFileExport, FaUser, FaFileInvoiceDollar, FaCheck, FaTrashCan, FaEye } from "react-icons/fa";
 
 const AuditLogs = () => {
   const [selectedUser, setSelectedUser] = useState('All Users');

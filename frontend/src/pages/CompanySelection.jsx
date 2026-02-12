@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import {
-  FaBuildingUser,
-  FaMagnifyingGlass,
+  FaBuilding,
+  FaSearch,
   FaCar,
   FaLeaf,
   FaWarehouse,
   FaStar,
   FaRegStar,
-} from "react-icons/fa6";
+} from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import useStore from '../store';
 import { firmAPI } from '../services/api';
@@ -71,7 +71,7 @@ const CompanySelection = () => {
           <div className="p-6 border-b border-neutral-200">
             <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center mb-4">
-                <FaBuildingUser className="text-2xl text-neutral-600" />
+                <FaBuilding className="text-2xl text-neutral-600" />
               </div>
               <h1 className="text-2xl text-neutral-900">Select Company</h1>
               <p className="text-sm text-neutral-500 mt-1">
@@ -87,7 +87,7 @@ const CompanySelection = () => {
               <label className="sr-only">Search companies</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaMagnifyingGlass className="text-neutral-400" />
+                  <FaSearch className="text-neutral-400" />
                 </div>
                 <input
                   type="text"
@@ -107,7 +107,7 @@ const CompanySelection = () => {
                     case 'GST': return FaCar;
                     case 'NON_GST': return FaLeaf;
                     case 'BILL_ONLY': return FaWarehouse;
-                    default: return FaBuildingUser;
+                    default: return FaBuilding;
                   }
                 };
                 const Icon = getIcon(company.type);

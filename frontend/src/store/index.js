@@ -21,7 +21,6 @@ const useStore = create(devtools((set, get) => ({
   // Masters Data
   accounts: [],
   items: [],
-  firms: [],
   users: [],
   groups: [],
   units: [],

@@ -1,0 +1,23 @@
+# Fix White Screen - Steps
+
+1. Stop the dev server (Ctrl+C)
+2. Clear browser cache (Ctrl+Shift+Delete)
+3. Delete dist folder:
+```bash
+cd frontend
+rmdir /s /q dist
+```
+
+4. Rebuild:
+```bash
+npm run build
+```
+
+5. Start dev server:
+```bash
+npm run dev
+```
+
+6. Open browser in incognito mode: http://localhost:5173
+
+If still white screen, open browser console (F12) and share the error message.

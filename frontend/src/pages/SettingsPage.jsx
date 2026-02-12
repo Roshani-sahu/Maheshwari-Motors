@@ -1,5 +1,5 @@
 import React from "react";
-import { FaPlus } from "react-icons/fa6";
+import { FaPlus } from "react-icons/fa";
 
 const SettingsAccessControl = () => {
   return (

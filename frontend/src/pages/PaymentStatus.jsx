@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { FaPlus, FaFilter, FaEye, FaRupeeSign, FaFileExport } from "react-icons/fa6";
+import { FaPlus, FaFilter, FaEye, FaRupeeSign, FaFileExport } from "react-icons/fa";
 
 const PaymentStatus = () => {
   const [selectedStatus, setSelectedStatus] = useState('All Status');

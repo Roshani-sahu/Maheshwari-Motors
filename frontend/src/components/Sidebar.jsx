@@ -2,17 +2,17 @@ import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   FaBookOpen,
-  FaHouse,
+  FaHome,
   FaDatabase,
-  FaRightLeft,
+  FaExchangeAlt,
   FaChartPie,
-  FaSliders,
-  FaCircleQuestion,
+  FaCog,
+  FaQuestionCircle,
   FaBuilding,
   FaFileInvoiceDollar,
-  FaListCheck,
+  FaListUl,
   FaUserShield,
-  FaClockRotateLeft,
+  FaHistory,
   FaChevronDown,
   FaChevronRight,
   FaUsers,
@@ -22,9 +22,9 @@ import {
   FaTags,
   FaList,
   FaUserPlus,
-  FaUsersGear,
+  FaUserCog,
   FaBell
-} from "react-icons/fa6";
+} from "react-icons/fa";
 
 const SidebarSection = ({ title, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -79,7 +79,7 @@ const Sidebar = ({ onClose }) => {
                 }`
               }
             >
-              <FaHouse className="w-4 h-4" />
+              <FaHome className="w-4 h-4" />
               Dashboard
             </NavLink>
           </li>
@@ -184,7 +184,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaUsersGear className="w-4 h-4" />
+              <FaUserCog className="w-4 h-4" />
               View All Supplier
             </NavLink>
             
@@ -207,7 +207,7 @@ const Sidebar = ({ onClose }) => {
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
-              <FaListCheck className="w-4 h-4" />
+              <FaListUl className="w-4 h-4" />
               Challan List
             </NavLink>
             
@@ -310,7 +310,7 @@ const Sidebar = ({ onClose }) => {
       <div className="fixed bottom-0 left-0 w-60 p-4 border-t border-neutral-200 bg-[#0F172A] z-10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full">
-            <FaCircleQuestion className="text-neutral-600 text-sm" />
+            <FaQuestionCircle className="text-neutral-600 text-sm" />
           </div>
           <div>
             <p className="text-sm text-[#CBD5E1]">

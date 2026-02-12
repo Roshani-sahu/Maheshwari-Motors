@@ -1,11 +1,36 @@
 import React, { useState } from "react";
 import {
-  FaCalendarXmark,
-  FaCircleInfo,
-  FaCircleCheck,
-} from "react-icons/fa6";
+  FaCalendarTimes, 
+  FaInfoCircle, 
+  FaCheckCircle, 
+} from "react-icons/fa";
 import { Button } from "../../components/ui";
 import { ConfirmationDialog } from "../../components/common";
+
+const SummaryCard = ({ title, value, icon: Icon, color = "blue" }) => {
+  const colorClasses = {
+    blue: "bg-blue-50 text-blue-600 border-l-blue-500",
+    green: "bg-green-50 text-green-600 border-l-green-500",
+    red: "bg-red-50 text-red-600 border-l-red-500",
+    purple: "bg-purple-50 text-purple-600 border-l-purple-500",
+  };
+
+  return (
+    <div className={`p-3 sm:p-4 rounded-lg border-l-2 sm:border-l-4 ${colorClasses[color]}`}>
+      <div className="flex items-center gap-3">
+        {Icon && (
+          <div className={`p-1.5 sm:p-2 rounded-lg ${colorClasses[color].split(" ")[0]}`}>
+            <Icon className={`${colorClasses[color].split(" ")[1]} text-sm sm:text-base`} />
+          </div>
+        )}
+        <div>
+          <h3 className="text-xs sm:text-sm font-medium text-gray-700">{title}</h3>
+          <p className="text-base sm:text-lg md:text-xl font-bold text-gray-900">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const FinancialYearClose = () => {
   const [currentFinancialYear] = useState("2023-24");
@@ -27,30 +52,7 @@ const FinancialYearClose = () => {
     setIsCloseDialogOpen(false);
   };
 
-  const SummaryCard = ({ title, value, icon: Icon, color = "blue" }) => {
-    const colorClasses = {
-      blue: "bg-blue-50 text-blue-600 border-l-blue-500",
-      green: "bg-green-50 text-green-600 border-l-green-500",
-      red: "bg-red-50 text-red-600 border-l-red-500",
-      purple: "bg-purple-50 text-purple-600 border-l-purple-500",
-    };
-
-    return (
-      <div className={`p-3 sm:p-4 rounded-lg border-l-2 sm:border-l-4 ${colorClasses[color]}`}>
-        <div className="flex items-center gap-3">
-          {Icon && (
-            <div className={`p-1.5 sm:p-2 rounded-lg ${colorClasses[color].split(" ")[0]}`}>
-              <Icon className={`${colorClasses[color].split(" ")[1]} text-sm sm:text-base`} />
-            </div>
-          )}
-          <div>
-            <h3 className="text-xs sm:text-sm font-medium text-gray-700">{title}</h3>
-            <p className="text-base sm:text-lg md:text-xl font-bold text-gray-900">{value}</p>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  
 
   return (
     <div className="space-y-6">
@@ -88,7 +90,7 @@ const FinancialYearClose = () => {
       <div className="bg-white p-4 sm:p-6 rounded-lg border">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 sm:p-3 bg-blue-50 rounded-lg">
-            <FaCalendarXmark className="text-blue-600 text-lg sm:text-xl" />
+            <FaCalendarTimes className="text-blue-600 text-lg sm:text-xl" />
           </div>
           <div>
             <h3 className="font-medium text-gray-900 text-sm sm:text-base">
@@ -103,14 +105,14 @@ const FinancialYearClose = () => {
         <div className="flex items-center gap-2 mb-4">
           {isYearClosed ? (
             <>
-              <FaCircleCheck className="text-green-600 text-sm sm:text-base" />
+              <FaCheckCircle className="text-green-600 text-sm sm:text-base" />
               <span className="text-xs sm:text-sm font-medium text-green-600">
                 Year Closed Successfully
               </span>
             </>
           ) : (
             <>
-              <FaCircleInfo className="text-yellow-600 text-sm sm:text-base" />
+              <FaInfoCircle className="text-yellow-600 text-sm sm:text-base" />
               <span className="text-xs sm:text-sm font-medium text-yellow-600">
                 Year is currently active
               </span>
@@ -121,7 +123,7 @@ const FinancialYearClose = () => {
         {!isYearClosed && (
           <div className="bg-yellow-50 p-3 sm:p-4 rounded-lg border border-yellow-200">
             <div className="flex items-start gap-3">
-              <FaCircleInfo className="text-yellow-600 mt-0.5 text-sm sm:text-base" />
+              <FaInfoCircle className="text-yellow-600 mt-0.5 text-sm sm:text-base" />
               <div className="text-xs sm:text-sm text-yellow-800">
                 <p className="font-medium mb-1">
                   Before closing the financial year:
@@ -150,7 +152,7 @@ const FinancialYearClose = () => {
 
           <div className="bg-red-50 p-3 sm:p-4 rounded-lg border border-red-200 mb-4">
             <div className="flex items-start gap-3">
-              <FaCircleInfo className="text-red-600 mt-0.5 text-sm sm:text-base" />
+              <FaInfoCircle className="text-red-600 mt-0.5 text-sm sm:text-base" />
               <div className="text-xs sm:text-sm text-red-800">
                 <p className="font-medium mb-1">Warning:</p>
                 <p>
@@ -174,7 +176,7 @@ const FinancialYearClose = () => {
       {isYearClosed && (
         <div className="bg-green-50 p-4 sm:p-6 rounded-lg border border-green-200">
           <div className="flex items-center gap-3">
-            <FaCircleCheck className="text-green-600 text-lg sm:text-xl" />
+            <FaCheckCircle className="text-green-600 text-lg sm:text-xl" />
             <div>
               <h3 className="font-medium text-green-800 text-sm sm:text-base">
                 Financial Year Closed Successfully

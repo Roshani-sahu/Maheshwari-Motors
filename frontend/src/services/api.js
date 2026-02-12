@@ -79,8 +79,14 @@ export const accountAPI = {
 export const itemAPI = {
   getAll: () => api.get('/items'),
   getById: (id) => api.get(`/items/${id}`),
-  create: (data) => api.post('/items', data),
-  update: (id, data, config) => api.put(`/items/${id}`, data, config),
+  create: (data) => {
+    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+    return api.post('/items', data, config);
+  },
+  update: (id, data, config) => {
+    const finalConfig = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : config;
+    return api.put(`/items/${id}`, data, finalConfig);
+  },
   delete: (id) => api.delete(`/items/${id}`),
   checkStock: (itemId, qty) => Promise.resolve({ data: { available: true } }), 
 };
