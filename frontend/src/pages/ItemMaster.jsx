@@ -94,7 +94,8 @@ const ItemMaster = () => {
       unit: 'Ltr',
       rate: 450,
       stock: 25,
-      reorderLevel: 10
+      reorderLevel: 10,
+      type: 0
     },
     {
       id: 2,
@@ -106,7 +107,8 @@ const ItemMaster = () => {
       unit: 'Set',
       rate: 1200,
       stock: 8,
-      reorderLevel: 5
+      reorderLevel: 5,
+      type: 1
     }
   ]);
 
@@ -119,7 +121,9 @@ const ItemMaster = () => {
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.alias.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.barcode.includes(searchTerm)
+    item.barcode.includes(searchTerm) ||
+    item.gstCode.includes(searchTerm) ||
+    item.type.toString().includes(searchTerm)
   );
 
   // Keyboard shortcuts
@@ -165,10 +169,10 @@ const ItemMaster = () => {
   const handleExport = () => {
     // Mock export functionality
     const csvContent = [
-      ['Name', 'Alias', 'Barcode', 'GST Code', 'Non-GST Code', 'Unit', 'Rate', 'Stock', 'Reorder Level'],
+      ['Name', 'Alias', 'Barcode', 'GST Code', 'Non-GST Code', 'Unit', 'Rate', 'Stock', 'Reorder Level', 'Type'],
       ...filteredItems.map(item => [
         item.name, item.alias, item.barcode, item.gstCode, item.nonGstCode,
-        item.unit, item.rate, item.stock, item.reorderLevel
+        item.unit, item.rate, item.stock, item.reorderLevel, item.type
       ])
     ].map(row => row.join(',')).join('\n');
     
@@ -257,7 +261,7 @@ const ItemMaster = () => {
             <input
               id="search-input"
               type="text"
-              placeholder="Search items by name, alias, or barcode..."
+              placeholder="Search items by name, alias, barcode, GST code, or type..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -307,6 +311,9 @@ const ItemMaster = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -355,6 +362,21 @@ const ItemMaster = () => {
                         In Stock
                       </span>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <EditableCell
+                      value={item.type}
+                      onSave={(value) => handleCellSave(item.id, 'type', value)}
+                      type="select"
+                      options={[
+                        { value: 0, label: '0' },
+                        { value: 1, label: '1' }
+                      ]}
+                      isEditing={editingCell?.itemId === item.id && editingCell?.field === 'type'}
+                      onEdit={() => handleCellEdit(item.id, 'type')}
+                      onCancel={() => setEditingCell(null)}
+                      className={fastEditMode ? 'border border-dashed border-gray-300' : ''}
+                    />
                   </td>
                 </tr>
               ))}

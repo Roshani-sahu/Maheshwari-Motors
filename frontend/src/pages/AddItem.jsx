@@ -13,7 +13,8 @@ const AddItem = () => {
     threshold: '',
     stockCount: '',
     itemMedia: null,
-    categoryId: 1
+    categoryId: 1,
+    type: 0
   });
   const [errors, setErrors] = useState({});
 
@@ -51,7 +52,8 @@ const AddItem = () => {
       stockCount: parseInt(formData.stockCount),
       itemMedia: formData.itemMedia ? URL.createObjectURL(formData.itemMedia) : null,
       status: parseInt(formData.stockCount) <= parseInt(formData.threshold) ? 'LOW' : 'OK',
-      categoryId: parseInt(formData.categoryId || 1)
+      categoryId: parseInt(formData.categoryId || 1),
+      type: formData.type
     };
 
     // Add item to global store
@@ -130,6 +132,20 @@ const AddItem = () => {
                 error={errors.stockCount}
               />
               {errors.stockCount && <p className="text-red-600 text-sm mt-1">{errors.stockCount}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type *
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => handleChange('type', parseInt(e.target.value))}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value={0}>0</option>
+                <option value={1}>1</option>
+              </select>
             </div>
           </div>
 
