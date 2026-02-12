@@ -14,9 +14,7 @@ class AddDiscountScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(c.isEdit ? 'Edit Discount' : 'Add Discount'),
-      ),
+      appBar: AppBar(title: Text(c.isEdit ? 'Edit Discount' : 'Add Discount')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -24,14 +22,24 @@ class AddDiscountScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Required fields note
+              Text(
+                'Fields marked with * are required',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // ─── Type Selector ────────────────────────
               if (!c.isEdit) ...[
                 Text(
                   'Apply To',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Obx(
@@ -65,9 +73,9 @@ class AddDiscountScreen extends StatelessWidget {
                 Text(
                   'Select Target',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Obx(() {
@@ -87,15 +95,12 @@ class AddDiscountScreen extends StatelessWidget {
                           SizedBox(
                             height: 16,
                             width: 16,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                           SizedBox(width: 12),
                           Text(
                             'Loading…',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                            ),
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
                         ],
                       ),
@@ -107,8 +112,7 @@ class AddDiscountScreen extends StatelessWidget {
                       initialValue: c.selectedTargetId.value,
                       decoration: const InputDecoration(
                         hintText: 'Select an item',
-                        prefixIcon:
-                            Icon(Icons.inventory_2_outlined, size: 20),
+                        prefixIcon: Icon(Icons.inventory_2_outlined, size: 20),
                       ),
                       isExpanded: true,
                       items: c.items
@@ -122,8 +126,7 @@ class AddDiscountScreen extends StatelessWidget {
                             ),
                           )
                           .toList(),
-                      onChanged: (id) =>
-                          c.selectedTargetId.value = id,
+                      onChanged: (id) => c.selectedTargetId.value = id,
                     );
                   } else {
                     return DropdownButtonFormField<String>(
@@ -144,8 +147,7 @@ class AddDiscountScreen extends StatelessWidget {
                             ),
                           )
                           .toList(),
-                      onChanged: (id) =>
-                          c.selectedTargetId.value = id,
+                      onChanged: (id) => c.selectedTargetId.value = id,
                     );
                   }
                 }),
@@ -156,9 +158,9 @@ class AddDiscountScreen extends StatelessWidget {
               Text(
                 'Discount Type',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 8),
               Obx(
@@ -212,9 +214,7 @@ class AddDiscountScreen extends StatelessWidget {
 
               Obx(
                 () => AppButton(
-                  text: c.isEdit
-                      ? 'Update Discount'
-                      : 'Create Discount',
+                  text: c.isEdit ? 'Update Discount' : 'Create Discount',
                   isLoading: c.isLoading.value,
                   onPressed: c.submit,
                 ),
@@ -262,18 +262,14 @@ class _TypeChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 18,
-                color:
-                    selected ? AppColors.accent : AppColors.textSecondary,
+                color: selected ? AppColors.accent : AppColors.textSecondary,
               ),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: TextStyle(
-                  fontWeight:
-                      selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected
-                      ? AppColors.accent
-                      : AppColors.textSecondary,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected ? AppColors.accent : AppColors.textSecondary,
                 ),
               ),
             ],

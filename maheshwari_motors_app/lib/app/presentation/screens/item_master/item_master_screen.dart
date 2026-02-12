@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../controllers/home_controller.dart';
 import '../../controllers/item_master_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 import '../../../data/models/item_model.dart';
@@ -17,15 +16,10 @@ class ItemMasterScreen extends StatelessWidget {
     final controller = Get.put(ItemMasterController());
 
     return Scaffold(
-      drawer: Get.currentRoute == AppRoutes.home ? null : const AppDrawer(),
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: Get.currentRoute == AppRoutes.home
-            ? IconButton(
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: Get.find<HomeController>().openDrawer,
-              )
-            : const AppDrawerButton(),
+        leading: const AppDrawerButton(),
         title: const Text('Item Master'),
         actions: [
           AppBarAddButton(
@@ -255,6 +249,8 @@ class _ItemCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              StatusBadge.gst(item.isGst == 1 ? 'GST' : 'NON_GST'),
+              const SizedBox(height: 4),
               StatusBadge.stock(item.stockStatus),
               const SizedBox(height: 8),
               Row(

@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../controllers/auth_controller.dart';
-import '../../controllers/home_controller.dart';
 import '../../controllers/dashboard_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
@@ -15,16 +14,13 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(DashboardController());
     final auth = Get.find<AuthController>();
-    final home = Get.find<HomeController>();
 
     return Scaffold(
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded),
-          onPressed: home.openDrawer,
-        ),
+        leading: const AppDrawerButton(),
         title: Obx(
           () => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,6 +59,66 @@ class DashboardScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // ── Firm Switcher Dropdown ──
+              Obx(() {
+                if (controller.firms.length <= 1) {
+                  return const SizedBox.shrink();
+                }
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: auth.firmId,
+                      isExpanded: true,
+                      icon: const Icon(
+                        Icons.swap_horiz_rounded,
+                        color: AppColors.accent,
+                      ),
+                      items: controller.firms
+                          .map(
+                            (f) => DropdownMenuItem(
+                              value: f.id,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.business_rounded,
+                                    size: 18,
+                                    color: f.id == auth.firmId
+                                        ? AppColors.accent
+                                        : AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      f.name,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: f.id == auth.firmId
+                                            ? FontWeight.w600
+                                            : FontWeight.w400,
+                                      ),
+                                    ),
+                                  ),
+                                  StatusBadge.gst(f.type),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (id) {
+                        if (id != null) controller.switchToFirm(id);
+                      },
+                    ),
+                  ),
+                );
+              }),
+
               // ── Period filter chips ──
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -108,9 +164,9 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: StatCard(
-                      title: 'Challan Amount',
-                      value: AppFormatters.currency(controller.challanAmount),
-                      icon: Icons.currency_rupee_rounded,
+                      title: 'Paid Bills',
+                      value: '${controller.paidBills}',
+                      icon: Icons.check_circle_outline,
                       color: AppColors.success,
                     ),
                   ),
@@ -143,9 +199,9 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: StatCard(
-                      title: 'Paid Bills',
-                      value: '${controller.paidBills}',
-                      icon: Icons.check_circle_outline,
+                      title: 'Challan Amount',
+                      value: AppFormatters.currency(controller.challanAmount),
+                      icon: Icons.currency_rupee_rounded,
                       color: AppColors.success,
                     ),
                   ),

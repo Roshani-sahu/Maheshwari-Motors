@@ -4,7 +4,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/challan_model.dart';
 import '../../../routes/app_routes.dart';
-import '../../controllers/home_controller.dart';
 import '../../controllers/challan_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
@@ -16,15 +15,10 @@ class ChallanListScreen extends StatelessWidget {
     final controller = Get.put(ChallanListController());
 
     return Scaffold(
-      drawer: Get.currentRoute == AppRoutes.home ? null : const AppDrawer(),
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: Get.currentRoute == AppRoutes.home
-            ? IconButton(
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: Get.find<HomeController>().openDrawer,
-              )
-            : const AppDrawerButton(),
+        leading: const AppDrawerButton(),
         title: const Text('Challans'),
         actions: [
           AppBarAddButton(
@@ -41,6 +35,15 @@ class ChallanListScreen extends StatelessWidget {
             hint: 'Search by challan no or party…',
             onChanged: (v) => controller.searchQuery.value = v,
           ),
+          const SizedBox(height: 4),
+          Obx(
+            () => AppFilterChips(
+              options: const ['all', 'GST', 'NON_GST'],
+              selected: controller.typeFilter.value,
+              onSelected: (v) => controller.typeFilter.value = v,
+            ),
+          ),
+          const SizedBox(height: 4),
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
@@ -132,6 +135,16 @@ class _ChallanCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              StatusBadge(
+                label: challan.isGst == 1 ? 'GST' : 'NON_GST',
+                color: challan.isGst == 1
+                    ? AppColors.accentLight
+                    : AppColors.warningLight,
+                textColor: challan.isGst == 1
+                    ? AppColors.accent
+                    : AppColors.warning,
+              ),
+              const SizedBox(width: 6),
               if (challan.convertedToBill)
                 const StatusBadge(
                   label: 'BILLED',
@@ -184,6 +197,18 @@ class _ChallanCard extends StatelessWidget {
                 '${challan.items.length} items',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
+              if (challan.linkedChallanId != null) ...[
+                const SizedBox(width: 8),
+                Icon(Icons.link, size: 14, color: AppColors.textSecondary),
+                const SizedBox(width: 2),
+                Text(
+                  'Linked',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
               const Spacer(),
               Text(
                 AppFormatters.currency(challan.amount),

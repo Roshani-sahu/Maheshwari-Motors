@@ -14,6 +14,7 @@ class ChallanListController extends GetxController {
   final RxList<ChallanModel> filtered = <ChallanModel>[].obs;
   final RxBool isLoading = true.obs;
   final RxString searchQuery = ''.obs;
+  final RxString typeFilter = 'all'.obs; // 'all', 'GST', 'NON_GST'
   final RxString errorMessage = ''.obs;
 
   @override
@@ -25,6 +26,7 @@ class ChallanListController extends GetxController {
       (_) => _filter(),
       time: const Duration(milliseconds: 300),
     );
+    ever(typeFilter, (_) => _filter());
   }
 
   Future<void> loadChallans() async {
@@ -43,11 +45,19 @@ class ChallanListController extends GetxController {
   }
 
   void _filter() {
-    if (searchQuery.value.isEmpty) {
-      filtered.value = challans.toList();
-    } else {
+    var list = challans.toList();
+
+    // Filter by type
+    if (typeFilter.value == 'GST') {
+      list = list.where((c) => c.isGst == 1).toList();
+    } else if (typeFilter.value == 'NON_GST') {
+      list = list.where((c) => c.isGst == 0).toList();
+    }
+
+    // Filter by search
+    if (searchQuery.value.isNotEmpty) {
       final q = searchQuery.value.toLowerCase();
-      filtered.value = challans
+      list = list
           .where(
             (c) =>
                 c.challanNo.toLowerCase().contains(q) ||
@@ -55,6 +65,7 @@ class ChallanListController extends GetxController {
           )
           .toList();
     }
+    filtered.value = list;
   }
 
   Future<void> deleteChallan(String id) async {

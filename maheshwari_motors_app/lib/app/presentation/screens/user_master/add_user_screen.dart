@@ -32,8 +32,18 @@ class AddUserScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
+              // Required fields note
+              Text(
+                'Fields marked with * are required',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 16),
+
               AppTextField(
-                label: 'Username',
+                label: 'Username *',
                 hint: 'Enter username',
                 controller: controller.usernameCtrl,
                 validator: (v) =>
@@ -42,7 +52,7 @@ class AddUserScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               AppTextField(
-                label: 'Email',
+                label: 'Email *',
                 hint: 'Enter email',
                 controller: controller.emailCtrl,
                 keyboardType: TextInputType.emailAddress,
@@ -54,7 +64,7 @@ class AddUserScreen extends StatelessWidget {
                 () => AppTextField(
                   label: controller.isEdit
                       ? 'New Password (optional)'
-                      : 'Password',
+                      : 'Password *',
                   hint: 'Enter password',
                   controller: controller.passwordCtrl,
                   obscureText: controller.obscurePassword.value,

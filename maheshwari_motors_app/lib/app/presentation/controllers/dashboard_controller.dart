@@ -1,19 +1,29 @@
 import 'package:get/get.dart';
+import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../data/models/bill_model.dart';
 import '../../data/models/challan_model.dart';
+import '../../data/models/firm_model.dart';
 import '../../data/services/api_service.dart';
 import 'auth_controller.dart';
 
 class DashboardController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
   final AuthController _auth = Get.find<AuthController>();
+  final FlutterSecureStorage _storage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(resetOnError: true),
+  );
 
   final RxBool isLoading = true.obs;
   final RxMap<String, dynamic> dashboardData = <String, dynamic>{}.obs;
   final RxString errorMessage = ''.obs;
   final RxList<ChallanModel> recentChallans = <ChallanModel>[].obs;
   final RxList<BillModel> recentBills = <BillModel>[].obs;
+
+  /// Firms list for the switcher dropdown
+  final RxList<FirmModel> firms = <FirmModel>[].obs;
 
   /// Active filter: 'today' | 'last_month' | 'last_year' | 'all_time'
   final RxString selectedPeriod = 'all_time'.obs;
@@ -43,6 +53,26 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadFirms();
+    loadDashboard();
+  }
+
+  Future<void> _loadFirms() async {
+    try {
+      firms.value = await _api.getFirms();
+    } catch (_) {}
+  }
+
+  /// Switch firm from the dashboard dropdown
+  Future<void> switchToFirm(String firmId) async {
+    final firm = firms.firstWhereOrNull((f) => f.id == firmId);
+    if (firm == null || firm.id == _auth.firmId) return;
+    _auth.selectedFirm.value = firm;
+    await _storage.write(
+      key: AppConstants.selectedFirmKey,
+      value: jsonEncode(firm.toJson()),
+    );
+    selectedPeriod.value = 'all_time';
     loadDashboard();
   }
 

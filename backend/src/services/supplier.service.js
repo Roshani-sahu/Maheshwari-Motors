@@ -65,7 +65,6 @@ class SupplierService {
     // Check for unpaid purchases
     const unpaidPurchaseCount = await Purchase.countDocuments({
       supplier_id: supplierId,
-      user_id: userId,
       payment_status: "due",
     });
     if (unpaidPurchaseCount > 0) {
@@ -76,8 +75,8 @@ class SupplierService {
 
     // Cascade: delete supplier's transactions and purchases
     await Promise.all([
-      Transaction.deleteMany({ supplier_id: supplierId, user_id: userId }),
-      Purchase.deleteMany({ supplier_id: supplierId, user_id: userId }),
+      Transaction.deleteMany({ supplier_id: supplierId }),
+      Purchase.deleteMany({ supplier_id: supplierId }),
     ]);
 
     await Supplier.findByIdAndDelete(supplierId);

@@ -26,6 +26,7 @@ class AddItemController extends GetxController {
   final RxList<SupplierModel> supplierList = <SupplierModel>[].obs;
   final RxList<String> selectedCategoryIds = <String>[].obs;
   final Rx<String?> selectedSupplierId = Rx<String?>(null);
+  final RxInt isGst = 1.obs; // 1 = can sell as GST, 0 = NON_GST only
 
   ItemModel? editItem;
   bool get isEdit => editItem != null;
@@ -52,6 +53,7 @@ class AddItemController extends GetxController {
       }
       selectedCategoryIds.assignAll(editItem!.categoryIds);
       selectedSupplierId.value = editItem!.supplierId;
+      isGst.value = editItem!.isGst;
     }
   }
 
@@ -95,6 +97,7 @@ class AddItemController extends GetxController {
         'nongst_stock': nongstStockController.text.trim().isEmpty
             ? '0'
             : nongstStockController.text.trim(),
+        'is_gst': isGst.value,
       };
 
       // Send category_ids as individual entries so FormData serializes

@@ -6,6 +6,7 @@ class ChallanItemModel {
   final double discount;
   final double grossAmount;
   final double amount;
+  final int isGst; // 0 = NON_GST, 1 = GST
 
   ChallanItemModel({
     this.itemId,
@@ -15,6 +16,7 @@ class ChallanItemModel {
     this.discount = 0,
     required this.grossAmount,
     required this.amount,
+    this.isGst = 1,
   });
 
   factory ChallanItemModel.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,7 @@ class ChallanItemModel {
       discount: (json['discount'] ?? 0).toDouble(),
       grossAmount: (json['gross_amount'] ?? 0).toDouble(),
       amount: (json['amount'] ?? 0).toDouble(),
+      isGst: json['is_gst'] ?? 1,
     );
   }
 
@@ -37,6 +40,7 @@ class ChallanItemModel {
     'discount': discount,
     'gross_amount': grossAmount,
     'amount': amount,
+    'is_gst': isGst,
   };
 }
 
@@ -54,6 +58,8 @@ class ChallanModel {
   final bool convertedToBill;
   final String? billId;
   final String firmId;
+  final int isGst; // 0 = NON_GST, 1 = GST
+  final String? linkedChallanId;
 
   ChallanModel({
     required this.id,
@@ -69,6 +75,8 @@ class ChallanModel {
     this.convertedToBill = false,
     this.billId,
     required this.firmId,
+    this.isGst = 1,
+    this.linkedChallanId,
   });
 
   factory ChallanModel.fromJson(Map<String, dynamic> json) {
@@ -93,6 +101,8 @@ class ChallanModel {
       firmId: json['firm_id'] is Map
           ? json['firm_id']['_id'] ?? ''
           : json['firm_id'] ?? '',
+      isGst: json['is_gst'] ?? 1,
+      linkedChallanId: json['linked_challan_id']?.toString(),
     );
   }
 
@@ -108,9 +118,11 @@ class ChallanModel {
       'discount': discount,
       'converted_to_bill': convertedToBill,
       'firm_id': firmId,
+      'is_gst': isGst,
     };
     if (partyId != null) map['party_id'] = partyId;
     if (billId != null) map['bill_id'] = billId;
+    if (linkedChallanId != null) map['linked_challan_id'] = linkedChallanId;
     return map;
   }
 }

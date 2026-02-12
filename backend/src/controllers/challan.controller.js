@@ -6,6 +6,12 @@ const challanItemSchema = {
   quantity: { required: true, type: "number", min: 1, label: "Quantity" },
   rate: { required: true, type: "number", min: 0, label: "Rate" },
   discount: { required: false, type: "number", min: 0, label: "Discount" },
+  is_gst: {
+    required: false,
+    type: "number",
+    enum: [0, 1],
+    label: "GST flag (1=GST firm, 0=NON_GST firm)",
+  },
 };
 
 const challanSchema = {

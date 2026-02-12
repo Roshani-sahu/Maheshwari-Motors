@@ -21,6 +21,7 @@ const challanSchema = new mongoose.Schema(
         discount: { type: Number, default: 0 },
         gross_amount: { type: Number, required: true },
         amount: { type: Number, required: true },
+        is_gst: { type: Number, enum: [0, 1], default: 1 },
       },
     ],
     gross_total: { type: Number, required: true },
@@ -28,11 +29,25 @@ const challanSchema = new mongoose.Schema(
     discount: { type: Number, default: 0 },
     amount: { type: Number, required: true },
     converted_to_bill: { type: Boolean, default: false },
-    bill_id: { type: mongoose.Schema.Types.ObjectId, ref: "Bill" },
+    bill_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bill",
+      default: null,
+    },
+
+    // Challan-level GST flag: 1 = GST challan (under GST firm), 0 = NON_GST challan
+    is_gst: { type: Number, enum: [0, 1], required: true },
+
+    // Links the twin challan created from the same submission (auto-split)
+    linked_challan_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Challan",
+      default: null,
+    },
+
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
     firm_id: {
       type: mongoose.Schema.Types.ObjectId,

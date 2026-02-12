@@ -7,7 +7,9 @@ import { ApiError, Pagination } from "../utils/index.js";
 
 class PartyService {
   async getParties(firmId, userId, query) {
-    const filter = { firm_id: firmId, user_id: userId };
+    // Parties are shared across paired firms — scope by ownerId only
+    const filter = {};
+    if (userId) filter.user_id = userId;
     if (query.search) {
       const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.name = { $regex: escaped, $options: "i" };
@@ -22,11 +24,9 @@ class PartyService {
   }
 
   async getPartyById(partyId, firmId, userId) {
-    const party = await Party.findOne({
-      _id: partyId,
-      firm_id: firmId,
-      user_id: userId,
-    });
+    const filter = { _id: partyId };
+    if (userId) filter.user_id = userId;
+    const party = await Party.findOne(filter);
     if (!party) {
       throw ApiError.notFound("Party not found");
     }
@@ -34,20 +34,16 @@ class PartyService {
   }
 
   async createParty(partyData, firmId, userId) {
-    const party = await Party.create({
-      ...partyData,
-      firm_id: firmId,
-      user_id: userId,
-    });
+    const partyDoc = { ...partyData, firm_id: firmId };
+    if (userId) partyDoc.user_id = userId;
+    const party = await Party.create(partyDoc);
     return party;
   }
 
   async updateParty(partyId, firmId, userId, updateData) {
-    const party = await Party.findOne({
-      _id: partyId,
-      firm_id: firmId,
-      user_id: userId,
-    });
+    const filter = { _id: partyId };
+    if (userId) filter.user_id = userId;
+    const party = await Party.findOne(filter);
     if (!party) {
       throw ApiError.notFound("Party not found");
     }
@@ -61,19 +57,16 @@ class PartyService {
   }
 
   async deleteParty(partyId, firmId, userId) {
-    const party = await Party.findOne({
-      _id: partyId,
-      firm_id: firmId,
-      user_id: userId,
-    });
+    const filter = { _id: partyId };
+    if (userId) filter.user_id = userId;
+    const party = await Party.findOne(filter);
     if (!party) {
       throw ApiError.notFound("Party not found");
     }
 
-    // Check for active (unbilled) challans
+    // Check for active (unbilled) challans across ALL firms (shared party)
     const activeChallanCount = await Challan.countDocuments({
       party_id: partyId,
-      firm_id: firmId,
       converted_to_bill: false,
     });
     if (activeChallanCount > 0) {
@@ -82,10 +75,9 @@ class PartyService {
       );
     }
 
-    // Check for unpaid bills
+    // Check for unpaid bills across ALL firms (shared party)
     const unpaidBillCount = await Bill.countDocuments({
       party_id: partyId,
-      firm_id: firmId,
       payment_status: "due",
     });
     if (unpaidBillCount > 0) {
@@ -94,23 +86,21 @@ class PartyService {
       );
     }
 
-    // Cascade: delete associated transactions, bills, challans, discounts
+    // Cascade: delete associated data across ALL firms (shared party)
     await Promise.all([
-      Transaction.deleteMany({ party_id: partyId, firm_id: firmId }),
-      Bill.deleteMany({ party_id: partyId, firm_id: firmId }),
-      Challan.deleteMany({ party_id: partyId, firm_id: firmId }),
-      Discount.deleteMany({ party_id: partyId, user_id: userId }),
+      Transaction.deleteMany({ party_id: partyId }),
+      Bill.deleteMany({ party_id: partyId }),
+      Challan.deleteMany({ party_id: partyId }),
+      Discount.deleteMany({ party_id: partyId }),
     ]);
 
     await Party.findByIdAndDelete(partyId);
   }
 
   async getPartyBalance(partyId, firmId, userId) {
-    const party = await Party.findOne({
-      _id: partyId,
-      firm_id: firmId,
-      user_id: userId,
-    });
+    const filter = { _id: partyId };
+    if (userId) filter.user_id = userId;
+    const party = await Party.findOne(filter);
     if (!party) {
       throw ApiError.notFound("Party not found");
     }
@@ -118,11 +108,9 @@ class PartyService {
   }
 
   async updateBalance(partyId, firmId, userId, amount, operation = "add") {
-    const party = await Party.findOne({
-      _id: partyId,
-      firm_id: firmId,
-      user_id: userId,
-    });
+    const filter = { _id: partyId };
+    if (userId) filter.user_id = userId;
+    const party = await Party.findOne(filter);
     if (!party) {
       throw ApiError.notFound("Party not found");
     }

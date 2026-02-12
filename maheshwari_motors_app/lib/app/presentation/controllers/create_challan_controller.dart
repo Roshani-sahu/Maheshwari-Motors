@@ -16,6 +16,9 @@ class ChallanLineItem {
   final rateC = TextEditingController();
   final discountC = TextEditingController();
 
+  /// 1 = GST, 0 = NON_GST.  Defaults to item master's is_gst.
+  final RxInt isGst = 1.obs;
+
   // Auto-applied discount rule (from backend).
   double? autoDiscount; // percentage value resolved from Discount model
   String? autoDiscountLabel; // e.g. "5% (auto)" or "₹100 fixed (auto)"
@@ -30,6 +33,10 @@ class ChallanLineItem {
 
   bool get hasManualDiscount =>
       discountC.text.isNotEmpty && double.tryParse(discountC.text) != null;
+
+  /// Whether the item's is_gst flag can be toggled by the user.
+  /// Items with master is_gst=0 are locked to NON_GST only.
+  bool get canToggleGst => item != null && item!.isGst == 1;
 
   double get grossAmount => quantity * rate;
   double get amount => grossAmount * (1 - discount / 100);
@@ -110,6 +117,7 @@ class CreateChallanController extends GetxController {
       line.item = items.firstWhereOrNull((i) => i.id == ci.itemId);
       line.quantityC.text = ci.quantity.toString();
       line.rateC.text = ci.rate.toStringAsFixed(2);
+      line.isGst.value = ci.isGst;
       if (ci.discount > 0) {
         line.discountC.text = ci.discount.toStringAsFixed(2);
       }
@@ -136,6 +144,8 @@ class CreateChallanController extends GetxController {
     line.item = item;
     if (item != null) {
       line.rateC.text = item.amount.toStringAsFixed(2);
+      // Default is_gst to the item master's flag
+      line.isGst.value = item.isGst;
       // Fetch auto discount for this item
       await _resolveItemDiscount(index, item.id);
     }
@@ -150,15 +160,21 @@ class CreateChallanController extends GetxController {
     if (party != null) {
       final rule = await _api.getPartyDiscount(party.id);
       if (rule != null) {
-        final type = rule['discount_type'] as String? ?? 'percentage';
-        final value = (rule['value'] as num?)?.toDouble() ?? 0;
-        if (type == 'fixed') {
-          autoPartyDiscountLabel = '₹${value.toStringAsFixed(0)} fixed (auto)';
-          // Will convert to % at calculation time
-          autoPartyDiscount = null; // store raw for later
-        } else {
-          autoPartyDiscount = value;
-          autoPartyDiscountLabel = '${value.toStringAsFixed(1)}% (auto)';
+        final p1 = (rule['percent1'] as num?)?.toDouble() ?? 0;
+        final p2 = (rule['percent2'] as num?)?.toDouble() ?? 0;
+        final fixed = (rule['fixed_amount'] as num?)?.toDouble() ?? 0;
+        // Build label
+        final parts = <String>[];
+        if (p1 > 0) parts.add('${p1.toStringAsFixed(1)}%');
+        if (p2 > 0) parts.add('+${p2.toStringAsFixed(1)}%');
+        if (fixed > 0) parts.add('-₹${fixed.toStringAsFixed(0)}');
+        if (parts.isNotEmpty) {
+          autoPartyDiscountLabel = '${parts.join(' ')} (auto)';
+          // Store combined effective % (approximation for challan-level).
+          // Exact: price * (1 - p1/100) * (1 - p2/100) - fixed
+          // For auto-display we store p1 as the primary %;
+          // backend applies the full 3-column calc at save time.
+          autoPartyDiscount = p1;
         }
       }
     }
@@ -169,18 +185,33 @@ class CreateChallanController extends GetxController {
     final rule = await _api.getItemDiscount(itemId);
     final line = lineItems[index];
     if (rule != null) {
-      final type = rule['discount_type'] as String? ?? 'percentage';
-      final value = (rule['value'] as num?)?.toDouble() ?? 0;
-      if (type == 'fixed') {
-        // Convert fixed to % based on rate
+      final p1 = (rule['percent1'] as num?)?.toDouble() ?? 0;
+      final p2 = (rule['percent2'] as num?)?.toDouble() ?? 0;
+      final fixed = (rule['fixed_amount'] as num?)?.toDouble() ?? 0;
+
+      if (p1 > 0 || p2 > 0 || fixed > 0) {
+        // Build label
+        final parts = <String>[];
+        if (p1 > 0) parts.add('${p1.toStringAsFixed(1)}%');
+        if (p2 > 0) parts.add('+${p2.toStringAsFixed(1)}%');
+        if (fixed > 0) parts.add('-₹${fixed.toStringAsFixed(0)}');
+        line.autoDiscountLabel = '${parts.join(' ')} (auto)';
+
+        // Approximate effective discount % for the preview calculation.
+        // Exact multi-column calc: price * (1 - p1/100) * (1 - p2/100) - fixed
+        // We combine p1+p2 into a single effective % for UI display;
+        // backend applies the precise 3-column calculation at save time.
         final rate = line.rate;
         if (rate > 0) {
-          line.autoDiscount = (value / rate) * 100;
-          line.autoDiscountLabel = '₹${value.toStringAsFixed(0)} fixed (auto)';
+          final afterPercents = rate * (1 - p1 / 100) * (1 - p2 / 100);
+          final afterFixed = afterPercents - fixed;
+          line.autoDiscount = ((rate - afterFixed) / rate) * 100;
+        } else {
+          line.autoDiscount = p1; // fallback
         }
       } else {
-        line.autoDiscount = value;
-        line.autoDiscountLabel = '${value.toStringAsFixed(1)}% (auto)';
+        line.autoDiscount = null;
+        line.autoDiscountLabel = null;
       }
     } else {
       line.autoDiscount = null;
@@ -233,6 +264,7 @@ class CreateChallanController extends GetxController {
             'item_id': l.item!.id,
             'quantity': l.quantity,
             'rate': l.rate,
+            'is_gst': l.isGst.value,
           };
           // Only send discount if user manually entered one.
           // Otherwise let backend auto-apply from Discount rules.

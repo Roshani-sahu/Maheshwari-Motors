@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../controllers/home_controller.dart';
 import '../../controllers/party_master_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 import '../../../data/models/party_model.dart';
@@ -16,15 +15,10 @@ class PartyMasterScreen extends StatelessWidget {
     final controller = Get.put(PartyMasterController());
 
     return Scaffold(
-      drawer: Get.currentRoute == AppRoutes.home ? null : const AppDrawer(),
+      drawer: const AppDrawer(),
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: Get.currentRoute == AppRoutes.home
-            ? IconButton(
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: Get.find<HomeController>().openDrawer,
-              )
-            : const AppDrawerButton(),
+        leading: const AppDrawerButton(),
         title: const Text('Party Master'),
       ),
       floatingActionButton: FloatingActionButton(

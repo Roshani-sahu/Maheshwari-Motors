@@ -7,6 +7,7 @@ import 'category_master_controller.dart';
 class AddCategoryController extends GetxController {
   final formKey = GlobalKey<FormState>();
   final nameCtrl = TextEditingController();
+  final descriptionCtrl = TextEditingController();
 
   final ApiService _api = Get.find<ApiService>();
   final RxBool isLoading = false.obs;
@@ -20,6 +21,7 @@ class AddCategoryController extends GetxController {
     editCategory = Get.arguments as CategoryModel?;
     if (editCategory != null) {
       nameCtrl.text = editCategory!.name;
+      descriptionCtrl.text = editCategory!.description ?? '';
     }
   }
 
@@ -28,7 +30,10 @@ class AddCategoryController extends GetxController {
     isLoading.value = true;
 
     try {
-      final data = {'name': nameCtrl.text.trim()};
+      final data = <String, dynamic>{'name': nameCtrl.text.trim()};
+      if (descriptionCtrl.text.trim().isNotEmpty) {
+        data['description'] = descriptionCtrl.text.trim();
+      }
 
       if (isEdit) {
         await _api.updateCategory(editCategory!.id, data);

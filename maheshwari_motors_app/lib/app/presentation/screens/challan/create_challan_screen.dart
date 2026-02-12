@@ -352,6 +352,66 @@ class _LineItemCard extends StatelessWidget {
               child: _AutoDiscountChip(label: line.autoDiscountLabel!),
             ),
 
+          const SizedBox(height: 10),
+
+          // GST / NON_GST toggle
+          if (line.item != null)
+            Obx(() => Row(
+                  children: [
+                    Text(
+                      'Sale Type:',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SegmentedButton<int>(
+                        segments: [
+                          ButtonSegment(
+                            value: 1,
+                            label: const Text('GST', style: TextStyle(fontSize: 12)),
+                            icon: const Icon(Icons.receipt_long, size: 14),
+                          ),
+                          ButtonSegment(
+                            value: 0,
+                            label: const Text('NON_GST', style: TextStyle(fontSize: 12)),
+                            icon: const Icon(Icons.receipt_outlined, size: 14),
+                            enabled: true,
+                          ),
+                        ],
+                        selected: {line.isGst.value},
+                        onSelectionChanged: line.canToggleGst
+                            ? (v) => line.isGst.value = v.first
+                            : null,
+                        showSelectedIcon: false,
+                        style: ButtonStyle(
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: WidgetStatePropertyAll(
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )),
+
+          if (line.item != null && !line.canToggleGst)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'This item is NON_GST only (set in item master)',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontStyle: FontStyle.italic,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+
           const SizedBox(height: 12),
 
           // Qty + Rate + Discount

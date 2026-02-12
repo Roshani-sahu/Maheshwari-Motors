@@ -2,7 +2,11 @@ import { dashboardService } from "../services/index.js";
 import { asyncHandler, ApiResponse } from "../utils/index.js";
 
 export const getDashboard = asyncHandler(async (req, res) => {
-  const data = await dashboardService.getDashboard(req.user._id);
+  const data = await dashboardService.getDashboard(
+    req.ownerId,
+    req.role,
+    req.firm || null,
+  );
   res
     .status(200)
     .json(new ApiResponse(200, data, "Dashboard data fetched successfully"));

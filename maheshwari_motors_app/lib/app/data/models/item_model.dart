@@ -9,6 +9,7 @@ class ItemModel {
   final int nongstSold;
   final int? physicalStock;
   final int? nongstAvailable;
+  final int isGst; // 0 = NON_GST only, 1 = GST (can sell as either)
   final List<String> categoryIds;
   final List<String> categoryNames;
   final String? supplierId;
@@ -24,6 +25,7 @@ class ItemModel {
     this.nongstSold = 0,
     this.physicalStock,
     this.nongstAvailable,
+    this.isGst = 1,
     this.categoryIds = const [],
     this.categoryNames = const [],
     this.supplierId,
@@ -41,6 +43,7 @@ class ItemModel {
       nongstSold: json['nongst_sold'] ?? 0,
       physicalStock: json['physical_stock'],
       nongstAvailable: json['nongst_available'],
+      isGst: json['is_gst'] ?? 1,
       categoryIds:
           (json['category_ids'] as List?)
               ?.map((e) => e is Map ? e['_id'].toString() : e.toString())
@@ -71,6 +74,7 @@ class ItemModel {
       'gst_stock': gstStock,
       'nongst_stock': nongstStock,
       'nongst_sold': nongstSold,
+      'is_gst': isGst,
     };
     if (image != null) map['image'] = image;
     if (physicalStock != null) map['physical_stock'] = physicalStock;

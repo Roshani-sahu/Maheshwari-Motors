@@ -181,6 +181,132 @@ class GenerateBillScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
+                  // ─── Partial Delivery ────────────────────
+                  Obx(() {
+                    if (c.selectedChallanIds.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningLight,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.warning.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Partial Delivery',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Party taking fewer items than billed?',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Obx(
+                                () => Switch(
+                                  value: c.partialDelivery.value,
+                                  onChanged: (v) {
+                                    c.partialDelivery.value = v;
+                                    if (!v) c.deliveredAmountC.clear();
+                                  },
+                                  activeTrackColor: AppColors.warning,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Obx(() {
+                            if (!c.partialDelivery.value) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  TextFormField(
+                                    controller: c.deliveredAmountC,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    decoration: InputDecoration(
+                                      labelText: 'Delivered Amount (₹)',
+                                      hintText: AppFormatters.currencyDecimal(
+                                        c.finalAmount,
+                                      ),
+                                      prefixIcon: const Icon(
+                                        Icons.local_shipping_outlined,
+                                        size: 20,
+                                      ),
+                                      filled: true,
+                                      fillColor: AppColors.white,
+                                    ),
+                                    onChanged: (_) =>
+                                        c.partialDelivery.refresh(),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Obx(() {
+                                    final undelivered = c.undeliveredAmount;
+                                    if (undelivered <= 0) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.infoLight,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.info_outline,
+                                            size: 16,
+                                            color: AppColors.info,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              '${AppFormatters.currencyDecimal(undelivered)} will be added to party\'s prepaid balance for future bills.',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.info,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    );
+                  }),
+
+                  const SizedBox(height: 16),
+
                   // ─── Summary ─────────────────────────────
                   Obx(() {
                     if (c.selectedChallanIds.isEmpty) {
@@ -214,10 +340,20 @@ class GenerateBillScreen extends StatelessWidget {
                               valueColor: AppColors.info,
                             ),
                           ],
+                          if (c.partialDelivery.value &&
+                              c.undeliveredAmount > 0) ...[
+                            const SizedBox(height: 8),
+                            _SummaryRow(
+                              label: 'Undelivered → Prepaid',
+                              value:
+                                  '- ${AppFormatters.currencyDecimal(c.undeliveredAmount)}',
+                              valueColor: AppColors.warning,
+                            ),
+                          ],
                           const Divider(height: 20),
                           _SummaryRow(
                             label: 'Bill Amount',
-                            value: AppFormatters.currencyDecimal(c.finalAmount),
+                            value: AppFormatters.currencyDecimal(c.billAmount),
                             isBold: true,
                             valueColor: AppColors.accent,
                           ),
@@ -360,12 +496,39 @@ class _ChallanTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    '${challan.items.length} items • ${AppFormatters.dateShort(challan.date)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: challan.isGst == 1
+                              ? AppColors.accentLight
+                              : AppColors.warningLight,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          challan.isGst == 1 ? 'GST' : 'NON_GST',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: challan.isGst == 1
+                                ? AppColors.accent
+                                : AppColors.warning,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${challan.items.length} items • ${AppFormatters.dateShort(challan.date)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

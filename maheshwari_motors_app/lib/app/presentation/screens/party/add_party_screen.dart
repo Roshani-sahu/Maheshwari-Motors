@@ -48,6 +48,16 @@ class AddPartyScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
+              // Required fields note
+              Text(
+                'Fields marked with * are required',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 16),
+
               AppTextField(
                 label: 'Party Name *',
                 controller: controller.nameC,

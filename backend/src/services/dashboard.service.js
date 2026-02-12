@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Firm from "../models/firm.model.js";
+import FirmPair from "../models/firmPair.model.js";
 import User from "../models/user.model.js";
 import Challan from "../models/challan.model.js";
 import Bill from "../models/bill.model.js";
@@ -7,23 +8,40 @@ import Item from "../models/item.model.js";
 import StockAlert from "../models/stockAlert.model.js";
 
 class DashboardService {
-  async getDashboard(userId) {
-    // For secondary users, scope to firms they have access to
-    const user = await User.findById(userId);
-    if (!user) throw new Error("User not found");
+  /**
+   * Main dashboard: admin sees all their firms, firm login sees own firm,
+   * legacy user sees all their firms.
+   */
+  async getDashboard(ownerId, role, firmObj) {
+    let firmIds;
 
-    let firmFilter;
-    if (user.type === "main") {
-      firmFilter = { user_id: userId };
+    if (role === "firm") {
+      // Firm login — show paired firms
+      const pair = await FirmPair.findOne({
+        $or: [{ gst_firm_id: firmObj._id }, { nongst_firm_id: firmObj._id }],
+      });
+      firmIds = pair ? [pair.gst_firm_id, pair.nongst_firm_id] : [firmObj._id];
+    } else if (role === "admin") {
+      // Admin — all firms they own
+      firmIds = (
+        await Firm.find({ admin_id: ownerId }).select("_id").lean()
+      ).map((f) => f._id);
     } else {
-      firmFilter = { _id: { $in: user.firm_ids || [] } };
+      // Legacy user login
+      const user = await User.findById(ownerId);
+      if (!user) throw new Error("User not found");
+
+      let firmFilter;
+      if (user.type === "main") {
+        firmFilter = { user_id: ownerId };
+      } else {
+        firmFilter = { _id: { $in: user.firm_ids || [] } };
+      }
+      firmIds = (await Firm.find(firmFilter).select("_id").lean()).map(
+        (f) => f._id,
+      );
     }
 
-    const firmIds = (await Firm.find(firmFilter).select("_id").lean()).map(
-      (f) => f._id,
-    );
-
-    // For data queries, use firm_id scope instead of user_id
     const dataFilter = { firm_id: { $in: firmIds } };
 
     const [
@@ -37,7 +55,7 @@ class DashboardService {
       firmIds.length,
       Challan.countDocuments({ ...dataFilter, converted_to_bill: false }),
       Bill.countDocuments(dataFilter),
-      StockAlert.countDocuments({ user_id: userId, is_resolved: false }),
+      StockAlert.countDocuments({ user_id: ownerId, is_resolved: false }),
       Challan.find({ ...dataFilter, converted_to_bill: false })
         .populate("party_id", "name")
         .populate("firm_id", "name type")
@@ -88,8 +106,10 @@ class DashboardService {
     today.setHours(0, 0, 0, 0);
     const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const baseChallanFilter = { firm_id: firmId, user_id: userId };
-    const baseBillFilter = { firm_id: firmId, user_id: userId };
+    const baseChallanFilter = { firm_id: firmId };
+    if (userId) baseChallanFilter.user_id = userId;
+    const baseBillFilter = { firm_id: firmId };
+    if (userId) baseBillFilter.user_id = userId;
     const periodChallanFilter = { ...baseChallanFilter, ...dateFilter };
     const periodBillFilter = { ...baseBillFilter, ...dateFilter };
 
@@ -118,17 +138,16 @@ class DashboardService {
     ]);
 
     const firmObjectId = new mongoose.Types.ObjectId(firmId);
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const baseAggMatch = { firm_id: firmObjectId };
+    if (userId) baseAggMatch.user_id = new mongoose.Types.ObjectId(userId);
 
     // Build aggregation match with date filter
     const aggChallanMatch = {
-      firm_id: firmObjectId,
-      user_id: userObjectId,
+      ...baseAggMatch,
       ...(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}),
     };
     const aggBillMatch = {
-      firm_id: firmObjectId,
-      user_id: userObjectId,
+      ...baseAggMatch,
       ...(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}),
     };
 
@@ -158,8 +177,7 @@ class DashboardService {
       Challan.aggregate([
         {
           $match: {
-            firm_id: firmObjectId,
-            user_id: userObjectId,
+            ...baseAggMatch,
             createdAt: { $gte: sixMonthsAgo },
           },
         },
@@ -175,8 +193,7 @@ class DashboardService {
       Bill.aggregate([
         {
           $match: {
-            firm_id: firmObjectId,
-            user_id: userObjectId,
+            ...baseAggMatch,
             createdAt: { $gte: sixMonthsAgo },
           },
         },

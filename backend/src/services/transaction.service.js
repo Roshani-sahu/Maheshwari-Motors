@@ -7,7 +7,8 @@ import { ApiError, Pagination } from "../utils/index.js";
 
 class TransactionService {
   async getTransactions(firmId, userId, query) {
-    const filter = { firm_id: firmId, user_id: userId };
+    const filter = { firm_id: firmId };
+    if (userId) filter.user_id = userId;
 
     if (query.type) filter.type = query.type;
     if (query.payment_mode) filter.payment_mode = query.payment_mode;
@@ -31,11 +32,9 @@ class TransactionService {
   }
 
   async getTransactionById(transactionId, firmId, userId) {
-    const transaction = await Transaction.findOne({
-      _id: transactionId,
-      firm_id: firmId,
-      user_id: userId,
-    })
+    const filter = { _id: transactionId, firm_id: firmId };
+    if (userId) filter.user_id = userId;
+    const transaction = await Transaction.findOne(filter)
       .populate("party_id")
       .populate("supplier_id")
       .populate("bill_id")
@@ -54,7 +53,6 @@ class TransactionService {
     const bill = await Bill.findOne({
       _id: bill_id,
       firm_id: firmId,
-      user_id: userId,
     });
 
     if (!bill) {
@@ -71,7 +69,7 @@ class TransactionService {
       transaction_ref,
       remarks,
       firm_id: firmId,
-      user_id: userId,
+      ...(userId && { user_id: userId }),
     });
 
     const newPaidAmount = bill.paid_amount + amount;
@@ -112,7 +110,6 @@ class TransactionService {
     const purchase = await Purchase.findOne({
       _id: purchase_id,
       firm_id: firmId,
-      user_id: userId,
     });
 
     if (!purchase) {
@@ -129,7 +126,7 @@ class TransactionService {
       transaction_ref,
       remarks,
       firm_id: firmId,
-      user_id: userId,
+      ...(userId && { user_id: userId }),
     });
 
     const newPaidAmount = purchase.paid_amount + amount;
@@ -156,7 +153,8 @@ class TransactionService {
 
   async getTransactionSummary(firmId, userId) {
     const firmObjectId = new mongoose.Types.ObjectId(firmId);
-    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const baseMatch = { firm_id: firmObjectId };
+    if (userId) baseMatch.user_id = new mongoose.Types.ObjectId(userId);
 
     const [
       totalTransactions,
@@ -165,12 +163,14 @@ class TransactionService {
       gstTransactions,
       nonGstTransactions,
     ] = await Promise.all([
-      Transaction.countDocuments({ firm_id: firmId, user_id: userId }),
+      Transaction.countDocuments({
+        firm_id: firmId,
+        ...(userId && { user_id: userId }),
+      }),
       Transaction.aggregate([
         {
           $match: {
-            firm_id: firmObjectId,
-            user_id: userObjectId,
+            ...baseMatch,
             type: "sale",
           },
         },
@@ -179,8 +179,7 @@ class TransactionService {
       Transaction.aggregate([
         {
           $match: {
-            firm_id: firmObjectId,
-            user_id: userObjectId,
+            ...baseMatch,
             type: "purchase",
           },
         },
@@ -188,12 +187,12 @@ class TransactionService {
       ]),
       Transaction.countDocuments({
         firm_id: firmId,
-        user_id: userId,
+        ...(userId && { user_id: userId }),
         type: "sale",
       }),
       Transaction.countDocuments({
         firm_id: firmId,
-        user_id: userId,
+        ...(userId && { user_id: userId }),
         type: "purchase",
       }),
     ]);
@@ -208,11 +207,9 @@ class TransactionService {
   }
 
   async deleteTransaction(transactionId, firmId, userId) {
-    const transaction = await Transaction.findOne({
-      _id: transactionId,
-      firm_id: firmId,
-      user_id: userId,
-    });
+    const filter = { _id: transactionId, firm_id: firmId };
+    if (userId) filter.user_id = userId;
+    const transaction = await Transaction.findOne(filter);
 
     if (!transaction) {
       throw ApiError.notFound("Transaction not found");
@@ -222,10 +219,27 @@ class TransactionService {
     if (transaction.type === "sale" && transaction.bill_id) {
       const bill = await Bill.findById(transaction.bill_id);
       if (bill) {
+        // Check if bill was overpaid BEFORE reversal (excess was credited to party)
+        const oldExcess =
+          bill.paid_amount > bill.amount ? bill.paid_amount - bill.amount : 0;
+
         const newPaidAmount = Math.max(
           0,
           bill.paid_amount - transaction.amount,
         );
+
+        // Check if bill is STILL overpaid after reversal
+        const newExcess =
+          newPaidAmount > bill.amount ? newPaidAmount - bill.amount : 0;
+
+        // Reverse the net change in party balance from overpayment
+        const balanceToReverse = oldExcess - newExcess;
+        if (balanceToReverse > 0) {
+          await Party.findByIdAndUpdate(bill.party_id, {
+            $inc: { balance: -balanceToReverse },
+          });
+        }
+
         let paymentStatus = "due";
         if (newPaidAmount >= bill.amount) paymentStatus = "paid";
         if (newPaidAmount > bill.amount) paymentStatus = "overpaid";
@@ -255,21 +269,17 @@ class TransactionService {
   }
 
   async getTransactionsByBill(billId, firmId, userId) {
-    return Transaction.find({
-      bill_id: billId,
-      firm_id: firmId,
-      user_id: userId,
-    })
+    const filter = { bill_id: billId, firm_id: firmId };
+    if (userId) filter.user_id = userId;
+    return Transaction.find(filter)
       .populate("party_id", "name")
       .sort({ createdAt: -1 });
   }
 
   async getTransactionsByPurchase(purchaseId, firmId, userId) {
-    return Transaction.find({
-      purchase_id: purchaseId,
-      firm_id: firmId,
-      user_id: userId,
-    })
+    const filter = { purchase_id: purchaseId, firm_id: firmId };
+    if (userId) filter.user_id = userId;
+    return Transaction.find(filter)
       .populate("supplier_id", "name")
       .sort({ createdAt: -1 });
   }

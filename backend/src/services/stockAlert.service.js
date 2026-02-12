@@ -30,21 +30,23 @@ class StockAlertService {
       "item_name gst_stock nongst_stock nongst_sold threshold image",
     );
 
-    return alerts.map((alert) => ({
-      _id: alert.item_id._id,
-      item_name: alert.item_id.item_name,
-      gst_stock: alert.item_id.gst_stock,
-      nongst_stock: alert.item_id.nongst_stock,
-      nongst_sold: alert.item_id.nongst_sold,
-      physical_stock: alert.item_id.gst_stock + alert.item_id.nongst_stock,
-      nongst_available:
-        alert.item_id.gst_stock +
-        alert.item_id.nongst_stock -
-        alert.item_id.nongst_sold,
-      threshold: alert.item_id.threshold,
-      image: alert.item_id.image,
-      alert_created_at: alert.createdAt,
-    }));
+    return alerts
+      .filter((alert) => alert.item_id != null)
+      .map((alert) => ({
+        _id: alert.item_id._id,
+        item_name: alert.item_id.item_name,
+        gst_stock: alert.item_id.gst_stock,
+        nongst_stock: alert.item_id.nongst_stock,
+        nongst_sold: alert.item_id.nongst_sold,
+        physical_stock: alert.item_id.gst_stock + alert.item_id.nongst_stock,
+        nongst_available:
+          alert.item_id.gst_stock +
+          alert.item_id.nongst_stock -
+          alert.item_id.nongst_sold,
+        threshold: alert.item_id.threshold,
+        image: alert.item_id.image,
+        alert_created_at: alert.createdAt,
+      }));
   }
 
   async resolveAlert(alertId, userId) {

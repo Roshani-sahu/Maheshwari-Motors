@@ -15,6 +15,12 @@ const createBillSchema = {
     type: "boolean",
     label: "Apply party balance",
   },
+  delivered_amount: {
+    required: false,
+    type: "number",
+    min: 0,
+    label: "Delivered amount (partial delivery)",
+  },
 };
 
 const paymentSchema = {
@@ -57,12 +63,14 @@ export const getBillById = asyncHandler(async (req, res) => {
 
 export const createBill = asyncHandler(async (req, res) => {
   const data = validate(req.body, createBillSchema);
-  const bill = await billService.createBill(
+  const result = await billService.createBill(
     data,
     req.params.firmId,
     req.firmOwnerId,
   );
-  res.status(201).json(new ApiResponse(201, bill, "Bill created successfully"));
+  res
+    .status(201)
+    .json(new ApiResponse(201, result, "Bill created successfully"));
 });
 
 export const recordPayment = asyncHandler(async (req, res) => {

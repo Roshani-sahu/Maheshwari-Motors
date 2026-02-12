@@ -5,7 +5,8 @@ import stockService from "./stock.service.js";
 
 class PurchaseService {
   async getPurchases(firmId, userId, query) {
-    const filter = { firm_id: firmId, user_id: userId };
+    const filter = { firm_id: firmId };
+    if (userId) filter.user_id = userId;
 
     if (query.supplier_id) filter.supplier_id = query.supplier_id;
     if (query.purchase_type) filter.purchase_type = query.purchase_type;
@@ -22,11 +23,9 @@ class PurchaseService {
   }
 
   async getPurchaseById(purchaseId, firmId, userId) {
-    const purchase = await Purchase.findOne({
-      _id: purchaseId,
-      firm_id: firmId,
-      user_id: userId,
-    })
+    const filter = { _id: purchaseId, firm_id: firmId };
+    if (userId) filter.user_id = userId;
+    const purchase = await Purchase.findOne(filter)
       .populate("supplier_id")
       .populate("items.item_id");
 
@@ -61,7 +60,7 @@ class PurchaseService {
 
     await stockService.addStock(items, purchase_type, userId);
 
-    const purchase = await Purchase.create({
+    const purchaseDoc = {
       purchase_no,
       supplier_id,
       date: date || new Date(),
@@ -69,8 +68,10 @@ class PurchaseService {
       purchase_type,
       amount: totalAmount,
       firm_id: firmId,
-      user_id: userId,
-    });
+    };
+    if (userId) purchaseDoc.user_id = userId;
+
+    const purchase = await Purchase.create(purchaseDoc);
 
     return purchase.populate([
       { path: "supplier_id", select: "name" },
@@ -79,11 +80,9 @@ class PurchaseService {
   }
 
   async recordPayment(purchaseId, firmId, userId, amount) {
-    const purchase = await Purchase.findOne({
-      _id: purchaseId,
-      firm_id: firmId,
-      user_id: userId,
-    });
+    const filter = { _id: purchaseId, firm_id: firmId };
+    if (userId) filter.user_id = userId;
+    const purchase = await Purchase.findOne(filter);
 
     if (!purchase) {
       throw ApiError.notFound("Purchase not found");
@@ -110,11 +109,9 @@ class PurchaseService {
   }
 
   async deletePurchase(purchaseId, firmId, userId) {
-    const purchase = await Purchase.findOne({
-      _id: purchaseId,
-      firm_id: firmId,
-      user_id: userId,
-    });
+    const filter = { _id: purchaseId, firm_id: firmId };
+    if (userId) filter.user_id = userId;
+    const purchase = await Purchase.findOne(filter);
 
     if (!purchase) {
       throw ApiError.notFound("Purchase not found");

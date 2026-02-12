@@ -39,6 +39,16 @@ class AddFirmScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
+              // Required fields note
+              Text(
+                'Fields marked with * are required',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // Firm type selector
               Text(
                 'Firm Type',
@@ -79,7 +89,7 @@ class AddFirmScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: AppTextField(
-                      label: 'Phone',
+                      label: 'Phone *',
                       controller: controller.phoneCtrl,
                       hint: 'Phone number',
                       keyboardType: TextInputType.phone,
@@ -89,7 +99,7 @@ class AddFirmScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: AppTextField(
-                      label: 'Email',
+                      label: 'Email *',
                       controller: controller.emailCtrl,
                       hint: 'Email address',
                       keyboardType: TextInputType.emailAddress,
@@ -101,9 +111,19 @@ class AddFirmScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               AppTextField(
-                label: 'Address',
+                label: 'Address *',
                 controller: controller.addressCtrl,
                 hint: 'Street address',
+                maxLines: 2,
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Address is required' : null,
+              ),
+              const SizedBox(height: 16),
+
+              AppTextField(
+                label: 'Godown Address',
+                controller: controller.godownAddressCtrl,
+                hint: 'Godown / warehouse address',
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
@@ -112,17 +132,21 @@ class AddFirmScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: AppTextField(
-                      label: 'City',
+                      label: 'City *',
                       controller: controller.cityCtrl,
                       hint: 'City',
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'City is required' : null,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: AppTextField(
-                      label: 'State',
+                      label: 'State *',
                       controller: controller.stateCtrl,
                       hint: 'State',
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'State is required' : null,
                     ),
                   ),
                 ],
@@ -146,6 +170,79 @@ class AddFirmScreen extends StatelessWidget {
                   ],
                 );
               }),
+
+              // CIN & Registration Number
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      label: 'CIN',
+                      controller: controller.cinCtrl,
+                      hint: 'Company ID Number',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppTextField(
+                      label: 'Reg Number',
+                      controller: controller.regNumberCtrl,
+                      hint: 'Registration No.',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Bank Details Section
+              Text(
+                'Bank Details',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      label: 'Bank Name',
+                      controller: controller.bankNameCtrl,
+                      hint: 'Bank name',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppTextField(
+                      label: 'Branch',
+                      controller: controller.bankBranchCtrl,
+                      hint: 'Branch name',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      label: 'IFSC Code',
+                      controller: controller.ifscCodeCtrl,
+                      hint: 'IFSC code',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: AppTextField(
+                      label: 'Account Number',
+                      controller: controller.accountNumberCtrl,
+                      hint: 'Account number',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
 
               const SizedBox(height: 16),
 

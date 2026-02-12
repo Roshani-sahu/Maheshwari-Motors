@@ -67,20 +67,30 @@ const firmSchema = {
 };
 
 export const getFirms = asyncHandler(async (req, res) => {
-  const result = await firmService.getFirms(req.user._id, req.query);
+  const result = await firmService.getFirms(
+    req.ownerId,
+    req.role,
+    req.firm || null,
+    req.query,
+  );
   res
     .status(200)
     .json(new ApiResponse(200, result, "Firms fetched successfully"));
 });
 
 export const getFirmById = asyncHandler(async (req, res) => {
-  const firm = await firmService.getFirmById(req.params.firmId, req.user._id);
+  const firm = await firmService.getFirmById(
+    req.params.firmId,
+    req.ownerId,
+    req.role,
+    req.firm || null,
+  );
   res.status(200).json(new ApiResponse(200, firm, "Firm fetched successfully"));
 });
 
 export const createFirm = asyncHandler(async (req, res) => {
   const data = validate(req.body, firmSchema);
-  const firm = await firmService.createFirm(data, req.user._id);
+  const firm = await firmService.createFirm(data, req.ownerId);
   res.status(201).json(new ApiResponse(201, firm, "Firm created successfully"));
 });
 
@@ -88,13 +98,13 @@ export const updateFirm = asyncHandler(async (req, res) => {
   const data = validate(req.body, firmSchema, { allowPartial: true });
   const firm = await firmService.updateFirm(
     req.params.firmId,
-    req.user._id,
+    req.ownerId,
     data,
   );
   res.status(200).json(new ApiResponse(200, firm, "Firm updated successfully"));
 });
 
 export const deleteFirm = asyncHandler(async (req, res) => {
-  await firmService.deleteFirm(req.params.firmId, req.user._id);
+  await firmService.deleteFirm(req.params.firmId, req.ownerId);
   res.status(200).json(new ApiResponse(200, null, "Firm deleted successfully"));
 });

@@ -10,11 +10,8 @@ import '../../data/models/user_model.dart';
 import '../../data/models/firm_model.dart';
 import '../../data/services/api_service.dart';
 import '../../routes/app_routes.dart';
-import 'challan_controller.dart';
 import 'dashboard_controller.dart';
 import 'home_controller.dart';
-import 'item_master_controller.dart';
-import 'party_master_controller.dart';
 
 class AuthController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
@@ -143,12 +140,9 @@ class AuthController extends GetxController {
     Get.offAllNamed(AppRoutes.firmSelection);
   }
 
-  /// Deletes all tab-embedded controllers so they reload on next Home visit.
+  /// Deletes controllers so they reload after firm switch.
   void _deleteTabControllers() {
     Get.delete<DashboardController>(force: true);
-    Get.delete<ItemMasterController>(force: true);
-    Get.delete<PartyMasterController>(force: true);
-    Get.delete<ChallanListController>(force: true);
     Get.delete<HomeController>(force: true);
   }
 }

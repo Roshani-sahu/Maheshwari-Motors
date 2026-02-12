@@ -78,8 +78,18 @@ class AddItemScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
+              // Required fields note
+              Text(
+                'Fields marked with * are required',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 16),
+
               AppTextField(
-                label: 'Item Name',
+                label: 'Item Name *',
                 hint: 'Enter item name',
                 controller: controller.nameController,
                 validator: (v) => v == null || v.trim().isEmpty
@@ -97,29 +107,58 @@ class AddItemScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Obx(
-                () => Wrap(
-                  spacing: 8,
-                  children: controller.categoryList.map((cat) {
-                    final isSelected = controller.selectedCategoryIds.contains(
-                      cat.id,
-                    );
-                    return FilterChip(
-                      label: Text(cat.name),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          controller.selectedCategoryIds.add(cat.id);
-                        } else {
-                          controller.selectedCategoryIds.remove(cat.id);
-                        }
-                      },
-                      selectedColor: AppColors.accent.withValues(alpha: 0.2),
-                      checkmarkColor: AppColors.accent,
-                    );
-                  }).toList(),
-                ),
-              ),
+              // Selected categories as chips + add button
+              Obx(() {
+                final selectedCats = controller.categoryList
+                    .where((c) => controller.selectedCategoryIds.contains(c.id))
+                    .toList();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ...selectedCats.map(
+                          (cat) => Chip(
+                            label: Text(cat.name),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () =>
+                                controller.selectedCategoryIds.remove(cat.id),
+                            backgroundColor: AppColors.accent.withValues(
+                              alpha: 0.12,
+                            ),
+                            side: BorderSide(
+                              color: AppColors.accent.withValues(alpha: 0.3),
+                            ),
+                            labelStyle: const TextStyle(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        ActionChip(
+                          avatar: const Icon(Icons.add, size: 18),
+                          label: const Text('Add Category'),
+                          onPressed: () =>
+                              _showCategoryPicker(context, controller),
+                          backgroundColor: AppColors.surface,
+                          side: BorderSide(color: AppColors.border),
+                        ),
+                      ],
+                    ),
+                    if (selectedCats.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'Tap "Add Category" to select categories',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ),
+                  ],
+                );
+              }),
               const SizedBox(height: 18),
 
               // Supplier
@@ -157,7 +196,7 @@ class AddItemScreen extends StatelessWidget {
               const SizedBox(height: 18),
 
               AppTextField(
-                label: 'Amount (₹)',
+                label: 'Amount (₹) *',
                 hint: 'Enter price',
                 controller: controller.amountController,
                 keyboardType: TextInputType.number,
@@ -186,6 +225,50 @@ class AddItemScreen extends StatelessWidget {
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 18),
+
+              // GST / NON_GST item type
+              Text(
+                'Item Type',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Obx(
+                () => SegmentedButton<int>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 1,
+                      label: Text('GST'),
+                      icon: Icon(Icons.receipt_long, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: 0,
+                      label: Text('NON_GST Only'),
+                      icon: Icon(Icons.receipt_outlined, size: 16),
+                    ),
+                  ],
+                  selected: {controller.isGst.value},
+                  onSelectionChanged: (v) => controller.isGst.value = v.first,
+                  showSelectedIcon: false,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Obx(
+                () => Text(
+                  controller.isGst.value == 1
+                      ? 'This item can be sold under either GST or NON_GST firm.'
+                      : 'This item can ONLY be sold under the NON_GST firm.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ),
               const SizedBox(height: 18),
 
@@ -237,6 +320,151 @@ class AddItemScreen extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showCategoryPicker(BuildContext context, AddItemController controller) {
+    final searchQuery = ''.obs;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        height: MediaQuery.of(context).size.height * 0.65,
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Select Categories',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Done'),
+                  ),
+                ],
+              ),
+            ),
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search categories...',
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (v) => searchQuery.value = v,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Category list
+            Expanded(
+              child: Obx(() {
+                final query = searchQuery.value.toLowerCase();
+                final filtered = controller.categoryList
+                    .where((c) => c.name.toLowerCase().contains(query))
+                    .toList();
+
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No categories found',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: filtered.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  itemBuilder: (_, i) {
+                    final cat = filtered[i];
+                    return Obx(() {
+                      final isSelected = controller.selectedCategoryIds
+                          .contains(cat.id);
+                      return ListTile(
+                        leading: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.accent
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.accent
+                                  : AppColors.border,
+                              width: 2,
+                            ),
+                          ),
+                          child: isSelected
+                              ? const Icon(
+                                  Icons.check,
+                                  size: 16,
+                                  color: AppColors.white,
+                                )
+                              : null,
+                        ),
+                        title: Text(
+                          cat.name,
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: isSelected
+                                ? AppColors.accent
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                        dense: true,
+                        onTap: () {
+                          if (isSelected) {
+                            controller.selectedCategoryIds.remove(cat.id);
+                          } else {
+                            controller.selectedCategoryIds.add(cat.id);
+                          }
+                        },
+                      );
+                    });
+                  },
+                );
+              }),
+            ),
+          ],
         ),
       ),
     );
