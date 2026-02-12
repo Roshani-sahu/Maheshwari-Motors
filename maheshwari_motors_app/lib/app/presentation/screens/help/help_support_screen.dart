@@ -20,7 +20,6 @@ class HelpSupportScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // App info card
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -72,7 +71,6 @@ class HelpSupportScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          // Contact section
           Text(
             'GET IN TOUCH',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -97,7 +95,6 @@ class HelpSupportScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // FAQ section
           Text(
             'FREQUENTLY ASKED QUESTIONS',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(

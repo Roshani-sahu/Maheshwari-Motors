@@ -29,19 +29,18 @@ const purchaseSchema = new mongoose.Schema(
       default: "due",
     },
     paid_amount: { type: Number, default: 0 },
-    firm_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Firm",
-      required: true,
-    },
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
   },
   { timestamps: true },
 );
 
-purchaseSchema.index({ purchase_no: 1, firm_id: 1 }, { unique: true });
+purchaseSchema.index(
+  { purchase_no: 1, user_id: 1, purchase_type: 1 },
+  { unique: true },
+);
 
 export default mongoose.model("Purchase", purchaseSchema);

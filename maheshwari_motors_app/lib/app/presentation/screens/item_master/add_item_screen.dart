@@ -23,7 +23,6 @@ class AddItemScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image picker
               Center(
                 child: Obx(
                   () => GestureDetector(
@@ -78,7 +77,6 @@ class AddItemScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
-              // Required fields note
               Text(
                 'Fields marked with * are required',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -98,7 +96,6 @@ class AddItemScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              // Categories
               Text(
                 'Categories',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -107,7 +104,6 @@ class AddItemScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              // Selected categories as chips + add button
               Obx(() {
                 final selectedCats = controller.categoryList
                     .where((c) => controller.selectedCategoryIds.contains(c.id))
@@ -161,7 +157,6 @@ class AddItemScreen extends StatelessWidget {
               }),
               const SizedBox(height: 18),
 
-              // Supplier
               Obx(
                 () => DropdownButtonFormField<String>(
                   decoration: const InputDecoration(
@@ -228,7 +223,6 @@ class AddItemScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              // GST / NON_GST item type
               Text(
                 'Item Type',
                 style: TextStyle(
@@ -340,7 +334,6 @@ class AddItemScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Handle bar
             Container(
               width: 40,
               height: 4,
@@ -350,7 +343,6 @@ class AddItemScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // Title
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -369,7 +361,6 @@ class AddItemScreen extends StatelessWidget {
                 ],
               ),
             ),
-            // Search bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
@@ -389,7 +380,6 @@ class AddItemScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Category list
             Expanded(
               child: Obx(() {
                 final query = searchQuery.value.toLowerCase();

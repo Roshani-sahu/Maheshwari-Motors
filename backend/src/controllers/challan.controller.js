@@ -29,8 +29,8 @@ const challanSchema = {
 
 export const getChallans = asyncHandler(async (req, res) => {
   const result = await challanService.getChallans(
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
     req.query,
   );
   res
@@ -41,8 +41,8 @@ export const getChallans = asyncHandler(async (req, res) => {
 export const getChallanById = asyncHandler(async (req, res) => {
   const challan = await challanService.getChallanById(
     req.params.challanId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(200)
@@ -53,8 +53,8 @@ export const createChallan = asyncHandler(async (req, res) => {
   const data = validate(req.body, challanSchema);
   const challan = await challanService.createChallan(
     data,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(201)
@@ -65,8 +65,8 @@ export const updateChallan = asyncHandler(async (req, res) => {
   const data = validate(req.body, challanSchema, { allowPartial: true });
   const challan = await challanService.updateChallan(
     req.params.challanId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
     data,
   );
   res
@@ -77,8 +77,8 @@ export const updateChallan = asyncHandler(async (req, res) => {
 export const deleteChallan = asyncHandler(async (req, res) => {
   await challanService.deleteChallan(
     req.params.challanId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(200)
@@ -88,8 +88,8 @@ export const deleteChallan = asyncHandler(async (req, res) => {
 export const getUnconvertedChallansForParty = asyncHandler(async (req, res) => {
   const challans = await challanService.getUnconvertedChallansForParty(
     req.params.partyId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(200)

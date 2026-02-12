@@ -23,7 +23,7 @@ const supplierSchema = {
 };
 
 export const getSuppliers = asyncHandler(async (req, res) => {
-  const result = await supplierService.getSuppliers(req.ownerId, req.query);
+  const result = await supplierService.getSuppliers(req.user._id, req.query);
   res
     .status(200)
     .json(new ApiResponse(200, result, "Suppliers fetched successfully"));
@@ -32,7 +32,7 @@ export const getSuppliers = asyncHandler(async (req, res) => {
 export const getSupplierById = asyncHandler(async (req, res) => {
   const supplier = await supplierService.getSupplierById(
     req.params.supplierId,
-    req.ownerId,
+    req.user._id,
   );
   res
     .status(200)
@@ -41,7 +41,7 @@ export const getSupplierById = asyncHandler(async (req, res) => {
 
 export const createSupplier = asyncHandler(async (req, res) => {
   const data = validate(req.body, supplierSchema);
-  const supplier = await supplierService.createSupplier(data, req.ownerId);
+  const supplier = await supplierService.createSupplier(data, req.user._id);
   res
     .status(201)
     .json(new ApiResponse(201, supplier, "Supplier created successfully"));
@@ -51,7 +51,7 @@ export const updateSupplier = asyncHandler(async (req, res) => {
   const data = validate(req.body, supplierSchema, { allowPartial: true });
   const supplier = await supplierService.updateSupplier(
     req.params.supplierId,
-    req.ownerId,
+    req.user._id,
     data,
   );
   res
@@ -60,7 +60,7 @@ export const updateSupplier = asyncHandler(async (req, res) => {
 });
 
 export const deleteSupplier = asyncHandler(async (req, res) => {
-  await supplierService.deleteSupplier(req.params.supplierId, req.ownerId);
+  await supplierService.deleteSupplier(req.params.supplierId, req.user._id);
   res
     .status(200)
     .json(new ApiResponse(200, null, "Supplier deleted successfully"));

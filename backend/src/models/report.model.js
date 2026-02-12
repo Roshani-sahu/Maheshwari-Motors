@@ -14,10 +14,7 @@ const reportSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    firm_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Firm",
-    },
+    is_gst: { type: Number, enum: [0, 1] },
     report_type: {
       type: String,
       enum: ["challan", "bill", "inventory", "transaction", "other"],

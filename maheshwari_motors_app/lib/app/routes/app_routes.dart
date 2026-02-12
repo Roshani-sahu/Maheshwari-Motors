@@ -3,13 +3,7 @@ class AppRoutes {
 
   static const String splash = '/splash';
   static const String login = '/login';
-  static const String firmSelection = '/firm-selection';
   static const String home = '/home';
-
-  // Masters
-  static const String firmMaster = '/firm-master';
-  static const String addFirm = '/add-firm';
-  static const String editFirm = '/edit-firm';
 
   static const String itemMaster = '/item-master';
   static const String itemView = '/item-view';
@@ -38,11 +32,9 @@ class AppRoutes {
 
   static const String accountMaster = '/account-master';
 
-  // Account
   static const String changePassword = '/change-password';
   static const String activeSessions = '/active-sessions';
 
-  // Transactions
   static const String challanList = '/challan-list';
   static const String createChallan = '/create-challan';
   static const String editChallan = '/edit-challan';
@@ -59,9 +51,7 @@ class AppRoutes {
   static const String addDiscount = '/add-discount';
   static const String editDiscount = '/edit-discount';
 
-  // Reports
   static const String report = '/report';
 
-  // Help
   static const String helpSupport = '/help-support';
 }

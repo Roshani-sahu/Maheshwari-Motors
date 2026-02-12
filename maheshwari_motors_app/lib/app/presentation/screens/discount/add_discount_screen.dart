@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../data/models/discount_model.dart';
 import '../../controllers/add_discount_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
@@ -19,68 +20,43 @@ class AddDiscountScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Form(
           key: c.formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Required fields note
-              Text(
-                'Fields marked with * are required',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // ─── Type Selector ────────────────────────
-              if (!c.isEdit) ...[
+          child: Obx(() {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  'Apply To',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
+                  'Fields marked with * are required',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Obx(
-                  () => Row(
-                    children: [
-                      _TypeChip(
-                        label: 'Item',
-                        icon: Icons.inventory_2_outlined,
-                        selected: c.type.value == 'item',
-                        onTap: () {
-                          c.type.value = 'item';
-                          c.selectedTargetId.value = null;
-                        },
-                      ),
-                      const SizedBox(width: 12),
-                      _TypeChip(
-                        label: 'Party',
-                        icon: Icons.person_outline,
-                        selected: c.type.value == 'party',
-                        onTap: () {
-                          c.type.value = 'party';
-                          c.selectedTargetId.value = null;
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // ─── Target Selector ──────────────────────
-                Text(
-                  'Select Target',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
+                if (!c.isEdit) ...[
+                  _sectionLabel(context, 'Discount Type *'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: DiscountModel.typeOptions.map((t) {
+                      return _TypeChip(
+                        label: _typeLabel(t),
+                        icon: _typeIcon(t),
+                        selected: c.type.value == t,
+                        onTap: () {
+                          c.type.value = t;
+                          c.selectedItemId.value = null;
+                          c.selectedPartyId.value = null;
+                          c.selectedItemIds.clear();
+                        },
+                      );
+                    }).toList(),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Obx(() {
-                  if (c.isLoadingData.value) {
-                    return Container(
+                  const SizedBox(height: 20),
+
+                  if (c.isLoadingData.value)
+                    Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 16,
@@ -104,126 +80,196 @@ class AddDiscountScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                    );
-                  }
-
-                  if (c.type.value == 'item') {
-                    return DropdownButtonFormField<String>(
-                      initialValue: c.selectedTargetId.value,
-                      decoration: const InputDecoration(
-                        hintText: 'Select an item',
-                        prefixIcon: Icon(Icons.inventory_2_outlined, size: 20),
-                      ),
-                      isExpanded: true,
-                      items: c.items
-                          .map(
-                            (item) => DropdownMenuItem(
-                              value: item.id,
-                              child: Text(
-                                item.itemName,
-                                overflow: TextOverflow.ellipsis,
+                    )
+                  else ...[
+                    if (c.needsItem) ...[
+                      _sectionLabel(context, 'Select Item *'),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        initialValue: c.selectedItemId.value,
+                        decoration: const InputDecoration(
+                          hintText: 'Select an item',
+                          prefixIcon: Icon(
+                            Icons.inventory_2_outlined,
+                            size: 20,
+                          ),
+                        ),
+                        isExpanded: true,
+                        items: c.items
+                            .map(
+                              (item) => DropdownMenuItem(
+                                value: item.id,
+                                child: Text(
+                                  item.itemName,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (id) => c.selectedTargetId.value = id,
-                    );
-                  } else {
-                    return DropdownButtonFormField<String>(
-                      initialValue: c.selectedTargetId.value,
-                      decoration: const InputDecoration(
-                        hintText: 'Select a party',
-                        prefixIcon: Icon(Icons.person_outline, size: 20),
+                            )
+                            .toList(),
+                        onChanged: (id) => c.selectedItemId.value = id,
                       ),
-                      isExpanded: true,
-                      items: c.parties
-                          .map(
-                            (p) => DropdownMenuItem(
-                              value: p.id,
-                              child: Text(
-                                p.name,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (id) => c.selectedTargetId.value = id,
-                    );
-                  }
-                }),
-                const SizedBox(height: 20),
-              ],
+                      const SizedBox(height: 16),
+                    ],
 
-              // ─── Discount Type ────────────────────────
-              Text(
-                'Discount Type',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Obx(
-                () => Row(
-                  children: [
-                    _TypeChip(
-                      label: 'Percentage',
-                      icon: Icons.percent,
-                      selected: c.discountType.value == 'percentage',
-                      onTap: () => c.discountType.value = 'percentage',
-                    ),
-                    const SizedBox(width: 12),
-                    _TypeChip(
-                      label: 'Fixed',
-                      icon: Icons.currency_rupee,
-                      selected: c.discountType.value == 'fixed',
-                      onTap: () => c.discountType.value = 'fixed',
-                    ),
+                    if (c.needsParty) ...[
+                      _sectionLabel(context, 'Select Party *'),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        initialValue: c.selectedPartyId.value,
+                        decoration: const InputDecoration(
+                          hintText: 'Select a party',
+                          prefixIcon: Icon(Icons.person_outline, size: 20),
+                        ),
+                        isExpanded: true,
+                        items: c.parties
+                            .map(
+                              (p) => DropdownMenuItem(
+                                value: p.id,
+                                child: Text(
+                                  p.name,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (id) => c.selectedPartyId.value = id,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    if (c.needsItemGroup) ...[
+                      _sectionLabel(context, 'Item Group Name *'),
+                      const SizedBox(height: 8),
+                      AppTextField(
+                        label: 'Group Name',
+                        controller: c.itemGroupNameC,
+                        hint: 'e.g. Bearings',
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ],
-                ),
-              ),
-              const SizedBox(height: 20),
+                  const SizedBox(height: 4),
+                ],
 
-              // ─── Value ────────────────────────────────
-              Obx(
-                () => AppTextField(
-                  label: c.discountType.value == 'percentage'
-                      ? 'Discount Percentage *'
-                      : 'Discount Amount (₹) *',
-                  controller: c.valueC,
-                  hint: c.discountType.value == 'percentage'
-                      ? 'e.g. 5'
-                      : 'e.g. 100',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                if (!c.needsProfitPercent) ...[
+                  _sectionLabel(context, 'Discount Values'),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Percent 1 (%)',
+                          controller: c.percent1C,
+                          hint: 'e.g. 10',
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: AppTextField(
+                          label: 'Percent 2 (%)',
+                          controller: c.percent2C,
+                          hint: 'e.g. 5',
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Value is required';
-                    }
-                    final n = double.tryParse(v.trim());
-                    if (n == null || n <= 0) {
-                      return 'Enter a valid number';
-                    }
-                    return null;
-                  },
-                ),
-              ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    label: 'Fixed Amount (₹)',
+                    controller: c.fixedAmountC,
+                    hint: 'e.g. 100',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                  ),
+                ],
 
-              const SizedBox(height: 32),
+                if (c.needsProfitPercent) ...[
+                  _sectionLabel(context, 'Profit Margin'),
+                  const SizedBox(height: 8),
+                  AppTextField(
+                    label: 'Profit Percent (%) *',
+                    controller: c.profitPercentC,
+                    hint: 'e.g. 15',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Profit percent is required';
+                      }
+                      final n = double.tryParse(v.trim());
+                      if (n == null || n <= 0) {
+                        return 'Enter a valid number';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
 
-              Obx(
-                () => AppButton(
+                const SizedBox(height: 32),
+
+                AppButton(
                   text: c.isEdit ? 'Update Discount' : 'Create Discount',
                   isLoading: c.isLoading.value,
                   onPressed: c.submit,
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          }),
         ),
       ),
     );
+  }
+
+  static Widget _sectionLabel(BuildContext context, String text) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  static String _typeLabel(String type) {
+    switch (type) {
+      case 'item':
+        return 'Item';
+      case 'party_item':
+        return 'Party+Item';
+      case 'party_all':
+        return 'Party All';
+      case 'item_group':
+        return 'Group';
+      case 'profit_margin':
+        return 'Profit';
+      default:
+        return type;
+    }
+  }
+
+  static IconData _typeIcon(String type) {
+    switch (type) {
+      case 'item':
+        return Icons.inventory_2_outlined;
+      case 'party_item':
+        return Icons.people_outline;
+      case 'party_all':
+        return Icons.person_outline;
+      case 'item_group':
+        return Icons.category_outlined;
+      case 'profit_margin':
+        return Icons.trending_up;
+      default:
+        return Icons.percent;
+    }
   }
 }
 
@@ -242,38 +288,37 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.accentLight : AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? AppColors.accent : AppColors.border,
-              width: selected ? 1.5 : 1,
-            ),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.accentLight : AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.accent : AppColors.border,
+            width: selected ? 1.5 : 1,
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 18,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? AppColors.accent : AppColors.textSecondary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 color: selected ? AppColors.accent : AppColors.textSecondary,
               ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected ? AppColors.accent : AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

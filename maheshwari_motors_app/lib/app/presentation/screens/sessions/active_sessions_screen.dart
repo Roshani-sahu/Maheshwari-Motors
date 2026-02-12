@@ -152,7 +152,6 @@ class _SessionCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Device icon
             Container(
               width: 48,
               height: 48,
@@ -170,7 +169,6 @@ class _SessionCard extends StatelessWidget {
             ),
             const SizedBox(width: 14),
 
-            // Device info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +231,6 @@ class _SessionCard extends StatelessWidget {
               ),
             ),
 
-            // Revoke button (only for non-current sessions)
             if (!isCurrent)
               IconButton(
                 onPressed: onRevoke,

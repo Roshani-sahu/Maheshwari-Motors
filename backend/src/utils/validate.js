@@ -1,29 +1,7 @@
 import ApiError from "./ApiError.js";
 
-/**
- * Validates request body against a schema and returns sanitized data.
- * Only fields defined in the schema are extracted (whitelist approach).
- *
- * Schema format:
- * {
- *   field_name: {
- *     required: boolean,        // Is the field mandatory?
- *     type: string,             // 'string' | 'number' | 'boolean' | 'array' | 'objectId'
- *     min: number,              // For strings: minLength, for numbers: minimum value
- *     max: number,              // For strings: maxLength, for numbers: maximum value
- *     enum: [],                 // Allowed values
- *     format: string,           // 'email'
- *     label: string,            // Human-readable field name for error messages
- *     items: object,            // Nested schema for array items (objects)
- *     default: any,             // Default value if field is absent
- *   }
- * }
- */
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const OBJECT_ID_REGEX = /^[0-9a-fA-F]{24}$/;
-
-// Indian legal document format regexes
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 const CIN_REGEX = /^[UL][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/;
@@ -64,29 +42,22 @@ const FORMAT_VALIDATORS = {
   },
 };
 
-/**
- * Validate a single field value against its rule.
- * Returns an array of error strings for this field.
- */
 function validateField(fieldName, value, rule) {
   const errors = [];
   const label = rule.label || fieldName;
 
-  // Check required
   if (
     rule.required &&
     (value === undefined || value === null || value === "")
   ) {
     errors.push(`${label} is required`);
-    return errors; // No further checks needed
+    return errors;
   }
 
-  // If value is absent and not required, skip validation
   if (value === undefined || value === null || value === "") {
     return errors;
   }
 
-  // Type checks
   if (rule.type) {
     switch (rule.type) {
       case "string":
@@ -98,7 +69,6 @@ function validateField(fieldName, value, rule) {
 
       case "number":
         if (typeof value !== "number" || isNaN(value)) {
-          // Try to parse if it came as a string from form-data
           const parsed = Number(value);
           if (isNaN(parsed)) {
             errors.push(`${label} must be a valid number`);
@@ -141,7 +111,6 @@ function validateField(fieldName, value, rule) {
     }
   }
 
-  // String-specific validations
   if (rule.type === "string" && typeof value === "string") {
     const trimmed = value.trim();
 
@@ -166,7 +135,6 @@ function validateField(fieldName, value, rule) {
     }
   }
 
-  // Number-specific validations
   if (rule.type === "number") {
     const numValue = typeof value === "number" ? value : Number(value);
 
@@ -179,12 +147,10 @@ function validateField(fieldName, value, rule) {
     }
   }
 
-  // Enum check
   if (rule.enum && !rule.enum.includes(value)) {
     errors.push(`${label} must be one of: ${rule.enum.join(", ")}`);
   }
 
-  // Array items validation (for arrays of objects)
   if (rule.type === "array" && Array.isArray(value) && rule.items) {
     if (rule.min !== undefined && value.length < rule.min) {
       errors.push(`${label} must have at least ${rule.min} item(s)`);
@@ -200,7 +166,6 @@ function validateField(fieldName, value, rule) {
     });
   }
 
-  // Array of objectIds
   if (
     rule.type === "array" &&
     Array.isArray(value) &&
@@ -216,9 +181,6 @@ function validateField(fieldName, value, rule) {
   return errors;
 }
 
-/**
- * Validate an object against a schema and return all errors.
- */
 function validateObject(data, schema) {
   const errors = [];
 
@@ -230,18 +192,12 @@ function validateObject(data, schema) {
   return errors;
 }
 
-/**
- * Extract only whitelisted fields from data based on schema keys.
- * Converts numeric strings to numbers where schema type is 'number'.
- * Applies defaults.
- */
 function extractFields(data, schema) {
   const sanitized = {};
 
   for (const [fieldName, rule] of Object.entries(schema)) {
     let value = data[fieldName];
 
-    // Apply default if value is absent
     if (
       (value === undefined || value === null || value === "") &&
       rule.default !== undefined
@@ -250,12 +206,10 @@ function extractFields(data, schema) {
       continue;
     }
 
-    // Skip absent non-required fields
     if (value === undefined || value === null) {
       continue;
     }
 
-    // Coerce types
     if (rule.type === "number" && typeof value === "string") {
       const parsed = Number(value);
       if (!isNaN(parsed)) value = parsed;
@@ -267,7 +221,6 @@ function extractFields(data, schema) {
 
     if (typeof value === "string") {
       value = value.trim();
-      // Skip empty strings for non-required fields
       if (value === "" && !rule.required) continue;
     }
 
@@ -277,23 +230,11 @@ function extractFields(data, schema) {
   return sanitized;
 }
 
-/**
- * Main validation function.
- * Validates req.body against a schema and throws ApiError.badRequest with field-level errors.
- * Returns sanitized data containing only whitelisted fields.
- *
- * @param {Object} body - The request body (req.body)
- * @param {Object} schema - Validation schema
- * @param {Object} options - { allowPartial: true } for update operations (skips required checks)
- * @returns {Object} Sanitized data
- * @throws {ApiError} 400 with errors array
- */
 export function validate(body, schema, options = {}) {
   if (!body || typeof body !== "object") {
     throw ApiError.badRequest("Request body is required");
   }
 
-  // For partial updates, make all fields optional
   let effectiveSchema = schema;
   if (options.allowPartial) {
     effectiveSchema = {};
@@ -301,7 +242,6 @@ export function validate(body, schema, options = {}) {
       effectiveSchema[key] = { ...rule, required: false };
     }
 
-    // Check at least one field is provided
     const hasAnyField = Object.keys(schema).some(
       (key) =>
         body[key] !== undefined && body[key] !== null && body[key] !== "",

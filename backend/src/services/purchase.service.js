@@ -1,12 +1,13 @@
 import Purchase from "../models/purchase.model.js";
-import Firm from "../models/firm.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 import stockService from "./stock.service.js";
 
 class PurchaseService {
-  async getPurchases(firmId, userId, query) {
-    const filter = { firm_id: firmId };
-    if (userId) filter.user_id = userId;
+  async getPurchases(userId, isGst, query) {
+    const filter = { user_id: userId };
+    if (isGst !== undefined) {
+      filter.purchase_type = isGst === 1 ? "GST" : "NON_GST";
+    }
 
     if (query.supplier_id) filter.supplier_id = query.supplier_id;
     if (query.purchase_type) filter.purchase_type = query.purchase_type;
@@ -22,28 +23,25 @@ class PurchaseService {
     });
   }
 
-  async getPurchaseById(purchaseId, firmId, userId) {
-    const filter = { _id: purchaseId, firm_id: firmId };
-    if (userId) filter.user_id = userId;
-    const purchase = await Purchase.findOne(filter)
+  async getPurchaseById(purchaseId, userId) {
+    const purchase = await Purchase.findOne({
+      _id: purchaseId,
+      user_id: userId,
+    })
       .populate("supplier_id")
       .populate("items.item_id");
 
-    if (!purchase) {
-      throw ApiError.notFound("Purchase not found");
-    }
+    if (!purchase) throw ApiError.notFound("Purchase not found");
     return purchase;
   }
 
-  async createPurchase(purchaseData, firmId, userId) {
+  async createPurchase(purchaseData, userId) {
     const { items, supplier_id, purchase_type, date } = purchaseData;
 
-    const firm = await Firm.findById(firmId);
-    if (!firm) {
-      throw ApiError.notFound("Firm not found");
-    }
-
-    const purchaseCount = await Purchase.countDocuments({ firm_id: firmId });
+    const purchaseCount = await Purchase.countDocuments({
+      user_id: userId,
+      purchase_type,
+    });
     const purchase_no = `PO-${String(purchaseCount + 1).padStart(6, "0")}`;
 
     let totalAmount = 0;
@@ -60,18 +58,15 @@ class PurchaseService {
 
     await stockService.addStock(items, purchase_type, userId);
 
-    const purchaseDoc = {
+    const purchase = await Purchase.create({
       purchase_no,
       supplier_id,
       date: date || new Date(),
       items: processedItems,
       purchase_type,
       amount: totalAmount,
-      firm_id: firmId,
-    };
-    if (userId) purchaseDoc.user_id = userId;
-
-    const purchase = await Purchase.create(purchaseDoc);
+      user_id: userId,
+    });
 
     return purchase.populate([
       { path: "supplier_id", select: "name" },
@@ -79,25 +74,18 @@ class PurchaseService {
     ]);
   }
 
-  async recordPayment(purchaseId, firmId, userId, amount) {
-    const filter = { _id: purchaseId, firm_id: firmId };
-    if (userId) filter.user_id = userId;
-    const purchase = await Purchase.findOne(filter);
-
-    if (!purchase) {
-      throw ApiError.notFound("Purchase not found");
-    }
+  async recordPayment(purchaseId, userId, amount) {
+    const purchase = await Purchase.findOne({
+      _id: purchaseId,
+      user_id: userId,
+    });
+    if (!purchase) throw ApiError.notFound("Purchase not found");
 
     const newPaidAmount = purchase.paid_amount + amount;
     let paymentStatus;
-
-    if (newPaidAmount < purchase.amount) {
-      paymentStatus = "due";
-    } else if (newPaidAmount === purchase.amount) {
-      paymentStatus = "paid";
-    } else {
-      paymentStatus = "overpaid";
-    }
+    if (newPaidAmount < purchase.amount) paymentStatus = "due";
+    else if (newPaidAmount === purchase.amount) paymentStatus = "paid";
+    else paymentStatus = "overpaid";
 
     const updatedPurchase = await Purchase.findByIdAndUpdate(
       purchaseId,
@@ -108,14 +96,12 @@ class PurchaseService {
     return updatedPurchase;
   }
 
-  async deletePurchase(purchaseId, firmId, userId) {
-    const filter = { _id: purchaseId, firm_id: firmId };
-    if (userId) filter.user_id = userId;
-    const purchase = await Purchase.findOne(filter);
-
-    if (!purchase) {
-      throw ApiError.notFound("Purchase not found");
-    }
+  async deletePurchase(purchaseId, userId) {
+    const purchase = await Purchase.findOne({
+      _id: purchaseId,
+      user_id: userId,
+    });
+    if (!purchase) throw ApiError.notFound("Purchase not found");
 
     await stockService.removeStock(
       purchase.items,

@@ -1,7 +1,5 @@
 export { default as authService } from "./auth.service.js";
 export { default as adminService } from "./admin.service.js";
-export { default as userService } from "./user.service.js";
-export { default as firmService } from "./firm.service.js";
 export { default as itemService } from "./item.service.js";
 export { default as partyService } from "./party.service.js";
 export { default as supplierService } from "./supplier.service.js";

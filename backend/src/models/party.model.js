@@ -14,11 +14,6 @@ const partySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    // Shared across paired firms. Stored for reference but queries use user_id (ownerId)
-    firm_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Firm",
-    },
   },
   { timestamps: true },
 );

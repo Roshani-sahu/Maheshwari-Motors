@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 class AppSpacing {
   AppSpacing._();
 
-  // Base spacing values
   static const double xs = 4;
   static const double sm = 8;
   static const double md = 12;
@@ -14,7 +13,6 @@ class AppSpacing {
   static const double huge = 40;
   static const double massive = 48;
 
-  // Common SizedBox gaps (vertical)
   static const SizedBox gapXs = SizedBox(height: xs);
   static const SizedBox gapSm = SizedBox(height: sm);
   static const SizedBox gapMd = SizedBox(height: md);
@@ -23,14 +21,12 @@ class AppSpacing {
   static const SizedBox gapXxl = SizedBox(height: xxl);
   static const SizedBox gapXxxl = SizedBox(height: xxxl);
 
-  // Common SizedBox gaps (horizontal)
   static const SizedBox hGapXs = SizedBox(width: xs);
   static const SizedBox hGapSm = SizedBox(width: sm);
   static const SizedBox hGapMd = SizedBox(width: md);
   static const SizedBox hGapLg = SizedBox(width: lg);
   static const SizedBox hGapXl = SizedBox(width: xl);
 
-  // Common EdgeInsets
   static const EdgeInsets paddingAll = EdgeInsets.all(lg);
   static const EdgeInsets paddingAllSm = EdgeInsets.all(sm);
   static const EdgeInsets paddingAllMd = EdgeInsets.all(md);
@@ -42,7 +38,6 @@ class AppSpacing {
   );
   static const EdgeInsets paddingVertical = EdgeInsets.symmetric(vertical: lg);
 
-  // Border radius
   static const double radiusSm = 6;
   static const double radiusMd = 10;
   static const double radiusLg = 12;

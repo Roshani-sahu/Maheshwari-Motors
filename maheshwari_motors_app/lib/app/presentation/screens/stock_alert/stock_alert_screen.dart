@@ -22,7 +22,6 @@ class StockAlertScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Summary cards
           Obx(
             () => Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),

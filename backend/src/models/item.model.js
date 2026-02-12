@@ -1,34 +1,22 @@
 import mongoose from "mongoose";
 
-/**
- * Item Model (Updated)
- * - Added purchase_rate: Cost price of item (for profit margin calculations)
- * - Added firm_id: Items now belong to a firm (not user)
- */
 const itemSchema = new mongoose.Schema(
   {
     item_name: { type: String, required: true },
-    amount: { type: Number, required: true }, // Selling price
-    purchase_rate: { type: Number, default: 0 }, // Purchase/cost price (for profit margin calc)
+    amount: { type: Number, required: true },
+    purchase_rate: { type: Number, default: 0 },
     image: { type: String },
     threshold: { type: Number, default: 0 },
     gst_stock: { type: Number, default: 0 },
     nongst_stock: { type: Number, default: 0 },
     nongst_sold: { type: Number, default: 0 },
 
-    // GST flag: 1 = GST item (bill goes to GST firm), 0 = non-GST item
     is_gst: { type: Number, enum: [0, 1], default: 1 },
 
-    // Which firm this item belongs to
-    firm_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Firm",
-    },
-
-    // DEPRECATED: user_id - keeping for backward compat during migration
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
     category_ids: [
       {

@@ -71,7 +71,7 @@ class UserMasterScreen extends StatelessWidget {
                       },
                       onDelete: () => DeleteConfirmSheet.show(
                         context: context,
-                        title: 'Delete "${user.username}"?',
+                        title: 'Delete "${user.name}"?',
                         subtitle: 'This action cannot be undone.',
                         onConfirm: () => controller.deleteUser(user.id),
                       ),
@@ -107,7 +107,7 @@ class _UserCard extends StatelessWidget {
             radius: 22,
             backgroundColor: AppColors.accentLight,
             child: Text(
-              user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
+              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
               style: const TextStyle(
                 color: AppColors.accent,
                 fontWeight: FontWeight.w700,
@@ -121,13 +121,16 @@ class _UserCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user.username,
+                  user.name,
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 3),
-                Text(user.email, style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  user.email ?? '',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ],
             ),
           ),

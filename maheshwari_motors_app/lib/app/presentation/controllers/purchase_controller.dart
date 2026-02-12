@@ -4,11 +4,9 @@ import '../../core/network/api_client.dart';
 import '../../data/models/purchase_model.dart';
 import '../../data/services/api_service.dart';
 import '../shared/widgets/common_widgets.dart';
-import 'auth_controller.dart';
 
 class PurchaseMasterController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
-  final AuthController _auth = Get.find<AuthController>();
 
   final RxList<PurchaseModel> purchases = <PurchaseModel>[].obs;
   final RxList<PurchaseModel> filtered = <PurchaseModel>[].obs;
@@ -33,11 +31,8 @@ class PurchaseMasterController extends GetxController {
     isLoading.value = true;
     errorMessage.value = '';
     try {
-      final firmId = _auth.firmId;
-      if (firmId.isNotEmpty) {
-        purchases.value = await _api.getPurchases(firmId);
-        _filter();
-      }
+      purchases.value = await _api.getPurchases();
+      _filter();
     } catch (e) {
       errorMessage.value = 'Unable to load purchases';
     }
@@ -69,7 +64,7 @@ class PurchaseMasterController extends GetxController {
 
   Future<void> deletePurchase(String id) async {
     try {
-      await _api.deletePurchase(_auth.firmId, id);
+      await _api.deletePurchase(id);
       purchases.removeWhere((p) => p.id == id);
       _filter();
       AppSnackbar.success('Purchase deleted');

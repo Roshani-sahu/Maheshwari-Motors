@@ -62,7 +62,6 @@ class SupplierService {
       throw ApiError.notFound("Supplier not found");
     }
 
-    // Check for unpaid purchases
     const unpaidPurchaseCount = await Purchase.countDocuments({
       supplier_id: supplierId,
       payment_status: "due",
@@ -73,7 +72,6 @@ class SupplierService {
       );
     }
 
-    // Cascade: delete supplier's transactions and purchases
     await Promise.all([
       Transaction.deleteMany({ supplier_id: supplierId }),
       Purchase.deleteMany({ supplier_id: supplierId }),

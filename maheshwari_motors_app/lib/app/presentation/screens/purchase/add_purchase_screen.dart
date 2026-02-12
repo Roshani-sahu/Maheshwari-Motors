@@ -24,7 +24,6 @@ class AddPurchaseScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ─── Supplier Selector ─────────────────
                   _SectionTitle(title: 'Supplier'),
                   const SizedBox(height: 8),
                   Obx(() {
@@ -58,7 +57,6 @@ class AddPurchaseScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // ─── Purchase Type Toggle ──────────────
                   _SectionTitle(title: 'Purchase Type'),
                   const SizedBox(height: 8),
                   Obx(
@@ -94,7 +92,6 @@ class AddPurchaseScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // ─── Line Items ────────────────────────
                   Row(
                     children: [
                       const _SectionTitle(title: 'Items'),
@@ -127,7 +124,6 @@ class AddPurchaseScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // ─── Total ─────────────────────────────
                   Obx(
                     () => Container(
                       padding: const EdgeInsets.all(16),
@@ -163,7 +159,6 @@ class AddPurchaseScreen extends StatelessWidget {
             ),
           ),
 
-          // ─── Submit Button ───────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             decoration: const BoxDecoration(

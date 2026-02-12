@@ -25,7 +25,6 @@ class GenerateBillScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ─── Party Selector ──────────────────────
                   Text(
                     'Select Party',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -66,7 +65,6 @@ class GenerateBillScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // ─── Challans ────────────────────────────
                   Obx(() {
                     if (c.selectedParty.value == null) {
                       return const _Placeholder(
@@ -130,7 +128,6 @@ class GenerateBillScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ─── Apply Balance ───────────────────────
                   Obx(() {
                     if (c.selectedParty.value == null || c.partyBalance == 0) {
                       return const SizedBox.shrink();
@@ -181,7 +178,6 @@ class GenerateBillScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ─── Partial Delivery ────────────────────
                   Obx(() {
                     if (c.selectedChallanIds.isEmpty) {
                       return const SizedBox.shrink();
@@ -307,7 +303,6 @@ class GenerateBillScreen extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // ─── Summary ─────────────────────────────
                   Obx(() {
                     if (c.selectedChallanIds.isEmpty) {
                       return const SizedBox.shrink();
@@ -368,7 +363,6 @@ class GenerateBillScreen extends StatelessWidget {
             ),
           ),
 
-          // ─── Submit Button ────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             decoration: const BoxDecoration(

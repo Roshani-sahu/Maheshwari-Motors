@@ -26,7 +26,7 @@ class AddItemController extends GetxController {
   final RxList<SupplierModel> supplierList = <SupplierModel>[].obs;
   final RxList<String> selectedCategoryIds = <String>[].obs;
   final Rx<String?> selectedSupplierId = Rx<String?>(null);
-  final RxInt isGst = 1.obs; // 1 = can sell as GST, 0 = NON_GST only
+  final RxInt isGst = 1.obs;
 
   ItemModel? editItem;
   bool get isEdit => editItem != null;
@@ -100,8 +100,6 @@ class AddItemController extends GetxController {
         'is_gst': isGst.value,
       };
 
-      // Send category_ids as individual entries so FormData serializes
-      // them as repeated fields that Express/multer parses into an array.
       final validCatIds = selectedCategoryIds
           .where((id) => id.isNotEmpty)
           .toList();
@@ -109,8 +107,6 @@ class AddItemController extends GetxController {
         data['category_ids'] = validCatIds;
       }
 
-      // Only include supplier_id when actually selected and non-empty —
-      // sending null or "" causes mongoose to fail casting to ObjectId.
       final suppId = selectedSupplierId.value;
       if (suppId != null && suppId.isNotEmpty) {
         data['supplier_id'] = suppId;

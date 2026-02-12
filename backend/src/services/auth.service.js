@@ -1,45 +1,35 @@
 import bcrypt from "bcryptjs";
-import Admin from "../models/admin.model.js";
-import Firm from "../models/firm.model.js";
-import FirmPair from "../models/firmPair.model.js";
-import User from "../models/user.model.js"; // DEPRECATED
+import User from "../models/user.model.js";
 import Session from "../models/session.model.js";
 import { ApiError } from "../utils/index.js";
 
-/**
- * Auth Service (Redesigned)
- *
- * NEW LOGIN FLOW:
- * 1. Admin Login: For managing firms, users, and system configuration
- * 2. Firm Login: Each firm has unique credentials for daily operations
- *
- * DEPRECATED: User login (kept for backward compatibility)
- */
 class AuthService {
-  // ============ ADMIN AUTH ============
+  async registerMainUser(data) {
+    const { name, email, phone, admin, gst_firm, nongst_firm } = data;
 
-  async registerAdmin(adminData) {
-    const { username, email, password, name } = adminData;
-
-    const existingAdmin = await Admin.findOne({
-      $or: [{ username }, { email }],
-    });
-    if (existingAdmin) {
-      throw ApiError.conflict("Admin username or email already exists");
+    const existingMain = await User.findOne({ type: "main" });
+    if (existingMain) {
+      throw ApiError.conflict("Main user already exists. Only one is allowed.");
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const admin = await Admin.create({
-      username,
-      email,
-      password: hashedPassword,
+    const adminPwHash = await bcrypt.hash(admin.password, 10);
+    const gstPwHash = await bcrypt.hash(gst_firm.password, 10);
+    const nongstPwHash = await bcrypt.hash(nongst_firm.password, 10);
+
+    const user = await User.create({
+      type: "main",
       name,
+      email,
+      phone,
+      admin: { ...admin, password: adminPwHash },
+      gst_firm: { ...gst_firm, password: gstPwHash },
+      nongst_firm: { ...nongst_firm, password: nongstPwHash },
     });
 
-    const token = admin.generateToken();
+    const token = user.generateAdminToken();
 
     await Session.create({
-      admin_id: admin._id,
+      user_id: user._id,
       role: "admin",
       token,
       device_name: "Registration Device",
@@ -47,22 +37,20 @@ class AuthService {
     });
 
     return {
-      _id: admin._id,
-      username: admin.username,
-      email: admin.email,
-      name: admin.name,
-      type: "admin",
+      _id: user._id,
+      name: user.name,
+      type: "main",
       role: "admin",
       token,
     };
   }
 
-  async loginAdmin(usernameOrEmail, password, deviceInfo = {}) {
-    const admin = await Admin.findByCredentials(usernameOrEmail, password);
-    const token = admin.generateToken();
+  async loginAdmin(username, password, deviceInfo = {}) {
+    const user = await User.findByAdminCredentials(username, password);
+    const token = user.generateAdminToken();
 
     await Session.create({
-      admin_id: admin._id,
+      user_id: user._id,
       role: "admin",
       token,
       device_name: deviceInfo.device_name || "Unknown Device",
@@ -71,132 +59,108 @@ class AuthService {
     });
 
     return {
-      _id: admin._id,
-      username: admin.username,
-      email: admin.email,
-      name: admin.name,
-      type: "admin",
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      type: user.type,
+      is_admin: true,
       role: "admin",
       token,
     };
   }
-
-  // ============ FIRM AUTH ============
 
   async loginFirm(username, password, deviceInfo = {}) {
-    const firm = await Firm.findByCredentials(username, password);
-    const token = firm.generateToken();
+    const { user, firmType } = await User.findByFirmCredentials(
+      username,
+      password,
+    );
+    const token = user.generateFirmToken(firmType);
 
     await Session.create({
-      firm_id: firm._id,
+      user_id: user._id,
       role: "firm",
+      firm_type: firmType,
       token,
       device_name: deviceInfo.device_name || "Unknown Device",
       device_type: deviceInfo.device_type || "unknown",
       ip_address: deviceInfo.ip_address || "",
     });
 
-    // Get the paired firm (GST ↔ NON_GST)
-    const pair = await FirmPair.findOne({
-      $or: [{ gst_firm_id: firm._id }, { nongst_firm_id: firm._id }],
-    });
-
-    let pairedFirmId = null;
-    if (pair) {
-      pairedFirmId =
-        pair.gst_firm_id.toString() === firm._id.toString() ?
-          pair.nongst_firm_id
-        : pair.gst_firm_id;
-    }
+    const firmObj = firmType === "GST" ? user.gst_firm : user.nongst_firm;
+    const firmData = {
+      firm_type: firmType,
+      name: firmObj.name,
+      username: firmObj.username,
+      email: firmObj.email,
+      phone: firmObj.phone,
+      address: firmObj.address,
+      godown_address: firmObj.godown_address || null,
+      city: firmObj.city,
+      state: firmObj.state,
+      GSTIN: firmObj.GSTIN || null,
+      CIN: firmObj.CIN || null,
+      reg_number: firmObj.reg_number || null,
+      bank_name: firmObj.bank_name || null,
+      bank_branch: firmObj.bank_branch || null,
+      ifsc_code: firmObj.ifsc_code || null,
+      account_number: firmObj.account_number || null,
+    };
 
     return {
-      _id: firm._id,
-      username: firm.username,
-      name: firm.name,
-      type: "firm",
-      firm_type: firm.type, // "GST" or "NON_GST"
-      email: firm.email,
-      phone: firm.phone,
-      GSTIN: firm.GSTIN,
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      type: user.type,
+      is_admin: user.type === "main",
       role: "firm",
-      paired_firm_id: pairedFirmId,
+      firm_data: firmData,
       token,
     };
   }
 
-  async getFirmProfile(firmId) {
-    const firm = await Firm.findById(firmId).select("-password");
-    if (!firm) {
-      throw ApiError.notFound("Firm not found");
-    }
-
-    // Get the paired firm
-    const pair = await FirmPair.findOne({
-      $or: [{ gst_firm_id: firmId }, { nongst_firm_id: firmId }],
-    });
-
-    let pairedFirm = null;
-    if (pair) {
-      const pairedFirmId =
-        pair.gst_firm_id.toString() === firmId.toString() ?
-          pair.nongst_firm_id
-        : pair.gst_firm_id;
-      pairedFirm = await Firm.findById(pairedFirmId).select(
-        "_id name type username",
-      );
-    }
-
-    return { ...firm.toObject(), paired_firm: pairedFirm };
+  async getProfile(user, role, firmType) {
+    const safe = user.toSafeObject();
+    return { ...safe, current_role: role, current_firm_type: firmType || null };
   }
 
-  // ============ GENERIC AUTH METHODS ============
-
   async logout(token) {
-    // Remove session by token (works for admin, firm, or user)
     await Session.findOneAndDelete({ token });
   }
 
-  async changePassword(role, id, currentPassword, newPassword) {
-    let entity;
+  async changePassword(userId, role, firmType, currentPassword, newPassword) {
+    const user = await User.findById(userId);
+    if (!user) throw ApiError.notFound("User not found");
+
+    let storedHash;
+    let updatePath;
+
     if (role === "admin") {
-      entity = await Admin.findById(id);
-    } else if (role === "firm") {
-      entity = await Firm.findById(id);
+      storedHash = user.admin.password;
+      updatePath = "admin.password";
+    } else if (firmType === "GST") {
+      storedHash = user.gst_firm.password;
+      updatePath = "gst_firm.password";
     } else {
-      entity = await User.findById(id);
+      storedHash = user.nongst_firm.password;
+      updatePath = "nongst_firm.password";
     }
 
-    if (!entity) {
-      throw ApiError.notFound(`${role} not found`);
-    }
+    const isMatch = await bcrypt.compare(currentPassword, storedHash);
+    if (!isMatch) throw ApiError.badRequest("Current password is incorrect");
 
-    const isMatch = await bcrypt.compare(currentPassword, entity.password);
-    if (!isMatch) {
-      throw ApiError.badRequest("Current password is incorrect");
-    }
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(userId, { [updatePath]: newHash });
 
-    entity.password = await bcrypt.hash(newPassword, 10);
-    await entity.save();
-
-    // Revoke ALL sessions when password is changed (security)
-    if (role === "admin") {
-      await Session.deleteMany({ admin_id: id });
-    } else if (role === "firm") {
-      await Session.deleteMany({ firm_id: id });
-    } else {
-      await Session.deleteMany({ user_id: id });
-    }
+    const sessionFilter = { user_id: userId, role };
+    if (role === "firm") sessionFilter.firm_type = firmType;
+    await Session.deleteMany(sessionFilter);
   }
 
-  async getSessions(role, id, currentToken) {
-    let query = {};
-    if (role === "admin") {
-      query = { admin_id: id };
-    } else if (role === "firm") {
-      query = { firm_id: id };
-    } else {
-      query = { user_id: id };
-    }
+  async getSessions(userId, role, firmType, currentToken) {
+    const query = { user_id: userId, role };
+    if (role === "firm" && firmType) query.firm_type = firmType;
 
     const sessions = await Session.find(query)
       .select("-__v")
@@ -214,106 +178,19 @@ class AuthService {
     }));
   }
 
-  async revokeSession(sessionId, role, id) {
-    let query = { _id: sessionId };
-    if (role === "admin") {
-      query.admin_id = id;
-    } else if (role === "firm") {
-      query.firm_id = id;
-    } else {
-      query.user_id = id;
-    }
-
-    const session = await Session.findOneAndDelete(query);
-    if (!session) {
-      throw ApiError.notFound("Session not found");
-    }
+  async revokeSession(sessionId, userId) {
+    const session = await Session.findOneAndDelete({
+      _id: sessionId,
+      user_id: userId,
+    });
+    if (!session) throw ApiError.notFound("Session not found");
     return session;
   }
 
-  async revokeAllOtherSessions(role, id, currentToken) {
-    let query = { token: { $ne: currentToken } };
-    if (role === "admin") {
-      query.admin_id = id;
-    } else if (role === "firm") {
-      query.firm_id = id;
-    } else {
-      query.user_id = id;
-    }
+  async revokeAllOtherSessions(userId, role, firmType, currentToken) {
+    const query = { user_id: userId, token: { $ne: currentToken }, role };
+    if (role === "firm" && firmType) query.firm_type = firmType;
     await Session.deleteMany(query);
-  }
-
-  // ============ DEPRECATED: USER AUTH (backward compat) ============
-
-  async register(userData) {
-    const { username, email, password, type = "main" } = userData;
-
-    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
-    if (existingUser) {
-      throw ApiError.conflict("Username or email already exists");
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      username,
-      email,
-      password: hashedPassword,
-      type,
-    });
-
-    const token = user.generateToken();
-
-    await Session.create({
-      user_id: user._id,
-      role: "user",
-      token,
-      device_name: "Registration Device",
-      device_type: "unknown",
-    });
-
-    return {
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      type: "user",
-      role: "user",
-      token,
-    };
-  }
-
-  async login(usernameOrEmail, password, deviceInfo = {}) {
-    const user = await User.findByCredentials(usernameOrEmail, password);
-    const token = user.generateToken();
-
-    await Session.create({
-      user_id: user._id,
-      role: "user",
-      token,
-      device_name: deviceInfo.device_name || "Unknown Device",
-      device_type: deviceInfo.device_type || "unknown",
-      ip_address: deviceInfo.ip_address || "",
-    });
-
-    return {
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      type: "user",
-      user_type: user.type, // "main" or "secondary"
-      firm_ids: user.firm_ids,
-      role: "user",
-      token,
-    };
-  }
-
-  async getProfile(userId) {
-    const user = await User.findById(userId)
-      .select("-password")
-      .populate("firm_ids");
-    if (!user) {
-      throw ApiError.notFound("User not found");
-    }
-    return user;
   }
 }
 

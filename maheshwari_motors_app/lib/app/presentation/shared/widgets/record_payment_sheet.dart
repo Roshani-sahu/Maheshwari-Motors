@@ -10,7 +10,6 @@ import 'app_snackbar.dart';
 import 'app_text_field.dart';
 
 class RecordPaymentSheet extends StatefulWidget {
-  final String firmId;
   final String referenceId;
   final String referenceLabel;
   final double totalAmount;
@@ -19,7 +18,6 @@ class RecordPaymentSheet extends StatefulWidget {
 
   const RecordPaymentSheet({
     super.key,
-    required this.firmId,
     required this.referenceId,
     required this.referenceLabel,
     required this.totalAmount,
@@ -29,7 +27,6 @@ class RecordPaymentSheet extends StatefulWidget {
 
   static Future<bool?> show({
     required BuildContext context,
-    required String firmId,
     required String referenceId,
     required String referenceLabel,
     required double totalAmount,
@@ -41,7 +38,6 @@ class RecordPaymentSheet extends StatefulWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => RecordPaymentSheet(
-        firmId: firmId,
         referenceId: referenceId,
         referenceLabel: referenceLabel,
         totalAmount: totalAmount,
@@ -92,10 +88,10 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
 
       if (widget.isSale) {
         data['bill_id'] = widget.referenceId;
-        await api.createSaleTransaction(widget.firmId, data);
+        await api.createSaleTransaction(data);
       } else {
         data['purchase_id'] = widget.referenceId;
-        await api.createPurchaseTransaction(widget.firmId, data);
+        await api.createPurchaseTransaction(data);
       }
 
       AppSnackbar.success('Payment recorded');
@@ -156,7 +152,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Summary
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -185,7 +180,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
               ),
               const SizedBox(height: 20),
 
-              // Amount
               AppTextField(
                 label: 'Amount *',
                 controller: _amountC,
@@ -204,7 +198,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Payment Mode
               Text(
                 'Payment Mode',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -243,7 +236,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
               ),
               const SizedBox(height: 16),
 
-              // UTR (bank only)
               if (_paymentMode == 'bank') ...[
                 AppTextField(
                   label: 'UTR / Reference',
@@ -253,7 +245,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
                 const SizedBox(height: 16),
               ],
 
-              // Remarks
               AppTextField(
                 label: 'Remarks',
                 controller: _remarksC,
@@ -261,7 +252,6 @@ class _RecordPaymentSheetState extends State<RecordPaymentSheet> {
               ),
               const SizedBox(height: 24),
 
-              // Submit
               AppButton(
                 text: 'Record Payment',
                 isLoading: _isLoading,

@@ -6,7 +6,7 @@ class ChallanItemModel {
   final double discount;
   final double grossAmount;
   final double amount;
-  final int isGst; // 0 = NON_GST, 1 = GST
+  final int isGst;
 
   ChallanItemModel({
     this.itemId,
@@ -57,8 +57,7 @@ class ChallanModel {
   final double discount;
   final bool convertedToBill;
   final String? billId;
-  final String firmId;
-  final int isGst; // 0 = NON_GST, 1 = GST
+  final int isGst;
   final String? linkedChallanId;
 
   ChallanModel({
@@ -74,7 +73,6 @@ class ChallanModel {
     this.discount = 0,
     this.convertedToBill = false,
     this.billId,
-    required this.firmId,
     this.isGst = 1,
     this.linkedChallanId,
   });
@@ -98,9 +96,6 @@ class ChallanModel {
       discount: (json['discount'] ?? 0).toDouble(),
       convertedToBill: json['converted_to_bill'] ?? false,
       billId: json['bill_id']?.toString(),
-      firmId: json['firm_id'] is Map
-          ? json['firm_id']['_id'] ?? ''
-          : json['firm_id'] ?? '',
       isGst: json['is_gst'] ?? 1,
       linkedChallanId: json['linked_challan_id']?.toString(),
     );
@@ -117,7 +112,6 @@ class ChallanModel {
       'amount': amount,
       'discount': discount,
       'converted_to_bill': convertedToBill,
-      'firm_id': firmId,
       'is_gst': isGst,
     };
     if (partyId != null) map['party_id'] = partyId;

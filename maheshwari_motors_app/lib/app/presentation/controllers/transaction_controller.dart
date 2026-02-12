@@ -2,11 +2,9 @@ import 'package:get/get.dart';
 
 import '../../data/models/transaction_model.dart';
 import '../../data/services/api_service.dart';
-import 'auth_controller.dart';
 
 class TransactionHistoryController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
-  final AuthController _auth = Get.find<AuthController>();
 
   final RxList<TransactionModel> transactions = <TransactionModel>[].obs;
   final RxList<TransactionModel> filtered = <TransactionModel>[].obs;
@@ -32,16 +30,13 @@ class TransactionHistoryController extends GetxController {
     isLoading.value = true;
     errorMessage.value = '';
     try {
-      final firmId = _auth.firmId;
-      if (firmId.isNotEmpty) {
-        final results = await Future.wait([
-          _api.getTransactions(firmId),
-          _api.getTransactionSummary(firmId),
-        ]);
-        transactions.value = results[0] as List<TransactionModel>;
-        summary.value = results[1] as Map<String, dynamic>;
-        _filter();
-      }
+      final results = await Future.wait([
+        _api.getTransactions(),
+        _api.getTransactionSummary(),
+      ]);
+      transactions.value = results[0] as List<TransactionModel>;
+      summary.value = results[1] as Map<String, dynamic>;
+      _filter();
     } catch (e) {
       errorMessage.value = 'Failed to load transactions';
       transactions.clear();

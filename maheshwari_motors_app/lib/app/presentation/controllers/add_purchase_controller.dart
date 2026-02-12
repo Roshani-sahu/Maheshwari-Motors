@@ -6,9 +6,7 @@ import '../../data/models/item_model.dart';
 import '../../data/models/supplier_model.dart';
 import '../../data/services/api_service.dart';
 import '../shared/widgets/common_widgets.dart';
-import 'auth_controller.dart';
 
-/// Represents one line-item row in the purchase form.
 class PurchaseLineItem {
   ItemModel? item;
   final quantityC = TextEditingController(text: '1');
@@ -26,7 +24,6 @@ class PurchaseLineItem {
 
 class AddPurchaseController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
-  final AuthController _auth = Get.find<AuthController>();
 
   final RxBool isLoading = false.obs;
   final RxBool isLoadingData = true.obs;
@@ -112,7 +109,7 @@ class AddPurchaseController extends GetxController {
             )
             .toList(),
       };
-      await _api.createPurchase(_auth.firmId, data);
+      await _api.createPurchase(data);
       AppSnackbar.success('Purchase recorded');
       Get.back(result: true);
     } catch (e) {

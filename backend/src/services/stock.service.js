@@ -3,11 +3,6 @@ import StockAlert from "../models/stockAlert.model.js";
 import { ApiError } from "../utils/index.js";
 
 class StockService {
-  /**
-   * Deduct stock for a GST sale.
-   * Only called when selling through GST firm (is_gst=1 challan).
-   * Always deducts from gst_stock. NON_GST sales never call this.
-   */
   async deductStock(items, ownerId) {
     for (const item of items) {
       const filter = { _id: item.item_id };
@@ -76,10 +71,6 @@ class StockService {
     }
   }
 
-  /**
-   * Restore stock after GST challan deletion/update.
-   * Only called for GST challans. Always restores to gst_stock.
-   */
   async restoreStock(items, ownerId) {
     for (const item of items) {
       const filter = { _id: item.item_id };

@@ -33,11 +33,7 @@ const updateBalanceSchema = {
 };
 
 export const getParties = asyncHandler(async (req, res) => {
-  const result = await partyService.getParties(
-    req.params.firmId,
-    req.firmOwnerId,
-    req.query,
-  );
+  const result = await partyService.getParties(req.user._id, req.query);
   res
     .status(200)
     .json(new ApiResponse(200, result, "Parties fetched successfully"));
@@ -46,8 +42,7 @@ export const getParties = asyncHandler(async (req, res) => {
 export const getPartyById = asyncHandler(async (req, res) => {
   const party = await partyService.getPartyById(
     req.params.partyId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
   );
   res
     .status(200)
@@ -56,11 +51,7 @@ export const getPartyById = asyncHandler(async (req, res) => {
 
 export const createParty = asyncHandler(async (req, res) => {
   const data = validate(req.body, partySchema);
-  const party = await partyService.createParty(
-    data,
-    req.params.firmId,
-    req.firmOwnerId,
-  );
+  const party = await partyService.createParty(data, req.user._id);
   res
     .status(201)
     .json(new ApiResponse(201, party, "Party created successfully"));
@@ -70,8 +61,7 @@ export const updateParty = asyncHandler(async (req, res) => {
   const data = validate(req.body, partySchema, { allowPartial: true });
   const party = await partyService.updateParty(
     req.params.partyId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
     data,
   );
   res
@@ -80,11 +70,7 @@ export const updateParty = asyncHandler(async (req, res) => {
 });
 
 export const deleteParty = asyncHandler(async (req, res) => {
-  await partyService.deleteParty(
-    req.params.partyId,
-    req.params.firmId,
-    req.firmOwnerId,
-  );
+  await partyService.deleteParty(req.params.partyId, req.user._id);
   res
     .status(200)
     .json(new ApiResponse(200, null, "Party deleted successfully"));
@@ -93,8 +79,7 @@ export const deleteParty = asyncHandler(async (req, res) => {
 export const getPartyBalance = asyncHandler(async (req, res) => {
   const balance = await partyService.getPartyBalance(
     req.params.partyId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
   );
   res
     .status(200)
@@ -107,8 +92,7 @@ export const updatePartyBalance = asyncHandler(async (req, res) => {
   const { amount, operation } = validate(req.body, updateBalanceSchema);
   const balance = await partyService.updateBalance(
     req.params.partyId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
     amount,
     operation,
   );
@@ -120,11 +104,10 @@ export const updatePartyBalance = asyncHandler(async (req, res) => {
 });
 
 export const getPartiesWithDue = asyncHandler(async (req, res) => {
-  const result = await partyService.getParties(
-    req.params.firmId,
-    req.firmOwnerId,
-    { ...req.query, balance_status: "due" },
-  );
+  const result = await partyService.getParties(req.user._id, {
+    ...req.query,
+    balance_status: "due",
+  });
   res
     .status(200)
     .json(
@@ -137,11 +120,10 @@ export const getPartiesWithDue = asyncHandler(async (req, res) => {
 });
 
 export const getPartiesWithOverpaid = asyncHandler(async (req, res) => {
-  const result = await partyService.getParties(
-    req.params.firmId,
-    req.firmOwnerId,
-    { ...req.query, balance_status: "overpaid" },
-  );
+  const result = await partyService.getParties(req.user._id, {
+    ...req.query,
+    balance_status: "overpaid",
+  });
   res
     .status(200)
     .json(

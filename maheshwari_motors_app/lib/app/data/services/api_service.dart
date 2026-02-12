@@ -3,7 +3,6 @@ import 'package:dio/dio.dart' as dio;
 
 import '../../core/network/api_client.dart';
 import '../models/user_model.dart';
-import '../models/firm_model.dart';
 import '../models/item_model.dart';
 import '../models/party_model.dart';
 import '../models/challan_model.dart';
@@ -18,20 +17,37 @@ import '../models/discount_model.dart';
 class ApiService {
   final ApiClient _client = Get.find<ApiClient>();
 
-  // ─── AUTH ─────────────────────────────────────────
-  Future<Map<String, dynamic>> login(
-    String identifier,
+  Future<Map<String, dynamic>> loginAdmin(
+    String username,
     String password, {
     String? deviceName,
     String? deviceType,
   }) async {
     final res = await _client.post(
-      '/auth/login',
+      '/auth/admin/login',
       data: {
-        'email': identifier,
+        'username': username,
         'password': password,
-        'device_name': ?deviceName,
-        'device_type': ?deviceType,
+        if (deviceName != null) 'device_name': deviceName,
+        if (deviceType != null) 'device_type': deviceType,
+      },
+    );
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> loginFirm(
+    String username,
+    String password, {
+    String? deviceName,
+    String? deviceType,
+  }) async {
+    final res = await _client.post(
+      '/auth/firm/login',
+      data: {
+        'username': username,
+        'password': password,
+        if (deviceName != null) 'device_name': deviceName,
+        if (deviceType != null) 'device_type': deviceType,
       },
     );
     return res.data;
@@ -57,7 +73,6 @@ class ApiService {
     );
   }
 
-  // ─── SESSIONS (Multi-Device) ─────────────────────
   Future<List<Map<String, dynamic>>> getSessions() async {
     final res = await _client.get('/auth/sessions');
     final data = res.data['data'] as List;
@@ -72,33 +87,6 @@ class ApiService {
     await _client.delete('/auth/sessions');
   }
 
-  // ─── FIRMS ────────────────────────────────────────
-  Future<List<FirmModel>> getFirms() async {
-    final res = await _client.get('/firms');
-    final data = res.data['data']['data'] as List;
-    return data.map((e) => FirmModel.fromJson(e)).toList();
-  }
-
-  Future<FirmModel> getFirmById(String id) async {
-    final res = await _client.get('/firms/$id');
-    return FirmModel.fromJson(res.data['data']);
-  }
-
-  Future<FirmModel> createFirm(Map<String, dynamic> data) async {
-    final res = await _client.post('/firms', data: data);
-    return FirmModel.fromJson(res.data['data']);
-  }
-
-  Future<FirmModel> updateFirm(String id, Map<String, dynamic> data) async {
-    final res = await _client.put('/firms/$id', data: data);
-    return FirmModel.fromJson(res.data['data']);
-  }
-
-  Future<void> deleteFirm(String id) async {
-    await _client.delete('/firms/$id');
-  }
-
-  // ─── ITEMS ────────────────────────────────────────
   Future<List<ItemModel>> getItems() async {
     final res = await _client.get('/items');
     final data = res.data['data']['data'] as List;
@@ -155,143 +143,139 @@ class ApiService {
     return data.map((e) => ItemModel.fromJson(e)).toList();
   }
 
-  // ─── PARTIES ──────────────────────────────────────
-  Future<List<PartyModel>> getParties(String firmId) async {
-    final res = await _client.get('/firms/$firmId/parties');
+  Future<List<PartyModel>> getParties() async {
+    final res = await _client.get('/parties');
     final data = res.data['data']['data'] as List;
     return data.map((e) => PartyModel.fromJson(e)).toList();
   }
 
-  Future<PartyModel> createParty(
-    String firmId,
-    Map<String, dynamic> data,
-  ) async {
-    final res = await _client.post('/firms/$firmId/parties', data: data);
+  Future<PartyModel> createParty(Map<String, dynamic> data) async {
+    final res = await _client.post('/parties', data: data);
     return PartyModel.fromJson(res.data['data']);
   }
 
   Future<PartyModel> updateParty(
-    String firmId,
     String partyId,
     Map<String, dynamic> data,
   ) async {
-    final res = await _client.put(
-      '/firms/$firmId/parties/$partyId',
-      data: data,
-    );
+    final res = await _client.put('/parties/$partyId', data: data);
     return PartyModel.fromJson(res.data['data']);
   }
 
-  Future<void> deleteParty(String firmId, String partyId) async {
-    await _client.delete('/firms/$firmId/parties/$partyId');
+  Future<void> deleteParty(String partyId) async {
+    await _client.delete('/parties/$partyId');
   }
 
-  // ─── CHALLANS ─────────────────────────────────────
-  Future<List<ChallanModel>> getChallans(String firmId) async {
-    final res = await _client.get('/firms/$firmId/challans');
+  Future<List<ChallanModel>> getChallans() async {
+    final res = await _client.get('/challans');
     final data = res.data['data']['data'] as List;
     return data.map((e) => ChallanModel.fromJson(e)).toList();
   }
 
-  Future<ChallanModel> getChallanById(String firmId, String id) async {
-    final res = await _client.get('/firms/$firmId/challans/$id');
+  Future<ChallanModel> getChallanById(String id) async {
+    final res = await _client.get('/challans/$id');
     return ChallanModel.fromJson(res.data['data']);
   }
 
-  Future<void> deleteChallan(String firmId, String id) async {
-    await _client.delete('/firms/$firmId/challans/$id');
-  }
-
-  Future<ChallanModel> createChallan(
-    String firmId,
-    Map<String, dynamic> data,
-  ) async {
-    final res = await _client.post('/firms/$firmId/challans', data: data);
+  Future<ChallanModel> createChallan(Map<String, dynamic> data) async {
+    final res = await _client.post('/challans', data: data);
     return ChallanModel.fromJson(res.data['data']);
   }
 
   Future<ChallanModel> updateChallan(
-    String firmId,
     String id,
     Map<String, dynamic> data,
   ) async {
-    final res = await _client.put('/firms/$firmId/challans/$id', data: data);
+    final res = await _client.put('/challans/$id', data: data);
     return ChallanModel.fromJson(res.data['data']);
   }
 
-  // ─── BILLS ────────────────────────────────────────
-  Future<List<BillModel>> getBills(String firmId) async {
-    final res = await _client.get('/firms/$firmId/bills');
+  Future<void> deleteChallan(String id) async {
+    await _client.delete('/challans/$id');
+  }
+
+  Future<List<ChallanModel>> getUnconvertedChallans(String partyId) async {
+    final res = await _client.get('/challans/party/$partyId/unconverted');
+    final data = res.data['data'] as List;
+    return data.map((e) => ChallanModel.fromJson(e)).toList();
+  }
+
+  Future<List<BillModel>> getBills() async {
+    final res = await _client.get('/bills');
     final data = res.data['data']['data'] as List;
     return data.map((e) => BillModel.fromJson(e)).toList();
   }
 
-  Future<BillModel> getBillById(String firmId, String id) async {
-    final res = await _client.get('/firms/$firmId/bills/$id');
+  Future<BillModel> getBillById(String id) async {
+    final res = await _client.get('/bills/$id');
     return BillModel.fromJson(res.data['data']);
   }
 
-  Future<void> deleteBill(String firmId, String id) async {
-    await _client.delete('/firms/$firmId/bills/$id');
-  }
-
-  Future<BillModel> createBill(String firmId, Map<String, dynamic> data) async {
-    final res = await _client.post('/firms/$firmId/bills', data: data);
+  Future<BillModel> createBill(Map<String, dynamic> data) async {
+    final res = await _client.post('/bills', data: data);
     return BillModel.fromJson(res.data['data']);
   }
 
-  Future<BillModel> updateBill(
-    String firmId,
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    final res = await _client.put('/firms/$firmId/bills/$id', data: data);
+  Future<BillModel> updateBill(String id, Map<String, dynamic> data) async {
+    final res = await _client.put('/bills/$id', data: data);
     return BillModel.fromJson(res.data['data']);
   }
 
-  Future<void> recordPayment(
-    String firmId,
+  Future<void> deleteBill(String id) async {
+    await _client.delete('/bills/$id');
+  }
+
+  Future<void> recordPayment(String billId, Map<String, dynamic> data) async {
+    await _client.post('/bills/$billId/payment', data: data);
+  }
+
+  Future<void> recordBillReturn(
     String billId,
     Map<String, dynamic> data,
   ) async {
-    await _client.post('/firms/$firmId/bills/$billId/payment', data: data);
+    await _client.post('/bills/$billId/return', data: data);
   }
 
-  // ─── TRANSACTIONS ─────────────────────────────────
-  Future<List<TransactionModel>> getTransactions(String firmId) async {
-    final res = await _client.get('/firms/$firmId/transactions');
+  Future<List<TransactionModel>> getTransactions() async {
+    final res = await _client.get('/transactions');
     final data = res.data['data']['data'] as List;
     return data.map((e) => TransactionModel.fromJson(e)).toList();
   }
 
-  Future<Map<String, dynamic>> getTransactionSummary(String firmId) async {
-    final res = await _client.get('/firms/$firmId/transactions/summary');
+  Future<Map<String, dynamic>> getTransactionSummary() async {
+    final res = await _client.get('/transactions/summary');
     return res.data['data'];
   }
 
   Future<TransactionModel> createSaleTransaction(
-    String firmId,
     Map<String, dynamic> data,
   ) async {
-    final res = await _client.post(
-      '/firms/$firmId/transactions/sale',
-      data: data,
-    );
+    final res = await _client.post('/transactions/sale', data: data);
     return TransactionModel.fromJson(res.data['data']);
   }
 
   Future<TransactionModel> createPurchaseTransaction(
-    String firmId,
     Map<String, dynamic> data,
   ) async {
-    final res = await _client.post(
-      '/firms/$firmId/transactions/purchase',
-      data: data,
-    );
+    final res = await _client.post('/transactions/purchase', data: data);
     return TransactionModel.fromJson(res.data['data']);
   }
 
-  // ─── STOCK ALERTS ─────────────────────────────────
+  Future<List<PurchaseModel>> getPurchases() async {
+    final res = await _client.get('/purchases');
+    final data = res.data['data']['data'] as List;
+    return data.map((e) => PurchaseModel.fromJson(e)).toList();
+  }
+
+  Future<PurchaseModel> createPurchase(Map<String, dynamic> data) async {
+    final res = await _client.post('/purchases', data: data);
+    return PurchaseModel.fromJson(res.data['data']);
+  }
+
+  Future<void> deletePurchase(String id) async {
+    await _client.delete('/purchases/$id');
+  }
+
   Future<List<StockAlertModel>> getStockAlerts() async {
     final res = await _client.get('/stock-alerts');
     final data = res.data['data']['data'] as List;
@@ -307,40 +291,41 @@ class ApiService {
     await _client.patch('/stock-alerts/$id/resolve');
   }
 
-  // ─── USERS (SECONDARY) ───────────────────────────
   Future<List<UserModel>> getUsers() async {
-    final res = await _client.get('/users');
+    final res = await _client.get('/admin/users');
     final data = res.data['data']['data'] as List;
     return data.map((e) => UserModel.fromJson(e)).toList();
   }
 
   Future<UserModel> createUser(Map<String, dynamic> data) async {
-    final res = await _client.post('/users', data: data);
+    final res = await _client.post('/admin/users', data: data);
     return UserModel.fromJson(res.data['data']);
   }
 
   Future<UserModel> updateUser(String id, Map<String, dynamic> data) async {
-    final res = await _client.put('/users/$id', data: data);
+    final res = await _client.put('/admin/users/$id', data: data);
     return UserModel.fromJson(res.data['data']);
   }
 
   Future<void> deleteUser(String id) async {
-    await _client.delete('/users/$id');
+    await _client.delete('/admin/users/$id');
   }
 
-  // ─── DASHBOARD ────────────────────────────────────
-  Future<Map<String, dynamic>> getFirmDashboard(
-    String firmId, {
-    String period = 'all_time',
+  Future<Map<String, dynamic>> getFirmDashboard({
+    String period = 'monthly',
   }) async {
     final res = await _client.get(
-      '/firms/$firmId/dashboard',
+      '/dashboard/firm',
       queryParameters: {'period': period},
     );
     return res.data['data'] ?? {};
   }
 
-  // ─── CATEGORY ─────────────────────────────────────
+  Future<Map<String, dynamic>> getAdminDashboard() async {
+    final res = await _client.get('/dashboard');
+    return res.data['data'] ?? {};
+  }
+
   Future<List<CategoryModel>> getCategories({String? search}) async {
     final res = await _client.get(
       '/categories',
@@ -367,7 +352,6 @@ class ApiService {
     await _client.delete('/categories/$id');
   }
 
-  // ─── SUPPLIER ─────────────────────────────────────
   Future<List<SupplierModel>> getSuppliers({String? search}) async {
     final res = await _client.get(
       '/suppliers',
@@ -394,7 +378,6 @@ class ApiService {
     await _client.delete('/suppliers/$id');
   }
 
-  // ─── DISCOUNTS ────────────────────────────────────
   Future<List<DiscountModel>> getDiscounts() async {
     final res = await _client.get(
       '/discounts',
@@ -421,59 +404,29 @@ class ApiService {
     await _client.delete('/discounts/$id');
   }
 
-  Future<Map<String, dynamic>?> getItemDiscount(String itemId) async {
+  Future<List<Map<String, dynamic>>> getItemDiscount(String itemId) async {
     try {
       final res = await _client.get('/discounts/item/$itemId');
-      return res.data['data'] as Map<String, dynamic>?;
+      final data = res.data['data'];
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
     } catch (_) {
-      return null;
+      return [];
     }
   }
 
-  Future<Map<String, dynamic>?> getPartyDiscount(String partyId) async {
+  Future<List<Map<String, dynamic>>> getPartyDiscount(String partyId) async {
     try {
       final res = await _client.get('/discounts/party/$partyId');
-      return res.data['data'] as Map<String, dynamic>?;
+      final data = res.data['data'];
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+      return [];
     } catch (_) {
-      return null;
+      return [];
     }
-  }
-
-  // ─── UNCONVERTED CHALLANS ─────────────────────────
-  Future<List<ChallanModel>> getUnconvertedChallans(
-    String firmId,
-    String partyId,
-  ) async {
-    final res = await _client.get('/firms/$firmId/parties/$partyId/challans');
-    final data = res.data['data'] as List;
-    return data.map((e) => ChallanModel.fromJson(e)).toList();
-  }
-
-  // ─── PURCHASES ────────────────────────────────────
-  Future<List<PurchaseModel>> getPurchases(String firmId) async {
-    final res = await _client.get('/firms/$firmId/purchases');
-    final data = res.data['data']['data'] as List;
-    return data.map((e) => PurchaseModel.fromJson(e)).toList();
-  }
-
-  Future<PurchaseModel> createPurchase(
-    String firmId,
-    Map<String, dynamic> data,
-  ) async {
-    final res = await _client.post('/firms/$firmId/purchases', data: data);
-    return PurchaseModel.fromJson(res.data['data']);
-  }
-
-  Future<void> deletePurchase(String firmId, String id) async {
-    await _client.delete('/firms/$firmId/purchases/$id');
-  }
-
-  // ─── BILL RETURN ──────────────────────────────────
-  Future<void> recordBillReturn(
-    String firmId,
-    String billId,
-    Map<String, dynamic> data,
-  ) async {
-    await _client.post('/firms/$firmId/bills/$billId/return', data: data);
   }
 }

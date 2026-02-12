@@ -74,7 +74,6 @@ class CategoryService {
       throw ApiError.notFound("Category not found");
     }
 
-    // Pull this category from all items that reference it
     await Item.updateMany(
       { category_ids: categoryId, user_id: userId },
       { $pull: { category_ids: categoryId } },

@@ -35,10 +35,8 @@ const challanSchema = new mongoose.Schema(
       default: null,
     },
 
-    // Challan-level GST flag: 1 = GST challan (under GST firm), 0 = NON_GST challan
     is_gst: { type: Number, enum: [0, 1], required: true },
 
-    // Links the twin challan created from the same submission (auto-split)
     linked_challan_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Challan",
@@ -48,16 +46,12 @@ const challanSchema = new mongoose.Schema(
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-    },
-    firm_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Firm",
       required: true,
     },
   },
   { timestamps: true },
 );
 
-challanSchema.index({ challan_no: 1, firm_id: 1 }, { unique: true });
+challanSchema.index({ challan_no: 1, user_id: 1, is_gst: 1 }, { unique: true });
 
 export default mongoose.model("Challan", challanSchema);

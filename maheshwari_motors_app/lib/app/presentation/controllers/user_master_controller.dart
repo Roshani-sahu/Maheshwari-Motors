@@ -44,8 +44,8 @@ class UserMasterController extends GetxController {
       filtered.value = users
           .where(
             (u) =>
-                u.username.toLowerCase().contains(q) ||
-                u.email.toLowerCase().contains(q),
+                u.name.toLowerCase().contains(q) ||
+                (u.email?.toLowerCase().contains(q) ?? false),
           )
           .toList();
     }

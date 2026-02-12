@@ -5,7 +5,6 @@ import '../../core/network/api_client.dart';
 import '../../data/models/party_model.dart';
 import '../../data/services/api_service.dart';
 import '../shared/widgets/common_widgets.dart';
-import 'auth_controller.dart';
 
 class AddPartyController extends GetxController {
   final formKey = GlobalKey<FormState>();
@@ -18,7 +17,6 @@ class AddPartyController extends GetxController {
   final gstinC = TextEditingController();
 
   final ApiService _api = Get.find<ApiService>();
-  final AuthController _auth = Get.find<AuthController>();
   final RxBool isLoading = false.obs;
   final RxString nameInitial = 'P'.obs;
 
@@ -65,12 +63,11 @@ class AddPartyController extends GetxController {
       if (email.isNotEmpty) data['email'] = email;
       if (address.isNotEmpty) data['address'] = address;
       if (gstin.isNotEmpty) data['gstin'] = gstin;
-      final firmId = _auth.firmId;
       if (isEdit) {
-        await _api.updateParty(firmId, editParty!.id, data);
+        await _api.updateParty(editParty!.id, data);
         AppSnackbar.success('Party updated');
       } else {
-        await _api.createParty(firmId, data);
+        await _api.createParty(data);
         AppSnackbar.success('Party created');
       }
       Get.back(result: true);

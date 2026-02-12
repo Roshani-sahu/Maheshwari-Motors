@@ -37,7 +37,6 @@ class ApiClient {
               options.headers['Authorization'] = 'Bearer $token';
             }
           } catch (_) {
-            // Proceed without token if storage fails
           }
           return handler.next(options);
         },
@@ -65,7 +64,6 @@ class ApiClient {
     return await _storage.read(key: AppConstants.tokenKey);
   }
 
-  // GET
   Future<Response> get(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -73,7 +71,6 @@ class ApiClient {
     return await _dio.get(path, queryParameters: queryParameters);
   }
 
-  // POST
   Future<Response> post(
     String path, {
     dynamic data,
@@ -82,7 +79,6 @@ class ApiClient {
     return await _dio.post(path, data: data, queryParameters: queryParameters);
   }
 
-  // PUT
   Future<Response> put(
     String path, {
     dynamic data,
@@ -91,7 +87,6 @@ class ApiClient {
     return await _dio.put(path, data: data, queryParameters: queryParameters);
   }
 
-  // PATCH
   Future<Response> patch(
     String path, {
     dynamic data,
@@ -100,7 +95,6 @@ class ApiClient {
     return await _dio.patch(path, data: data, queryParameters: queryParameters);
   }
 
-  // DELETE
   Future<Response> delete(
     String path, {
     dynamic data,
@@ -113,7 +107,6 @@ class ApiClient {
     );
   }
 
-  // Multipart POST
   Future<Response> postMultipart(
     String path, {
     required FormData formData,
@@ -125,7 +118,6 @@ class ApiClient {
     );
   }
 
-  // Multipart PUT
   Future<Response> putMultipart(
     String path, {
     required FormData formData,
@@ -137,14 +129,11 @@ class ApiClient {
     );
   }
 
-  /// Extracts a user-friendly error message from a [DioException].
   static String parseError(dynamic error) {
     if (error is DioException) {
-      // Try to get the server message first
       final data = error.response?.data;
       if (data is Map<String, dynamic>) {
         final msg = data['message'] ?? data['error'];
-        // Include specific validation errors if present
         final errors = data['errors'];
         if (errors is List && errors.isNotEmpty) {
           return errors.join(', ');
@@ -153,7 +142,6 @@ class ApiClient {
           return msg.toString();
         }
       }
-      // Fall back to status-based messages
       switch (error.type) {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:

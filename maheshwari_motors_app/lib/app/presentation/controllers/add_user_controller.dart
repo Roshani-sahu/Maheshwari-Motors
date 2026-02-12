@@ -24,8 +24,8 @@ class AddUserController extends GetxController {
     super.onInit();
     editUser = Get.arguments as UserModel?;
     if (editUser != null) {
-      usernameCtrl.text = editUser!.username;
-      emailCtrl.text = editUser!.email;
+      usernameCtrl.text = editUser!.name;
+      emailCtrl.text = editUser!.email ?? '';
     }
   }
 

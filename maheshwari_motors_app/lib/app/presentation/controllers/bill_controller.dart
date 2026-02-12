@@ -4,11 +4,9 @@ import '../../core/network/api_client.dart';
 import '../../data/models/bill_model.dart';
 import '../../data/services/api_service.dart';
 import '../shared/widgets/common_widgets.dart';
-import 'auth_controller.dart';
 
 class BillListController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
-  final AuthController _auth = Get.find<AuthController>();
 
   final RxList<BillModel> bills = <BillModel>[].obs;
   final RxList<BillModel> filtered = <BillModel>[].obs;
@@ -33,11 +31,8 @@ class BillListController extends GetxController {
     isLoading.value = true;
     errorMessage.value = '';
     try {
-      final firmId = _auth.firmId;
-      if (firmId.isNotEmpty) {
-        bills.value = await _api.getBills(firmId);
-        _filter();
-      }
+      bills.value = await _api.getBills();
+      _filter();
     } catch (e) {
       errorMessage.value = 'Failed to load bills';
     }
@@ -70,7 +65,7 @@ class BillListController extends GetxController {
 
   Future<void> deleteBill(String id) async {
     try {
-      await _api.deleteBill(_auth.firmId, id);
+      await _api.deleteBill(id);
       bills.removeWhere((b) => b.id == id);
       _filter();
       AppSnackbar.success('Bill deleted');

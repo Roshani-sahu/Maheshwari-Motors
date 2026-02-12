@@ -6,9 +6,11 @@ class BillModel {
   final String? partyName;
   final double amount;
   final double paidAmount;
+  final double returnAmount;
   final String paymentStatus;
   final List<String> challanIds;
-  final String firmId;
+  final bool skipStockCalculation;
+  final int isGst;
   final double? balance;
 
   BillModel({
@@ -19,9 +21,11 @@ class BillModel {
     this.partyName,
     required this.amount,
     this.paidAmount = 0,
+    this.returnAmount = 0,
     this.paymentStatus = 'due',
     this.challanIds = const [],
-    required this.firmId,
+    this.skipStockCalculation = false,
+    this.isGst = 1,
     this.balance,
   });
 
@@ -35,6 +39,7 @@ class BillModel {
       partyName: partyData is Map ? partyData['name'] : null,
       amount: (json['amount'] ?? 0).toDouble(),
       paidAmount: (json['paid_amount'] ?? 0).toDouble(),
+      returnAmount: (json['return_amount'] ?? 0).toDouble(),
       paymentStatus: json['payment_status'] ?? 'due',
       challanIds: json['challan_ids'] != null
           ? List<String>.from(
@@ -43,9 +48,8 @@ class BillModel {
               ),
             )
           : [],
-      firmId: json['firm_id'] is Map
-          ? json['firm_id']['_id'] ?? ''
-          : json['firm_id'] ?? '',
+      skipStockCalculation: json['skip_stock_calculation'] ?? false,
+      isGst: json['is_gst'] ?? 1,
       balance: json['balance']?.toDouble(),
     );
   }
@@ -59,9 +63,11 @@ class BillModel {
       'date': date.toIso8601String(),
       'amount': amount,
       'paid_amount': paidAmount,
+      'return_amount': returnAmount,
       'payment_status': paymentStatus,
       'challan_ids': challanIds,
-      'firm_id': firmId,
+      'skip_stock_calculation': skipStockCalculation,
+      'is_gst': isGst,
     };
     if (partyId != null) map['party_id'] = partyId;
     if (balance != null) map['balance'] = balance;

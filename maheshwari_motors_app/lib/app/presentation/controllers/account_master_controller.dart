@@ -4,14 +4,11 @@ import '../../core/network/api_client.dart';
 import '../../data/models/discount_model.dart';
 import '../../data/models/transaction_model.dart';
 import '../../data/services/api_service.dart';
-import '../controllers/auth_controller.dart';
 import '../shared/widgets/common_widgets.dart';
 
 class AccountMasterController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
-  final AuthController _auth = Get.find<AuthController>();
 
-  // ── Transactions ──
   final RxList<TransactionModel> transactions = <TransactionModel>[].obs;
   final RxList<TransactionModel> filteredTxns = <TransactionModel>[].obs;
   final RxString txnSearch = ''.obs;
@@ -20,14 +17,12 @@ class AccountMasterController extends GetxController {
   final RxString txnError = ''.obs;
   final Rx<Map<String, dynamic>> summary = Rx<Map<String, dynamic>>({});
 
-  // ── Discounts ──
   final RxList<DiscountModel> discounts = <DiscountModel>[].obs;
   final RxList<DiscountModel> filteredDiscounts = <DiscountModel>[].obs;
   final RxString discountTypeFilter = 'all'.obs;
   final RxBool discountLoading = true.obs;
   final RxString discountError = ''.obs;
 
-  // ── Tab index (manual control without TabController ticker) ──
   final RxInt tabIndex = 0.obs;
 
   @override
@@ -44,22 +39,17 @@ class AccountMasterController extends GetxController {
     ever(discountTypeFilter, (_) => _filterDiscounts());
   }
 
-  // ── Transactions ──
-
   Future<void> loadTransactions() async {
     txnLoading.value = true;
     txnError.value = '';
     try {
-      final firmId = _auth.firmId;
-      if (firmId.isNotEmpty) {
-        final results = await Future.wait([
-          _api.getTransactions(firmId),
-          _api.getTransactionSummary(firmId),
-        ]);
-        transactions.value = results[0] as List<TransactionModel>;
-        summary.value = results[1] as Map<String, dynamic>;
-        _filterTxns();
-      }
+      final results = await Future.wait([
+        _api.getTransactions(),
+        _api.getTransactionSummary(),
+      ]);
+      transactions.value = results[0] as List<TransactionModel>;
+      summary.value = results[1] as Map<String, dynamic>;
+      _filterTxns();
     } catch (e) {
       txnError.value = 'Failed to load transactions';
     }
@@ -71,8 +61,7 @@ class AccountMasterController extends GetxController {
     if (txnSearch.value.isNotEmpty) {
       final q = txnSearch.value.toLowerCase();
       list = list.where((t) {
-        return (t.firmName?.toLowerCase().contains(q) ?? false) ||
-            (t.partyName?.toLowerCase().contains(q) ?? false) ||
+        return (t.partyName?.toLowerCase().contains(q) ?? false) ||
             (t.utr?.toLowerCase().contains(q) ?? false) ||
             (t.transactionRef?.toLowerCase().contains(q) ?? false);
       }).toList();
@@ -84,8 +73,6 @@ class AccountMasterController extends GetxController {
     }
     filteredTxns.value = list;
   }
-
-  // ── Discounts ──
 
   Future<void> loadDiscounts() async {
     discountLoading.value = true;

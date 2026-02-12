@@ -33,7 +33,14 @@ class DiscountMasterScreen extends StatelessWidget {
         children: [
           Obx(
             () => AppFilterChips(
-              options: const ['all', 'item', 'party'],
+              options: const [
+                'all',
+                'item',
+                'party_item',
+                'party_all',
+                'item_group',
+                'profit_margin',
+              ],
               selected: controller.typeFilter.value,
               onSelected: (v) => controller.typeFilter.value = v,
             ),
@@ -102,7 +109,40 @@ class _DiscountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isItem = discount.type == 'item';
+    Color badgeColor;
+    Color badgeTextColor;
+    IconData typeIcon;
+    switch (discount.type) {
+      case 'item':
+        badgeColor = AppColors.infoLight;
+        badgeTextColor = AppColors.info;
+        typeIcon = Icons.inventory_2_outlined;
+        break;
+      case 'party_item':
+        badgeColor = AppColors.successLight;
+        badgeTextColor = AppColors.success;
+        typeIcon = Icons.people_outline;
+        break;
+      case 'party_all':
+        badgeColor = AppColors.successLight;
+        badgeTextColor = AppColors.success;
+        typeIcon = Icons.person_outline;
+        break;
+      case 'item_group':
+        badgeColor = const Color(0xFFFFF3E0);
+        badgeTextColor = Colors.orange;
+        typeIcon = Icons.category_outlined;
+        break;
+      case 'profit_margin':
+        badgeColor = const Color(0xFFF3E5F5);
+        badgeTextColor = Colors.purple;
+        typeIcon = Icons.trending_up;
+        break;
+      default:
+        badgeColor = AppColors.infoLight;
+        badgeTextColor = AppColors.info;
+        typeIcon = Icons.percent;
+    }
 
     return AppCard(
       padding: const EdgeInsets.all(14),
@@ -112,14 +152,10 @@ class _DiscountCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: isItem ? AppColors.infoLight : AppColors.successLight,
+              color: badgeColor,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              isItem ? Icons.inventory_2_outlined : Icons.person_outline,
-              color: isItem ? AppColors.info : AppColors.success,
-              size: 20,
-            ),
+            child: Icon(typeIcon, color: badgeTextColor, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -136,17 +172,18 @@ class _DiscountCard extends StatelessWidget {
                 Row(
                   children: [
                     StatusBadge(
-                      label: discount.type.toUpperCase(),
-                      color: isItem
-                          ? AppColors.infoLight
-                          : AppColors.successLight,
-                      textColor: isItem ? AppColors.info : AppColors.success,
+                      label: discount.typeLabel,
+                      color: badgeColor,
+                      textColor: badgeTextColor,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      discount.discountType == 'fixed' ? 'Fixed' : 'Percentage',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                    if (!discount.isActive) ...[
+                      const SizedBox(width: 8),
+                      const StatusBadge(
+                        label: 'INACTIVE',
+                        color: Color(0xFFFFEBEE),
+                        textColor: Colors.red,
+                      ),
+                    ],
                   ],
                 ),
               ],

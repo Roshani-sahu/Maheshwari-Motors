@@ -1,231 +1,145 @@
-import mongoose from "mongoose";
-import Firm from "../models/firm.model.js";
-import FirmPair from "../models/firmPair.model.js";
-import User from "../models/user.model.js";
+import Item from "../models/item.model.js";
+import Party from "../models/party.model.js";
+import Supplier from "../models/supplier.model.js";
 import Challan from "../models/challan.model.js";
 import Bill from "../models/bill.model.js";
-import Item from "../models/item.model.js";
-import StockAlert from "../models/stockAlert.model.js";
+import Transaction from "../models/transaction.model.js";
+import Purchase from "../models/purchase.model.js";
 
 class DashboardService {
-  /**
-   * Main dashboard: admin sees all their firms, firm login sees own firm,
-   * legacy user sees all their firms.
-   */
-  async getDashboard(ownerId, role, firmObj) {
-    let firmIds;
-
-    if (role === "firm") {
-      // Firm login — show paired firms
-      const pair = await FirmPair.findOne({
-        $or: [{ gst_firm_id: firmObj._id }, { nongst_firm_id: firmObj._id }],
-      });
-      firmIds = pair ? [pair.gst_firm_id, pair.nongst_firm_id] : [firmObj._id];
-    } else if (role === "admin") {
-      // Admin — all firms they own
-      firmIds = (
-        await Firm.find({ admin_id: ownerId }).select("_id").lean()
-      ).map((f) => f._id);
-    } else {
-      // Legacy user login
-      const user = await User.findById(ownerId);
-      if (!user) throw new Error("User not found");
-
-      let firmFilter;
-      if (user.type === "main") {
-        firmFilter = { user_id: ownerId };
-      } else {
-        firmFilter = { _id: { $in: user.firm_ids || [] } };
-      }
-      firmIds = (await Firm.find(firmFilter).select("_id").lean()).map(
-        (f) => f._id,
-      );
-    }
-
-    const dataFilter = { firm_id: { $in: firmIds } };
-
+  async getDashboard(userId) {
     const [
-      firmsCount,
-      challansCount,
-      billsCount,
-      lowStockCount,
-      recentChallans,
-      recentBills,
+      itemCount,
+      partyCount,
+      supplierCount,
+      gstChallanCount,
+      nongstChallanCount,
+      gstBillCount,
+      nongstBillCount,
+      gstRevenue,
+      nongstRevenue,
     ] = await Promise.all([
-      firmIds.length,
-      Challan.countDocuments({ ...dataFilter, converted_to_bill: false }),
-      Bill.countDocuments(dataFilter),
-      StockAlert.countDocuments({ user_id: ownerId, is_resolved: false }),
-      Challan.find({ ...dataFilter, converted_to_bill: false })
-        .populate("party_id", "name")
-        .populate("firm_id", "name type")
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean(),
-      Bill.find(dataFilter)
-        .populate("party_id", "name")
-        .populate("firm_id", "name type")
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean(),
+      Item.countDocuments({ user_id: userId }),
+      Party.countDocuments({ user_id: userId }),
+      Supplier.countDocuments({ user_id: userId }),
+      Challan.countDocuments({ user_id: userId, is_gst: 1 }),
+      Challan.countDocuments({ user_id: userId, is_gst: 0 }),
+      Bill.countDocuments({ user_id: userId, is_gst: 1 }),
+      Bill.countDocuments({ user_id: userId, is_gst: 0 }),
+      Bill.aggregate([
+        { $match: { user_id: userId, is_gst: 1 } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      Bill.aggregate([
+        { $match: { user_id: userId, is_gst: 0 } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
     ]);
 
+    const recentChallans = await Challan.find({ user_id: userId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("party_id", "name")
+      .lean();
+
+    const recentBills = await Bill.find({ user_id: userId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate("party_id", "name")
+      .lean();
+
     return {
-      summary: {
-        total_firms: firmsCount,
-        total_challans: challansCount,
-        total_bills: billsCount,
-        low_stock_items: lowStockCount,
+      counts: {
+        items: itemCount,
+        parties: partyCount,
+        suppliers: supplierCount,
+        gst_challans: gstChallanCount,
+        nongst_challans: nongstChallanCount,
+        gst_bills: gstBillCount,
+        nongst_bills: nongstBillCount,
+      },
+      revenue: {
+        gst: gstRevenue[0]?.total || 0,
+        nongst: nongstRevenue[0]?.total || 0,
       },
       recent_challans: recentChallans,
       recent_bills: recentBills,
     };
   }
 
-  async getFirmDashboard(firmId, userId, period = "all_time") {
-    // Build date filter based on period
+  async getFirmDashboard(userId, isGst, period) {
+    const filter = { user_id: userId, is_gst: isGst };
+
     const now = new Date();
-    let dateFilter = {};
-
-    if (period === "today") {
-      const startOfDay = new Date(now);
-      startOfDay.setHours(0, 0, 0, 0);
-      dateFilter = { createdAt: { $gte: startOfDay } };
-    } else if (period === "last_month") {
-      const thirtyDaysAgo = new Date(now);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      dateFilter = { createdAt: { $gte: thirtyDaysAgo } };
-    } else if (period === "last_year") {
-      const oneYearAgo = new Date(now);
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-      dateFilter = { createdAt: { $gte: oneYearAgo } };
+    let startDate;
+    if (period === "yearly") {
+      startDate = new Date(now.getFullYear(), 0, 1);
+    } else {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
-    // all_time → no dateFilter
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-    const baseChallanFilter = { firm_id: firmId };
-    if (userId) baseChallanFilter.user_id = userId;
-    const baseBillFilter = { firm_id: firmId };
-    if (userId) baseBillFilter.user_id = userId;
-    const periodChallanFilter = { ...baseChallanFilter, ...dateFilter };
-    const periodBillFilter = { ...baseBillFilter, ...dateFilter };
+    const periodFilter = { ...filter, createdAt: { $gte: startDate } };
+    const purchaseType = isGst === 1 ? "GST" : "NON_GST";
+    const purchaseFilter = {
+      user_id: userId,
+      purchase_type: purchaseType,
+      createdAt: { $gte: startDate },
+    };
 
     const [
-      periodChallans,
-      periodBills,
-      dueBills,
-      paidBills,
-      recentChallans,
-      recentBills,
+      challanCount,
+      billCount,
+      revenue,
+      pendingAmount,
+      transactionCount,
+      purchaseCount,
+      purchaseAmount,
     ] = await Promise.all([
-      Challan.countDocuments(periodChallanFilter),
-      Bill.countDocuments(periodBillFilter),
-      Bill.countDocuments({ ...periodBillFilter, payment_status: "due" }),
-      Bill.countDocuments({ ...periodBillFilter, payment_status: "paid" }),
-      Challan.find({ ...periodChallanFilter, converted_to_bill: false })
-        .populate("party_id", "name")
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean(),
-      Bill.find(periodBillFilter)
-        .populate("party_id", "name")
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .lean(),
-    ]);
-
-    const firmObjectId = new mongoose.Types.ObjectId(firmId);
-    const baseAggMatch = { firm_id: firmObjectId };
-    if (userId) baseAggMatch.user_id = new mongoose.Types.ObjectId(userId);
-
-    // Build aggregation match with date filter
-    const aggChallanMatch = {
-      ...baseAggMatch,
-      ...(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}),
-    };
-    const aggBillMatch = {
-      ...baseAggMatch,
-      ...(dateFilter.createdAt ? { createdAt: dateFilter.createdAt } : {}),
-    };
-
-    const [totalChallanAmount, totalBillAmount, totalPaidAmount] =
-      await Promise.all([
-        Challan.aggregate([
-          { $match: aggChallanMatch },
-          { $group: { _id: null, total: { $sum: "$amount" } } },
-        ]),
-        Bill.aggregate([
-          { $match: aggBillMatch },
-          { $group: { _id: null, total: { $sum: "$amount" } } },
-        ]),
-        Bill.aggregate([
-          { $match: aggBillMatch },
-          { $group: { _id: null, total: { $sum: "$paid_amount" } } },
-        ]),
-      ]);
-
-    // Monthly chart data: last 6 months of challans & bills
-    const sixMonthsAgo = new Date(now);
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    sixMonthsAgo.setDate(1);
-    sixMonthsAgo.setHours(0, 0, 0, 0);
-
-    const [challansByMonth, billsByMonth] = await Promise.all([
-      Challan.aggregate([
-        {
-          $match: {
-            ...baseAggMatch,
-            createdAt: { $gte: sixMonthsAgo },
-          },
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-            count: { $sum: 1 },
-            amount: { $sum: "$amount" },
-          },
-        },
-        { $sort: { _id: 1 } },
+      Challan.countDocuments(periodFilter),
+      Bill.countDocuments(periodFilter),
+      Bill.aggregate([
+        { $match: periodFilter },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
       Bill.aggregate([
-        {
-          $match: {
-            ...baseAggMatch,
-            createdAt: { $gte: sixMonthsAgo },
-          },
-        },
+        { $match: { ...periodFilter, payment_status: { $ne: "paid" } } },
         {
           $group: {
-            _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-            count: { $sum: 1 },
-            amount: { $sum: "$amount" },
+            _id: null,
+            total: { $sum: { $subtract: ["$amount", "$paid_amount"] } },
           },
         },
-        { $sort: { _id: 1 } },
       ]),
+      Transaction.countDocuments(periodFilter),
+      Purchase.countDocuments(purchaseFilter),
+      Purchase.aggregate([
+        { $match: purchaseFilter },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+    ]);
+
+    const monthlyRevenue = await Bill.aggregate([
+      { $match: { ...filter, createdAt: { $gte: startDate } } },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          total: { $sum: "$amount" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
     ]);
 
     return {
-      challans: {
-        total: periodChallans,
-        total_amount: totalChallanAmount[0]?.total || 0,
-      },
-      bills: {
-        total: periodBills,
-        due: dueBills,
-        paid: paidBills,
-        total_amount: totalBillAmount[0]?.total || 0,
-        total_paid: totalPaidAmount[0]?.total || 0,
-      },
-      chart: {
-        challans_by_month: challansByMonth,
-        bills_by_month: billsByMonth,
-      },
-      recent_challans: recentChallans,
-      recent_bills: recentBills,
+      period: period || "monthly",
+      challans: challanCount,
+      bills: billCount,
+      total_revenue: revenue[0]?.total || 0,
+      pending_amount: pendingAmount[0]?.total || 0,
+      transactions: transactionCount,
+      purchases: purchaseCount,
+      purchase_amount: purchaseAmount[0]?.total || 0,
+      monthly_revenue: monthlyRevenue,
     };
   }
 }

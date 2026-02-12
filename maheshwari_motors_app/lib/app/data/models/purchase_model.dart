@@ -42,7 +42,6 @@ class PurchaseModel {
   final double amount;
   final String paymentStatus;
   final double paidAmount;
-  final String firmId;
 
   PurchaseModel({
     required this.id,
@@ -55,7 +54,6 @@ class PurchaseModel {
     required this.amount,
     this.paymentStatus = 'due',
     this.paidAmount = 0,
-    required this.firmId,
   });
 
   double get balanceAmount => amount - paidAmount;
@@ -77,9 +75,6 @@ class PurchaseModel {
       amount: (json['amount'] ?? 0).toDouble(),
       paymentStatus: json['payment_status'] ?? 'due',
       paidAmount: (json['paid_amount'] ?? 0).toDouble(),
-      firmId: json['firm_id'] is Map
-          ? json['firm_id']['_id'] ?? ''
-          : json['firm_id'] ?? '',
     );
   }
 
@@ -93,7 +88,6 @@ class PurchaseModel {
       'amount': amount,
       'payment_status': paymentStatus,
       'paid_amount': paidAmount,
-      'firm_id': firmId,
     };
     if (supplierId != null) map['supplier_id'] = supplierId;
     return map;

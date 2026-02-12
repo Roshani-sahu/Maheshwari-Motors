@@ -18,7 +18,7 @@ const categorySchema = {
 };
 
 export const getCategories = asyncHandler(async (req, res) => {
-  const result = await categoryService.getCategories(req.ownerId, req.query);
+  const result = await categoryService.getCategories(req.user._id, req.query);
   res
     .status(200)
     .json(new ApiResponse(200, result, "Categories fetched successfully"));
@@ -27,7 +27,7 @@ export const getCategories = asyncHandler(async (req, res) => {
 export const getCategoryById = asyncHandler(async (req, res) => {
   const category = await categoryService.getCategoryById(
     req.params.categoryId,
-    req.ownerId,
+    req.user._id,
   );
   res
     .status(200)
@@ -36,7 +36,7 @@ export const getCategoryById = asyncHandler(async (req, res) => {
 
 export const createCategory = asyncHandler(async (req, res) => {
   const data = validate(req.body, categorySchema);
-  const category = await categoryService.createCategory(data, req.ownerId);
+  const category = await categoryService.createCategory(data, req.user._id);
   res
     .status(201)
     .json(new ApiResponse(201, category, "Category created successfully"));
@@ -46,7 +46,7 @@ export const updateCategory = asyncHandler(async (req, res) => {
   const data = validate(req.body, categorySchema, { allowPartial: true });
   const category = await categoryService.updateCategory(
     req.params.categoryId,
-    req.ownerId,
+    req.user._id,
     data,
   );
   res
@@ -55,7 +55,7 @@ export const updateCategory = asyncHandler(async (req, res) => {
 });
 
 export const deleteCategory = asyncHandler(async (req, res) => {
-  await categoryService.deleteCategory(req.params.categoryId, req.ownerId);
+  await categoryService.deleteCategory(req.params.categoryId, req.user._id);
   res
     .status(200)
     .json(new ApiResponse(200, null, "Category deleted successfully"));

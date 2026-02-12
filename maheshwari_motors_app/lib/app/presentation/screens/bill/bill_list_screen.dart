@@ -4,7 +4,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/bill_model.dart';
 import '../../../routes/app_routes.dart';
-import '../../controllers/auth_controller.dart';
 import '../../controllers/bill_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
@@ -75,13 +74,8 @@ class BillListScreen extends StatelessWidget {
                       onRecordPayment: bill.paymentStatus == 'paid'
                           ? null
                           : () async {
-                              final firmId = Get.find<AuthController>()
-                                  .selectedFirm
-                                  .value!
-                                  .id;
                               final result = await RecordPaymentSheet.show(
                                 context: context,
-                                firmId: firmId,
                                 referenceId: bill.id,
                                 referenceLabel: 'Bill #${bill.billNo}',
                                 totalAmount: bill.amount,

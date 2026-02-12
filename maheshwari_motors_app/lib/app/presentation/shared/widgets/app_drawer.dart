@@ -20,7 +20,7 @@ class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
   void _navigate(String route, {dynamic arguments}) {
-    Get.back(); // close drawer first
+    Get.back();
     if (Get.currentRoute == route) return;
     Get.offNamed(route, arguments: arguments);
   }
@@ -38,7 +38,6 @@ class AppDrawer extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            // ── Header ──
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
@@ -71,7 +70,9 @@ class AppDrawer extends StatelessWidget {
                   const SizedBox(height: 14),
                   Obx(
                     () => Text(
-                      auth.selectedFirm.value?.name ?? 'Maheshwari Motors',
+                      auth.firmData?.name ??
+                          auth.user.value?.name ??
+                          'Maheshwari Motors',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppColors.white,
@@ -83,50 +84,42 @@ class AppDrawer extends StatelessWidget {
                   const SizedBox(height: 2),
                   Obx(
                     () => Text(
-                      auth.user.value?.username ?? '',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white70,
-                      ),
+                      auth.isAdminLogin
+                          ? 'Admin'
+                          : auth.firmData?.firmType ?? '',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.white70),
                     ),
                   ),
                 ],
               ),
             ),
 
-            // ── Menu items ──
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                children: [
-                  _DrawerItem(
-                    icon: Icons.dashboard_rounded,
-                    label: 'Dashboard',
-                    isActive: currentRoute == AppRoutes.home,
-                    onTap: () => _navigate(AppRoutes.home),
-                  ),
+              child: Obx(() {
+                final isFirm = auth.isFirmLogin;
+                return ListView(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  children: [
+                    _DrawerItem(
+                      icon: Icons.dashboard_rounded,
+                      label: 'Dashboard',
+                      isActive: currentRoute == AppRoutes.home,
+                      onTap: () => _navigate(AppRoutes.home),
+                    ),
 
-                  const _SectionDivider(),
+                    const _SectionDivider(),
 
-                  // ── Masters ──
-                  const _DrawerSectionHeader(title: 'Masters'),
-                  Obx(() {
-                    final items = <Widget>[
+                    const _DrawerSectionHeader(title: 'Masters'),
+                    if (auth.isMainUser)
                       _DrawerItem(
-                        icon: Icons.business_rounded,
-                        label: 'Firm Master',
-                        isActive: currentRoute == AppRoutes.firmMaster,
-                        onTap: () => _navigate(AppRoutes.firmMaster),
-                      ),
-                    ];
-                    if (auth.isMainUser) {
-                      items.add(_DrawerItem(
                         icon: Icons.people_rounded,
                         label: 'User Master',
                         isActive: currentRoute == AppRoutes.userMaster,
                         onTap: () => _navigate(AppRoutes.userMaster),
-                      ));
-                    }
-                    items.addAll([
+                      ),
+                    if (isFirm) ...[
                       _DrawerItem(
                         icon: Icons.groups_rounded,
                         label: 'Party Master',
@@ -139,174 +132,165 @@ class AppDrawer extends StatelessWidget {
                         isActive: currentRoute == AppRoutes.accountMaster,
                         onTap: () => _navigate(AppRoutes.accountMaster),
                       ),
-                    ]);
-                    return Column(children: items);
-                  }),
+                    ],
 
-                  const _SectionDivider(),
+                    if (isFirm) ...[
+                      const _SectionDivider(),
 
-                  // ── Inventory ──
-                  const _DrawerSectionHeader(title: 'Inventory'),
-                  _DrawerItem(
-                    icon: Icons.inventory_2_rounded,
-                    label: 'Item Master',
-                    isActive: currentRoute == AppRoutes.itemMaster,
-                    onTap: () => _navigate(AppRoutes.itemMaster),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.view_list_rounded,
-                    label: 'Item View',
-                    isActive: currentRoute == AppRoutes.itemView,
-                    onTap: () => _navigate(AppRoutes.itemView),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.category_rounded,
-                    label: 'Category Master',
-                    isActive: currentRoute == AppRoutes.categoryMaster,
-                    onTap: () => _navigate(AppRoutes.categoryMaster),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.local_shipping_rounded,
-                    label: 'Supplier Master',
-                    isActive: currentRoute == AppRoutes.supplierMaster,
-                    onTap: () => _navigate(AppRoutes.supplierMaster),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.warning_amber_rounded,
-                    label: 'Stock Alerts',
-                    isActive: currentRoute == AppRoutes.stockAlertMaster,
-                    onTap: () => _navigate(AppRoutes.stockAlertMaster),
-                  ),
+                      const _DrawerSectionHeader(title: 'Inventory'),
+                      _DrawerItem(
+                        icon: Icons.inventory_2_rounded,
+                        label: 'Item Master',
+                        isActive: currentRoute == AppRoutes.itemMaster,
+                        onTap: () => _navigate(AppRoutes.itemMaster),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.view_list_rounded,
+                        label: 'Item View',
+                        isActive: currentRoute == AppRoutes.itemView,
+                        onTap: () => _navigate(AppRoutes.itemView),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.category_rounded,
+                        label: 'Category Master',
+                        isActive: currentRoute == AppRoutes.categoryMaster,
+                        onTap: () => _navigate(AppRoutes.categoryMaster),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.local_shipping_rounded,
+                        label: 'Supplier Master',
+                        isActive: currentRoute == AppRoutes.supplierMaster,
+                        onTap: () => _navigate(AppRoutes.supplierMaster),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.warning_amber_rounded,
+                        label: 'Stock Alerts',
+                        isActive: currentRoute == AppRoutes.stockAlertMaster,
+                        onTap: () => _navigate(AppRoutes.stockAlertMaster),
+                      ),
 
-                  const _SectionDivider(),
+                      const _SectionDivider(),
 
-                  // ── Transactions ──
-                  const _DrawerSectionHeader(title: 'Transactions'),
-                  _DrawerItem(
-                    icon: Icons.receipt_long_rounded,
-                    label: 'Challans',
-                    isActive: currentRoute == AppRoutes.challanList,
-                    onTap: () => _navigate(AppRoutes.challanList),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.description_rounded,
-                    label: 'Bills',
-                    isActive: currentRoute == AppRoutes.billList,
-                    onTap: () => _navigate(AppRoutes.billList),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.shopping_cart_rounded,
-                    label: 'Purchases',
-                    isActive: currentRoute == AppRoutes.purchaseMaster,
-                    onTap: () => _navigate(AppRoutes.purchaseMaster),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.swap_horiz_rounded,
-                    label: 'Transactions',
-                    isActive: currentRoute == AppRoutes.transactionHistory,
-                    onTap: () => _navigate(AppRoutes.transactionHistory),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.percent_rounded,
-                    label: 'Discounts',
-                    isActive: currentRoute == AppRoutes.discountMaster,
-                    onTap: () => _navigate(AppRoutes.discountMaster),
-                  ),
+                      const _DrawerSectionHeader(title: 'Transactions'),
+                      _DrawerItem(
+                        icon: Icons.receipt_long_rounded,
+                        label: 'Challans',
+                        isActive: currentRoute == AppRoutes.challanList,
+                        onTap: () => _navigate(AppRoutes.challanList),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.description_rounded,
+                        label: 'Bills',
+                        isActive: currentRoute == AppRoutes.billList,
+                        onTap: () => _navigate(AppRoutes.billList),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.shopping_cart_rounded,
+                        label: 'Purchases',
+                        isActive: currentRoute == AppRoutes.purchaseMaster,
+                        onTap: () => _navigate(AppRoutes.purchaseMaster),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.swap_horiz_rounded,
+                        label: 'Transactions',
+                        isActive: currentRoute == AppRoutes.transactionHistory,
+                        onTap: () => _navigate(AppRoutes.transactionHistory),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.percent_rounded,
+                        label: 'Discounts',
+                        isActive: currentRoute == AppRoutes.discountMaster,
+                        onTap: () => _navigate(AppRoutes.discountMaster),
+                      ),
 
-                  const _SectionDivider(),
+                      const _SectionDivider(),
 
-                  // ── Reports ──
-                  const _DrawerSectionHeader(title: 'Reports'),
-                  _DrawerItem(
-                    icon: Icons.bar_chart_rounded,
-                    label: 'Business Reports',
-                    isActive: false,
-                    onTap: () => _navigate(
-                      AppRoutes.report,
-                      arguments: 'Business Reports',
+                      const _DrawerSectionHeader(title: 'Reports'),
+                      _DrawerItem(
+                        icon: Icons.bar_chart_rounded,
+                        label: 'Business Reports',
+                        isActive: false,
+                        onTap: () => _navigate(
+                          AppRoutes.report,
+                          arguments: 'Business Reports',
+                        ),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.receipt_rounded,
+                        label: 'GST Report',
+                        isActive: false,
+                        onTap: () => _navigate(
+                          AppRoutes.report,
+                          arguments: 'GST Report',
+                        ),
+                      ),
+                      _DrawerItem(
+                        icon: Icons.point_of_sale_rounded,
+                        label: 'Sales Report',
+                        isActive: false,
+                        onTap: () => _navigate(
+                          AppRoutes.report,
+                          arguments: 'Sales Report',
+                        ),
+                      ),
+
+                      const _SectionDivider(),
+
+                      _DrawerItem(
+                        icon: Icons.help_outline_rounded,
+                        label: 'Help & Support',
+                        isActive: currentRoute == AppRoutes.helpSupport,
+                        onTap: () => _navigate(AppRoutes.helpSupport),
+                      ),
+                    ],
+
+                    const _SectionDivider(),
+
+                    const _DrawerSectionHeader(title: 'Account'),
+                    _DrawerItem(
+                      icon: Icons.lock_outline_rounded,
+                      label: 'Change Password',
+                      isActive: currentRoute == AppRoutes.changePassword,
+                      onTap: () => _navigate(AppRoutes.changePassword),
                     ),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.receipt_rounded,
-                    label: 'GST Report',
-                    isActive: false,
-                    onTap: () => _navigate(
-                      AppRoutes.report,
-                      arguments: 'GST Report',
+                    _DrawerItem(
+                      icon: Icons.devices_rounded,
+                      label: 'Active Sessions',
+                      isActive: currentRoute == AppRoutes.activeSessions,
+                      onTap: () => _navigate(AppRoutes.activeSessions),
                     ),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.point_of_sale_rounded,
-                    label: 'Sales Report',
-                    isActive: false,
-                    onTap: () => _navigate(
-                      AppRoutes.report,
-                      arguments: 'Sales Report',
+                    _DrawerItem(
+                      icon: Icons.logout_rounded,
+                      label: 'Logout',
+                      isActive: false,
+                      color: AppColors.error,
+                      onTap: () {
+                        Get.back();
+                        auth.logout();
+                      },
                     ),
-                  ),
-
-                  const _SectionDivider(),
-
-                  // ── Help ──
-                  _DrawerItem(
-                    icon: Icons.help_outline_rounded,
-                    label: 'Help & Support',
-                    isActive: currentRoute == AppRoutes.helpSupport,
-                    onTap: () => _navigate(AppRoutes.helpSupport),
-                  ),
-
-                  const _SectionDivider(),
-
-                  // ── Account ──
-                  const _DrawerSectionHeader(title: 'Account'),
-                  _DrawerItem(
-                    icon: Icons.lock_outline_rounded,
-                    label: 'Change Password',
-                    isActive: currentRoute == AppRoutes.changePassword,
-                    onTap: () => _navigate(AppRoutes.changePassword),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.devices_rounded,
-                    label: 'Active Sessions',
-                    isActive: currentRoute == AppRoutes.activeSessions,
-                    onTap: () => _navigate(AppRoutes.activeSessions),
-                  ),
-                  _DrawerItem(
-                    icon: Icons.swap_horiz_rounded,
-                    label: 'Switch Firm',
-                    isActive: false,
-                    onTap: () {
-                      Get.back();
-                      auth.switchFirm();
-                    },
-                  ),
-                  _DrawerItem(
-                    icon: Icons.logout_rounded,
-                    label: 'Logout',
-                    isActive: false,
-                    color: AppColors.error,
-                    onTap: () {
-                      Get.back();
-                      auth.logout();
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              ),
+                    const SizedBox(height: 8),
+                  ],
+                );
+              }),
             ),
 
-            // ── Version ──
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
+                  top: BorderSide(
+                    color: AppColors.border.withValues(alpha: 0.5),
+                  ),
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline_rounded,
-                      size: 14, color: AppColors.textSecondary),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Maheshwari Motors v1.0.0',
@@ -324,8 +308,6 @@ class AppDrawer extends StatelessWidget {
     );
   }
 }
-
-// ── Private helper widgets ──
 
 class _DrawerSectionHeader extends StatelessWidget {
   final String title;
@@ -402,7 +384,9 @@ class _DrawerItem extends StatelessWidget {
                   child: Text(
                     label,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isActive ? activeColor : (color ?? AppColors.textPrimary),
+                      color: isActive
+                          ? activeColor
+                          : (color ?? AppColors.textPrimary),
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),

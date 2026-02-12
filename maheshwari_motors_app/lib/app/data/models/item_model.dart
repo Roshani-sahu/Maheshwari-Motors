@@ -9,7 +9,7 @@ class ItemModel {
   final int nongstSold;
   final int? physicalStock;
   final int? nongstAvailable;
-  final int isGst; // 0 = NON_GST only, 1 = GST (can sell as either)
+  final int isGst;
   final List<String> categoryIds;
   final List<String> categoryNames;
   final String? supplierId;

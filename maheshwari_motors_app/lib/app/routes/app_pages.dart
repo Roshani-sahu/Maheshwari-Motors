@@ -1,16 +1,12 @@
 import 'package:get/get.dart';
 
 import '../routes/app_routes.dart';
-import '../presentation/controllers/add_firm_controller.dart';
 import '../presentation/controllers/add_item_controller.dart';
 import '../presentation/controllers/add_party_controller.dart';
 import '../presentation/controllers/add_user_controller.dart';
 import '../presentation/screens/splash/splash_screen.dart';
 import '../presentation/screens/auth/login/login_screen.dart';
-import '../presentation/screens/firm_selection/firm_selection_screen.dart';
 import '../presentation/screens/home/home_screen.dart';
-import '../presentation/screens/firm_master/firm_master_screen.dart';
-import '../presentation/screens/firm_master/add_firm_screen.dart';
 import '../presentation/screens/item_master/item_master_screen.dart';
 import '../presentation/screens/item_master/item_view_screen.dart';
 import '../presentation/screens/item_master/add_item_screen.dart';
@@ -57,22 +53,7 @@ class AppPages {
   static final pages = <GetPage>[
     GetPage(name: AppRoutes.splash, page: () => const SplashScreen()),
     GetPage(name: AppRoutes.login, page: () => const LoginScreen()),
-    GetPage(
-      name: AppRoutes.firmSelection,
-      page: () => const FirmSelectionScreen(),
-    ),
     GetPage(name: AppRoutes.home, page: () => const HomeScreen()),
-    GetPage(name: AppRoutes.firmMaster, page: () => const FirmMasterScreen()),
-    GetPage(
-      name: AppRoutes.addFirm,
-      page: () => const AddFirmScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => AddFirmController())),
-    ),
-    GetPage(
-      name: AppRoutes.editFirm,
-      page: () => const AddFirmScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => AddFirmController())),
-    ),
     GetPage(name: AppRoutes.itemMaster, page: () => const ItemMasterScreen()),
     GetPage(name: AppRoutes.itemView, page: () => const ItemViewScreen()),
     GetPage(

@@ -41,8 +41,8 @@ const purchaseTransactionSchema = {
 
 export const getTransactions = asyncHandler(async (req, res) => {
   const result = await transactionService.getTransactions(
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
     req.query,
   );
   res
@@ -53,8 +53,8 @@ export const getTransactions = asyncHandler(async (req, res) => {
 export const getTransactionById = asyncHandler(async (req, res) => {
   const transaction = await transactionService.getTransactionById(
     req.params.transactionId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(200)
@@ -67,8 +67,8 @@ export const createSaleTransaction = asyncHandler(async (req, res) => {
   const data = validate(req.body, saleTransactionSchema);
   const transaction = await transactionService.createSaleTransaction(
     data,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(201)
@@ -85,8 +85,8 @@ export const createPurchaseTransaction = asyncHandler(async (req, res) => {
   const data = validate(req.body, purchaseTransactionSchema);
   const transaction = await transactionService.createPurchaseTransaction(
     data,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(201)
@@ -101,8 +101,8 @@ export const createPurchaseTransaction = asyncHandler(async (req, res) => {
 
 export const getTransactionSummary = asyncHandler(async (req, res) => {
   const summary = await transactionService.getTransactionSummary(
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(200)
@@ -113,8 +113,8 @@ export const getTransactionSummary = asyncHandler(async (req, res) => {
 
 export const getTransactionsByType = asyncHandler(async (req, res) => {
   const result = await transactionService.getTransactions(
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
     {
       ...req.query,
       type: req.params.type,
@@ -127,8 +127,8 @@ export const getTransactionsByType = asyncHandler(async (req, res) => {
 
 export const getTransactionsByPaymentMode = asyncHandler(async (req, res) => {
   const result = await transactionService.getTransactions(
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
     {
       ...req.query,
       payment_mode: req.params.mode,
@@ -142,8 +142,8 @@ export const getTransactionsByPaymentMode = asyncHandler(async (req, res) => {
 export const deleteTransaction = asyncHandler(async (req, res) => {
   await transactionService.deleteTransaction(
     req.params.transactionId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(200)
@@ -153,8 +153,8 @@ export const deleteTransaction = asyncHandler(async (req, res) => {
 export const getTransactionsByBill = asyncHandler(async (req, res) => {
   const transactions = await transactionService.getTransactionsByBill(
     req.params.billId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(200)
@@ -166,8 +166,8 @@ export const getTransactionsByBill = asyncHandler(async (req, res) => {
 export const getTransactionsByPurchase = asyncHandler(async (req, res) => {
   const transactions = await transactionService.getTransactionsByPurchase(
     req.params.purchaseId,
-    req.params.firmId,
-    req.firmOwnerId,
+    req.user._id,
+    req.isGst,
   );
   res
     .status(200)

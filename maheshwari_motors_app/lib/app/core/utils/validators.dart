@@ -1,4 +1,3 @@
-/// Reusable form field validators for TextFormField / AppTextField.
 class AppValidators {
   AppValidators._();
 
@@ -13,14 +12,13 @@ class AppValidators {
     r'^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}$',
   );
 
-  /// Returns null if valid, error message otherwise.
   static String? required(String? value, [String fieldName = 'This field']) {
     if (value == null || value.trim().isEmpty) return '$fieldName is required';
     return null;
   }
 
   static String? email(String? value) {
-    if (value == null || value.trim().isEmpty) return null; // optional
+    if (value == null || value.trim().isEmpty) return null;
     if (!_emailRegExp.hasMatch(value.trim())) return 'Enter a valid email';
     return null;
   }
@@ -32,7 +30,7 @@ class AppValidators {
   }
 
   static String? phone(String? value) {
-    if (value == null || value.trim().isEmpty) return null; // optional
+    if (value == null || value.trim().isEmpty) return null;
     if (!_phoneRegExp.hasMatch(value.trim())) {
       return 'Enter a valid 10-digit phone number';
     }
@@ -40,7 +38,7 @@ class AppValidators {
   }
 
   static String? gstin(String? value) {
-    if (value == null || value.trim().isEmpty) return null; // optional
+    if (value == null || value.trim().isEmpty) return null;
     if (!_gstinRegExp.hasMatch(value.trim().toUpperCase())) {
       return 'Enter a valid 15-character GSTIN';
     }
@@ -53,7 +51,6 @@ class AppValidators {
     return null;
   }
 
-  /// Password field that is optional (for edit mode).
   static String? optionalPassword(String? value) {
     if (value == null || value.isEmpty) return null;
     if (value.length < 6) return 'Password must be at least 6 characters';

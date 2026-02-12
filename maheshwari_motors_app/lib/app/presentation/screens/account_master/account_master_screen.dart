@@ -46,8 +46,6 @@ class AccountMasterScreen extends StatelessWidget {
   }
 }
 
-// ─── Transactions Tab ────────────────────────────────────────────────
-
 class _TransactionsTab extends StatelessWidget {
   final AccountMasterController c;
   const _TransactionsTab({required this.c});
@@ -56,7 +54,6 @@ class _TransactionsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Summary bar
         Obx(() {
           if (c.summary.value.isEmpty) return const SizedBox.shrink();
           return Container(
@@ -269,8 +266,6 @@ class _TransactionCard extends StatelessWidget {
   }
 }
 
-// ─── Discounts Tab ───────────────────────────────────────────────────
-
 class _DiscountsTab extends StatelessWidget {
   final AccountMasterController c;
   const _DiscountsTab({required this.c});
@@ -281,7 +276,14 @@ class _DiscountsTab extends StatelessWidget {
       children: [
         Obx(
           () => AppFilterChips(
-            options: const ['all', 'item', 'party'],
+            options: const [
+              'all',
+              'item',
+              'party_item',
+              'party_all',
+              'item_group',
+              'profit_margin',
+            ],
             selected: c.discountTypeFilter.value,
             onSelected: (v) => c.discountTypeFilter.value = v,
           ),
@@ -351,7 +353,41 @@ class _DiscountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isItem = discount.type == 'item';
+    Color iconBgColor;
+    Color iconColor;
+    IconData typeIcon;
+    switch (discount.type) {
+      case 'item':
+        iconBgColor = AppColors.info.withValues(alpha: 0.1);
+        iconColor = AppColors.info;
+        typeIcon = Icons.inventory_2_outlined;
+        break;
+      case 'party_item':
+        iconBgColor = AppColors.warning.withValues(alpha: 0.1);
+        iconColor = AppColors.warning;
+        typeIcon = Icons.people_outline;
+        break;
+      case 'party_all':
+        iconBgColor = AppColors.warning.withValues(alpha: 0.1);
+        iconColor = AppColors.warning;
+        typeIcon = Icons.person_outline;
+        break;
+      case 'item_group':
+        iconBgColor = Colors.orange.withValues(alpha: 0.1);
+        iconColor = Colors.orange;
+        typeIcon = Icons.category_outlined;
+        break;
+      case 'profit_margin':
+        iconBgColor = Colors.purple.withValues(alpha: 0.1);
+        iconColor = Colors.purple;
+        typeIcon = Icons.trending_up;
+        break;
+      default:
+        iconBgColor = AppColors.info.withValues(alpha: 0.1);
+        iconColor = AppColors.info;
+        typeIcon = Icons.percent;
+    }
+
     return AppCard(
       padding: const EdgeInsets.all(14),
       child: Row(
@@ -360,16 +396,10 @@ class _DiscountCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: (isItem ? AppColors.info : AppColors.warning).withValues(
-                alpha: 0.1,
-              ),
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              isItem ? Icons.inventory_2_outlined : Icons.person_outline,
-              color: isItem ? AppColors.info : AppColors.warning,
-              size: 20,
-            ),
+            child: Icon(typeIcon, color: iconColor, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -386,11 +416,9 @@ class _DiscountCard extends StatelessWidget {
                 Row(
                   children: [
                     StatusBadge(
-                      label: discount.type.toUpperCase(),
-                      color: isItem
-                          ? AppColors.infoLight
-                          : AppColors.warningLight,
-                      textColor: isItem ? AppColors.info : AppColors.warning,
+                      label: discount.typeLabel,
+                      color: iconBgColor,
+                      textColor: iconColor,
                     ),
                     const SizedBox(width: 8),
                     Text(

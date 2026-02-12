@@ -5,7 +5,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../data/models/purchase_model.dart';
 import '../../../routes/app_routes.dart';
-import '../../controllers/auth_controller.dart';
 import '../../controllers/purchase_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
@@ -15,7 +14,6 @@ class PurchaseMasterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(PurchaseMasterController());
-    final auth = Get.find<AuthController>();
 
     return Scaffold(
       drawer: const AppDrawer(),
@@ -77,7 +75,6 @@ class PurchaseMasterScreen extends StatelessWidget {
                       onRecordPayment: () async {
                         final result = await RecordPaymentSheet.show(
                           context: context,
-                          firmId: auth.firmId,
                           referenceId: purchase.id,
                           referenceLabel: 'Purchase #${purchase.purchaseNo}',
                           totalAmount: purchase.amount,

@@ -6,11 +6,9 @@ import '../../data/models/challan_model.dart';
 import '../../data/models/party_model.dart';
 import '../../data/services/api_service.dart';
 import '../shared/widgets/common_widgets.dart';
-import 'auth_controller.dart';
 
 class GenerateBillController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
-  final AuthController _auth = Get.find<AuthController>();
 
   final RxBool isLoading = false.obs;
   final RxBool isLoadingParties = true.obs;
@@ -24,11 +22,9 @@ class GenerateBillController extends GetxController {
 
   final RxBool applyBalance = false.obs;
 
-  // ── Partial Delivery ──
   final RxBool partialDelivery = false.obs;
   final TextEditingController deliveredAmountC = TextEditingController();
 
-  // Computed
   double get totalAmount {
     double sum = 0;
     for (final ch in challans) {
@@ -49,7 +45,6 @@ class GenerateBillController extends GetxController {
     return amt;
   }
 
-  /// How much the party is actually taking (for partial delivery)
   double get deliveredAmount {
     if (!partialDelivery.value) return finalAmount;
     final parsed = double.tryParse(deliveredAmountC.text.trim());
@@ -57,10 +52,8 @@ class GenerateBillController extends GetxController {
     return parsed.clamp(0, finalAmount);
   }
 
-  /// Amount that goes to party's prepaid balance
   double get undeliveredAmount => finalAmount - deliveredAmount;
 
-  /// The actual bill amount after partial delivery
   double get billAmount {
     if (!partialDelivery.value) return finalAmount;
     return deliveredAmount;
@@ -74,7 +67,7 @@ class GenerateBillController extends GetxController {
 
   Future<void> _loadParties() async {
     try {
-      parties.value = await _api.getParties(_auth.firmId);
+      parties.value = await _api.getParties();
     } catch (e) {
       AppSnackbar.error('Failed to load parties');
     }
@@ -92,10 +85,7 @@ class GenerateBillController extends GetxController {
 
     isLoadingChallans.value = true;
     try {
-      challans.value = await _api.getUnconvertedChallans(
-        _auth.firmId,
-        party.id,
-      );
+      challans.value = await _api.getUnconvertedChallans(party.id);
     } catch (e) {
       AppSnackbar.error('Failed to load challans');
     }
@@ -136,7 +126,6 @@ class GenerateBillController extends GetxController {
         'apply_balance': applyBalance.value,
       };
 
-      // Partial delivery: send delivered_amount so backend adjusts
       if (partialDelivery.value) {
         final delAmt = double.tryParse(deliveredAmountC.text.trim());
         if (delAmt == null || delAmt < 0) {
@@ -152,7 +141,7 @@ class GenerateBillController extends GetxController {
         data['delivered_amount'] = delAmt;
       }
 
-      await _api.createBill(_auth.firmId, data);
+      await _api.createBill(data);
       AppSnackbar.success('Bill generated successfully');
       Get.back(result: true);
     } catch (e) {

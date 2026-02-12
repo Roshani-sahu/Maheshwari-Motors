@@ -101,7 +101,6 @@ class ItemViewScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(14),
                       child: Row(
                         children: [
-                          // Image
                           ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: Container(
@@ -128,7 +127,6 @@ class ItemViewScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          // Details
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,7 +149,6 @@ class ItemViewScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                          // Amount
                           Text(
                             AppFormatters.currencyDecimal(item.amount),
                             style: Theme.of(context).textTheme.titleSmall

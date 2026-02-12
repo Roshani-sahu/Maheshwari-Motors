@@ -5,10 +5,8 @@ import Transaction from "../models/transaction.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class BillService {
-  async getBills(firmId, userId, query) {
-    const filter = { firm_id: firmId };
-    // Only add user_id filter if userId is provided (backward compat)
-    if (userId) filter.user_id = userId;
+  async getBills(userId, isGst, query) {
+    const filter = { user_id: userId, is_gst: isGst };
 
     if (query.party_id) filter.party_id = query.party_id;
     if (query.payment_status) filter.payment_status = query.payment_status;
@@ -26,30 +24,23 @@ class BillService {
     });
   }
 
-  async getBillById(billId, firmId, userId) {
-    const filter = { _id: billId, firm_id: firmId };
-    if (userId) filter.user_id = userId;
-
-    const bill = await Bill.findOne(filter)
+  async getBillById(billId, userId, isGst) {
+    const bill = await Bill.findOne({
+      _id: billId,
+      user_id: userId,
+      is_gst: isGst,
+    })
       .populate("party_id")
       .populate({
         path: "challan_ids",
         populate: { path: "items.item_id", select: "item_name" },
       });
 
-    if (!bill) {
-      throw ApiError.notFound("Bill not found");
-    }
+    if (!bill) throw ApiError.notFound("Bill not found");
     return bill;
   }
 
-  /**
-   * Create a bill from challans.
-   *
-   * Since challans are already split by firm (auto-split at challan creation),
-   * each bill belongs to exactly one firm. No bill splitting needed.
-   */
-  async createBill(billData, firmId, userId) {
+  async createBill(billData, userId, isGst) {
     const {
       challan_ids,
       party_id,
@@ -61,11 +52,11 @@ class BillService {
       throw ApiError.badRequest("At least one challan is required");
     }
 
-    // Fetch and validate challans (must belong to this firm)
     const challans = await Challan.find({
       _id: { $in: challan_ids },
       party_id,
-      firm_id: firmId,
+      user_id: userId,
+      is_gst: isGst,
       converted_to_bill: false,
     });
 
@@ -75,20 +66,14 @@ class BillService {
       );
     }
 
-    // Determine bill is_gst from the challans (all should be same type for this firm)
-    const billIsGst = challans[0].is_gst;
-
     let totalAmount = challans.reduce(
       (sum, challan) => sum + challan.amount,
       0,
     );
 
     const party = await Party.findById(party_id);
-    if (!party) {
-      throw ApiError.notFound("Party not found");
-    }
+    if (!party) throw ApiError.notFound("Party not found");
 
-    // Validate delivered_amount FIRST (before any DB writes)
     let deliveredNum = null;
     if (delivered_amount !== undefined && delivered_amount !== null) {
       deliveredNum = Number(delivered_amount);
@@ -99,28 +84,22 @@ class BillService {
       }
     }
 
-    // Party balance logic
     let balanceApplied = 0;
-
     if (apply_balance && party.balance !== 0) {
       balanceApplied = party.balance;
       totalAmount -= party.balance;
     }
 
-    // Prevent negative bill amount
     if (totalAmount < 0) totalAmount = 0;
 
-    // Validate delivered amount against adjusted total
     if (deliveredNum !== null && deliveredNum > totalAmount) {
       throw ApiError.badRequest("Delivered amount cannot exceed total amount");
     }
 
-    // All validation passed — NOW zero the party balance
     if (balanceApplied !== 0) {
       await Party.findByIdAndUpdate(party_id, { balance: 0 });
     }
 
-    // Partial delivery logic
     let partialReturnAmount = 0;
     let billAmount = totalAmount;
 
@@ -129,7 +108,10 @@ class BillService {
       billAmount = deliveredNum;
     }
 
-    const billCount = await Bill.countDocuments({ firm_id: firmId });
+    const billCount = await Bill.countDocuments({
+      user_id: userId,
+      is_gst: isGst,
+    });
     const bill_no = `BL-${String(billCount + 1).padStart(6, "0")}`;
 
     const bill = await Bill.create({
@@ -139,23 +121,19 @@ class BillService {
       amount: billAmount,
       return_amount: partialReturnAmount,
       challan_ids,
-      firm_id: firmId,
       user_id: userId,
-      is_gst: billIsGst,
+      is_gst: isGst,
       paid_amount: 0,
       payment_status: "due",
-      // NON_GST bills never affect physical stock (stock was never deducted)
-      skip_stock_calculation: billIsGst === 0,
+      skip_stock_calculation: isGst === 0,
     });
 
-    // Credit undelivered amount to party balance
     if (partialReturnAmount > 0) {
       await Party.findByIdAndUpdate(party_id, {
         $inc: { balance: partialReturnAmount },
       });
     }
 
-    // Mark challans as converted
     await Challan.updateMany(
       { _id: { $in: challan_ids } },
       { converted_to_bill: true, bill_id: bill._id },
@@ -175,14 +153,13 @@ class BillService {
     };
   }
 
-  async recordPayment(billId, firmId, userId, amount) {
-    const filter = { _id: billId, firm_id: firmId };
-    if (userId) filter.user_id = userId;
-    const bill = await Bill.findOne(filter);
-
-    if (!bill) {
-      throw ApiError.notFound("Bill not found");
-    }
+  async recordPayment(billId, userId, isGst, amount) {
+    const bill = await Bill.findOne({
+      _id: billId,
+      user_id: userId,
+      is_gst: isGst,
+    });
+    if (!bill) throw ApiError.notFound("Bill not found");
 
     const newPaidAmount = bill.paid_amount + amount;
     let paymentStatus;
@@ -212,14 +189,13 @@ class BillService {
     return updatedBill;
   }
 
-  async handleReturn(billId, firmId, userId, returnAmount) {
-    const filter = { _id: billId, firm_id: firmId };
-    if (userId) filter.user_id = userId;
-    const bill = await Bill.findOne(filter);
-
-    if (!bill) {
-      throw ApiError.notFound("Bill not found");
-    }
+  async handleReturn(billId, userId, isGst, returnAmount) {
+    const bill = await Bill.findOne({
+      _id: billId,
+      user_id: userId,
+      is_gst: isGst,
+    });
+    if (!bill) throw ApiError.notFound("Bill not found");
 
     if (returnAmount > bill.amount) {
       throw ApiError.badRequest("Return amount cannot exceed bill amount");
@@ -227,13 +203,9 @@ class BillService {
 
     const newAmount = bill.amount - returnAmount;
     let paymentStatus;
-    if (bill.paid_amount < newAmount) {
-      paymentStatus = "due";
-    } else if (bill.paid_amount === newAmount) {
-      paymentStatus = "paid";
-    } else {
-      paymentStatus = "overpaid";
-    }
+    if (bill.paid_amount < newAmount) paymentStatus = "due";
+    else if (bill.paid_amount === newAmount) paymentStatus = "paid";
+    else paymentStatus = "overpaid";
 
     const updatedBill = await Bill.findByIdAndUpdate(
       billId,
@@ -245,7 +217,6 @@ class BillService {
       { new: true },
     ).populate("party_id", "name balance");
 
-    // Credit party balance with the return amount
     await Party.findByIdAndUpdate(bill.party_id, {
       $inc: { balance: returnAmount },
     });
@@ -253,28 +224,24 @@ class BillService {
     return updatedBill;
   }
 
-  async getBillSummary(firmId, userId) {
-    const baseFilter = { firm_id: firmId };
-    if (userId) baseFilter.user_id = userId;
+  async getBillSummary(userId, isGst) {
+    const baseFilter = { user_id: userId, is_gst: isGst };
     const [total, paid, due] = await Promise.all([
       Bill.countDocuments(baseFilter),
       Bill.countDocuments({ ...baseFilter, payment_status: "paid" }),
       Bill.countDocuments({ ...baseFilter, payment_status: "due" }),
     ]);
-
     return { total, paid, due };
   }
 
-  async deleteBill(billId, firmId, userId) {
-    const filter = { _id: billId, firm_id: firmId };
-    if (userId) filter.user_id = userId;
-    const bill = await Bill.findOne(filter);
+  async deleteBill(billId, userId, isGst) {
+    const bill = await Bill.findOne({
+      _id: billId,
+      user_id: userId,
+      is_gst: isGst,
+    });
+    if (!bill) throw ApiError.notFound("Bill not found");
 
-    if (!bill) {
-      throw ApiError.notFound("Bill not found");
-    }
-
-    // If overpaid, the excess was credited to party balance — reverse it
     if (bill.paid_amount > bill.amount) {
       const excessAmount = bill.paid_amount - bill.amount;
       await Party.findByIdAndUpdate(bill.party_id, {
@@ -282,29 +249,31 @@ class BillService {
       });
     }
 
-    // If returns were processed AND we are NOT already in overpaid state
-    // (overpaid state means return already accounted for above as part of excess)
     if (bill.return_amount > 0 && bill.paid_amount <= bill.amount) {
       await Party.findByIdAndUpdate(bill.party_id, {
         $inc: { balance: -bill.return_amount },
       });
     }
 
-    // Release challans back to unbilled state
     await Challan.updateMany(
       { _id: { $in: bill.challan_ids } },
       { converted_to_bill: false, bill_id: null },
     );
 
-    // Delete all transactions associated with this bill
-    await Transaction.deleteMany({ bill_id: billId, firm_id: firmId });
+    await Transaction.deleteMany({
+      bill_id: billId,
+      user_id: userId,
+    });
 
     await Bill.findByIdAndDelete(billId);
   }
 
-  async getBillsForParty(partyId, firmId, userId, query) {
-    const filter = { party_id: partyId, firm_id: firmId };
-    if (userId) filter.user_id = userId;
+  async getBillsForParty(partyId, userId, isGst, query) {
+    const filter = {
+      party_id: partyId,
+      user_id: userId,
+      is_gst: isGst,
+    };
     if (query.payment_status) filter.payment_status = query.payment_status;
     return Pagination.paginate(Bill, filter, {
       ...query,

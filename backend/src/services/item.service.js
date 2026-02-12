@@ -80,7 +80,6 @@ class ItemService {
       await s3Service.deleteFile(item.image);
     }
 
-    // Cascade: remove associated discounts and stock alerts
     await Promise.all([
       Discount.deleteMany({ item_id: itemId, user_id: userId }),
       StockAlert.deleteMany({ item_id: itemId, user_id: userId }),

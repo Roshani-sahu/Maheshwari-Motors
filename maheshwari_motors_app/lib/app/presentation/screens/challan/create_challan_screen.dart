@@ -24,7 +24,6 @@ class CreateChallanScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ─── Party Selector ──────────────────────
                   _SectionTitle(title: 'Party'),
                   const SizedBox(height: 8),
                   Obx(() {
@@ -71,7 +70,6 @@ class CreateChallanScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // ─── Line Items ──────────────────────────
                   Row(
                     children: [
                       const _SectionTitle(title: 'Items'),
@@ -104,7 +102,6 @@ class CreateChallanScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  // ─── Challan-Level Discount ──────────────
                   const _SectionTitle(title: 'Challan Discount (%)'),
                   const SizedBox(height: 8),
                   Row(
@@ -129,7 +126,6 @@ class CreateChallanScreen extends StatelessWidget {
 
                   const SizedBox(height: 24),
 
-                  // ─── Summary ─────────────────────────────
                   Obx(
                     () => _SummaryCard(
                       grossTotal: c.grossTotal.value,
@@ -145,7 +141,6 @@ class CreateChallanScreen extends StatelessWidget {
             ),
           ),
 
-          // ─── Submit Button ────────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             decoration: const BoxDecoration(
@@ -166,8 +161,6 @@ class CreateChallanScreen extends StatelessWidget {
     );
   }
 }
-
-// ─── Private Widgets ──────────────────────────────────
 
 class _SectionTitle extends StatelessWidget {
   final String title;
@@ -283,7 +276,6 @@ class _LineItemCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               Container(
@@ -313,7 +305,6 @@ class _LineItemCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Item Selector
           if (isLoadingItems)
             const _LoadingDropdown(label: 'Loading items…')
           else
@@ -345,7 +336,6 @@ class _LineItemCard extends StatelessWidget {
               },
             ),
 
-          // Auto-discount chip
           if (line.autoDiscountLabel != null && !line.hasManualDiscount)
             Padding(
               padding: const EdgeInsets.only(top: 6),
@@ -354,7 +344,6 @@ class _LineItemCard extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // GST / NON_GST toggle
           if (line.item != null)
             Obx(() => Row(
                   children: [
@@ -414,7 +403,6 @@ class _LineItemCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Qty + Rate + Discount
           Row(
             children: [
               Expanded(
@@ -448,7 +436,6 @@ class _LineItemCard extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // Line Total
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

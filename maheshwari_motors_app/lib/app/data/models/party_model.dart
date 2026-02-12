@@ -8,7 +8,6 @@ class PartyModel {
   final String? state;
   final String? gstin;
   final double balance;
-  final String firmId;
 
   PartyModel({
     required this.id,
@@ -20,7 +19,6 @@ class PartyModel {
     this.state,
     this.gstin,
     this.balance = 0,
-    required this.firmId,
   });
 
   factory PartyModel.fromJson(Map<String, dynamic> json) {
@@ -34,19 +32,11 @@ class PartyModel {
       state: json['state'],
       gstin: json['gstin'],
       balance: (json['balance'] ?? 0).toDouble(),
-      firmId: json['firm_id'] is Map
-          ? json['firm_id']['_id'] ?? ''
-          : json['firm_id'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
-    final map = <String, dynamic>{
-      '_id': id,
-      'name': name,
-      'balance': balance,
-      'firm_id': firmId,
-    };
+    final map = <String, dynamic>{'_id': id, 'name': name, 'balance': balance};
     if (phone != null) map['phone'] = phone;
     if (email != null) map['email'] = email;
     if (address != null) map['address'] = address;

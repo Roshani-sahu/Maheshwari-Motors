@@ -32,7 +32,6 @@ class AddUserScreen extends StatelessWidget {
               ),
               const SizedBox(height: 28),
 
-              // Required fields note
               Text(
                 'Fields marked with * are required',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(

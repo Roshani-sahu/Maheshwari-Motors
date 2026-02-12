@@ -1,7 +1,7 @@
-class FirmModel {
-  final String id;
+class FirmDataModel {
+  final String firmType;
   final String name;
-  final String type; // GST / NON_GST
+  final String? username;
   final String phone;
   final String email;
   final String address;
@@ -16,10 +16,10 @@ class FirmModel {
   final String? ifscCode;
   final String? accountNumber;
 
-  FirmModel({
-    required this.id,
+  FirmDataModel({
+    required this.firmType,
     required this.name,
-    required this.type,
+    this.username,
     required this.phone,
     required this.email,
     required this.address,
@@ -35,11 +35,11 @@ class FirmModel {
     this.accountNumber,
   });
 
-  factory FirmModel.fromJson(Map<String, dynamic> json) {
-    return FirmModel(
-      id: json['_id'] ?? '',
+  factory FirmDataModel.fromJson(Map<String, dynamic> json) {
+    return FirmDataModel(
+      firmType: json['firm_type'] ?? 'NON_GST',
       name: json['name'] ?? '',
-      type: json['type'] ?? 'NON_GST',
+      username: json['username'],
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',
       address: json['address'] ?? '',
@@ -58,15 +58,15 @@ class FirmModel {
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{
-      '_id': id,
+      'firm_type': firmType,
       'name': name,
-      'type': type,
       'phone': phone,
       'email': email,
       'address': address,
       'city': city,
       'state': state,
     };
+    if (username != null) map['username'] = username;
     if (godownAddress != null) map['godown_address'] = godownAddress;
     if (gstin != null) map['GSTIN'] = gstin;
     if (cin != null) map['CIN'] = cin;
@@ -78,6 +78,6 @@ class FirmModel {
     return map;
   }
 
-  bool get isGST => type == 'GST';
+  bool get isGST => firmType == 'GST';
   String get displayType => isGST ? 'GST' : 'NON-GST';
 }

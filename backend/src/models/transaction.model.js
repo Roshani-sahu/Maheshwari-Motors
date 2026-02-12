@@ -16,14 +16,12 @@ const transactionSchema = new mongoose.Schema(
     utr: { type: String },
     transaction_ref: { type: String },
     remarks: { type: String },
-    firm_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Firm",
-      required: true,
-    },
+    is_gst: { type: Number, enum: [0, 1], required: true },
+
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
   },
   { timestamps: true },

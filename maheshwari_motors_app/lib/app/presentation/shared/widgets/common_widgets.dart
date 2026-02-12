@@ -1,4 +1,3 @@
-// Barrel export — all shared widgets accessible from this single import.
 export 'app_text_field.dart';
 export 'app_button.dart';
 export 'status_badge.dart';

@@ -375,8 +375,11 @@
                     }
                 },
                 {
-                    "name": "Admin Register (Admin Only)",
+                    "name": "Admin Register (One-Time Setup)",
                     "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
                         "method": "POST",
                         "header": [],
                         "body": {

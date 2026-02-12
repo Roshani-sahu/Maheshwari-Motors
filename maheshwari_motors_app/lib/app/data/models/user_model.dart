@@ -1,48 +1,95 @@
+import 'firm_model.dart';
+
 class UserModel {
   final String id;
-  final String username;
-  final String email;
+  final String name;
+  final String? email;
+  final String? phone;
   final String type;
-  final List<String> firmIds;
+  final bool isAdmin;
+  final String role;
   final String? token;
+
+  final FirmDataModel? firmData;
+
+  final FirmDataModel? gstFirm;
+  final FirmDataModel? nongstFirm;
+  final bool isActive;
 
   UserModel({
     required this.id,
-    required this.username,
-    required this.email,
+    required this.name,
+    this.email,
+    this.phone,
     required this.type,
-    this.firmIds = const [],
+    this.isAdmin = false,
+    this.role = 'firm',
     this.token,
+    this.firmData,
+    this.gstFirm,
+    this.nongstFirm,
+    this.isActive = true,
   });
+
+  factory UserModel.fromLoginJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['_id'] ?? '',
+      name: json['name'] ?? '',
+      email: json['email'],
+      phone: json['phone'],
+      type: json['type'] ?? 'main',
+      isAdmin: json['is_admin'] ?? false,
+      role: json['role'] ?? 'firm',
+      token: json['token'],
+      firmData: json['firm_data'] != null
+          ? FirmDataModel.fromJson(json['firm_data'])
+          : null,
+    );
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['_id'] ?? '',
-      username: json['username'] ?? '',
-      email: json['email'] ?? '',
+      name: json['name'] ?? '',
+      email: json['email'],
+      phone: json['phone'],
       type: json['type'] ?? 'main',
-      firmIds: json['firm_ids'] != null
-          ? List<String>.from(
-              (json['firm_ids'] as List).map(
-                (e) => e is String ? e : e['_id'] ?? '',
-              ),
+      isAdmin: json['current_role'] == 'admin' || json['type'] == 'main',
+      role: json['current_role'] ?? 'firm',
+      gstFirm: json['gst_firm'] != null
+          ? FirmDataModel.fromJson(json['gst_firm'])
+          : null,
+      nongstFirm: json['nongst_firm'] != null
+          ? FirmDataModel.fromJson(json['nongst_firm'])
+          : null,
+      isActive: json['is_active'] ?? true,
+      firmData: json['current_firm_type'] != null
+          ? FirmDataModel.fromJson(
+              json['current_firm_type'] == 'GST'
+                  ? json['gst_firm'] ?? {}
+                  : json['nongst_firm'] ?? {},
             )
-          : [],
-      token: json['token'],
+          : null,
     );
   }
 
   bool get isMain => type == 'main';
+  bool get isFirmLogin => role == 'firm';
+  bool get isAdminLogin => role == 'admin';
+  String get firmType => firmData?.firmType ?? '';
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{
       '_id': id,
-      'username': username,
+      'name': name,
       'email': email,
+      'phone': phone,
       'type': type,
-      'firm_ids': firmIds,
+      'is_admin': isAdmin,
+      'role': role,
     };
     if (token != null) map['token'] = token;
+    if (firmData != null) map['firm_data'] = firmData!.toJson();
     return map;
   }
 }

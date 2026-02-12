@@ -1,6 +1,6 @@
 class TransactionModel {
   final String id;
-  final String type; // sale / purchase
+  final String type;
   final String? partyId;
   final String? partyName;
   final String? supplierId;
@@ -13,8 +13,7 @@ class TransactionModel {
   final String? utr;
   final String? transactionRef;
   final String? remarks;
-  final String firmId;
-  final String? firmName;
+  final int isGst;
   final DateTime createdAt;
 
   TransactionModel({
@@ -32,8 +31,7 @@ class TransactionModel {
     this.utr,
     this.transactionRef,
     this.remarks,
-    required this.firmId,
-    this.firmName,
+    this.isGst = 1,
     required this.createdAt,
   });
 
@@ -41,8 +39,6 @@ class TransactionModel {
     final party = json['party_id'];
     final supplier = json['supplier_id'];
     final bill = json['bill_id'];
-    final firm = json['firm_id'];
-
     return TransactionModel(
       id: json['_id'] ?? '',
       type: json['type'] ?? 'sale',
@@ -58,8 +54,7 @@ class TransactionModel {
       utr: json['utr'],
       transactionRef: json['transaction_ref'],
       remarks: json['remarks'],
-      firmId: firm is Map ? firm['_id'] ?? '' : firm ?? '',
-      firmName: firm is Map ? firm['name'] : null,
+      isGst: json['is_gst'] ?? 1,
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
     );
   }
@@ -70,7 +65,7 @@ class TransactionModel {
       'type': type,
       'amount': amount,
       'payment_mode': paymentMode,
-      'firm_id': firmId,
+      'is_gst': isGst,
       'createdAt': createdAt.toIso8601String(),
     };
     if (partyId != null) map['party_id'] = partyId;

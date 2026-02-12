@@ -4,11 +4,9 @@ import '../../core/network/api_client.dart';
 import '../../data/models/party_model.dart';
 import '../../data/services/api_service.dart';
 import '../shared/widgets/common_widgets.dart';
-import 'auth_controller.dart';
 
 class PartyMasterController extends GetxController {
   final ApiService _api = Get.find<ApiService>();
-  final AuthController _auth = Get.find<AuthController>();
 
   final RxList<PartyModel> parties = <PartyModel>[].obs;
   final RxList<PartyModel> filtered = <PartyModel>[].obs;
@@ -31,11 +29,8 @@ class PartyMasterController extends GetxController {
     isLoading.value = true;
     errorMessage.value = '';
     try {
-      final firmId = _auth.firmId;
-      if (firmId.isNotEmpty) {
-        parties.value = await _api.getParties(firmId);
-        _filter();
-      }
+      parties.value = await _api.getParties();
+      _filter();
     } catch (e) {
       errorMessage.value = 'Failed to load parties';
     }
@@ -59,7 +54,7 @@ class PartyMasterController extends GetxController {
 
   Future<void> deleteParty(String id) async {
     try {
-      await _api.deleteParty(_auth.firmId, id);
+      await _api.deleteParty(id);
       parties.removeWhere((p) => p.id == id);
       _filter();
       AppSnackbar.success('Party deleted');

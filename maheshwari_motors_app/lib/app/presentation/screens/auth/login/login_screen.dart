@@ -22,7 +22,6 @@ class LoginScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 60),
 
-                // Logo/Brand
                 Container(
                   width: 80,
                   height: 80,
@@ -59,9 +58,37 @@ class LoginScreen extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
 
-                // Username
+                Obx(
+                  () => Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _ModeTab(
+                            label: 'Firm Login',
+                            isActive: !controller.isAdminMode,
+                            onTap: () => controller.setLoginMode('firm'),
+                          ),
+                        ),
+                        Expanded(
+                          child: _ModeTab(
+                            label: 'Admin Login',
+                            isActive: controller.isAdminMode,
+                            onTap: () => controller.setLoginMode('admin'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+
                 AppTextField(
                   label: 'Username',
                   hint: 'Enter your username',
@@ -76,7 +103,6 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Password
                 Obx(
                   () => AppTextField(
                     label: 'Password',
@@ -104,10 +130,11 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 36),
 
-                // Submit
                 Obx(
                   () => AppButton(
-                    text: 'Sign In',
+                    text: controller.isAdminMode
+                        ? 'Sign In as Admin'
+                        : 'Sign In to Firm',
                     isLoading: controller.isLoading.value,
                     onPressed: controller.login,
                   ),
@@ -116,6 +143,42 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 32),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeTab extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _ModeTab({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.accent : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+            color: isActive ? AppColors.white : AppColors.textSecondary,
           ),
         ),
       ),
