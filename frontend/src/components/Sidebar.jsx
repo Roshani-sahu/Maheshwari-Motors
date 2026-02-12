@@ -4,29 +4,16 @@ import {
   FaBookOpen,
   FaHome,
   FaDatabase,
-  FaExchangeAlt,
-  FaChartPie,
-  FaCog,
-  FaQuestionCircle,
-  FaBuilding,
-  FaFileInvoiceDollar,
-  FaListUl,
-  FaUserShield,
-  FaHistory,
   FaChevronDown,
   FaChevronRight,
   FaUsers,
-  FaReceipt,
-  FaMoneyBillWave,
-  FaEye,
-  FaTags,
-  FaList,
-  FaUserPlus,
-  FaUserCog,
-  FaBell
+  FaBuilding,
+  FaQuestionCircle
 } from "react-icons/fa";
+import { sidebarConfig } from '../config/sidebarConfig';
+import useStore from '../store';
 
-const SidebarSection = ({ title, children, defaultOpen = false }) => {
+const SidebarSection = ({ title, children, defaultOpen = false, icon: Icon }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   
   return (
@@ -35,10 +22,13 @@ const SidebarSection = ({ title, children, defaultOpen = false }) => {
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex h-full items-center justify-between px-3 py-2 text-sm text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900 rounded-md transition"
       >
-        <span className="font-medium">{title}</span>
-        {isOpen ? <FaChevronDown className="w-3 h-3" /> : <FaChevronRight className="w-3 h-3" />}
+        <div className="flex items-center gap-3">
+             {Icon && <Icon className="w-4 h-4" />}
+            <span className="font-medium">{title}</span>
+        </div>
+        {children && (isOpen ? <FaChevronDown className="w-3 h-3" /> : <FaChevronRight className="w-3 h-3" />)}
       </button>
-      {isOpen && (
+      {isOpen && children && (
         <div className="ml-4 mt-1 space-y-1">
           {children}
         </div>
@@ -48,25 +38,27 @@ const SidebarSection = ({ title, children, defaultOpen = false }) => {
 };
 
 const Sidebar = ({ onClose }) => {
-  const linkBase =
-    "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition";
+  const { currentRole } = useStore();
+  const linkBase = "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition";
+
+  const menuItems = sidebarConfig[currentRole] || [];
 
   return (
     <aside className="flex flex-col w-60 h-screen border-r border-neutral-200 bg-[#0F172A] relative">
       {/* Header */}
       <div className="flex items-center h-16 px-4 border-b border-neutral-200">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 flex items-center justify-center bg-neutral-900 rounded-md">
-            <FaBookOpen className="text-white text-sm" />
-          </div>
-          <span className="text-lg text-[#CBD5E1]">ERP System</span>
-        </div>
+         <div className="flex items-center gap-2">
+           <div className="w-8 h-8 flex items-center justify-center bg-neutral-900 rounded-md">
+             <FaBookOpen className="text-white text-sm" />
+           </div>
+           <span className="text-lg text-[#CBD5E1]">ERP System</span>
+         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 overflow-y-auto pb-16" style={{msOverflowStyle: 'none', scrollbarWidth: 'none'}} onScroll={(e) => e.target.style.setProperty('--webkit-scrollbar', 'display: none')}>
+      <nav className="flex-1 p-4 overflow-y-auto pb-16" style={{msOverflowStyle: 'none', scrollbarWidth: 'none', scrollbarColor: '#0F172A #0F172A'}}>
         <ul className="space-y-1">
-          {/* 1. Dashboard */}
+          {/* Dashboard is common */}
           <li>
             <NavLink
               to="/dashboard"
@@ -84,225 +76,47 @@ const Sidebar = ({ onClose }) => {
             </NavLink>
           </li>
 
-          {/* 2. Masters */}
-          <SidebarSection title="Masters" defaultOpen={true}>
-            <NavLink
-              to="/masters/firm-master"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaBuilding className="w-4 h-4" />
-              Firm Master
-            </NavLink>
-            
-            {/* <NavLink
-              to="/masters/stock-alert-master"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaReceipt className="w-4 h-4" />
-              Stock Alert Master
-            </NavLink> */}
-            
-            {/* <NavLink
-              to="/masters/item-master"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaReceipt className="w-4 h-4" />
-              Inventory Master
-            </NavLink> */}
-            
-            <NavLink
-              to="/masters/user-master"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaUsers className="w-4 h-4" />
-              User Master
-            </NavLink>
-            
-            <NavLink
-              to="/masters/account-master"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaDatabase className="w-4 h-4" />
-              Account Master
-            </NavLink>
-          </SidebarSection>
-
-{/* 2. Masters */}
-          <SidebarSection title="Inventory" defaultOpen={false}>
-            <NavLink
-              to="/inventory/item-master"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaBuilding className="w-4 h-4" />
-              Item Management
-            </NavLink>
-            
-            <NavLink
-              to="/inventory/item-view"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaEye className="w-4 h-4" />
-              Item View
-            </NavLink>
-            
-            <NavLink
-              to="/inventory/category-master"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaTags className="w-4 h-4" />
-              Category Master
-            </NavLink>
-            
-            <NavLink
-              to="/inventory/view-category"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaList className="w-4 h-4" />
-              View Category
-            </NavLink>
-            
-            <NavLink
-              to="/inventory/add-supplier"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaUserPlus className="w-4 h-4" />
-              Add Supplier
-            </NavLink>
-            
-            <NavLink
-              to="/inventory/view-all-supplier"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaUserCog className="w-4 h-4" />
-              View All Supplier
-            </NavLink>
-            
-            <NavLink
-              to="/inventory/stock-alert-master"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaBell className="w-4 h-4" />
-              Stock Alert Master
-            </NavLink>
-            
-           
-          </SidebarSection>
-
-          {/* 3. Transactions */}
-          <SidebarSection title="Transactions" defaultOpen={true}>
-            <NavLink
-              to="/transactions/challan-list"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaListUl className="w-4 h-4" />
-              Challan List
-            </NavLink>
-            
-            <NavLink
-              to="/transactions/bill-list"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaReceipt className="w-4 h-4" />
-              Bill List
-            </NavLink>
-            
-            <NavLink
-              to="/transactions/transaction-history"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaReceipt className="w-4 h-4" />
-              Transaction History
-            </NavLink>
-          </SidebarSection>
-
-          {/* 4. Reports */}
-          <SidebarSection title="Reports">
-            <NavLink
-              to="/reports"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaChartPie className="w-4 h-4" />
-              Business Reports
-            </NavLink>
-            
-            <NavLink
-              to="/reports/gst-report"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaFileInvoiceDollar className="w-4 h-4" />
-              GST Report
-            </NavLink>
-            <NavLink
-              to="/reports/purchase-report"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaFileInvoiceDollar className="w-4 h-4" />
-              Purchase Report
-            </NavLink>
-            <NavLink
-              to="/reports/sales-report"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaFileInvoiceDollar className="w-4 h-4" />
-              Sales Report
-            </NavLink>
-            <NavLink
-              to="/reports/sales-return-report"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaFileInvoiceDollar className="w-4 h-4" />
-              Sales Return Report
-            </NavLink>
-            <NavLink
-              to="/reports/purchase-return-report"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaFileInvoiceDollar className="w-4 h-4" />
-              Purchase Return Report
-            </NavLink>
-          </SidebarSection>
-
-          {/* 5. Setup & Tools */}
-          <SidebarSection title="Setup & Tools">
-            <NavLink
-              to="/setup/backup-restore"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaReceipt className="w-4 h-4" />
-              Backup / Restore
-            </NavLink>
-            
-            <NavLink
-              to="/setup/financial-year-close"
-              onClick={onClose}
-              className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
-            >
-              <FaReceipt className="w-4 h-4" />
-              Financial Year Close
-            </NavLink>
-          </SidebarSection>
+          {/* Dynamic Menu items */}
+          {menuItems.map((section, index) => (
+             <li key={index}>
+                {section.children ? (
+                    <SidebarSection 
+                        title={section.title} 
+                        icon={section.icon} 
+                        defaultOpen={index === 0} // Open first section by default
+                    >
+                        {section.children.map((child, childIndex) => (
+                            <NavLink
+                                key={child.path || childIndex}
+                                to={child.path}
+                                onClick={onClose}
+                                className={({ isActive }) =>
+                                    `${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900 ${isActive ? "bg-neutral-100 text-neutral-900" : ""}`
+                                }
+                            >
+                                {child.icon && <child.icon className="w-4 h-4" />}
+                                {child.title}
+                            </NavLink>
+                        ))}
+                    </SidebarSection>
+                ) : (
+                    <NavLink
+                        to={section.path}
+                        onClick={onClose}
+                         className={({ isActive }) =>
+                            `${linkBase} ${
+                              isActive
+                                ? "bg-neutral-100 text-neutral-900"
+                                : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                            }`
+                          }
+                    >
+                        {section.icon && <section.icon className="w-4 h-4" />}
+                        {section.title}
+                    </NavLink>
+                )}
+             </li>
+          ))}
         </ul>
       </nav>
 

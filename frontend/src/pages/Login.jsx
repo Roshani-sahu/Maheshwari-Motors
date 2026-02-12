@@ -6,7 +6,7 @@ import { authAPI, firmAPI } from '../services/api';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { setUser, showToast, setLoading, setFirms, setFirm } = useStore();
+  const { setUser, showToast, setLoading, setFirms, setFirm, setRole } = useStore();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -50,14 +50,22 @@ const Login = () => {
         const firms = firmResponse.data?.data?.data || [];
         setFirms(firms);
         
-        if (firms.length > 0) {
+        if (userData.type === 'main' || userData.admin) {
+            setRole('admin');
+            // Admin doesn't auto-select a firm initially, or selects none to see dashboard
+            setFirm(null); 
+            showToast(`Welcome Admin, ${userData.name || 'User'}`, 'success');
+        } else if (firms.length > 0) {
            setFirm(firms[0]);
+           const initialRole = (firms[0].firmType === 1 || firms[0].type === 'GST') ? 'gst' : 'nongst';
+           setRole(initialRole);
            showToast(`Login successful. Selected ${firms[0].name}`, 'success');
         } else {
+           setRole('nongst'); // Default fallback
            showToast('Login successful. No firms found.', 'info');
         }
       } catch (firmError) {
-        // console.error("Failed to fetch firms on login", firmError);
+        console.error("Failed to fetch firms on login", firmError);
         // showToast('Login successful, but failed to load firms.', 'warning');
       }
 

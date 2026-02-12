@@ -5,6 +5,7 @@ const useStore = create(devtools((set, get) => ({
   // Auth State
   user: null,
   isAuthenticated: false,
+  currentRole: 'admin', // admin | gst | nongst
   
   // Firm Context
   selectedFirm: null,
@@ -36,7 +37,8 @@ const useStore = create(devtools((set, get) => ({
   
   // Actions
   setUser: (user) => set({ user, isAuthenticated: !!user }),
-  logout: () => set({ user: null, isAuthenticated: false, selectedFirm: null }),
+  setRole: (role) => set({ currentRole: role }),
+  logout: () => set({ user: null, isAuthenticated: false, selectedFirm: null, currentRole: 'admin' }),
   
   setFirm: (firm) => set({ selectedFirm: firm }),
   setFirms: (firms) => set({ firms }),
