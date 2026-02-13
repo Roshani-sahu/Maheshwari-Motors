@@ -1,7 +1,7 @@
 import "dotenv/config";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-import env from "./src/config/env.js";
+import env from "../src/config/env.js";
 import {
   User,
   Session,
@@ -16,7 +16,7 @@ import {
   Supplier,
   Category,
   Purchase,
-} from "./src/models/index.js";
+} from "../src/models/index.js";
 
 const SALT = 10;
 

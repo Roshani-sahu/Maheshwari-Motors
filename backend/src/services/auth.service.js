@@ -45,32 +45,36 @@ class AuthService {
     };
   }
 
-  async loginAdmin(username, password, deviceInfo = {}) {
-    const user = await User.findByAdminCredentials(username, password);
-    const token = user.generateAdminToken();
+  async login(username, password, deviceInfo = {}) {
+    // Try admin credentials first
+    try {
+      const user = await User.findByAdminCredentials(username, password);
+      const token = user.generateAdminToken();
 
-    await Session.create({
-      user_id: user._id,
-      role: "admin",
-      token,
-      device_name: deviceInfo.device_name || "Unknown Device",
-      device_type: deviceInfo.device_type || "unknown",
-      ip_address: deviceInfo.ip_address || "",
-    });
+      await Session.create({
+        user_id: user._id,
+        role: "admin",
+        token,
+        device_name: deviceInfo.device_name || "Unknown Device",
+        device_type: deviceInfo.device_type || "unknown",
+        ip_address: deviceInfo.ip_address || "",
+      });
 
-    return {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      type: user.type,
-      is_admin: true,
-      role: "admin",
-      token,
-    };
-  }
+      return {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        type: user.type,
+        is_admin: true,
+        role: "admin",
+        token,
+      };
+    } catch (_) {
+      // Not admin credentials, try firm
+    }
 
-  async loginFirm(username, password, deviceInfo = {}) {
+    // Try firm credentials
     const { user, firmType } = await User.findByFirmCredentials(
       username,
       password,
@@ -113,7 +117,7 @@ class AuthService {
       email: user.email,
       phone: user.phone,
       type: user.type,
-      is_admin: user.type === "main",
+      is_admin: false,
       role: "firm",
       firm_data: firmData,
       token,

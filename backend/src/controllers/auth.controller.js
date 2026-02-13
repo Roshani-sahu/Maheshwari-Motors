@@ -10,25 +10,8 @@ const registerSchema = {
   nongst_firm: { required: true, type: "object", label: "Non-GST Firm" },
 };
 
-const adminLoginSchema = {
+const loginSchema = {
   username: { required: true, type: "string", label: "Username" },
-  password: { required: true, type: "string", label: "Password" },
-  device_name: {
-    required: false,
-    type: "string",
-    max: 100,
-    label: "Device name",
-  },
-  device_type: {
-    required: false,
-    type: "string",
-    enum: ["android", "ios", "web", "desktop", "unknown"],
-    label: "Device type",
-  },
-};
-
-const firmLoginSchema = {
-  username: { required: true, type: "string", label: "Firm Username" },
   password: { required: true, type: "string", label: "Password" },
   device_name: {
     required: false,
@@ -67,34 +50,19 @@ export const registerMainUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, result, "Main user registered successfully"));
 });
 
-export const loginAdmin = asyncHandler(async (req, res) => {
+export const login = asyncHandler(async (req, res) => {
   const { username, password, device_name, device_type } = validate(
     req.body,
-    adminLoginSchema,
+    loginSchema,
   );
   const ip_address =
     req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
-  const result = await authService.loginAdmin(username, password, {
+  const result = await authService.login(username, password, {
     device_name,
     device_type,
     ip_address,
   });
-  res.status(200).json(new ApiResponse(200, result, "Admin login successful"));
-});
-
-export const loginFirm = asyncHandler(async (req, res) => {
-  const { username, password, device_name, device_type } = validate(
-    req.body,
-    firmLoginSchema,
-  );
-  const ip_address =
-    req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
-  const result = await authService.loginFirm(username, password, {
-    device_name,
-    device_type,
-    ip_address,
-  });
-  res.status(200).json(new ApiResponse(200, result, "Firm login successful"));
+  res.status(200).json(new ApiResponse(200, result, "Login successful"));
 });
 
 export const logout = asyncHandler(async (req, res) => {

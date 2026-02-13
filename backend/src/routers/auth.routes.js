@@ -5,8 +5,7 @@ import authMiddleware from "../middlewares/auth.middleware.js";
 const router = Router();
 
 router.post("/admin/register", authController.registerMainUser);
-router.post("/admin/login", authController.loginAdmin);
-router.post("/firm/login", authController.loginFirm);
+router.post("/login", authController.login);
 
 router.use(authMiddleware);
 
