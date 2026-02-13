@@ -30,7 +30,8 @@ const ItemMaster = () => {
           threshold: 10,
           stockCount: 5,
           itemMedia: null,
-          status: 'LOW'
+          status: 'LOW',
+          type: 1
         },
         {
           id: 2,
@@ -39,7 +40,8 @@ const ItemMaster = () => {
           threshold: 8,
           stockCount: 3,
           itemMedia: null,
-          status: 'LOW'
+          status: 'LOW',
+          type: 1
         },
         {
           id: 3,
@@ -48,7 +50,8 @@ const ItemMaster = () => {
           threshold: 12,
           stockCount: 15,
           itemMedia: null,
-          status: 'OK'
+          status: 'OK',
+          type: 0
         },
         {
           id: 4,
@@ -57,7 +60,8 @@ const ItemMaster = () => {
           threshold: 6,
           stockCount: 2,
           itemMedia: null,
-          status: 'LOW'
+          status: 'LOW',
+          type: 1
         }
       ]);
     }
@@ -73,6 +77,17 @@ const ItemMaster = () => {
       key: 'itemName',
       label: 'Item Name',
       render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
+    },
+    {
+      key: 'type',
+      label: 'Type',
+      render: (value) => (
+        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
+          value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+        }`}>
+          {value === 1 ? '1' : '0'}
+        </span>
+      )
     },
     {
       key: 'amount',
@@ -271,6 +286,34 @@ const ItemMaster = () => {
                   }))}
                   className="text-xs sm:text-sm py-1.5 sm:py-2"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST Type</label>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="gstType"
+                    value="1"
+                    checked={editingItem.type === 1}
+                    onChange={(e) => setEditingItem(prev => ({ ...prev, type: parseInt(e.target.value) }))}
+                    className="text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-xs sm:text-sm text-gray-700">GST (1)</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="gstType"
+                    value="0"
+                    checked={editingItem.type === 0}
+                    onChange={(e) => setEditingItem(prev => ({ ...prev, type: parseInt(e.target.value) }))}
+                    className="text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-xs sm:text-sm text-gray-700">Non-GST (0)</span>
+                </label>
               </div>
             </div>
 
