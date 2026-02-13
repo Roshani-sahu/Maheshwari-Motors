@@ -1,7 +1,7 @@
 import { ApiError } from "../utils/index.js";
 import env from "../config/env.js";
 
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err, _, res, _) => {
   let error = err;
 
   if (err.name === "CastError") {
@@ -10,7 +10,7 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
-    error = ApiError.conflict(`${field} already exists`);
+    error = ApiError.conflict(`'${field}' already exists`);
   }
 
   if (err.name === "ValidationError") {
@@ -39,8 +39,8 @@ const errorHandler = (err, req, res, next) => {
   res.status(statusCode).json(response);
 };
 
-const notFoundHandler = (req, res, next) => {
-  next(ApiError.notFound(`Route ${req.originalUrl} not found`));
+const notFoundHandler = (req, _, next) => {
+  next(ApiError.notFound(`Route '${req.originalUrl}' not found`));
 };
 
 export { errorHandler, notFoundHandler };

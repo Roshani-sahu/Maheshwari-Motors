@@ -542,6 +542,11 @@
                                     "type": "text"
                                 },
                                 {
+                                    "key": "purchase_rate",
+                                    "value": "350",
+                                    "type": "text"
+                                },
+                                {
                                     "key": "threshold",
                                     "value": "10",
                                     "type": "text"
@@ -549,6 +554,26 @@
                                 {
                                     "key": "is_gst",
                                     "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "gst_stock",
+                                    "value": "50",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "nongst_stock",
+                                    "value": "20",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "category_ids",
+                                    "value": "{{category_id}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "supplier_id",
+                                    "value": "{{supplier_id}}",
                                     "type": "text"
                                 },
                                 {
@@ -620,6 +645,26 @@
                                     "key": "amount",
                                     "value": "600",
                                     "type": "text"
+                                },
+                                {
+                                    "key": "purchase_rate",
+                                    "value": "400",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "threshold",
+                                    "value": "15",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "supplier_id",
+                                    "value": "{{supplier_id}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": []
                                 }
                             ]
                         },

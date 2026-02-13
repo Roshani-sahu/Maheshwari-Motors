@@ -264,6 +264,7 @@ Periods: `monthly` (default), `yearly`
 | -------------- | -------- | -------- | ---------------------------------- |
 | `item_name`    | string   | Yes      | Item name                          |
 | `amount`       | number   | Yes      | MRP / selling price                |
+| `purchase_rate`| number   | No       | Purchase rate (cost price)         |
 | `threshold`    | number   | No       | Low stock alert level (default 0)  |
 | `is_gst`       | 0 or 1   | No       | 1=GST item (default), 0=NON_GST   |
 | `gst_stock`    | number   | No       | Initial GST stock                  |
