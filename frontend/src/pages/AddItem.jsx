@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaSave } from 'react-icons/fa';
 import { Button, Input } from '../components/ui';
 import useStore from '../store';
+import { itemAPI, categoryAPI } from '../services/api';
 
 const AddItem = () => {
   const navigate = useNavigate();
-  const { showToast, addItem } = useStore();
+  const { showToast } = useStore();
+  const [categories, setCategories] = useState([]);
 
   const [formData, setFormData] = useState({
     itemName: '',
@@ -14,11 +16,28 @@ const AddItem = () => {
     threshold: '',
     stockCount: '',
     itemMedia: null,
-    categoryId: 1,
-    type: 1 // Default OFF → 1
+    categoryId: '',
+    type: 1
   });
 
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+        try {
+            const response = await categoryAPI.getAll();
+            const val = response.data?.data;
+            const list = Array.isArray(val) ? val : (val?.data || []);
+            setCategories(list);
+            if (list.length > 0 && !formData.categoryId) {
+                setFormData(prev => ({ ...prev, categoryId: list[0]._id }));
+            }
+        } catch (error) {
+            console.error("Failed to fetch categories", error);
+        }
+    };
+    fetchCategories();
+  }, []);
 
   const handleChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -32,46 +51,64 @@ const AddItem = () => {
     setFormData(prev => ({ ...prev, itemMedia: file }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
 
-    if (!formData.itemName.trim())
-      newErrors.itemName = 'Item name is required';
-
-    if (!formData.amount || parseFloat(formData.amount) <= 0)
-      newErrors.amount = 'Valid amount is required';
-
-    if (!formData.threshold || parseInt(formData.threshold) <= 0)
-      newErrors.threshold = 'Valid threshold is required';
-
-    if (!formData.stockCount || parseInt(formData.stockCount) < 0)
-      newErrors.stockCount = 'Valid stock count is required';
+    if (!formData.itemName.trim()) newErrors.itemName = 'Item name is required';
+    if (!formData.amount || parseFloat(formData.amount) <= 0) newErrors.amount = 'Valid amount is required';
+    if (!formData.threshold || parseInt(formData.threshold) <= 0) newErrors.threshold = 'Valid threshold is required';
+    if (!formData.stockCount || parseInt(formData.stockCount) < 0) newErrors.stockCount = 'Valid stock count is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    const newItem = {
-      itemName: formData.itemName,
-      amount: parseFloat(formData.amount),
-      threshold: parseInt(formData.threshold),
-      stockCount: parseInt(formData.stockCount),
-      itemMedia: formData.itemMedia
-        ? URL.createObjectURL(formData.itemMedia)
-        : null,
-      status:
-        parseInt(formData.stockCount) <= parseInt(formData.threshold)
-          ? 'LOW'
-          : 'OK',
-      categoryId: parseInt(formData.categoryId || 1),
-      type: formData.type
-    };
+    try {
+        // Step 1: Create Item via JSON to ensure correct types (Array/Enum)
+        const jsonPayload = {
+            item_name: formData.itemName,
+            amount: parseFloat(formData.amount),
+            threshold: parseInt(formData.threshold),
+            is_gst: formData.type, // Sends number 1 or 0
+            category_ids: formData.categoryId ? [formData.categoryId] : [],
+        };
+        
+        if (formData.type === 1) {
+             jsonPayload.gst_stock = parseInt(formData.stockCount);
+        } else {
+             jsonPayload.nongst_stock = parseInt(formData.stockCount);
+        }
 
-    addItem(newItem);
-    showToast('Item added successfully', 'success');
-    navigate('/inventory/item-master');
+        const res = await itemAPI.create(jsonPayload);
+        const newItemId = res.data?.data?._id;
+
+        // Step 2: Upload Image (if any) via Update
+        if (formData.itemMedia && newItemId) {
+            const imagePayload = new FormData();
+            imagePayload.append('image', formData.itemMedia);
+            // Must send at least one field for update validation to pass
+            imagePayload.append('item_name', formData.itemName); 
+            await itemAPI.update(newItemId, imagePayload);
+        }
+
+        showToast('Item added successfully', 'success');
+        navigate('/inventory/item-master');
+    } catch (error) {
+        console.error("Add item failed", error);
+        if (error.response && error.response.data) {
+            const { message, errors } = error.response.data;
+            let displayMsg = message || 'Failed to add item';
+            if (Array.isArray(errors)) {
+                displayMsg += ': ' + errors.join(', ');
+            }
+            alert("Error: " + displayMsg);
+            showToast(displayMsg, 'error');
+        } else {
+            showToast('Failed to add item', 'error');
+        }
+    }
   };
 
   return (
@@ -198,15 +235,18 @@ const AddItem = () => {
               Category *
             </label>
             <select
-              value={formData.categoryId}
+              value={formData.categoryId || ''}
               onChange={(e) =>
                 handleChange('categoryId', e.target.value)
               }
               className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             >
-              <option value={1}>Engine Parts</option>
-              <option value={2}>Brake System</option>
-              <option value={3}>Filters</option>
+              <option value="">Select Category</option>
+              {categories.map((cat) => (
+                <option key={cat._id} value={cat._id}>
+                  {cat.name}
+                </option>
+              ))}
             </select>
           </div>
 

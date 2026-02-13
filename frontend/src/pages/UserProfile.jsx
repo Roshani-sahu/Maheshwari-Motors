@@ -1,24 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaUser, FaEdit, FaSave, FaTimes, FaHistory, FaCalendar, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import { Button, Input } from '../components/ui';
 import useStore from '../store';
+import { authAPI } from '../services/api';
 
 const UserProfile = () => {
   const { user, setUser, showToast } = useStore();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
-    username: user?.username || 'admin',
-    email: user?.email || 'admin@maheshwarimotors.com',
-    phone: '+91 98765 43210',
-    address: 'Surat, Gujarat, India',
-    role: 'Administrator',
-    joinDate: '2024-01-01'
+    username: '',
+    email: '',
+    phone: '',
+    address: '',
+    role: '',
+    created_at: ''
   });
 
-  const handleSave = () => {
-    setUser({ ...user, ...profileData });
-    setIsEditing(false);
-    showToast('Profile updated successfully', 'success');
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await authAPI.getProfile();
+        const userData = res.data.data;
+        setProfileData({
+          username: userData.username || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+          address: userData.address || '',
+          role: userData.role || '',
+          created_at: userData.created_at || ''
+        });
+      } catch (err) {
+        console.error('Failed to fetch profile', err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      await authAPI.updateProfile(profileData);
+      setUser({ ...user, ...profileData });
+      setIsEditing(false);
+      showToast('Profile updated successfully', 'success');
+    } catch (err) {
+      showToast('Failed to update profile', 'error');
+    }
   };
 
   const recentActivity = [
@@ -67,18 +93,10 @@ const UserProfile = () => {
                     <FaSave />
                     Save
                   </Button>
-                  <Button
+                    <Button
                     variant="outline"
                     onClick={() => {
                       setIsEditing(false);
-                      setProfileData({
-                        username: user?.username || 'admin',
-                        email: user?.email || 'admin@maheshwarimotors.com',
-                        phone: '+91 98765 43210',
-                        address: 'Surat, Gujarat, India',
-                        role: 'Administrator',
-                        joinDate: '2024-01-01'
-                      });
                     }}
                     className="flex items-center gap-2"
                   >
@@ -166,7 +184,7 @@ const UserProfile = () => {
                     <FaCalendar className="inline mr-2" />
                     Join Date
                   </label>
-                  <p className="text-gray-900 py-2">{new Date(profileData.joinDate).toLocaleDateString()}</p>
+                  <p className="text-gray-900 py-2">{new Date(profileData.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
             </div>

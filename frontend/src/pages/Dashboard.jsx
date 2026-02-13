@@ -27,41 +27,98 @@ const Dashboard = () => {
 
   const [billPeriod, setBillPeriod] = useState('today'); // today | month
 
-const { challans, bills } = useStore();
+  /* REMOVED DUMMY DATA */
 
-// Dummy fallbacks for dashboard when store has fewer items
-const dummyChallans = [
-  { id: 'CHD101', challanNo: 'CHD101', party: 'Demo Motors', amount: 12500, date: '2025-02-09', status: 'Generated' },
-  { id: 'CHD102', challanNo: 'CHD102', party: 'Sample Autos', amount: 9800, date: '2025-02-08', status: 'Generated' },
-  { id: 'CHD103', challanNo: 'CHD103', party: 'Test Garage', amount: 7600, date: '2025-02-07', status: 'Billed' }
-];
+  const { 
+    challans, setChallans, 
+    bills, setBills, 
+    setItems, // to update global state
+    user, setFirm,
+  } = useStore();
 
-const dummyBills = [
-  { id: 'BD101', billNo: 'BD101', party: 'Demo Motors', amount: 12500, date: '2025-02-09' },
-  { id: 'BD102', billNo: 'BD102', party: 'Sample Autos', amount: 9800, date: '2025-02-08' }
-];
+  // Redirect Admin to User Master
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      navigate('/masters/user-master');
+    }
+  }, [user, navigate]);
 
-const maxItems = 5;
+  const [recentChallans, setRecentChallans] = useState([]);
+  const [recentBills, setRecentBills] = useState([]);
 
-const storeRecentChallans = (challans || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
-let recentChallans = storeRecentChallans.slice(0, maxItems);
-if (recentChallans.length < maxItems) {
-  const needed = maxItems - recentChallans.length;
-  const toAdd = dummyChallans
-    .filter(dc => !recentChallans.some(rc => (rc.challanNo || rc.id) === (dc.challanNo || dc.id)))
-    .slice(0, needed);
-  recentChallans = [...recentChallans, ...toAdd];
-}
+  useEffect(() => {
+    const fetchData = async () => {
+      // Avoid fetching if no user or if user is admin (who shouldn't see this dashboard data)
+      if (!user || user.role === 'admin') return;
 
-const storeRecentBills = (bills || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date));
-let recentBills = storeRecentBills.slice(0, maxItems);
-if (recentBills.length < maxItems) {
-  const needed = maxItems - recentBills.length;
-  const toAdd = dummyBills
-    .filter(db => !recentBills.some(rb => (rb.billNo || rb.id) === (db.billNo || db.id)))
-    .slice(0, needed);
-  recentBills = [...recentBills, ...toAdd];
-}
+      try {
+        // Ensure firm selection
+        let currentFirmId = selectedFirm?.id;
+        if (!currentFirmId) {
+             // Fallback: Default to 'gst' or fetch from profile
+             // For simplify, let's assume 'gst' is safe default if not set, 
+             // or fetch firms.
+             const firmRes = await import('../services/api').then(m => m.firmAPI.getAll());
+             if (firmRes.data.data?.length > 0) {
+                 const defaultFirm = firmRes.data.data[0];
+                 setFirm(defaultFirm);
+                 currentFirmId = defaultFirm.id;
+             }
+        }
+
+        // Fetch All Data
+        const api = await import('../services/api');
+        const [challanRes, billRes, itemRes] = await Promise.all([
+            api.challanAPI.getAll(currentFirmId),
+            api.billAPI.getAll(currentFirmId),
+            api.itemAPI.getAll(currentFirmId)
+        ]);
+
+        const fetchedChallans = Array.isArray(challanRes.data?.data) ? challanRes.data.data : (Array.isArray(challanRes.data) ? challanRes.data : []);
+        const fetchedBills = Array.isArray(billRes.data?.data) ? billRes.data.data : (Array.isArray(billRes.data) ? billRes.data : []);
+        const fetchedItems = Array.isArray(itemRes.data?.data) ? itemRes.data.data : (Array.isArray(itemRes.data) ? itemRes.data : []);
+
+        // Update Store
+        setChallans(fetchedChallans); // The store expects arrays
+        setBills(fetchedBills);
+        setItems(fetchedItems);
+
+        // Calculate Dashboard Stats
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const currentMonth = now.getMonth();
+
+        const todaysChallansCount = fetchedChallans.filter(c => (c.created_at || c.date)?.startsWith(todayStr)).length;
+        const todaysBillsCount = fetchedBills.filter(b => (b.created_at || b.date)?.startsWith(todayStr)).length;
+        const monthBillsCount = fetchedBills.filter(b => new Date(b.created_at || b.date).getMonth() === currentMonth).length;
+        
+        // Low Stock Logic: stock < threshold (default threshold is 0 if undefined, or check item logic)
+        // Adjust logic based on your Item model: threshold is optional. Maybe default to 5?
+        const lowStockCount = fetchedItems.filter(item => {
+             const limit = item.threshold || 5; 
+             const stock = item.physical_stock || (item.gst_stock + item.nongst_stock) || 0;
+             return stock < limit;
+        }).length;
+
+        setDashboardData({
+            totalFirms: 2, 
+            todaysChallans: todaysChallansCount,
+            todaysBills: todaysBillsCount,
+            thisMonthBills: monthBillsCount,
+            lowStockAlerts: lowStockCount
+        });
+
+        // Set Local Recent Lists (Sorted by Date Descending)
+        setRecentChallans([...fetchedChallans].sort((a,b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date)).slice(0, 5));
+        setRecentBills([...fetchedBills].sort((a,b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date)).slice(0, 5));
+
+      } catch (err) {
+        console.error("Failed to load dashboard data", err);
+      }
+    };
+
+    fetchData();
+  }, [user, selectedFirm, setChallans, setBills, setItems, setFirm]);
 
   return (
     <div className="space-y-6">
@@ -144,17 +201,17 @@ if (recentBills.length < maxItems) {
           </div>
           <div className="p-4 space-y-3">
             {recentChallans.map((challan) => (
-              <div key={challan.id} className="flex items-center justify-between text-sm">
+              <div key={challan._id || challan.id} className="flex items-center justify-between text-sm">
                 <div>
-                  <span className="font-medium text-gray-900">{challan.challanNo || challan.id}</span>
-                  <span className="text-gray-600 ml-2">{challan.party}</span>
+                  <span className="font-medium text-gray-900">{challan.challan_no || challan.id}</span>
+                  <span className="text-gray-600 ml-2">{challan.party_name}</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-gray-900">{formatCurrency(challan.amount)}</div>
+                  <div className="font-medium text-gray-900">{formatCurrency(challan.total_amount)}</div>
                   <div className="text-xs text-gray-500">{formatDate(new Date(challan.date))}</div>
                   <div className="text-xs mt-1">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${challan.status === 'Billed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
-                      {challan.status === 'Billed' ? 'Converted' : 'Not Converted'}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${challan.is_billed ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                      {challan.is_billed ? 'Converted' : 'Not Converted'}
                     </span>
                   </div>
                 </div>
@@ -177,13 +234,13 @@ if (recentBills.length < maxItems) {
           </div>
           <div className="p-4 space-y-3">
             {recentBills.map((bill) => (
-              <div key={bill.id} className="flex items-center justify-between text-sm">
+              <div key={bill._id || bill.id} className="flex items-center justify-between text-sm">
                 <div>
-                  <span className="font-medium text-gray-900">{bill.billNo || bill.id}</span>
-                  <span className="text-gray-600 ml-2">{bill.party}</span>
+                  <span className="font-medium text-gray-900">{bill.bill_no || bill.id}</span>
+                  <span className="text-gray-600 ml-2">{bill.party_name}</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-gray-900">{formatCurrency(bill.amount)}</div>
+                  <div className="font-medium text-gray-900">{formatCurrency(bill.total_amount)}</div>
                   <div className="text-xs text-gray-500">{formatDate(new Date(bill.date))}</div>
                 </div>
               </div>

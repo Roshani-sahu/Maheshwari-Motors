@@ -1,44 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataTable } from '../../components/common';
+import { reportAPI } from '../../services/api';
 
 const StockAlertMaster = () => {
-  const [stockAlerts, setStockAlerts] = useState([
-    {
-      id: 1,
-      itemName: 'Engine Oil 5W-30',
-      stockCount: 5,
-      threshold: 10,
-      status: 'LOW'
-    },
-    {
-      id: 2,
-      itemName: 'Brake Pads',
-      stockCount: 3,
-      threshold: 8,
-      status: 'LOW'
-    },
-    {
-      id: 3,
-      itemName: 'Air Filter',
-      stockCount: 15,
-      threshold: 12,
-      status: 'OK'
-    },
-    {
-      id: 4,
-      itemName: 'Spark Plugs',
-      stockCount: 2,
-      threshold: 6,
-      status: 'LOW'
-    },
-    {
-      id: 5,
-      itemName: 'Transmission Fluid',
-      stockCount: 8,
-      threshold: 5,
-      status: 'OK'
-    }
-  ]);
+  const [stockAlerts, setStockAlerts] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const response = await reportAPI.stock();
+            const val = response.data?.data;
+            const items = Array.isArray(val) ? val : (val?.data || []);
+            setStockAlerts(items.map(i => ({
+                id: i._id,
+                itemName: i.item_name,
+                stockCount: i.stock,
+                threshold: i.low_stock_threshold || 5,
+                status: (i.stock || 0) <= (i.low_stock_threshold || 5) ? 'LOW' : 'OK'
+            })));
+        } catch (error) {
+            console.error("Failed to fetch stock alerts", error);
+        }
+    };
+    fetchData();
+  }, []);
 
   const columns = [
     {

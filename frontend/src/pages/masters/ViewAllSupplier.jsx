@@ -1,21 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataTable } from '../../components/common';
+import { supplierAPI } from '../../services/api';
 
 const ViewAllSupplier = () => {
-  const [suppliers] = useState(() => {
-    const saved = localStorage.getItem('suppliers');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'ABC Suppliers', contact: '9876543210', email: 'abc@supplier.com', address: 'Mumbai' },
-      { id: 2, name: 'XYZ Parts', contact: '9876543211', email: 'xyz@parts.com', address: 'Delhi' }
-    ];
-  });
+  const [suppliers, setSuppliers] = useState([]);
+
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const response = await supplierAPI.getAll();
+        const val = response.data?.data;
+        const list = Array.isArray(val) ? val : (val?.data || []);
+        setSuppliers(list.map(s => ({
+            id: s._id,
+            name: s.name,
+            contact: s.phone,
+            email: s.email,
+            address: s.address,
+            city: s.city,
+            state: s.state,
+            gstin: s.gstin
+        })));
+      } catch (error) {
+        console.error("Failed to fetch suppliers", error);
+      }
+    };
+    fetchSuppliers();
+  }, []);
 
   const columns = [
     { key: 'id', label: 'ID' },
     { key: 'name', label: 'Supplier Name' },
     { key: 'contact', label: 'Contact' },
     { key: 'email', label: 'Email' },
-    { key: 'address', label: 'Address' }
+    { key: 'city', label: 'City' },
+    { key: 'state', label: 'State' },
+    { key: 'gstin', label: 'GSTIN' }
   ];
 
   return (

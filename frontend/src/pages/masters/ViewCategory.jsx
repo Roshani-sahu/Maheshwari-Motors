@@ -1,18 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataTable } from '../../components/common';
+import { categoryAPI } from '../../services/api';
 
 const ViewCategory = () => {
-  const [categories] = useState(() => {
-    const saved = localStorage.getItem('categories');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'Engine Parts' },
-      { id: 2, name: 'Brake System' },
-      { id: 3, name: 'Filters' }
-    ];
-  });
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+        try {
+            const res = await categoryAPI.getAll();
+            const list = res.data?.data;
+            const final = Array.isArray(list) ? list : (list?.data || []);
+            setCategories(final.map(c => ({ id: c._id, name: c.name })));
+        } catch(e) { console.error(e); }
+    };
+    fetchCats();
+  }, []);
 
   const columns = [
-    { key: 'id', label: 'Category ID' },
+    { key: 'id', label: 'Category ID', render: (val) => <span className="text-xs">{val?.slice(-4)}</span> },
     { key: 'name', label: 'Category Name' }
   ];
 

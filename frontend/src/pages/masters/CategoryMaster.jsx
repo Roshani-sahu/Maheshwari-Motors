@@ -1,23 +1,13 @@
-import React, { useState } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
+import { categoryAPI } from '../../services/api';
 
 const CategoryMaster = () => {
   const { showToast } = useStore();
-  const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('categories');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'Engine Parts', brands: [] },
-      { id: 2, name: 'Brake System', brands: [] },
-      { id: 3, name: 'Filters', brands: [] }
-    ];
-  });
-  const [brands, setBrands] = useState(() => {
-    const saved = localStorage.getItem('brands');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [categories, setCategories] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -25,14 +15,24 @@ const CategoryMaster = () => {
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, category: null });
 
-  const columns = [
-    { key: 'id', label: 'Category ID' },
-    { key: 'name', label: 'Category Name' },
-    { 
-      key: 'brands', 
-      label: 'Brands Count',
-      render: (value) => <span className="text-sm">{value?.length || 0} brands</span>
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await categoryAPI.getAll();
+      const val = response.data?.data;
+      const list = Array.isArray(val) ? val : (val?.data || []);
+      setCategories(list.map(c => ({ id: c._id, name: c.name })));
+    } catch (error) {
+      console.error("Failed to fetch categories", error);
     }
+  };
+
+  const columns = [
+    { key: 'id', label: 'Category ID', render: (val) => <span className="text-xs">{val?.slice(-4)}</span> },
+    { key: 'name', label: 'Category Name' }
   ];
 
   const actions = [
@@ -55,29 +55,40 @@ const CategoryMaster = () => {
     }
   ];
 
-  const handleAddCategory = () => {
-    const newCategories = [...categories, { id: categories.length + 1, name: newCategoryName, brands: selectedBrands }];
-    setCategories(newCategories);
-    localStorage.setItem('categories', JSON.stringify(newCategories));
-    setNewCategoryName('');
-    setSelectedBrands([]);
-    setIsAddModalOpen(false);
-    showToast('Category added successfully', 'success');
+  const handleAddCategory = async () => {
+    try {
+        await categoryAPI.create({ name: newCategoryName });
+        showToast('Category added successfully', 'success');
+        setNewCategoryName('');
+        setIsAddModalOpen(false);
+        fetchCategories();
+    } catch (error) {
+        showToast('Failed to add category', 'error');
+    }
   };
 
-  const handleEditCategory = () => {
-    const newCategories = categories.map(c => 
-      c.id === editingCategory.id 
-        ? { ...c, name: newCategoryName, brands: selectedBrands } 
-        : c
-    );
-    setCategories(newCategories);
-    localStorage.setItem('categories', JSON.stringify(newCategories));
-    setIsEditModalOpen(false);
-    setEditingCategory(null);
-    setNewCategoryName('');
-    setSelectedBrands([]);
-    showToast('Category updated successfully', 'success');
+  const handleEditCategory = async () => {
+    try {
+        await categoryAPI.update(editingCategory.id, { name: newCategoryName });
+        showToast('Category updated successfully', 'success');
+        setIsEditModalOpen(false);
+        setEditingCategory(null);
+        setNewCategoryName('');
+        fetchCategories();
+    } catch (error) {
+        showToast('Failed to update category', 'error');
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+      try {
+          await categoryAPI.delete(deleteDialog.category.id);
+          showToast('Category deleted successfully', 'success');
+          setDeleteDialog({ isOpen: false, category: null });
+          fetchCategories();
+      } catch (error) {
+          showToast('Failed to delete category', 'error');
+      }
   };
 
   const handleBrandToggle = (brand) => {
@@ -278,13 +289,7 @@ const CategoryMaster = () => {
       <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, category: null })}
-        onConfirm={() => {
-          const newCategories = categories.filter(c => c.id !== deleteDialog.category.id);
-          setCategories(newCategories);
-          localStorage.setItem('categories', JSON.stringify(newCategories));
-          setDeleteDialog({ isOpen: false, category: null });
-          showToast('Category deleted successfully', 'success');
-        }}
+        onConfirm={handleDeleteCategory}
         itemName={deleteDialog.category?.name}
       />
     </div>

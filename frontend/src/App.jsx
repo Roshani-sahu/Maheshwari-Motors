@@ -53,7 +53,30 @@ import HelpSupportPage from "./pages/HelpSupportPage";
 import FirmSetup from "./components/FirmSetup";
 
 const App = () => {
-  const { toast, confirmDialog, loading } = useStore();
+  const { toast, confirmDialog, loading, setUser, logout } = useStore();
+  
+  // Initialize Auth
+  React.useEffect(() => {
+    const initAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const { data } = await import('./services/api').then(m => m.authAPI.getProfile());
+          // Backend returns { data: userObject } inside the response
+          // getProfile returns response.data.data from the backend based on my previous analysis
+          // Wait, authAPI.getProfile in api.js calls api.get('/auth/me').
+          // Backend controller returns `new ApiResponse(200, profile, ...)`
+          // So axios response.data is the ApiResponse object. response.data.data is the profile.
+          setUser(data.data);
+        } catch (error) {
+          console.error("Auth initialization failed", error);
+          logout();
+          localStorage.removeItem('token');
+        }
+      }
+    };
+    initAuth();
+  }, [setUser, logout]);
 
   return (
     <BrowserRouter>
