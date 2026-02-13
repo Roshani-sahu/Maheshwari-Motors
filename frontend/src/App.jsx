@@ -29,6 +29,7 @@ import ViewAllSupplier from "./pages/masters/ViewAllSupplier";
 import UserMaster from "./pages/masters/UserMaster";
 import AccountMaster from "./pages/masters/AccountMaster";
 import PartyMaster from "./pages/PartyMaster";
+import BrandMaster from "./pages/masters/BrandMaster";
 
 // Transaction Pages
 import ChallanList from "./pages/transactions/ChallanList";
@@ -87,6 +88,7 @@ const App = () => {
           <Route path="/masters/item-master/add" element={<AddItem />} />
           <Route path="/masters/account-master" element={<AccountMaster />} />
           <Route path="/masters/party-master" element={<PartyMaster />} />
+          <Route path="/masters/brand-master" element={<BrandMaster />} />
           
           {/* 3. Transactions */}
           <Route path="/transactions/challan-list" element={<ChallanList />} />
