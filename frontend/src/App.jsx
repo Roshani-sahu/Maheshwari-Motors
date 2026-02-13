@@ -30,6 +30,7 @@ import UserMaster from "./pages/masters/UserMaster";
 import AccountMaster from "./pages/masters/AccountMaster";
 import PartyMaster from "./pages/PartyMaster";
 import BrandMaster from "./pages/masters/BrandMaster";
+import DiscountMaster from "./pages/masters/DiscountMaster";
 
 // Transaction Pages
 import ChallanList from "./pages/transactions/ChallanList";
@@ -112,6 +113,7 @@ const App = () => {
           <Route path="/masters/account-master" element={<AccountMaster />} />
           <Route path="/masters/party-master" element={<PartyMaster />} />
           <Route path="/masters/brand-master" element={<BrandMaster />} />
+          <Route path="/masters/discount-master" element={<DiscountMaster />} />
           
           {/* 3. Transactions */}
           <Route path="/transactions/challan-list" element={<ChallanList />} />

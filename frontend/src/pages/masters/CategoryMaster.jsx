@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
@@ -8,6 +8,10 @@ import { categoryAPI } from '../../services/api';
 const CategoryMaster = () => {
   const { showToast } = useStore();
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState(() => {
+    const saved = localStorage.getItem('brands');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
