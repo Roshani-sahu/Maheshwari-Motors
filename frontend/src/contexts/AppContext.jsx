@@ -8,7 +8,7 @@ const initialState = {
   firms: [
     { id: 1, name: "Maa Auto", type: "Non-GST", hasStock: true, color: "bg-blue-100 text-blue-800" },
     { id: 2, name: "Motors", type: "GST", hasStock: true, color: "bg-green-100 text-green-800" },
-    { id: 3, name: "Surat", type: "Bill Only", hasStock: false, color: "bg-purple-100 text-purple-800" }
+    
   ],
   
   // Financial Year

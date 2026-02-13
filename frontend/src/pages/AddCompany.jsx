@@ -57,7 +57,7 @@ const AddCompany = () => {
             <label className="block text-xs md:text-sm text-neutral-700 mb-1">City</label>
             <select className="w-full px-3 py-2 text-xs md:text-sm border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-800">
               <option>Select City</option>
-              <option>Surat</option>
+            
               <option>Mumbai</option>
               <option>Ahmedabad</option>
             </select>

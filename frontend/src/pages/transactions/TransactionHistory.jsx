@@ -37,16 +37,7 @@ const TransactionHistory = () => {
       party: 'PQR Auto',
       gstType: 1
     },
-    {
-      id: 4,
-      transactionId: 'TXN004',
-      type: 'Challan',
-      firm: 'Surat Branch',
-      amount: 32000,
-      date: '2024-01-14',
-      party: 'LMN Garage',
-      gstType: 0
-    },
+  
     {
       id: 5,
       transactionId: 'TXN005',
@@ -97,7 +88,7 @@ const TransactionHistory = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
 
-  const firms = ['Maa Auto', 'Motors Division', 'Surat Branch'];
+  const firms = ['Maa Auto', 'Motors Division', ];
   const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
 
   const columns = [

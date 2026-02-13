@@ -7,6 +7,7 @@ import useStore from '../store';
 const AddItem = () => {
   const navigate = useNavigate();
   const { showToast, addItem } = useStore();
+
   const [formData, setFormData] = useState({
     itemName: '',
     amount: '',
@@ -14,8 +15,9 @@ const AddItem = () => {
     stockCount: '',
     itemMedia: null,
     categoryId: 1,
-    type: 0
+    type: 1 // Default OFF → 1
   });
+
   const [errors, setErrors] = useState({});
 
   const handleChange = (name, value) => {
@@ -33,30 +35,40 @@ const AddItem = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const newErrors = {};
-    
-    if (!formData.itemName.trim()) newErrors.itemName = 'Item name is required';
-    if (!formData.amount || parseFloat(formData.amount) <= 0) newErrors.amount = 'Valid amount is required';
-    if (!formData.threshold || parseInt(formData.threshold) <= 0) newErrors.threshold = 'Valid threshold is required';
-    if (!formData.stockCount || parseInt(formData.stockCount) < 0) newErrors.stockCount = 'Valid stock count is required';
+
+    if (!formData.itemName.trim())
+      newErrors.itemName = 'Item name is required';
+
+    if (!formData.amount || parseFloat(formData.amount) <= 0)
+      newErrors.amount = 'Valid amount is required';
+
+    if (!formData.threshold || parseInt(formData.threshold) <= 0)
+      newErrors.threshold = 'Valid threshold is required';
+
+    if (!formData.stockCount || parseInt(formData.stockCount) < 0)
+      newErrors.stockCount = 'Valid stock count is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    // Create new item object
     const newItem = {
       itemName: formData.itemName,
       amount: parseFloat(formData.amount),
       threshold: parseInt(formData.threshold),
       stockCount: parseInt(formData.stockCount),
-      itemMedia: formData.itemMedia ? URL.createObjectURL(formData.itemMedia) : null,
-      status: parseInt(formData.stockCount) <= parseInt(formData.threshold) ? 'LOW' : 'OK',
+      itemMedia: formData.itemMedia
+        ? URL.createObjectURL(formData.itemMedia)
+        : null,
+      status:
+        parseInt(formData.stockCount) <= parseInt(formData.threshold)
+          ? 'LOW'
+          : 'OK',
       categoryId: parseInt(formData.categoryId || 1),
       type: formData.type
     };
 
-    // Add item to global store
     addItem(newItem);
     showToast('Item added successfully', 'success');
     navigate('/inventory/item-master');
@@ -73,7 +85,10 @@ const AddItem = () => {
 
       <div className="bg-white p-6 rounded-lg border">
         <form onSubmit={handleSubmit} className="space-y-6">
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* Item Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Item Name *
@@ -83,11 +98,15 @@ const AddItem = () => {
                 value={formData.itemName}
                 onChange={(value) => handleChange('itemName', value)}
                 placeholder="Enter item name"
-                error={errors.itemName}
               />
-              {errors.itemName && <p className="text-red-600 text-sm mt-1">{errors.itemName}</p>}
+              {errors.itemName && (
+                <p className="text-red-600 text-sm mt-1">
+                  {errors.itemName}
+                </p>
+              )}
             </div>
 
+            {/* Amount */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Amount (₹) *
@@ -99,11 +118,15 @@ const AddItem = () => {
                 value={formData.amount}
                 onChange={(value) => handleChange('amount', value)}
                 placeholder="0.00"
-                error={errors.amount}
               />
-              {errors.amount && <p className="text-red-600 text-sm mt-1">{errors.amount}</p>}
+              {errors.amount && (
+                <p className="text-red-600 text-sm mt-1">
+                  {errors.amount}
+                </p>
+              )}
             </div>
 
+            {/* Threshold */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Threshold *
@@ -114,11 +137,15 @@ const AddItem = () => {
                 value={formData.threshold}
                 onChange={(value) => handleChange('threshold', value)}
                 placeholder="Minimum stock level"
-                error={errors.threshold}
               />
-              {errors.threshold && <p className="text-red-600 text-sm mt-1">{errors.threshold}</p>}
+              {errors.threshold && (
+                <p className="text-red-600 text-sm mt-1">
+                  {errors.threshold}
+                </p>
+              )}
             </div>
 
+            {/* Stock Count */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Initial Stock Count *
@@ -129,31 +156,52 @@ const AddItem = () => {
                 value={formData.stockCount}
                 onChange={(value) => handleChange('stockCount', value)}
                 placeholder="Current stock quantity"
-                error={errors.stockCount}
               />
-              {errors.stockCount && <p className="text-red-600 text-sm mt-1">{errors.stockCount}</p>}
+              {errors.stockCount && (
+                <p className="text-red-600 text-sm mt-1">
+                  {errors.stockCount}
+                </p>
+              )}
             </div>
 
+            {/* Toggle Switch */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Type *
               </label>
-              <select
-                value={formData.type}
-                onChange={(e) => handleChange('type', parseInt(e.target.value))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+
+              <div
+                onClick={() =>
+                  handleChange('type', formData.type === 0 ? 1 : 0)
+                }
+                className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
+                  formData.type === 0
+                    ? 'bg-green-500'
+                    : 'bg-gray-300'
+                }`}
               >
-                <option value={0}>0</option>
-                <option value={1}>1</option>
-              </select>
+                <div
+                  className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
+                    formData.type === 0
+                      ? 'translate-x-7'
+                      : 'translate-x-0'
+                  }`}
+                />
+              </div>
             </div>
+
           </div>
 
+          {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category *
+            </label>
             <select
               value={formData.categoryId}
-              onChange={(e) => handleChange('categoryId', e.target.value)}
+              onChange={(e) =>
+                handleChange('categoryId', e.target.value)
+              }
               className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             >
               <option value={1}>Engine Parts</option>
@@ -162,6 +210,7 @@ const AddItem = () => {
             </select>
           </div>
 
+          {/* Image Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Item Image
@@ -174,11 +223,13 @@ const AddItem = () => {
             />
           </div>
 
+          {/* Buttons */}
           <div className="flex gap-3 pt-4">
             <Button type="submit" className="flex items-center gap-2">
               <FaSave />
               Save Item
             </Button>
+
             <Button
               type="button"
               variant="outline"
@@ -187,6 +238,7 @@ const AddItem = () => {
               Cancel
             </Button>
           </div>
+
         </form>
       </div>
     </div>
