@@ -1,7 +1,7 @@
 import { ApiError } from "../utils/index.js";
 import env from "../config/env.js";
 
-const errorHandler = (err, _, res, _) => {
+const errorHandler = (err, _, res, next) => {
   let error = err;
 
   if (err.name === "CastError") {
