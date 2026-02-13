@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
-import { Button, Select, Input } from '../../components/ui';
+import { Button } from '../../components/ui';
 import useStore from '../../store';
 
 const BillList = () => {
@@ -212,20 +212,22 @@ const BillList = () => {
           <h3 className="font-medium text-gray-900 text-sm sm:text-base">Filters</h3>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4">
-          <Input
+          <input
+            type="text"
             placeholder="Search party..."
             value={filters.party}
             onChange={(e) => setFilters(prev => ({ ...prev, party: e.target.value }))}
-            className="text-xs sm:text-sm py-1.5 sm:py-2"
+            className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
           />
-          <Select
+          <select
             value={filters.gstType}
-            onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
+            onChange={(e) => setFilters(prev => ({ ...prev, gstType: e.target.value }))}
+            className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
           >
             <option value="all">All Types</option>
             <option value="1">1</option>
             <option value="0">0</option>
-          </Select>
+          </select>
           {/* <Input
             type="date"
             value={filters.dateFrom}
