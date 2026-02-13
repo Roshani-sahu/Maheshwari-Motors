@@ -40,30 +40,30 @@ const AccountMaster = () => {
     }
   ];
 
-  const [discounts, setDiscounts] = useState([
-    {
-      id: 1,
-      discountType: 'ITEM',
-      amount: 500,
-      itemId: 'ITM001',
-      itemName: 'Engine Oil',
-      companyId: null,
-      companyName: null
-    },
-    {
-      id: 2,
-      discountType: 'COMPANY',
-      amount: 1000,
-      itemId: null,
-      itemName: null,
-      companyId: 'COMP001',
-      companyName: 'ABC Motors'
-    }
-  ]);
+  // const [discounts, setDiscounts] = useState([
+  //   {
+  //     id: 1,
+  //     discountType: 'ITEM',
+  //     amount: 500,
+  //     itemId: 'ITM001',
+  //     itemName: 'Engine Oil',
+  //     companyId: null,
+  //     companyName: null
+  //   },
+  //   {
+  //     id: 2,
+  //     discountType: 'COMPANY',
+  //     amount: 1000,
+  //     itemId: null,
+  //     itemName: null,
+  //     companyId: 'COMP001',
+  //     companyName: 'ABC Motors'
+  //   }
+  // ]);
 
   // derive unique company and item name lists from existing discounts
-  const companyOptions = Array.from(new Set(discounts.filter(d => d.companyName).map(d => d.companyName)));
-  const itemOptions = Array.from(new Set(discounts.filter(d => d.itemName).map(d => d.itemName)));
+  // const companyOptions = Array.from(new Set(discounts.filter(d => d.companyName).map(d => d.companyName)));
+  // const itemOptions = Array.from(new Set(discounts.filter(d => d.itemName).map(d => d.itemName)));
 
   const [filters, setFilters] = useState({
     dateFrom: '',
@@ -72,15 +72,15 @@ const AccountMaster = () => {
     gstType: 'all'
   });
 
-  const [isAddDiscountModalOpen, setIsAddDiscountModalOpen] = useState(false);
-  const [isEditDiscountModalOpen, setIsEditDiscountModalOpen] = useState(false);
-  const [editingDiscount, setEditingDiscount] = useState(null);
-  const [newDiscount, setNewDiscount] = useState({
-    discountType: 'ITEM',
-    amount: '',
-    itemName: '',
-    companyName: ''
-  });
+  // const [isAddDiscountModalOpen, setIsAddDiscountModalOpen] = useState(false);
+  // const [isEditDiscountModalOpen, setIsEditDiscountModalOpen] = useState(false);
+  // const [editingDiscount, setEditingDiscount] = useState(null);
+  // const [newDiscount, setNewDiscount] = useState({
+  //   discountType: 'ITEM',
+  //   amount: '',
+  //   itemName: '',
+  //   companyName: ''
+  // });
 
   // Transaction columns
   const transactionColumns = [
@@ -133,55 +133,55 @@ const AccountMaster = () => {
   ];
 
   // Discount columns
-  const discountColumns = [
-    { 
-      key: 'id', 
-      label: 'ID',
-      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
-    },
-    {
-      key: 'discountType',
-      label: 'Type',
-      render: (value) => (
-        <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
-          value === 'ITEM' ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
-        }`}>
-          {value}
-        </span>
-      )
-    },
-    {
-      key: 'amount',
-      label: 'Amount',
-      render: (value) => <span className="text-xs sm:text-sm">₹{value.toLocaleString()}</span>
-    },
-    {
-      key: 'itemName',
-      label: 'Item',
-      render: (value, row) => <span className="text-xs sm:text-sm truncate">{row.discountType === 'ITEM' ? value : 'N/A'}</span>
-    },
-    {
-      key: 'companyName',
-      label: 'Company',
-      render: (value, row) => <span className="text-xs sm:text-sm truncate">{row.discountType === 'COMPANY' ? value : 'N/A'}</span>
-    }
-  ];
+  // const discountColumns = [
+  //   { 
+  //     key: 'id', 
+  //     label: 'ID',
+  //     render: (value) => <span className="text-xs sm:text-sm">{value}</span>
+  //   },
+  //   {
+  //     key: 'discountType',
+  //     label: 'Type',
+  //     render: (value) => (
+  //       <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs rounded-full ${
+  //         value === 'ITEM' ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'
+  //       }`}>
+  //         {value}
+  //       </span>
+  //     )
+  //   },
+  //   {
+  //     key: 'amount',
+  //     label: 'Amount',
+  //     render: (value) => <span className="text-xs sm:text-sm">₹{value.toLocaleString()}</span>
+  //   },
+  //   {
+  //     key: 'itemName',
+  //     label: 'Item',
+  //     render: (value, row) => <span className="text-xs sm:text-sm truncate">{row.discountType === 'ITEM' ? value : 'N/A'}</span>
+  //   },
+  //   {
+  //     key: 'companyName',
+  //     label: 'Company',
+  //     render: (value, row) => <span className="text-xs sm:text-sm truncate">{row.discountType === 'COMPANY' ? value : 'N/A'}</span>
+  //   }
+  // ];
 
-  const discountActions = [
-    {
-      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
-      onClick: (discount) => {
-        setEditingDiscount(discount);
-        setIsEditDiscountModalOpen(true);
-      },
-      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
-    },
-    {
-      label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (discount) => setDeleteDialog({ isOpen: true, item: discount, type: 'discount' }),
-      className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
-    }
-  ];
+  // const discountActions = [
+  //   {
+  //     label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
+  //     onClick: (discount) => {
+  //       setEditingDiscount(discount);
+  //       setIsEditDiscountModalOpen(true);
+  //     },
+  //     className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
+  //   },
+  //   {
+  //     label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
+  //     onClick: (discount) => setDeleteDialog({ isOpen: true, item: discount, type: 'discount' }),
+  //     className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
+  //   }
+  // ];
 
   // Apply filters to transactions
   const filteredTransactions = transactions.filter(txn => {
@@ -193,27 +193,27 @@ const AccountMaster = () => {
     return true;
   });
 
-  const handleAddDiscount = () => {
-    // attempt to reuse existing ids when a matching name exists
-    const existingItem = discounts.find(d => d.itemName === newDiscount.itemName && d.itemId);
-    const existingCompany = discounts.find(d => d.companyName === newDiscount.companyName && d.companyId);
-    const discount = {
-      id: discounts.length + 1,
-      ...newDiscount,
-      amount: parseFloat(newDiscount.amount),
-      itemId: newDiscount.discountType === 'ITEM' ? (existingItem ? existingItem.itemId : 'ITM' + Date.now()) : null,
-      companyId: newDiscount.discountType === 'COMPANY' ? (existingCompany ? existingCompany.companyId : 'COMP' + Date.now()) : null
-    };
-    setDiscounts(prev => [...prev, discount]);
-    setNewDiscount({ discountType: 'ITEM', amount: '', itemName: '', companyName: '' });
-    setIsAddDiscountModalOpen(false);
-  };
+  // const handleAddDiscount = () => {
+  //   // attempt to reuse existing ids when a matching name exists
+  //   const existingItem = discounts.find(d => d.itemName === newDiscount.itemName && d.itemId);
+  //   const existingCompany = discounts.find(d => d.companyName === newDiscount.companyName && d.companyId);
+  //   const discount = {
+  //     id: discounts.length + 1,
+  //     ...newDiscount,
+  //     amount: parseFloat(newDiscount.amount),
+  //     itemId: newDiscount.discountType === 'ITEM' ? (existingItem ? existingItem.itemId : 'ITM' + Date.now()) : null,
+  //     companyId: newDiscount.discountType === 'COMPANY' ? (existingCompany ? existingCompany.companyId : 'COMP' + Date.now()) : null
+  //   };
+  //   setDiscounts(prev => [...prev, discount]);
+  //   setNewDiscount({ discountType: 'ITEM', amount: '', itemName: '', companyName: '' });
+  //   setIsAddDiscountModalOpen(false);
+  // };
 
-  const handleEditDiscount = () => {
-    setDiscounts(prev => prev.map(d => d.id === editingDiscount.id ? editingDiscount : d));
-    setIsEditDiscountModalOpen(false);
-    setEditingDiscount(null);
-  };
+  // const handleEditDiscount = () => {
+  //   setDiscounts(prev => prev.map(d => d.id === editingDiscount.id ? editingDiscount : d));
+  //   setIsEditDiscountModalOpen(false);
+  //   setEditingDiscount(null);
+  // };
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -242,7 +242,7 @@ const AccountMaster = () => {
                 Transactions
               </div>
             </button>
-            <button
+            {/* <button
               onClick={() => setActiveTab('discounts')}
               className={`py-3 sm:py-4 px-1 sm:px-2 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
                 activeTab === 'discounts'
@@ -254,7 +254,7 @@ const AccountMaster = () => {
                 <FaPercent className="text-sm sm:text-base" />
                 Discounts
               </div>
-            </button>
+            </button> */}
           </nav>
         </div>
 
@@ -313,7 +313,7 @@ const AccountMaster = () => {
             </div>
           )}
 
-          {activeTab === 'discounts' && (
+          {/* {activeTab === 'discounts' && (
             <div className="space-y-4">
               <div className="flex justify-end">
   <Button 
@@ -338,12 +338,12 @@ const AccountMaster = () => {
                 />
               </div>
             </div>
-          )}
+          )} */}
         </div>
       </div>
 
             {/* Add Discount Modal */}
-      <Modal isOpen={isAddDiscountModalOpen} onClose={() => setIsAddDiscountModalOpen(false)} title="Add Discount" size="md">
+      {/* <Modal isOpen={isAddDiscountModalOpen} onClose={() => setIsAddDiscountModalOpen(false)} title="Add Discount" size="md">
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
@@ -411,12 +411,12 @@ const AccountMaster = () => {
             </Button>
           </div>
         </div>
-      </Modal>
+      </Modal> */}
 
   
 
       {/* Edit Discount Modal */}
-      <Modal isOpen={isEditDiscountModalOpen} onClose={() => setIsEditDiscountModalOpen(false)} title="Edit Discount" size="sm">
+      {/* <Modal isOpen={isEditDiscountModalOpen} onClose={() => setIsEditDiscountModalOpen(false)} title="Edit Discount" size="sm">
         {editingDiscount && (
           <div className="space-y-3 sm:space-y-4">
             <div>
@@ -487,9 +487,9 @@ const AccountMaster = () => {
             </div>
           </div>
         )}
-      </Modal>
+      </Modal> */}
 
-      <DeleteConfirmDialog
+      {/* <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, item: null, type: '' })}
         onConfirm={() => {
@@ -500,7 +500,7 @@ const AccountMaster = () => {
           }
         }}
         itemName={deleteDialog.type === 'transaction' ? deleteDialog.item?.transactionId : `discount for ${deleteDialog.item?.itemName || deleteDialog.item?.companyName}`}
-      />
+      /> */}
     </div>
   );
 };
