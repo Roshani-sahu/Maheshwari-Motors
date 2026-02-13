@@ -1,274 +1,332 @@
 # Maheshwari Motors — Project Flow
 
-## Overview
-
-Maheshwari Motors is an **inventory management system** for an auto-parts business.
-
-The **main user** (business owner) has **3 credentials**:
-
-1. **Admin credential** — for user management, firm setup, system config
-2. **GST Firm credential** — for daily operations on the GST firm
-3. **NON_GST Firm credential** — for daily operations on the NON_GST firm
-
-**Secondary users** (staff) only get firm credentials — no admin access.
-
-There is only **ONE admin credential** in the entire project.
+> This guide explains the full project in simple terms. If you're new here, read this first.
 
 ---
 
-## 1. Initial Setup (One-Time)
+## What is this project?
 
-```
-Register Admin (one-time) → Admin Login → Create Firm Pair → Done
-```
+Maheshwari Motors is an **inventory + billing system** for an auto-parts business. It handles:
 
-1. **Register admin** — `POST /auth/admin/register` (works ONLY if no admin exists yet)
-   - Creates the single admin credential: `username`, `email`, `password`, `name`
-2. **Admin logs in** — `POST /auth/admin/login` → gets JWT token
-3. **Create Firm Pair** — `POST /admin/firm-pairs`
-   - Creates **GST firm** (with GSTIN, bank details, has its own username/password)
-   - Creates **NON_GST firm** (simpler, has its own username/password)
-   - Both are linked as a pair under one business name
-
-After this, the main user has all 3 credentials ready.
+- Managing items (auto parts), parties (customers), suppliers
+- Creating delivery notes (challans) and converting them into bills
+- Recording payments and tracking who owes what
+- Stock management with low-stock alerts
+- Discount rules that auto-apply during billing
+- GST and NON_GST operations as separate firms
 
 ---
 
-## 2. Login Flow
-
-The main user (business owner) has **3 logins**:
-
-### Admin Login (for management only)
+## The Big Picture
 
 ```
-POST /auth/admin/login  →  { username, password }  →  token (admin access)
+ONE User Account
+├── Admin credential   → manage staff, view overall dashboard
+├── GST Firm credential   → daily GST operations (challans, bills, etc.)
+└── NON_GST Firm credential   → daily NON_GST operations
 ```
 
-- Only **one admin** exists in the whole system
-- Used for: creating firm pairs, managing secondary users, system config
-- NOT used for daily challan/bill operations
+A **User** is the central entity. Each user has:
 
-### Firm Login (for daily operations)
+- **2 embedded firms** (GST + NON_GST) — these are NOT separate collections, they're objects inside the User document
+- **1 admin credential** (only for the main user, staff don't get this)
 
-```
-POST /auth/firm/login  →  { username, password }  →  token + firm details
-```
-
-- Each firm (GST / NON_GST) has its own username/password
-- Login is scoped to that specific firm
-- Used for: challans, bills, parties, transactions, purchases
-- Both the main user and secondary users use this
-
-### Who gets what?
-
-| User Type | Admin Login | GST Firm Login | NON_GST Firm Login |
-| --------- | :---------: | :------------: | :----------------: |
-| Main User |     Yes     |      Yes       |        Yes         |
-| Secondary |     No      | Assigned only  |   Assigned only    |
-
-### Session Management
-
-- Each login creates a **session** (supports multi-device)
-- Users can view active sessions, revoke specific sessions, or revoke all other sessions
-- Tokens include `device_name` and `device_type` for identification
+There's only **ONE main user** in the entire system. The main user can create **secondary users** (staff) who also get their own GST + NON_GST firm credentials.
 
 ---
 
-## 3. Master Data Setup
+## Data Ownership: Shared vs Firm-Scoped
 
-Before creating challans/bills, set up the master data:
+This is the most important concept to understand:
 
-```
-Items  →  Parties  →  Suppliers  →  Categories  →  Discounts
-```
+### Shared Data (filtered by `user_id` only)
 
-### Items (Shared Across Firms)
+These are visible regardless of which firm you're logged into:
 
-- Create items with `item_name`, `amount` (MRP), `threshold` (low stock alert)
-- Each item has an **`is_gst` flag** (1 = GST, 0 = NON_GST) — this determines which firm's challan it goes into
-- Items have **separate stock**: `gst_stock` and `nongst_stock`
+| Data         | Description                |
+| ------------ | -------------------------- |
+| Items        | Auto parts with stock info |
+| Parties      | Customers                  |
+| Suppliers    | Where you buy parts from   |
+| Categories   | Tags for organizing items  |
+| Discounts    | Discount rules             |
+| Stock Alerts | Low stock warnings         |
 
-### Parties (Per Firm)
+### Firm-Scoped Data (filtered by `user_id` + `is_gst`)
 
-- Parties (customers) are created **under a specific firm**
-- Each party has a **balance** (positive = overpaid, negative = due)
-- Party balance auto-updates when bills are created or payments are made
+These are different for GST firm vs NON_GST firm:
 
-### Suppliers
+| Data         | Description                 |
+| ------------ | --------------------------- |
+| Challans     | Delivery notes              |
+| Bills        | Invoices from challans      |
+| Transactions | Payment records             |
+| Purchases    | Goods bought from suppliers |
+| Dashboard    | Firm-specific stats         |
 
-- Suppliers are shared across the system
-- Used for purchase entries
-
-### Categories
-
-- Simple tag system for organizing items
-
-### Discounts (5 Types)
-
-| Type            | Description                                              |
-| --------------- | -------------------------------------------------------- |
-| `item`          | Flat discount on a specific item                         |
-| `party_item`    | Special discount for a specific party on a specific item |
-| `party_all`     | Discount for a party on all items                        |
-| `item_group`    | Discount for a named group of items                      |
-| `profit_margin` | Profit margin based discount                             |
-
-Each discount has 3 columns: `percent1`, `percent2`, `fixed_amount`.
+**How it works:** When you login as GST firm, your token contains `firm_type: "GST"`. The server sets `req.isGst = 1` and automatically filters all firm-scoped data to show only GST records. No firmId needed in URLs.
 
 ---
 
-## 4. Sales Flow (Challan → Bill → Payment)
+## Step-by-Step Flow
 
-This is the **core business flow**:
-
-```
-Create Challan  →  Convert to Bill  →  Record Payment  →  Close
-```
-
-### Step 1: Create Challan
+### Step 1: First-Time Setup (One Time Only)
 
 ```
-POST /firms/:firmId/challans
-Body: { party_id, items: [{ item_id, quantity, rate, is_gst }] }
+POST /auth/admin/register → Creates the main user with admin + both firms
 ```
 
-- A challan is a **delivery note** (goods dispatched but not yet billed)
-- The system **auto-splits** items by `is_gst`:
-  - GST items → GST firm's challan (stock deducted from `gst_stock`)
-  - NON_GST items → NON_GST firm's challan (no stock deduction)
-- If items are mixed, **two linked challans** are created automatically
-- Discounts **auto-apply** from discount rules (can be overridden)
+This creates:
 
-### Step 2: Convert Challan(s) to Bill
+- The main admin username/password
+- The GST firm username/password + firm details (GSTIN, bank info, etc.)
+- The NON_GST firm username/password + firm details
 
-```
-POST /firms/:firmId/bills
-Body: { party_id, challan_ids: [...], apply_balance }
-```
+After this, the main user has **3 logins** ready.
 
-- Select one or more **unconverted challans** for a party
-- A **bill** is generated with total amount, discounts, etc.
-- If `apply_balance: true`, party's existing balance is applied
-- Party balance is updated (amount becomes due)
+### Step 2: Login
 
-### Step 3: Record Payment
+**Admin Login** (for management):
 
 ```
-POST /firms/:firmId/transactions/sale
-Body: { bill_id, amount, payment_mode, utr, remarks }
+POST /auth/admin/login → { username, password } → token (role: "admin")
 ```
 
-- Create a **transaction** against the bill
-- Bill status changes: `due` → `partial` → `paid`
-- Party balance is updated accordingly
-- Payment modes: `cash`, `bank`, `cheque`, `upi`
-
-### Step 4: Bill Return (Optional)
+**Firm Login** (for daily work):
 
 ```
-POST /firms/:firmId/bills/:billId/return
-Body: { return_amount }
+POST /auth/firm/login → { username, password } → token (role: "firm", firm_type: "GST" or "NON_GST")
 ```
 
-- Handle goods returns
-- Adjusts bill amount and party balance
+The firm login response includes full firm details (name, GSTIN, bank info, etc.) so the app can display them.
+
+### Step 3: Set Up Master Data
+
+Before you can create challans and bills, you need:
+
+```
+1. Create Items     → POST /items (with image upload)
+2. Create Parties   → POST /parties (customers)
+3. Create Suppliers → POST /suppliers (optional, for purchases)
+4. Create Categories → POST /categories (optional, for organizing items)
+5. Create Discounts → POST /discounts (optional, auto-apply to challans)
+```
+
+**About Items:**
+
+- Each item has `is_gst` flag: `1` = GST item, `0` = NON_GST item
+- Items have **two stock counts**: `gst_stock` and `nongst_stock`
+- Items have a `threshold` — if total stock drops below this, a stock alert is created
+
+### Step 4: Create Challans (Delivery Notes)
+
+```
+POST /challans (requires firm token)
+```
+
+A challan is "I delivered these items to this party, but haven't billed yet".
+
+**The auto-split magic:**
+When you create a challan with mixed items (some GST, some NON_GST), the server automatically splits them:
+
+- GST items → a challan under GST firm (stock deducted from `gst_stock`)
+- NON_GST items → a challan under NON_GST firm (no stock deduction)
+- Both challans are linked via `linked_challan_id`
+
+**Discounts auto-apply:**
+The server checks discount rules and applies them:
+
+1. `party_item` (specific party + specific item) → highest priority
+2. `item` (flat discount on item) → second priority
+3. `party_all` (party gets discount on everything) → lowest priority
+
+You can override by sending `discount` in the item or challan body.
+
+### Step 5: Create Bills (Invoices)
+
+```
+POST /bills (requires firm token)
+```
+
+Select one or more **unconverted challans** for a party → the server creates a bill.
+
+```json
+{
+  "party_id": "...",
+  "challan_ids": ["...", "..."],
+  "apply_balance": false,
+  "delivered_amount": 45000
+}
+```
+
+- `apply_balance: true` → party's existing balance is applied to reduce the bill
+- `delivered_amount` → if less than total, the difference becomes `return_amount` and credits the party
+
+The challans are marked as `converted_to_bill = true`.
+
+### Step 6: Record Payments
+
+**Option A: Quick payment directly on bill:**
+
+```
+POST /bills/:billId/payment → { "amount": 25000 }
+```
+
+**Option B: Create a sale transaction (more details):**
+
+```
+POST /transactions/sale → { "bill_id": "...", "amount": 25000, "payment_mode": "bank", "utr": "..." }
+```
+
+Both update the bill's `paid_amount` and change status:
+
+- `paid_amount < amount` → status stays `"due"`
+- `paid_amount = amount` → status changes to `"paid"`
+- `paid_amount > amount` → status changes to `"overpaid"`, excess goes to party balance
+
+### Step 7: Handle Returns (Optional)
+
+```
+POST /bills/:billId/return → { "return_amount": 5000 }
+```
+
+Reduces the bill amount and credits the party balance.
 
 ---
 
-## 5. Purchase Flow
+## Purchase Flow
+
+For buying items from suppliers:
 
 ```
-Create Purchase  →  Record Payment
+1. POST /purchases → Create purchase (stock auto-increases)
+2. POST /purchases/:id/payment → Record payment
+   OR
+   POST /transactions/purchase → Record with more details
 ```
 
-### Create Purchase
+Purchases have `purchase_type`: `"GST"` or `"NON_GST"` — stock is added to the matching counter.
+
+---
+
+## Stock Management
+
+| Action                   | gst_stock Change | nongst_stock Change |
+| ------------------------ | ---------------- | ------------------- |
+| GST challan created      | -quantity        | —                   |
+| GST challan deleted      | +quantity        | —                   |
+| NON_GST challan created  | —                | — (no deduction)    |
+| GST purchase created     | +quantity        | —                   |
+| NON_GST purchase created | —                | +quantity           |
+| Manual stock update      | Set directly     | Set directly        |
+
+When total stock (`gst_stock + nongst_stock`) drops below `threshold`, a **stock alert** is auto-created. When stock goes back above threshold, it's auto-resolved.
+
+---
+
+## Discount System
+
+5 types of discounts, applied in this priority during challan creation:
+
+| Type            | What it does                                           | Fields used                                                   |
+| --------------- | ------------------------------------------------------ | ------------------------------------------------------------- |
+| `party_item`    | Special price for Party X on Item Y (highest priority) | party_id, item_id, percent1, percent2, fixed_amount           |
+| `item`          | Flat discount on Item Y for everyone                   | item_id, percent1, percent2, fixed_amount                     |
+| `party_all`     | Party X gets discount on ALL items                     | party_id, percent1, percent2, fixed_amount                    |
+| `item_group`    | Discount on a named group of items                     | item_group_name, item_ids[], percent1, percent2, fixed_amount |
+| `profit_margin` | Profit margin tracking (not auto-applied)              | item_id, profit_percent                                       |
+
+**Discount calculation:**
 
 ```
-POST /firms/:firmId/purchases
-Body: { supplier_id, purchase_type, items: [{ item_id, quantity, rate }] }
-```
-
-- Records goods received from a supplier
-- `purchase_type`: `GST` or `NON_GST`
-- Stock is automatically increased
-
-### Record Purchase Payment
-
-```
-POST /firms/:firmId/transactions/purchase
-Body: { purchase_id, amount, payment_mode, utr, remarks }
+price after percent1 = price × (1 - percent1/100)
+price after percent2 = above × (1 - percent2/100)
+final price = above - fixed_amount
 ```
 
 ---
 
-## 6. Stock Management
+## Dashboard
 
-- **Automatic**: Stock is adjusted on challan create/delete, purchase create/delete
-- **Manual**: Admin can manually set stock via `PATCH /items/:itemId/stock`
-- **Alerts**: When stock falls below `threshold`, a **stock alert** is auto-created
-- **Low Stock Report**: `GET /items/low-stock` shows all items below threshold
+### Admin Dashboard (`GET /dashboard`)
 
----
+Shows overall counts (items, parties, challans, bills for both firms), total revenue (GST + NON_GST), recent challans and bills.
 
-## 7. Dashboard & Reports
+### Firm Dashboard (`GET /dashboard/firm?period=monthly`)
 
-### Main Dashboard
+Shows stats for the current firm only:
 
-```
-GET /dashboard  →  Overall business summary across all firms
-```
+- Challan count, bill count, total revenue, pending amount
+- Transaction count, purchase count, purchase amount
+- Monthly revenue chart data
 
-### Firm Dashboard
-
-```
-GET /firms/:firmId/dashboard?period=all_time
-```
-
-- Periods: `today`, `last_month`, `last_year`, `all_time`
-- Shows: total sales, total purchases, outstanding dues, top parties, etc.
+Periods: `monthly` (current month) or `yearly` (current year).
 
 ---
 
-## 8. User Management
+## Session Management
 
-### Secondary Users
-
-- Admin can create **secondary users** (staff with limited access)
-- Assign specific firms to each user via `PUT /users/:id/firms`
-- Secondary users can only access their assigned firms
+- Each login creates a **session** with device info
+- Users can see all their active sessions: `GET /auth/sessions`
+- Revoke a specific session (logout another device): `DELETE /auth/sessions/:id`
+- Revoke all other sessions: `DELETE /auth/sessions`
+- Changing password revokes all sessions for that role
 
 ---
 
-## Visual Flow Summary
+## Staff Management (Admin Only)
+
+The main user can:
+
+1. Create secondary users: `POST /admin/users`
+2. Each staff gets their own GST + NON_GST firm credentials
+3. Staff can ONLY do firm login (no admin access)
+4. Deactivate/reactivate staff: `POST /admin/users/:id/deactivate`
+5. Delete staff: `DELETE /admin/users/:id`
+
+**Key rule:** Only ONE main user exists. Staff are "secondary" type.
+
+---
+
+## Visual Summary
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│              MAIN USER (3 credentials)              │
+│            MAIN USER (1 per system)                 │
 │                                                     │
-│  [Admin Login]     → Manage firms, users, config    │
-│  [GST Firm Login]  → Daily ops (GST challans/bills) │
-│  [NON_GST Login]   → Daily ops (NON_GST challans)   │
+│  Admin Login     → Staff mgmt, overall dashboard    │
+│  GST Firm Login  → Challans, bills, transactions    │
+│  NON_GST Login   → Challans, bills, transactions    │
 └─────────────────────┬───────────────────────────────┘
                       │
                       ▼
 ┌─────────────────────────────────────────────────────┐
-│           SECONDARY USERS (firm logins only)         │
+│          SECONDARY USERS (staff, no admin)           │
 │                                                     │
-│  [GST Firm Login]  → If assigned                    │
-│  [NON_GST Login]   → If assigned                    │
+│  GST Firm Login  → Same operations, same data       │
+│  NON_GST Login   → Same operations, same data       │
 └─────────────────────┬───────────────────────────────┘
                       │
                       ▼
 ┌─────────────────────────────────────────────────────┐
-│                  DAILY OPERATIONS                     │
+│                DAILY WORKFLOW                         │
 │                                                     │
-│  Setup: Items → Parties → Suppliers → Discounts     │
+│  SETUP:                                             │
+│    Items → Parties → Suppliers → Discounts          │
 │                                                     │
-│  Sales:  Challan ──→ Bill ──→ Payment ──→ Done      │
-│          (auto-split GST/NON_GST)                   │
+│  SALES FLOW:                                        │
+│    Create Challan (auto-split GST/NON_GST)          │
+│         ↓                                           │
+│    Convert Challans → Bill                          │
+│         ↓                                           │
+│    Record Payment → Bill becomes "paid"             │
 │                                                     │
-│  Purchase: Purchase Entry ──→ Payment ──→ Done      │
+│  PURCHASE FLOW:                                     │
+│    Create Purchase (stock auto-adds)                │
+│         ↓                                           │
+│    Record Payment                                   │
 │                                                     │
-│  Reports: Dashboard, Low Stock, Transactions        │
+│  MONITORING:                                        │
+│    Dashboard · Stock Alerts · Transaction Summary   │
 └─────────────────────────────────────────────────────┘
 ```

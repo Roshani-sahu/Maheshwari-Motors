@@ -1,76 +1,10 @@
 {
     "info": {
+        "_postman_id": "mm-api-collection",
         "name": "Maheshwari Motors API",
-        "_postman_id": "mm-api-collection-2026",
-        "description": "Complete API collection for Maheshwari Motors Inventory Management System",
+        "description": "Complete API collection for Maheshwari Motors inventory and billing management system.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
-    "variable": [
-        {
-            "key": "baseUrl",
-            "value": "http://localhost:3030/api/v1"
-        },
-        {
-            "key": "token",
-            "value": ""
-        },
-        {
-            "key": "firmId",
-            "value": ""
-        },
-        {
-            "key": "partyId",
-            "value": ""
-        },
-        {
-            "key": "itemId",
-            "value": ""
-        },
-        {
-            "key": "challanId",
-            "value": ""
-        },
-        {
-            "key": "billId",
-            "value": ""
-        },
-        {
-            "key": "purchaseId",
-            "value": ""
-        },
-        {
-            "key": "transactionId",
-            "value": ""
-        },
-        {
-            "key": "supplierId",
-            "value": ""
-        },
-        {
-            "key": "categoryId",
-            "value": ""
-        },
-        {
-            "key": "discountId",
-            "value": ""
-        },
-        {
-            "key": "alertId",
-            "value": ""
-        },
-        {
-            "key": "secondaryUserId",
-            "value": ""
-        },
-        {
-            "key": "sessionId",
-            "value": ""
-        },
-        {
-            "key": "pairId",
-            "value": ""
-        }
-    ],
     "auth": {
         "type": "bearer",
         "bearer": [
@@ -81,35 +15,84 @@
             }
         ]
     },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "https://api-maheshwari-motors.koyeb.app/api/v1"
+        },
+        {
+            "key": "token",
+            "value": ""
+        },
+        {
+            "key": "session_id",
+            "value": ""
+        },
+        {
+            "key": "user_id",
+            "value": ""
+        },
+        {
+            "key": "item_id",
+            "value": ""
+        },
+        {
+            "key": "category_id",
+            "value": ""
+        },
+        {
+            "key": "supplier_id",
+            "value": ""
+        },
+        {
+            "key": "party_id",
+            "value": ""
+        },
+        {
+            "key": "discount_id",
+            "value": ""
+        },
+        {
+            "key": "alert_id",
+            "value": ""
+        },
+        {
+            "key": "challan_id",
+            "value": ""
+        },
+        {
+            "key": "bill_id",
+            "value": ""
+        },
+        {
+            "key": "purchase_id",
+            "value": ""
+        },
+        {
+            "key": "transaction_id",
+            "value": ""
+        }
+    ],
     "item": [
         {
             "name": "Auth",
             "item": [
                 {
-                    "name": "Register",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data.token) {",
-                                    "    pm.collectionVariables.set('token', res.data.token);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
+                    "name": "Register Main User",
                     "request": {
                         "auth": {
                             "type": "noauth"
                         },
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"username\": \"admin\",\n  \"email\": \"admin@maheshwarimotors.com\",\n  \"password\": \"Admin@123\"\n}",
+                            "raw": "{\n  \"name\": \"Maheshwari Motors\",\n  \"email\": \"owner@mm.com\",\n  \"phone\": \"9876543210\",\n  \"admin\": {\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n  },\n  \"gst_firm\": {\n    \"username\": \"gstfirm\",\n    \"password\": \"gst123\",\n    \"name\": \"MM GST Firm\",\n    \"phone\": \"9876543210\",\n    \"email\": \"gst@mm.com\",\n    \"address\": \"123 Main St\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\",\n    \"GSTIN\": \"08AAACM1234H1Z5\"\n  },\n  \"nongst_firm\": {\n    \"username\": \"nongstfirm\",\n    \"password\": \"nongst123\",\n    \"name\": \"MM Non-GST Firm\",\n    \"phone\": \"9876543210\",\n    \"email\": \"nongst@mm.com\",\n    \"address\": \"123 Main St\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  }\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -117,42 +100,34 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/auth/register",
+                            "raw": "{{base_url}}/auth/admin/register",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "auth",
+                                "admin",
                                 "register"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Login",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data.token) {",
-                                    "    pm.collectionVariables.set('token', res.data.token);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
+                    "name": "Admin Login",
                     "request": {
                         "auth": {
                             "type": "noauth"
                         },
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"admin@maheshwarimotors.com\",\n  \"password\": \"Admin@123\"\n}",
+                            "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\",\n  \"device_name\": \"Postman\",\n  \"device_type\": \"desktop\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -160,13 +135,66 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/auth/login",
+                            "raw": "{{base_url}}/auth/admin/login",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "auth",
+                                "admin",
                                 "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Firm Login (GST)",
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"gstfirm\",\n  \"password\": \"gst123\",\n  \"device_name\": \"Postman\",\n  \"device_type\": \"desktop\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/firm/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "firm",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
                             ]
                         }
                     }
@@ -177,9 +205,9 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/auth/me",
+                            "raw": "{{base_url}}/auth/me",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "auth",
@@ -192,10 +220,15 @@
                     "name": "Change Password",
                     "request": {
                         "method": "PUT",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"current_password\": \"Admin@123\",\n  \"new_password\": \"NewAdmin@123\"\n}",
+                            "raw": "{\n  \"current_password\": \"old123\",\n  \"new_password\": \"new456\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -203,9 +236,9 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/auth/change-password",
+                            "raw": "{{base_url}}/auth/change-password",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "auth",
@@ -215,31 +248,14 @@
                     }
                 },
                 {
-                    "name": "Logout",
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/auth/logout",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "auth",
-                                "logout"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Active Sessions",
+                    "name": "List Sessions",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/auth/sessions",
+                            "raw": "{{base_url}}/auth/sessions",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "auth",
@@ -254,14 +270,14 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/auth/sessions/{{sessionId}}",
+                            "raw": "{{base_url}}/auth/sessions/{{session_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "auth",
                                 "sessions",
-                                "{{sessionId}}"
+                                "{{session_id}}"
                             ]
                         }
                     }
@@ -272,9 +288,9 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/auth/sessions",
+                            "raw": "{{base_url}}/auth/sessions",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "auth",
@@ -282,325 +298,42 @@
                             ]
                         }
                     }
-                },
-                {
-                    "name": "Admin Login",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data.token) {",
-                                    "    pm.collectionVariables.set('token', res.data.token);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": {
-                            "type": "noauth"
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@123\",\n  \"device_name\": \"Postman\",\n  \"device_type\": \"web\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/auth/admin/login",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "auth",
-                                "admin",
-                                "login"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Firm Login",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data.token) {",
-                                    "    pm.collectionVariables.set('token', res.data.token);",
-                                    "}",
-                                    "if (res.data && res.data.firm && res.data.firm._id) {",
-                                    "    pm.collectionVariables.set('firmId', res.data.firm._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "auth": {
-                            "type": "noauth"
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"username\": \"maheshwari_gst\",\n  \"password\": \"Firm@123\",\n  \"device_name\": \"Postman\",\n  \"device_type\": \"web\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/auth/firm/login",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "auth",
-                                "firm",
-                                "login"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin Register (One-Time Setup)",
-                    "request": {
-                        "auth": {
-                            "type": "noauth"
-                        },
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"username\": \"newadmin\",\n  \"email\": \"new@admin.com\",\n  \"password\": \"Admin@123\",\n  \"name\": \"New Admin\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/auth/admin/register",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "auth",
-                                "admin",
-                                "register"
-                            ]
-                        }
-                    }
                 }
             ]
         },
         {
-            "name": "Admin (Firm Pairs)",
+            "name": "Admin - Users",
             "item": [
                 {
-                    "name": "Create Firm Pair",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('pairId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"business_name\": \"Maheshwari Motors\",\n  \"gst_firm\": {\n    \"username\": \"maheshwari_gst\",\n    \"password\": \"Firm@123\",\n    \"name\": \"Maheshwari Motors GST\",\n    \"phone\": \"9876543210\",\n    \"email\": \"gst@mm.com\",\n    \"address\": \"Main Road\",\n    \"city\": \"Raipur\",\n    \"state\": \"Chhattisgarh\",\n    \"GSTIN\": \"22AAAAA0000A1Z5\"\n  },\n  \"nongst_firm\": {\n    \"username\": \"maheshwari_nongst\",\n    \"password\": \"Firm@123\",\n    \"name\": \"Maheshwari Motors NON-GST\",\n    \"phone\": \"9876543211\",\n    \"email\": \"nongst@mm.com\",\n    \"address\": \"Market Road\",\n    \"city\": \"Raipur\",\n    \"state\": \"Chhattisgarh\"\n  }\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/firm-pairs",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "firm-pairs"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get All Firm Pairs",
+                    "name": "List Secondary Users",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/admin/firm-pairs",
+                            "raw": "{{base_url}}/admin/users",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "admin",
-                                "firm-pairs"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Firm Pair By ID",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/firm-pairs/{{pairId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "firm-pairs",
-                                "{{pairId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Deactivate Firm Pair",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/firm-pairs/{{pairId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "firm-pairs",
-                                "{{pairId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Reactivate Firm Pair",
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/firm-pairs/{{pairId}}/reactivate",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "firm-pairs",
-                                "{{pairId}}",
-                                "reactivate"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Admin Update Firm",
-                    "request": {
-                        "method": "PUT",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Updated Firm Name\",\n  \"phone\": \"9876543299\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/admin/firms/{{firmId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "admin",
-                                "firms",
-                                "{{firmId}}"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Users (Main User Only)",
-            "item": [
-                {
-                    "name": "Get All Secondary Users",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/users?page=1&limit=10",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
                                 "users"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                }
                             ]
                         }
                     }
                 },
                 {
                     "name": "Create Secondary User",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('secondaryUserId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"username\": \"staff1\",\n  \"email\": \"staff1@maheshwarimotors.com\",\n  \"password\": \"Staff@123\",\n  \"firm_ids\": []\n}",
+                            "raw": "{\n  \"name\": \"Staff One\",\n  \"email\": \"staff@mm.com\",\n  \"phone\": \"9123456789\",\n  \"gst_firm\": {\n    \"username\": \"staff_gst\",\n    \"password\": \"pass123\",\n    \"name\": \"Staff GST\",\n    \"phone\": \"9123456789\",\n    \"email\": \"staffgst@mm.com\",\n    \"address\": \"Staff Address\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  },\n  \"nongst_firm\": {\n    \"username\": \"staff_nongst\",\n    \"password\": \"pass123\",\n    \"name\": \"Staff Non-GST\",\n    \"phone\": \"9123456789\",\n    \"email\": \"staffnongst@mm.com\",\n    \"address\": \"Staff Address\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  }\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -608,29 +341,31 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/users",
+                            "raw": "{{base_url}}/admin/users",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
+                                "admin",
                                 "users"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Get Secondary User By ID",
+                    "name": "Get Secondary User",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/users/{{secondaryUserId}}",
+                            "raw": "{{base_url}}/admin/users/{{user_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
+                                "admin",
                                 "users",
-                                "{{secondaryUserId}}"
+                                "{{user_id}}"
                             ]
                         }
                     }
@@ -639,10 +374,15 @@
                     "name": "Update Secondary User",
                     "request": {
                         "method": "PUT",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"username\": \"staff1_updated\"\n}",
+                            "raw": "{\n  \"name\": \"Staff Updated\",\n  \"email\": \"staffnew@mm.com\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -650,40 +390,14 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/users/{{secondaryUserId}}",
+                            "raw": "{{base_url}}/admin/users/{{user_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
+                                "admin",
                                 "users",
-                                "{{secondaryUserId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Secondary User Firms",
-                    "request": {
-                        "method": "PUT",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"firm_ids\": [\"{{firmId}}\"]\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/users/{{secondaryUserId}}/firms",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "users",
-                                "{{secondaryUserId}}",
-                                "firms"
+                                "{{user_id}}"
                             ]
                         }
                     }
@@ -694,168 +408,52 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/users/{{secondaryUserId}}",
+                            "raw": "{{base_url}}/admin/users/{{user_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
+                                "admin",
                                 "users",
-                                "{{secondaryUserId}}"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Firms",
-            "item": [
-                {
-                    "name": "Get All Firms",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms?page=1&limit=10",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                }
+                                "{{user_id}}"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Create GST Firm",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('firmId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
+                    "name": "Deactivate User",
                     "request": {
                         "method": "POST",
                         "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Maheshwari Motors GST\",\n  \"type\": \"GST\",\n  \"phone\": \"9876543210\",\n  \"email\": \"gst@maheshwarimotors.com\",\n  \"address\": \"Main Road, Raipur\",\n  \"city\": \"Raipur\",\n  \"state\": \"Chhattisgarh\",\n  \"GSTIN\": \"22AAAAA0000A1Z5\",\n  \"bank_name\": \"State Bank of India\",\n  \"bank_branch\": \"Main Branch\",\n  \"ifsc_code\": \"SBIN0001234\",\n  \"account_number\": \"1234567890\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
                         "url": {
-                            "raw": "{{baseUrl}}/firms",
+                            "raw": "{{base_url}}/admin/users/{{user_id}}/deactivate",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms"
+                                "admin",
+                                "users",
+                                "{{user_id}}",
+                                "deactivate"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Create NON_GST Firm",
+                    "name": "Reactivate User",
                     "request": {
                         "method": "POST",
                         "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Maheshwari Motors NON-GST\",\n  \"type\": \"NON_GST\",\n  \"phone\": \"9876543211\",\n  \"email\": \"nongst@maheshwarimotors.com\",\n  \"address\": \"Market Road, Raipur\",\n  \"city\": \"Raipur\",\n  \"state\": \"Chhattisgarh\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
                         "url": {
-                            "raw": "{{baseUrl}}/firms",
+                            "raw": "{{base_url}}/admin/users/{{user_id}}/reactivate",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Firm By ID",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Firm",
-                    "request": {
-                        "method": "PUT",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"phone\": \"9876543299\",\n  \"godown_address\": \"Industrial Area, Raipur\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Delete Firm",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}"
+                                "admin",
+                                "users",
+                                "{{user_id}}",
+                                "reactivate"
                             ]
                         }
                     }
@@ -866,14 +464,14 @@
             "name": "Dashboard",
             "item": [
                 {
-                    "name": "Get Main Dashboard",
+                    "name": "Admin Dashboard",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/dashboard",
+                            "raw": "{{base_url}}/dashboard",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "dashboard"
@@ -882,25 +480,23 @@
                     }
                 },
                 {
-                    "name": "Get Firm Dashboard",
+                    "name": "Firm Dashboard",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/dashboard?period=all_time",
+                            "raw": "{{base_url}}/dashboard/firm?period=monthly",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "dashboard"
+                                "dashboard",
+                                "firm"
                             ],
                             "query": [
                                 {
                                     "key": "period",
-                                    "value": "all_time",
-                                    "description": "Filter period: today, last_month, last_year, all_time"
+                                    "value": "monthly"
                                 }
                             ]
                         }
@@ -912,52 +508,23 @@
             "name": "Items",
             "item": [
                 {
-                    "name": "Get All Items",
+                    "name": "List Items",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/items?page=1&limit=10",
+                            "raw": "{{base_url}}/items",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "items"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "search",
-                                    "value": "",
-                                    "disabled": true
-                                }
                             ]
                         }
                     }
                 },
                 {
                     "name": "Create Item",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('itemId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "POST",
                         "header": [],
@@ -966,12 +533,12 @@
                             "formdata": [
                                 {
                                     "key": "item_name",
-                                    "value": "Brake Pad Set",
+                                    "value": "Bearing",
                                     "type": "text"
                                 },
                                 {
                                     "key": "amount",
-                                    "value": "1500",
+                                    "value": "500",
                                     "type": "text"
                                 },
                                 {
@@ -980,33 +547,21 @@
                                     "type": "text"
                                 },
                                 {
-                                    "key": "image",
-                                    "type": "file",
-                                    "src": [],
-                                    "disabled": true
-                                },
-                                {
                                     "key": "is_gst",
                                     "value": "1",
-                                    "type": "text",
-                                    "description": "1 = GST item, 0 = NON_GST item"
-                                },
-                                {
-                                    "key": "gst_stock",
-                                    "value": "0",
                                     "type": "text"
                                 },
                                 {
-                                    "key": "nongst_stock",
-                                    "value": "0",
-                                    "type": "text"
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": []
                                 }
                             ]
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/items",
+                            "raw": "{{base_url}}/items",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "items"
@@ -1015,18 +570,35 @@
                     }
                 },
                 {
-                    "name": "Get Item By ID",
+                    "name": "Low Stock Items",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/items/{{itemId}}",
+                            "raw": "{{base_url}}/items/low-stock",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "items",
-                                "{{itemId}}"
+                                "low-stock"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Item",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/items/{{item_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "items",
+                                "{{item_id}}"
                             ]
                         }
                     }
@@ -1041,92 +613,24 @@
                             "formdata": [
                                 {
                                     "key": "item_name",
-                                    "value": "Brake Pad Set Premium",
+                                    "value": "Updated Bearing",
                                     "type": "text"
                                 },
                                 {
                                     "key": "amount",
-                                    "value": "1800",
+                                    "value": "600",
                                     "type": "text"
-                                },
-                                {
-                                    "key": "image",
-                                    "type": "file",
-                                    "src": [],
-                                    "disabled": true
                                 }
                             ]
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/items/{{itemId}}",
+                            "raw": "{{base_url}}/items/{{item_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "items",
-                                "{{itemId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Stock",
-                    "request": {
-                        "method": "PATCH",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"gst_stock\": 50,\n  \"nongst_stock\": 30\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/items/{{itemId}}/stock",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "items",
-                                "{{itemId}}",
-                                "stock"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Low Stock Items",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/items/low-stock",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "items",
-                                "low-stock"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Item Discount",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/items/{{itemId}}/discount",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "items",
-                                "{{itemId}}",
-                                "discount"
+                                "{{item_id}}"
                             ]
                         }
                     }
@@ -1137,75 +641,30 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/items/{{itemId}}",
+                            "raw": "{{base_url}}/items/{{item_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "items",
-                                "{{itemId}}"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Suppliers",
-            "item": [
-                {
-                    "name": "Get All Suppliers",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/suppliers?page=1&limit=10",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "suppliers"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "search",
-                                    "value": "",
-                                    "disabled": true
-                                }
+                                "{{item_id}}"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Create Supplier",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('supplierId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
+                    "name": "Update Stock",
                     "request": {
-                        "method": "POST",
-                        "header": [],
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"ABC Auto Parts\",\n  \"phone\": \"9876543210\",\n  \"email\": \"abc@autoparts.com\",\n  \"address\": \"Industrial Area\",\n  \"city\": \"Delhi\",\n  \"state\": \"Delhi\",\n  \"gstin\": \"07AAAAA0000A1Z5\"\n}",
+                            "raw": "{\n  \"gst_stock\": 100,\n  \"nongst_stock\": 50\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1213,72 +672,32 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/suppliers",
+                            "raw": "{{base_url}}/items/{{item_id}}/stock",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "suppliers"
+                                "items",
+                                "{{item_id}}",
+                                "stock"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Get Supplier By ID",
+                    "name": "Get Item Discounts",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/suppliers/{{supplierId}}",
+                            "raw": "{{base_url}}/items/{{item_id}}/discount",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "suppliers",
-                                "{{supplierId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Supplier",
-                    "request": {
-                        "method": "PUT",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"phone\": \"9876543299\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/suppliers/{{supplierId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "suppliers",
-                                "{{supplierId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Delete Supplier",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/suppliers/{{supplierId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "suppliers",
-                                "{{supplierId}}"
+                                "items",
+                                "{{item_id}}",
+                                "discount"
                             ]
                         }
                     }
@@ -1289,58 +708,34 @@
             "name": "Categories",
             "item": [
                 {
-                    "name": "Get All Categories",
+                    "name": "List Categories",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/categories?page=1&limit=10",
+                            "raw": "{{base_url}}/categories",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "categories"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "search",
-                                    "value": "",
-                                    "disabled": true
-                                }
                             ]
                         }
                     }
                 },
                 {
                     "name": "Create Category",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('categoryId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Engine Parts\"\n}",
+                            "raw": "{\n  \"name\": \"Bearings\",\n  \"description\": \"Ball bearings and roller bearings\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1348,9 +743,9 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/categories",
+                            "raw": "{{base_url}}/categories",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "categories"
@@ -1359,18 +754,18 @@
                     }
                 },
                 {
-                    "name": "Get Category By ID",
+                    "name": "Get Category",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                            "raw": "{{base_url}}/categories/{{category_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "categories",
-                                "{{categoryId}}"
+                                "{{category_id}}"
                             ]
                         }
                     }
@@ -1379,10 +774,15 @@
                     "name": "Update Category",
                     "request": {
                         "method": "PUT",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Brake Parts\"\n}",
+                            "raw": "{\n  \"name\": \"Updated Bearings\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1390,13 +790,13 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                            "raw": "{{base_url}}/categories/{{category_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "categories",
-                                "{{categoryId}}"
+                                "{{category_id}}"
                             ]
                         }
                     }
@@ -1407,13 +807,329 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/categories/{{categoryId}}",
+                            "raw": "{{base_url}}/categories/{{category_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "categories",
-                                "{{categoryId}}"
+                                "{{category_id}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Suppliers",
+            "item": [
+                {
+                    "name": "List Suppliers",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/suppliers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "suppliers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Supplier",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"ABC Supplier\",\n  \"phone\": \"9876543210\",\n  \"email\": \"abc@supplier.com\",\n  \"address\": \"Industrial Area\",\n  \"city\": \"Delhi\",\n  \"state\": \"Delhi\",\n  \"gstin\": \"07AAACM1234H1Z5\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/suppliers",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "suppliers"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Supplier",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/suppliers/{{supplier_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "suppliers",
+                                "{{supplier_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Supplier",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"ABC Updated\",\n  \"phone\": \"9876543211\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/suppliers/{{supplier_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "suppliers",
+                                "{{supplier_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Supplier",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/suppliers/{{supplier_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "suppliers",
+                                "{{supplier_id}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Parties",
+            "item": [
+                {
+                    "name": "List Parties",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/parties",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "parties"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Party",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Raj Auto Parts\",\n  \"phone\": \"9876543210\",\n  \"email\": \"raj@auto.com\",\n  \"address\": \"Market Road\",\n  \"city\": \"Jaipur\",\n  \"state\": \"Rajasthan\",\n  \"gstin\": \"08AAACR1234H1Z5\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/parties",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "parties"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Parties With Due",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/parties/due",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "parties",
+                                "due"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Parties With Overpaid",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/parties/overpaid",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "parties",
+                                "overpaid"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Party",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/parties/{{party_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "parties",
+                                "{{party_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Party",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"Raj Auto Updated\",\n  \"phone\": \"9876543211\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/parties/{{party_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "parties",
+                                "{{party_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Party",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/parties/{{party_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "parties",
+                                "{{party_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Party Balance",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/parties/{{party_id}}/balance",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "parties",
+                                "{{party_id}}",
+                                "balance"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Party Balance",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"amount\": 5000,\n  \"operation\": \"add\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/parties/{{party_id}}/balance",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "parties",
+                                "{{party_id}}",
+                                "balance"
                             ]
                         }
                     }
@@ -1424,58 +1140,34 @@
             "name": "Discounts",
             "item": [
                 {
-                    "name": "Get All Discounts",
+                    "name": "List Discounts",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/discounts?page=1&limit=10",
+                            "raw": "{{base_url}}/discounts",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "discounts"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "type",
-                                    "value": "item",
-                                    "disabled": true
-                                }
                             ]
                         }
                     }
                 },
                 {
                     "name": "Create Item Discount",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('discountId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"type\": \"item\",\n  \"percent1\": 10,\n  \"percent2\": 0,\n  \"fixed_amount\": 0,\n  \"item_id\": \"{{itemId}}\",\n  \"firm_id\": \"{{firmId}}\"\n}",
+                            "raw": "{\n  \"type\": \"item\",\n  \"item_id\": \"{{item_id}}\",\n  \"percent1\": 10,\n  \"percent2\": 5,\n  \"fixed_amount\": 0\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1483,9 +1175,9 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/discounts",
+                            "raw": "{{base_url}}/discounts",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "discounts"
@@ -1494,13 +1186,18 @@
                     }
                 },
                 {
-                    "name": "Create Party Discount",
+                    "name": "Create Party Item Discount",
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"type\": \"party_all\",\n  \"percent1\": 5,\n  \"percent2\": 0,\n  \"fixed_amount\": 0,\n  \"party_id\": \"{{partyId}}\",\n  \"firm_id\": \"{{firmId}}\"\n}",
+                            "raw": "{\n  \"type\": \"party_item\",\n  \"party_id\": \"{{party_id}}\",\n  \"item_id\": \"{{item_id}}\",\n  \"percent1\": 15,\n  \"percent2\": 0,\n  \"fixed_amount\": 100\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1508,9 +1205,9 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/discounts",
+                            "raw": "{{base_url}}/discounts",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "discounts"
@@ -1519,18 +1216,144 @@
                     }
                 },
                 {
-                    "name": "Get Discount By ID",
+                    "name": "Create Party All Discount",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"party_all\",\n  \"party_id\": \"{{party_id}}\",\n  \"percent1\": 5,\n  \"percent2\": 0,\n  \"fixed_amount\": 0\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/discounts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "discounts"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Item Group Discount",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"item_group\",\n  \"item_group_name\": \"Bearings Group\",\n  \"item_ids\": [\"{{item_id}}\"],\n  \"percent1\": 10,\n  \"percent2\": 0,\n  \"fixed_amount\": 0\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/discounts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "discounts"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Profit Margin Discount",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"type\": \"profit_margin\",\n  \"item_id\": \"{{item_id}}\",\n  \"profit_percent\": 20\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/discounts",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "discounts"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Item Discounts",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/discounts/{{discountId}}",
+                            "raw": "{{base_url}}/discounts/item/{{item_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "discounts",
-                                "{{discountId}}"
+                                "item",
+                                "{{item_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Party Discounts",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/discounts/party/{{party_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "discounts",
+                                "party",
+                                "{{party_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Discount",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/discounts/{{discount_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "discounts",
+                                "{{discount_id}}"
                             ]
                         }
                     }
@@ -1539,10 +1362,15 @@
                     "name": "Update Discount",
                     "request": {
                         "method": "PUT",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"percent1\": 15\n}",
+                            "raw": "{\n  \"percent1\": 12,\n  \"percent2\": 3\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1550,13 +1378,13 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/discounts/{{discountId}}",
+                            "raw": "{{base_url}}/discounts/{{discount_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "discounts",
-                                "{{discountId}}"
+                                "{{discount_id}}"
                             ]
                         }
                     }
@@ -1567,49 +1395,13 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/discounts/{{discountId}}",
+                            "raw": "{{base_url}}/discounts/{{discount_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "discounts",
-                                "{{discountId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Item Discount Rule",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/discounts/item/{{itemId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "discounts",
-                                "item",
-                                "{{itemId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Party Discount Rule",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/discounts/party/{{partyId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "discounts",
-                                "party",
-                                "{{partyId}}"
+                                "{{discount_id}}"
                             ]
                         }
                     }
@@ -1620,45 +1412,30 @@
             "name": "Stock Alerts",
             "item": [
                 {
-                    "name": "Get All Alerts",
+                    "name": "List Alerts",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/stock-alerts?page=1&limit=10",
+                            "raw": "{{base_url}}/stock-alerts",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "stock-alerts"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "is_resolved",
-                                    "value": "false",
-                                    "disabled": true
-                                }
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Get Unresolved Count",
+                    "name": "Unresolved Count",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/stock-alerts/count",
+                            "raw": "{{base_url}}/stock-alerts/count",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "stock-alerts",
@@ -1668,14 +1445,14 @@
                     }
                 },
                 {
-                    "name": "Get Low Stock Items",
+                    "name": "Low Stock Items",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/stock-alerts/items",
+                            "raw": "{{base_url}}/stock-alerts/items",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "stock-alerts",
@@ -1690,13 +1467,13 @@
                         "method": "PATCH",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/stock-alerts/{{alertId}}/resolve",
+                            "raw": "{{base_url}}/stock-alerts/{{alert_id}}/resolve",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
                                 "stock-alerts",
-                                "{{alertId}}",
+                                "{{alert_id}}",
                                 "resolve"
                             ]
                         }
@@ -1705,400 +1482,87 @@
             ]
         },
         {
-            "name": "Parties",
-            "item": [
-                {
-                    "name": "Get All Parties",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties?page=1&limit=10",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "search",
-                                    "value": "",
-                                    "disabled": true
-                                }
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Create Party",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('partyId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"Sharma Automobiles\",\n  \"phone\": \"9876543210\",\n  \"email\": \"sharma@auto.com\",\n  \"address\": \"Station Road\",\n  \"city\": \"Raipur\",\n  \"state\": \"Chhattisgarh\",\n  \"gstin\": \"22BBBBB0000B1Z5\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Parties With Due",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/due",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "due"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Parties With Overpaid",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/overpaid",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "overpaid"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Party By ID",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/{{partyId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "{{partyId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Party",
-                    "request": {
-                        "method": "PUT",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"phone\": \"9876543299\",\n  \"address\": \"New Station Road\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/{{partyId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "{{partyId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Party Balance",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/{{partyId}}/balance",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "{{partyId}}",
-                                "balance"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Party Balance",
-                    "request": {
-                        "method": "PATCH",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"amount\": 500,\n  \"operation\": \"add\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/{{partyId}}/balance",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "{{partyId}}",
-                                "balance"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Party Discount",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/{{partyId}}/discount",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "{{partyId}}",
-                                "discount"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Party Unconverted Challans",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/{{partyId}}/challans",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "{{partyId}}",
-                                "challans"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Party Bills",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/{{partyId}}/bills",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "{{partyId}}",
-                                "bills"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Delete Party",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/parties/{{partyId}}",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "parties",
-                                "{{partyId}}"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
             "name": "Challans",
+            "description": "Firm Token Required",
             "item": [
                 {
-                    "name": "Get All Challans",
+                    "name": "List Challans",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/challans?page=1&limit=10",
+                            "raw": "{{base_url}}/challans",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "challans"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "party_id",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "from_date",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "to_date",
-                                    "value": "",
-                                    "disabled": true
-                                }
                             ]
                         }
                     }
                 },
                 {
                     "name": "Create Challan",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('challanId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"party_id\": \"{{partyId}}\",\n  \"items\": [\n    {\n      \"item_id\": \"{{itemId}}\",\n      \"quantity\": 5,\n      \"rate\": 1500,\n      \"is_gst\": 1\n    }\n  ]\n}",
+                            "raw": "{\n  \"party_id\": \"{{party_id}}\",\n  \"date\": \"2025-01-15\",\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 5,\n      \"rate\": 1500\n    }\n  ],\n  \"discount\": 0\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
                                 }
                             }
                         },
-                        "description": "Discounts auto-apply from Discount rules. Omit items[].discount and discount to use auto values. Send them explicitly to override.",
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/challans",
+                            "raw": "{{base_url}}/challans",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "challans"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Get Challan By ID",
+                    "name": "Unconverted Challans for Party",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/challans/{{challanId}}",
+                            "raw": "{{base_url}}/challans/party/{{party_id}}/unconverted",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "challans",
-                                "{{challanId}}"
+                                "party",
+                                "{{party_id}}",
+                                "unconverted"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Challan",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/challans/{{challan_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "challans",
+                                "{{challan_id}}"
                             ]
                         }
                     }
@@ -2107,10 +1571,15 @@
                     "name": "Update Challan",
                     "request": {
                         "method": "PUT",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"items\": [\n    {\n      \"item_id\": \"{{itemId}}\",\n      \"quantity\": 3,\n      \"rate\": 1500,\n      \"is_gst\": 1\n    }\n  ]\n}",
+                            "raw": "{\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 10,\n      \"rate\": 1500\n    }\n  ],\n  \"discount\": 2\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2118,15 +1587,13 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/challans/{{challanId}}",
+                            "raw": "{{base_url}}/challans/{{challan_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "challans",
-                                "{{challanId}}"
+                                "{{challan_id}}"
                             ]
                         }
                     }
@@ -2137,15 +1604,13 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/challans/{{challanId}}",
+                            "raw": "{{base_url}}/challans/{{challan_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "challans",
-                                "{{challanId}}"
+                                "{{challan_id}}"
                             ]
                         }
                     }
@@ -2154,77 +1619,37 @@
         },
         {
             "name": "Bills",
+            "description": "Firm Token Required",
             "item": [
                 {
-                    "name": "Get All Bills",
+                    "name": "List Bills",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/bills?page=1&limit=10",
+                            "raw": "{{base_url}}/bills",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "bills"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "party_id",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "payment_status",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "from_date",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "to_date",
-                                    "value": "",
-                                    "disabled": true
-                                }
                             ]
                         }
                     }
                 },
                 {
                     "name": "Create Bill",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data.bill && res.data.bill._id) {",
-                                    "    pm.collectionVariables.set('billId', res.data.bill._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"party_id\": \"{{partyId}}\",\n  \"challan_ids\": [\"{{challanId}}\"],\n  \"apply_balance\": false\n}",
+                            "raw": "{\n  \"party_id\": \"{{party_id}}\",\n  \"challan_ids\": [\"{{challan_id}}\"],\n  \"apply_balance\": false\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2232,31 +1657,27 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/bills",
+                            "raw": "{{base_url}}/bills",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "bills"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Get Bills By Status",
+                    "name": "Bills By Status (Due)",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/bills/status/due",
+                            "raw": "{{base_url}}/bills/status/due",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "bills",
                                 "status",
                                 "due"
@@ -2265,32 +1686,71 @@
                     }
                 },
                 {
-                    "name": "Get Bill By ID",
+                    "name": "Bills By Status (Paid)",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/bills/{{billId}}",
+                            "raw": "{{base_url}}/bills/status/paid",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "bills",
-                                "{{billId}}"
+                                "status",
+                                "paid"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Record Bill Payment",
+                    "name": "Bills For Party",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/bills/party/{{party_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "bills",
+                                "party",
+                                "{{party_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Bill",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/bills/{{bill_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "bills",
+                                "{{bill_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Record Payment",
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"amount\": 5000\n}",
+                            "raw": "{\n  \"amount\": 25000\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2298,28 +1758,31 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/bills/{{billId}}/payment",
+                            "raw": "{{base_url}}/bills/{{bill_id}}/payment",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "bills",
-                                "{{billId}}",
+                                "{{bill_id}}",
                                 "payment"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Handle Bill Return",
+                    "name": "Handle Return",
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"return_amount\": 1500\n}",
+                            "raw": "{\n  \"return_amount\": 5000\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2327,15 +1790,13 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/bills/{{billId}}/return",
+                            "raw": "{{base_url}}/bills/{{bill_id}}/return",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "bills",
-                                "{{billId}}",
+                                "{{bill_id}}",
                                 "return"
                             ]
                         }
@@ -2347,15 +1808,13 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/bills/{{billId}}",
+                            "raw": "{{base_url}}/bills/{{bill_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "bills",
-                                "{{billId}}"
+                                "{{bill_id}}"
                             ]
                         }
                     }
@@ -2364,72 +1823,37 @@
         },
         {
             "name": "Purchases",
+            "description": "Firm Token Required",
             "item": [
                 {
-                    "name": "Get All Purchases",
+                    "name": "List Purchases",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/purchases?page=1&limit=10",
+                            "raw": "{{base_url}}/purchases",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "purchases"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "supplier_id",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "purchase_type",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "payment_status",
-                                    "value": "",
-                                    "disabled": true
-                                }
                             ]
                         }
                     }
                 },
                 {
                     "name": "Create Purchase",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('purchaseId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"supplier_id\": \"{{supplierId}}\",\n  \"purchase_type\": \"GST\",\n  \"items\": [\n    {\n      \"item_id\": \"{{itemId}}\",\n      \"quantity\": 100,\n      \"rate\": 800\n    }\n  ]\n}",
+                            "raw": "{\n  \"supplier_id\": \"{{supplier_id}}\",\n  \"purchase_type\": \"GST\",\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 100,\n      \"rate\": 500\n    }\n  ]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2437,31 +1861,27 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/purchases",
+                            "raw": "{{base_url}}/purchases",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "purchases"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Get Purchases By Type",
+                    "name": "Purchases By Type (GST)",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/purchases/type/GST",
+                            "raw": "{{base_url}}/purchases/type/GST",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "purchases",
                                 "type",
                                 "GST"
@@ -2470,20 +1890,36 @@
                     }
                 },
                 {
-                    "name": "Get Purchase By ID",
+                    "name": "Purchases By Type (NON_GST)",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/purchases/{{purchaseId}}",
+                            "raw": "{{base_url}}/purchases/type/NON_GST",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "purchases",
-                                "{{purchaseId}}"
+                                "type",
+                                "NON_GST"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Purchase",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/purchases/{{purchase_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "purchases",
+                                "{{purchase_id}}"
                             ]
                         }
                     }
@@ -2492,10 +1928,15 @@
                     "name": "Record Purchase Payment",
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"amount\": 40000\n}",
+                            "raw": "{\n  \"amount\": 50000\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2503,15 +1944,13 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/purchases/{{purchaseId}}/payment",
+                            "raw": "{{base_url}}/purchases/{{purchase_id}}/payment",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "purchases",
-                                "{{purchaseId}}",
+                                "{{purchase_id}}",
                                 "payment"
                             ]
                         }
@@ -2523,15 +1962,13 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/purchases/{{purchaseId}}",
+                            "raw": "{{base_url}}/purchases/{{purchase_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "purchases",
-                                "{{purchaseId}}"
+                                "{{purchase_id}}"
                             ]
                         }
                     }
@@ -2540,77 +1977,37 @@
         },
         {
             "name": "Transactions",
+            "description": "Firm Token Required",
             "item": [
                 {
-                    "name": "Get All Transactions",
+                    "name": "List Transactions",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/transactions?page=1&limit=10",
+                            "raw": "{{base_url}}/transactions",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "transactions"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                },
-                                {
-                                    "key": "type",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "payment_mode",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "from_date",
-                                    "value": "",
-                                    "disabled": true
-                                },
-                                {
-                                    "key": "to_date",
-                                    "value": "",
-                                    "disabled": true
-                                }
                             ]
                         }
                     }
                 },
                 {
                     "name": "Create Sale Transaction",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('transactionId', res.data._id);",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"bill_id\": \"{{billId}}\",\n  \"amount\": 5000,\n  \"payment_mode\": \"bank\",\n  \"utr\": \"UTR123456789\",\n  \"remarks\": \"Partial payment\"\n}",
+                            "raw": "{\n  \"bill_id\": \"{{bill_id}}\",\n  \"amount\": 25000,\n  \"payment_mode\": \"bank\",\n  \"utr\": \"UTR123456\",\n  \"transaction_ref\": \"REF001\",\n  \"remarks\": \"Partial payment\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2618,13 +2015,11 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/transactions/sale",
+                            "raw": "{{base_url}}/transactions/sale",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "transactions",
                                 "sale"
                             ]
@@ -2635,10 +2030,15 @@
                     "name": "Create Purchase Transaction",
                     "request": {
                         "method": "POST",
-                        "header": [],
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"purchase_id\": \"{{purchaseId}}\",\n  \"amount\": 40000,\n  \"payment_mode\": \"bank\",\n  \"utr\": \"UTR987654321\",\n  \"remarks\": \"Full payment\"\n}",
+                            "raw": "{\n  \"purchase_id\": \"{{purchase_id}}\",\n  \"amount\": 50000,\n  \"payment_mode\": \"cash\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2646,13 +2046,11 @@
                             }
                         },
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/transactions/purchase",
+                            "raw": "{{base_url}}/transactions/purchase",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "transactions",
                                 "purchase"
                             ]
@@ -2660,18 +2058,16 @@
                     }
                 },
                 {
-                    "name": "Get Transaction Summary",
+                    "name": "Transaction Summary",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/transactions/summary",
+                            "raw": "{{base_url}}/transactions/summary",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "transactions",
                                 "summary"
                             ]
@@ -2679,18 +2075,16 @@
                     }
                 },
                 {
-                    "name": "Get Transactions By Type",
+                    "name": "Transactions By Type (Sale)",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/transactions/type/sale",
+                            "raw": "{{base_url}}/transactions/type/sale",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "transactions",
                                 "type",
                                 "sale"
@@ -2699,40 +2093,108 @@
                     }
                 },
                 {
-                    "name": "Get Transactions By Payment Mode",
+                    "name": "Transactions By Type (Purchase)",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/transactions/payment-mode/bank",
+                            "raw": "{{base_url}}/transactions/type/purchase",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "transactions",
-                                "payment-mode",
+                                "type",
+                                "purchase"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Transactions By Mode (Cash)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/transactions/mode/cash",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "mode",
+                                "cash"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Transactions By Mode (Bank)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/transactions/mode/bank",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "mode",
                                 "bank"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Get Transaction By ID",
+                    "name": "Transactions For Bill",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/transactions/{{transactionId}}",
+                            "raw": "{{base_url}}/transactions/bill/{{bill_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "transactions",
-                                "{{transactionId}}"
+                                "bill",
+                                "{{bill_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Transactions For Purchase",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/transactions/purchase/{{purchase_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "purchase",
+                                "{{purchase_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Transaction",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/transactions/{{transaction_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "transactions",
+                                "{{transaction_id}}"
                             ]
                         }
                     }
@@ -2743,55 +2205,13 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/transactions/{{transactionId}}",
+                            "raw": "{{base_url}}/transactions/{{transaction_id}}",
                             "host": [
-                                "{{baseUrl}}"
+                                "{{base_url}}"
                             ],
                             "path": [
-                                "firms",
-                                "{{firmId}}",
                                 "transactions",
-                                "{{transactionId}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Transactions By Bill",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/bills/{{billId}}/transactions",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "bills",
-                                "{{billId}}",
-                                "transactions"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Transactions By Purchase",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{baseUrl}}/firms/{{firmId}}/purchases/{{purchaseId}}/transactions",
-                            "host": [
-                                "{{baseUrl}}"
-                            ],
-                            "path": [
-                                "firms",
-                                "{{firmId}}",
-                                "purchases",
-                                "{{purchaseId}}",
-                                "transactions"
+                                "{{transaction_id}}"
                             ]
                         }
                     }

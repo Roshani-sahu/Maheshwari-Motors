@@ -50,7 +50,6 @@ const userSchema = new Schema(
     admin: { type: adminSubSchema, default: null },
 
     is_active: { type: Boolean, default: true },
-    created_by: { type: ObjectId, ref: "User", default: null },
   },
   { timestamps: true },
 );

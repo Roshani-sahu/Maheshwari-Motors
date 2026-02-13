@@ -4,7 +4,7 @@ import Session from "../models/session.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class AdminService {
-  async createSecondaryUser(mainUserId, data) {
+  async createSecondaryUser(data) {
     const { name, email, phone, gst_firm, nongst_firm } = data;
 
     const gstPwHash = await bcrypt.hash(gst_firm.password, 10);
@@ -15,38 +15,35 @@ class AdminService {
       name,
       email,
       phone,
-      admin: null, // secondary users don't have admin credentials
+      admin: null,
       gst_firm: { ...gst_firm, password: gstPwHash },
       nongst_firm: { ...nongst_firm, password: nongstPwHash },
-      created_by: mainUserId,
     });
 
     return user.toSafeObject();
   }
 
-  async getSecondaryUsers(mainUserId, query) {
+  async getSecondaryUsers(query) {
     return Pagination.paginate(
       User,
-      { type: "secondary", created_by: mainUserId },
+      { type: "secondary" },
       { ...query, sort: { createdAt: -1 } },
     );
   }
 
-  async getSecondaryUserById(userId, mainUserId) {
+  async getSecondaryUserById(userId) {
     const user = await User.findOne({
       _id: userId,
       type: "secondary",
-      created_by: mainUserId,
     });
     if (!user) throw ApiError.notFound("Secondary user not found");
     return user.toSafeObject();
   }
 
-  async updateSecondaryUser(userId, mainUserId, updateData) {
+  async updateSecondaryUser(userId, updateData) {
     const user = await User.findOne({
       _id: userId,
       type: "secondary",
-      created_by: mainUserId,
     });
     if (!user) throw ApiError.notFound("Secondary user not found");
 
@@ -72,11 +69,10 @@ class AdminService {
     return user.toSafeObject();
   }
 
-  async deactivateSecondaryUser(userId, mainUserId) {
+  async deactivateSecondaryUser(userId) {
     const user = await User.findOne({
       _id: userId,
       type: "secondary",
-      created_by: mainUserId,
     });
     if (!user) throw ApiError.notFound("Secondary user not found");
 
@@ -87,11 +83,10 @@ class AdminService {
     return user.toSafeObject();
   }
 
-  async reactivateSecondaryUser(userId, mainUserId) {
+  async reactivateSecondaryUser(userId) {
     const user = await User.findOne({
       _id: userId,
       type: "secondary",
-      created_by: mainUserId,
     });
     if (!user) throw ApiError.notFound("Secondary user not found");
 
@@ -100,11 +95,10 @@ class AdminService {
     return user.toSafeObject();
   }
 
-  async deleteSecondaryUser(userId, mainUserId) {
+  async deleteSecondaryUser(userId) {
     const user = await User.findOne({
       _id: userId,
       type: "secondary",
-      created_by: mainUserId,
     });
     if (!user) throw ApiError.notFound("Secondary user not found");
 

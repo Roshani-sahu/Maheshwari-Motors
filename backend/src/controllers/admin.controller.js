@@ -11,24 +11,21 @@ const createUserSchema = {
 
 export const createSecondaryUser = asyncHandler(async (req, res) => {
   const data = validate(req.body, createUserSchema);
-  const result = await adminService.createSecondaryUser(req.user._id, data);
+  const result = await adminService.createSecondaryUser(data);
   res
     .status(201)
     .json(new ApiResponse(201, result, "Secondary user created successfully"));
 });
 
 export const getSecondaryUsers = asyncHandler(async (req, res) => {
-  const result = await adminService.getSecondaryUsers(req.user._id, req.query);
+  const result = await adminService.getSecondaryUsers(req.query);
   res
     .status(200)
     .json(new ApiResponse(200, result, "Users fetched successfully"));
 });
 
 export const getSecondaryUserById = asyncHandler(async (req, res) => {
-  const result = await adminService.getSecondaryUserById(
-    req.params.userId,
-    req.user._id,
-  );
+  const result = await adminService.getSecondaryUserById(req.params.userId);
   res
     .status(200)
     .json(new ApiResponse(200, result, "User fetched successfully"));
@@ -37,7 +34,6 @@ export const getSecondaryUserById = asyncHandler(async (req, res) => {
 export const updateSecondaryUser = asyncHandler(async (req, res) => {
   const result = await adminService.updateSecondaryUser(
     req.params.userId,
-    req.user._id,
     req.body,
   );
   res
@@ -46,20 +42,20 @@ export const updateSecondaryUser = asyncHandler(async (req, res) => {
 });
 
 export const deactivateSecondaryUser = asyncHandler(async (req, res) => {
-  await adminService.deactivateSecondaryUser(req.params.userId, req.user._id);
+  await adminService.deactivateSecondaryUser(req.params.userId);
   res
     .status(200)
     .json(new ApiResponse(200, null, "User deactivated successfully"));
 });
 
 export const reactivateSecondaryUser = asyncHandler(async (req, res) => {
-  await adminService.reactivateSecondaryUser(req.params.userId, req.user._id);
+  await adminService.reactivateSecondaryUser(req.params.userId);
   res
     .status(200)
     .json(new ApiResponse(200, null, "User reactivated successfully"));
 });
 
 export const deleteSecondaryUser = asyncHandler(async (req, res) => {
-  await adminService.deleteSecondaryUser(req.params.userId, req.user._id);
+  await adminService.deleteSecondaryUser(req.params.userId);
   res.status(200).json(new ApiResponse(200, null, "User deleted successfully"));
 });
