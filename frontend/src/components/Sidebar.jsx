@@ -113,7 +113,7 @@ const Sidebar = ({ onClose }) => {
               Inventory Master
             </NavLink> */}
             
-            <NavLink
+            {/* <NavLink
               to="/masters/user-master"
               onClick={onClose}
               className={({ isActive }) =>
@@ -126,7 +126,7 @@ const Sidebar = ({ onClose }) => {
             >
               <FaUsers className="w-4 h-4" />
               User Master
-            </NavLink>
+            </NavLink> */}
             
             <NavLink
               to="/masters/account-master"
@@ -260,7 +260,7 @@ const Sidebar = ({ onClose }) => {
           </SidebarSection>
 
           {/* 3. Transactions */}
-          <SidebarSection title="Transactions" defaultOpen={true}>
+          <SidebarSection title="Transactions" defaultOpen={false}>
             <NavLink
               to="/transactions/challan-list"
               onClick={onClose}

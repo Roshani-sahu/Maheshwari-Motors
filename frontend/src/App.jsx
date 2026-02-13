@@ -11,7 +11,7 @@ import { Toast, ConfirmDialog, LoadingOverlay } from "./components/GlobalCompone
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
-import CompanySelection from "./pages/CompanySelection";
+// import CompanySelection from "./pages/CompanySelection";
 import Reports from "./pages/Reports";
 import AddItem from "./pages/AddItem";
 import Settings from "./pages/Settings";
@@ -63,7 +63,10 @@ const App = () => {
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/company-selection" element={<CompanySelection />} />
+        {/* <Route path="/company-selection" element={<CompanySelection />} /> */}
+
+        {/* Master Routes (No Layout) */}
+        <Route path="/masters/user-master" element={<UserMaster />} />
 
         {/* ERP Layout */}
         <Route element={<Layout />}>
@@ -82,7 +85,6 @@ const App = () => {
           <Route path="/inventory/add-supplier" element={<AddSupplier />} />
           <Route path="/inventory/view-all-supplier" element={<ViewAllSupplier />} />
           <Route path="/masters/item-master/add" element={<AddItem />} />
-          <Route path="/masters/user-master" element={<UserMaster />} />
           <Route path="/masters/account-master" element={<AccountMaster />} />
           <Route path="/masters/party-master" element={<PartyMaster />} />
           

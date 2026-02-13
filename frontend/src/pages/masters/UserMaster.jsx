@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaTrash, FaSignOutAlt } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
 
 const UserMaster = () => {
+  const navigate = useNavigate();
   const { users, setUsers, addUser, updateUser, deleteUser, showToast } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -17,6 +19,15 @@ const UserMaster = () => {
   });
   const [showPasswords, setShowPasswords] = useState({});
   const [newPassword, setNewPassword] = useState('');
+
+  // Check master authentication
+  useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (!userRole || userRole !== 'master') {
+      navigate('/login');
+      return;
+    }
+  }, [navigate]);
 
   // Initialize with sample data if empty
   useEffect(() => {
@@ -43,6 +54,12 @@ const UserMaster = () => {
       ]);
     }
   }, [users.length, setUsers]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    navigate('/login');
+  };
 
   const togglePasswordVisibility = (userId) => {
     setShowPasswords(prev => ({
@@ -71,7 +88,7 @@ const UserMaster = () => {
       key: 'password',
       label: 'Password',
       render: (value, row) => (
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center  gap-1 sm:gap-2">
           <span className="font-mono text-xs sm:text-sm">
             {showPasswords[row.id] ? value : '••••••••'}
           </span>
@@ -117,34 +134,55 @@ const UserMaster = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">User Master</h1>
-          <p className="text-gray-600 text-xs sm:text-sm">Manage system users and permissions</p>
+    <div className="min-h-screen pt-10 bg-gray-50 p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Admin Header */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Panel - User Master</h1>
+              <p className="text-gray-600 text-xs sm:text-sm">Manage system users and permissions</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+            >
+              <FaSignOutAlt className="w-4 h-4" />
+              Logout
+            </button>
+          </div>
         </div>
-        <Button 
-          onClick={() => setIsAddModalOpen(true)} 
-          className="flex items-center gap-2 text-xs sm:text-sm"
-        >
-          <FaPlus className="text-sm sm:text-base" />
-          Add User
-        </Button>
-      </div>
 
-      {/* Users Table */}
-      <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
-        <DataTable
-          columns={columns}
-          data={users}
-          actions={actions}
-          searchable={true}
-          sortable={true}
-          pagination={true}
-          minWidth="600px"
-          className="text-xs sm:text-sm"
-        />
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
+              <p className="text-gray-600 text-sm">Add, edit, and manage system users</p>
+            </div>
+            <Button 
+              onClick={() => setIsAddModalOpen(true)} 
+              className="flex items-center gap-2 text-xs sm:text-sm"
+            >
+              <FaPlus className="text-sm sm:text-base" />
+              Add User
+            </Button>
+          </div>
+
+          {/* Users Table */}
+          <div className="overflow-x-auto">
+            <DataTable
+              columns={columns}
+              data={users}
+              actions={actions}
+              searchable={true}
+              sortable={true}
+              pagination={true}
+              minWidth="600px"
+              className="text-xs sm:text-sm"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Add User Modal */}

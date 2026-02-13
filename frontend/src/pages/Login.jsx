@@ -36,15 +36,29 @@ const Login = () => {
 
     setLoading(true);
     try {
-      // Hardcoded credentials check
+      // Check for master credentials
+      if (formData.username === 'master' && formData.password === 'master123') {
+        const user = { id: 0, username: 'master', email: 'master@maheshwarimotors.com', role: 'master' };
+        const token = 'master-jwt-token';
+        
+        localStorage.setItem('token', token);
+        localStorage.setItem('userRole', 'master');
+        setUser(user);
+        showToast('Master login successful', 'success');
+        navigate('/masters/user-master');
+        return;
+      }
+      
+      // Regular user credentials
       if (formData.username === 'admin' && formData.password === 'admin123') {
-        const user = { id: 1, username: 'admin', email: 'admin@maheshwarimotors.com' };
+        const user = { id: 1, username: 'admin', email: 'admin@maheshwarimotors.com', role: 'user' };
         const token = 'mock-jwt-token';
         
         localStorage.setItem('token', token);
+        localStorage.setItem('userRole', 'user');
         setUser(user);
         showToast('Login successful', 'success');
-        navigate('/company-selection');
+        navigate('/dashboard');
       } else {
         throw new Error('Invalid credentials');
       }
@@ -70,8 +84,7 @@ const Login = () => {
                 ERP System Login
               </h1>
               <p className="text-sm text-neutral-500 mt-1">
-                Enter your credentials to access the system.
-              </p>
+                Enter your credentials to access the system.              </p>
             </div>
           </div>
 
