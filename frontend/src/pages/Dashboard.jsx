@@ -80,16 +80,8 @@ if (recentBills.length < maxItems) {
 </div>
 
      {/* Top 4 Stat Cards */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-  <StatsCard
-    title="Total Firms"
-    value={dashboardData.totalFirms}
-    subtitle="Click to manage"
-    icon={FaBuilding}
-    color="blue"
-    onClick={() => navigate('/masters/firm-master')}
-    className="p-3 sm:p-4 md:p-6"
-  />
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+
   
   <StatsCard
     title="Total Challans"

@@ -223,8 +223,8 @@ const BillList = () => {
             onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
           >
             <option value="all">All Types</option>
-            <option value="1">1 (GST)</option>
-            <option value="0">0 (Non GST)</option>
+            <option value="1">1</option>
+            <option value="0">0</option>
           </Select>
           {/* <Input
             type="date"
@@ -372,8 +372,8 @@ const BillList = () => {
                 onChange={(e) => setEditingBill(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
                 className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value={1}>1 (GST)</option>
-                <option value={0}>0 (Non GST)</option>
+                <option value={1}>1</option>
+                <option value={0}></option>
               </select>
             </div>
             
