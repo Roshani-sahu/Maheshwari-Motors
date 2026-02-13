@@ -36,35 +36,25 @@ const Login = () => {
 
     setLoading(true);
     try {
-      // Check for master credentials
-      if (formData.username === 'master' && formData.password === 'master123') {
-        const user = { id: 0, username: 'master', email: 'master@maheshwarimotors.com', role: 'master' };
-        const token = 'master-jwt-token';
-        
-        localStorage.setItem('token', token);
-        localStorage.setItem('userRole', 'master');
-        setUser(user);
-        showToast('Master login successful', 'success');
-        navigate('/masters/user-master');
-        return;
-      }
+      const response = await authAPI.login(formData);
+      const { token, ...userData } = response.data.data;
       
-      // Regular user credentials
-      if (formData.username === 'admin' && formData.password === 'admin123') {
-        const user = { id: 1, username: 'admin', email: 'admin@maheshwarimotors.com', role: 'user' };
-        const token = 'mock-jwt-token';
-        
-        localStorage.setItem('token', token);
-        localStorage.setItem('userRole', 'user');
-        setUser(user);
-        showToast('Login successful', 'success');
-        navigate('/dashboard');
-      } else {
-        throw new Error('Invalid credentials');
-      }
+      localStorage.setItem('token', token);
+      // Backend returns role in userData.role ("admin" or "firm")
+      localStorage.setItem('userRole', userData.role);
+      
+      setUser(userData);
+      showToast('Login successful', 'success');
+      
+      // Determine where to redirect
+      // If the user logs in as "firm", they go to dashboard.
+      // If "admin", maybe still dashboard?
+      navigate('/dashboard');
     } catch (error) {
-      showToast('Invalid credentials.', 'error');
-      setErrors({ general: 'Invalid credentials.' });
+      console.error(error);
+      const msg = error.response?.data?.message || 'Invalid credentials or server error.';
+      showToast(msg, 'error');
+      setErrors({ general: msg });
     } finally {
       setLoading(false);
     }

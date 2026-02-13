@@ -4,6 +4,7 @@ import { FaPlus, FaEdit, FaImage, FaTrash, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
+import { itemAPI, categoryAPI } from '../../services/api';
 
 const ItemMaster = () => {
   const navigate = useNavigate();
@@ -13,59 +14,48 @@ const ItemMaster = () => {
   const [editImageFile, setEditImageFile] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, item: null });
-  const categories = [
-    { id: 1, name: 'Engine Parts' },
-    { id: 2, name: 'Brake System' },
-    { id: 3, name: 'Filters' }
-  ];
-
-  // Initialize with sample data if empty
+  const [categories, setCategories] = useState([]);
+  
   useEffect(() => {
-    if (items.length === 0) {
-      setItems([
-        {
-          id: 1,
-          itemName: 'Engine Oil 5W-30',
-          amount: 450.00,
-          threshold: 10,
-          stockCount: 5,
-          itemMedia: null,
-          status: 'LOW',
-          type: 1
-        },
-        {
-          id: 2,
-          itemName: 'Brake Pads',
-          amount: 1200.00,
-          threshold: 8,
-          stockCount: 3,
-          itemMedia: null,
-          status: 'LOW',
-          type: 1
-        },
-        {
-          id: 3,
-          itemName: 'Air Filter',
-          amount: 350.00,
-          threshold: 12,
-          stockCount: 15,
-          itemMedia: null,
-          status: 'OK',
-          type: 0
-        },
-        {
-          id: 4,
-          itemName: 'Spark Plugs',
-          amount: 180.00,
-          threshold: 6,
-          stockCount: 2,
-          itemMedia: null,
-          status: 'LOW',
-          type: 1
-        }
-      ]);
-    }
-  }, [items.length, setItems]);
+      const fetchCategories = async () => {
+          try {
+              const res = await categoryAPI.getAll();
+              const val = res.data?.data;
+              const list = Array.isArray(val) ? val : (val?.data || []);
+              setCategories(list.map(c => ({ id: c._id, name: c.name })));
+          } catch (e) { console.error(e); }
+      };
+      fetchCategories();
+  }, []);
+
+  // Fetch items from backend
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const response = await itemAPI.getAll();
+        console.log("Items response:", response);
+        const val = response.data?.data;
+        const rawList = Array.isArray(val) ? val : (val?.data || []);
+        
+        const backendItems = rawList.map(item => ({
+          id: item._id,
+          itemName: item.item_name,
+          amount: item.amount,
+          threshold: item.threshold,
+          stockCount: item.physical_stock || (item.gst_stock + item.nongst_stock),
+          itemMedia: item.image,
+          status: (item.physical_stock || 0) <= (item.threshold || 0) ? 'LOW' : 'OK',
+          type: item.is_gst,
+          categoryId: item.category_ids?.[0]
+        }));
+        setItems(backendItems);
+      } catch (err) {
+        console.error("Failed to fetch items", err);
+        showToast("Failed to load items", "error");
+      }
+    };
+    fetchItems();
+  }, [setItems, showToast]);
 
   const columns = [
     {
@@ -77,6 +67,14 @@ const ItemMaster = () => {
       key: 'itemName',
       label: 'Item Name',
       render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
+    },
+    {
+      key: 'categoryId',
+      label: 'Category',
+      render: (value) => {
+        const cat = categories.find(c => c.id === value);
+        return <span className="text-xs sm:text-sm">{cat ? cat.name : '-'}</span>;
+      }
     },
     {
       key: 'type',
@@ -153,24 +151,46 @@ const ItemMaster = () => {
     }
   ];
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingItem) {
-      let updatedItem = {
-        ...editingItem,
-        status: editingItem.stockCount <= editingItem.threshold ? 'LOW' : 'OK'
-      };
-      
-      // Handle image update
-      if (editImageFile) {
-        const imageUrl = URL.createObjectURL(editImageFile);
-        updatedItem.itemMedia = imageUrl;
+      try {
+        const formData = new FormData();
+        formData.append('item_name', editingItem.itemName);
+        formData.append('amount', editingItem.amount);
+        formData.append('threshold', editingItem.threshold);
+        formData.append('is_gst', editingItem.type);
+        
+        if (editImageFile) {
+          formData.append('image', editImageFile);
+        }
+
+        await itemAPI.update(editingItem.id, formData);
+        
+        showToast('Item updated successfully', 'success');
+        setIsEditModalOpen(false);
+        setEditingItem(null);
+        setEditImageFile(null);
+        
+        // Refresh
+        const response = await itemAPI.getAll();
+        const val = response.data?.data;
+        const rawList = Array.isArray(val) ? val : (val?.data || []);
+        const backendItems = rawList.map(item => ({
+            id: item._id,
+            itemName: item.item_name,
+            amount: item.amount,
+            threshold: item.threshold,
+            stockCount: item.physical_stock || (item.gst_stock + item.nongst_stock),
+            itemMedia: item.image,
+            status: (item.physical_stock || 0) <= (item.threshold || 0) ? 'LOW' : 'OK',
+            type: item.is_gst,
+            categoryId: item.category_ids?.[0]
+        }));
+        setItems(backendItems);
+      } catch (error) {
+        console.error('Update failed', error);
+        showToast('Failed to update item', 'error');
       }
-      
-      updateItem(editingItem.id, updatedItem);
-      setIsEditModalOpen(false);
-      setEditingItem(null);
-      setEditImageFile(null);
-      showToast('Item updated successfully', 'success');
     }
   };
 
@@ -382,7 +402,17 @@ const ItemMaster = () => {
       <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, item: null })}
-        onConfirm={() => deleteItem(deleteDialog.item.id)}
+        onConfirm={async () => {
+          try {
+             await itemAPI.delete(deleteDialog.item.id);
+             showToast('Item deleted successfully', 'success');
+             setItems(prev => prev.filter(i => i.id !== deleteDialog.item.id));
+             setDeleteDialog({ isOpen: false, item: null });
+          } catch (error) {
+             console.error(error);
+             showToast('Failed to delete item', 'error');
+          }
+        }}
         itemName={deleteDialog.item?.itemName}
       />
     </div>

@@ -1,17 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaUser, FaCog, FaSignOutAlt, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input } from '../components/ui';
 import useStore from '../store';
+import { authAPI } from '../services/api';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { user, setUser, showToast } = useStore();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
-    username: user?.username || 'admin',
-    email: user?.email || 'admin@maheshwarimotors.com'
+    username: '',
+    email: ''
   });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await authAPI.getProfile();
+        const userData = res.data.data;
+        setProfileData({
+          username: userData.username || '',
+          email: userData.email || ''
+        });
+      } catch (err) {
+        console.error('Failed to fetch profile', err);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -20,10 +37,15 @@ const Settings = () => {
     navigate('/login');
   };
 
-  const handleSaveProfile = () => {
-    setUser({ ...user, ...profileData });
-    setIsEditingProfile(false);
-    showToast('Profile updated successfully', 'success');
+  const handleSaveProfile = async () => {
+    try {
+      await authAPI.updateProfile(profileData);
+      setUser({ ...user, ...profileData });
+      setIsEditingProfile(false);
+      showToast('Profile updated successfully', 'success');
+    } catch (err) {
+      showToast('Failed to update profile', 'error');
+    }
   };
 
   return (
@@ -61,10 +83,6 @@ const Settings = () => {
                 variant="outline"
                 onClick={() => {
                   setIsEditingProfile(false);
-                  setProfileData({
-                    username: user?.username || 'admin',
-                    email: user?.email || 'admin@maheshwarimotors.com'
-                  });
                 }}
                 className="flex items-center gap-2 text-sm"
               >

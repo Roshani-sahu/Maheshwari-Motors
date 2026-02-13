@@ -3,48 +3,36 @@ import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink, FaEdit, FaTrash, FaDownlo
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
+import { billAPI } from '../../services/api';
 
 const BillList = () => {
-  const { bills: storeBills, addTransaction, removeBill, showToast } = useStore();
-  const [bills, setBills] = useState([
-    {
-      id: 1,
-      billNo: 'B001',
-      date: '2024-01-15',
-      party: 'ABC Motors',
-      amount: 25000,
-      linkedChallans: ['CH001', 'CH002'],
-      gstType: 1
-    },
-    {
-      id: 2,
-      billNo: 'B002',
-      date: '2024-01-14',
-      party: 'XYZ Parts',
-      amount: 18500,
-      linkedChallans: ['CH003'],
-      gstType: 0
-    },
-    {
-      id: 3,
-      billNo: 'B003',
-      date: '2024-01-13',
-      party: 'PQR Auto',
-      amount: 32000,
-      linkedChallans: ['CH004', 'CH005', 'CH006'],
-      gstType: 1
-    }
-  ]);
+  const { showToast } = useStore();
+  const [bills, setBills] = useState([]);
 
   useEffect(() => {
-    console.log('BillList - Store bills updated:', storeBills);
-    setBills(prev => {
-      const newBills = storeBills.filter(sb => !prev.some(b => b.id === sb.id));
-      console.log('BillList - New bills to add:', newBills);
-      // prepend new bills so converted/recent bills appear at the top
-      return newBills.length > 0 ? [...newBills, ...prev] : prev;
-    });
-  }, [storeBills]);
+    const fetchBills = async () => {
+      try {
+        const response = await billAPI.getAll();
+        const getList = (res) => {
+            const val = res.data?.data;
+            return Array.isArray(val) ? val : (val?.data || []);
+        };
+        const backendBills = getList(response).map(b => ({
+           id: b._id,
+           billNo: b.bill_no,
+           date: b.date,
+           party: b.party_id?.name || 'Unknown',
+           amount: b.amount,
+           linkedChallans: b.challan_ids?.map(c => c.challan_no) || [],
+           gstType: b.is_gst
+        }));
+        setBills(backendBills);
+      } catch (error) {
+        console.error("Failed to fetch bills", error);
+      }
+    };
+    fetchBills();
+  }, []);
 
   const [filters, setFilters] = useState({
     dateFrom: '',
@@ -55,11 +43,7 @@ const BillList = () => {
 
   const [selectedBill, setSelectedBill] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingBill, setEditingBill] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, bill: null });
-
-  const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
 
   const columns = [
     { 
@@ -108,11 +92,10 @@ const BillList = () => {
   const actions = [
     {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
-      onClick: (bill) => {
-        setEditingBill({...bill});
-        setIsEditModalOpen(true);
+      onClick: () => {
+        showToast('Edit feature pending', 'info');
       },
-      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
+      className: 'bg-gray-400 text-white cursor-not-allowed p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
@@ -162,15 +145,6 @@ const BillList = () => {
       className: 'bg-green-600 text-white hover:bg-green-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
-
-  const handleEditBill = () => {
-    setBills(prev => prev.map(b => 
-      b.id === editingBill.id ? {...editingBill, amount: parseFloat(editingBill.amount)} : b
-    ));
-    setIsEditModalOpen(false);
-    setEditingBill(null);
-    showToast('Bill updated successfully!', 'success');
-  };
 
   // Apply filters
   const filteredBills = bills.filter(bill => {
@@ -322,105 +296,21 @@ const BillList = () => {
         )}
       </Modal>
 
-      {/* Edit Bill Modal */}
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Edit Bill"
-        size="md"
-      >
-        {editingBill && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Bill No</label>
-              <input
-                type="text"
-                value={editingBill.billNo}
-                disabled
-                className="w-full px-3 py-2 border rounded-md bg-gray-100 cursor-not-allowed"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
-              <select
-                value={editingBill.party}
-                onChange={(e) => setEditingBill(prev => ({ ...prev, party: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select Party</option>
-                {parties.map(party => (
-                  <option key={party} value={party}>{party}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
-              <input
-                type="number"
-                value={editingBill.amount}
-                onChange={(e) => setEditingBill(prev => ({ ...prev, amount: e.target.value }))}
-                placeholder="Enter amount"
-                onWheel={(e) => e.target.blur()}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
-              <select
-                value={editingBill.gstType}
-                onChange={(e) => setEditingBill(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value={1}>1</option>
-                <option value={0}></option>
-              </select>
-            </div>
-            
-            <div className="flex gap-3 pt-4">
-              <Button 
-                onClick={handleEditBill}
-                disabled={!editingBill.party || !editingBill.amount}
-                className="flex items-center gap-2"
-              >
-                <FaEdit />
-                Update Bill
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsEditModalOpen(false);
-                  setEditingBill(null);
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
 
       <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, bill: null })}
-        onConfirm={() => {
-          const delTxn = {
-            id: Date.now() + Math.random(),
-            transactionId: `TXN${String(Date.now()).slice(-6)}`,
-            type: 'Bill',
-            firm: 'Current Firm',
-            amount: deleteDialog.bill.amount,
-            date: new Date().toISOString().split('T')[0],
-            party: deleteDialog.bill.party,
-            gstType: deleteDialog.bill.gstType,
-            status: 'Deleted',
-            reference: deleteDialog.bill.billNo
-          };
-          addTransaction(delTxn);
-          removeBill(deleteDialog.bill.id);
-          setBills(prev => prev.filter(b => b.id !== deleteDialog.bill.id));
+        onConfirm={async () => {
+           try {
+              await billAPI.delete(deleteDialog.bill.id);
+              showToast('Bill deleted successfully', 'success');
+              setBills(prev => prev.filter(b => b.id !== deleteDialog.bill.id));
+              setDeleteDialog({ isOpen: false, bill: null });
+           } catch (error) {
+              console.error(error);
+              showToast('Failed to delete bill', 'error');
+           }
         }}
         itemName={deleteDialog.bill?.billNo}
       />

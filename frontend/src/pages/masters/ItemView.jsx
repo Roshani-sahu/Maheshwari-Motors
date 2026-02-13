@@ -1,46 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaImage, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import useStore from '../../store';
+import { itemAPI, categoryAPI } from '../../services/api';
 
 const ItemView = () => {
-  const { items } = useStore();
-
-  // Static items data with categories
-  const staticItems = [
-    { id: 1, itemName: 'Engine Oil 5W-30', categoryId: 1, amount: 450.00, itemMedia: null },
-    { id: 2, itemName: 'Brake Pads', categoryId: 2, amount: 1200.00, itemMedia: null },
-    { id: 3, itemName: 'Air Filter', categoryId: 3, amount: 350.00, itemMedia: null },
-    { id: 4, itemName: 'Spark Plugs', categoryId: 1, amount: 180.00, itemMedia: null }
-  ];
-
-  // Use static data if store items is empty, otherwise use store items
-  const displayItems = items.length > 0 ? items : staticItems;
-
-  const categories = [
-    { id: 1, name: 'Engine Parts' },
-    { id: 2, name: 'Brake System' },
-    { id: 3, name: 'Filters' }
-  ];
-
+  const { items, setItems } = useStore();
+  const [categories, setCategories] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('all');
 
+  useEffect(() => {
+    const fetchData = async () => {
+        try {
+            // Fetch Categories
+            const catRes = await categoryAPI.getAll();
+            const catList = catRes.data?.data;
+            const finalCats = Array.isArray(catList) ? catList : (catList?.data || []);
+            setCategories(finalCats.map(c => ({ id: c._id, name: c.name })));
+
+            // Fetch Items
+            const itemRes = await itemAPI.getAll();
+            const val = itemRes.data?.data;
+            const rawList = Array.isArray(val) ? val : (val?.data || []);
+            const backendItems = rawList.map(item => ({
+                id: item._id,
+                itemName: item.item_name,
+                amount: item.amount,
+                categoryId: item.category_ids?.[0], // ObjectId
+                itemMedia: item.image,
+            }));
+            setItems(backendItems);
+        } catch(e) { console.error(e); }
+    };
+    fetchData();
+  }, [setItems]);
+
   const columns = [
-    { key: 'id', label: 'ID' },
+    { key: 'id', label: 'ID', render: (val) => <span className="text-xs">{val?.slice(-4)}</span> },
     { key: 'itemName', label: 'Item Name' },
     {
       key: 'categoryId',
       label: 'Category',
       render: (value) => {
         const cat = categories.find(c => c.id === value);
-        return cat ? cat.name : 'N/A';
+        return <span className="text-xs sm:text-sm">{cat ? cat.name : 'N/A'}</span>;
       }
     },
     {
       key: 'amount',
       label: 'Amount',
-      render: (value) => `₹${value.toFixed(2)}`
+      render: (value) => `₹${Number(value).toFixed(2)}`
     },
     {
       key: 'itemMedia',
@@ -60,8 +70,8 @@ const ItemView = () => {
     }
   ];
 
-  const filteredItems = displayItems.filter(item => {
-    if (categoryFilter !== 'all' && item.categoryId !== parseInt(categoryFilter)) {
+  const filteredItems = items.filter(item => {
+    if (categoryFilter !== 'all' && String(item.categoryId) !== String(categoryFilter)) {
       return false;
     }
     return true;
