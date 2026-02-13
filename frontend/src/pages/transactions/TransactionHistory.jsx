@@ -212,7 +212,7 @@ const TransactionHistory = () => {
                       <p><span class="label">Party:</span> ${txn.party}</p>
                       <p><span class="label">Date:</span> ${new Date(txn.date).toLocaleDateString()}</p>
                       <p><span class="label">Amount:</span> ₹${txn.amount.toLocaleString()}</p>
-                      <p><span class="label">GST Type:</span> ${txn.gstType}</p>
+           
                     </div>
                   </body>
                 </html>
@@ -368,8 +368,8 @@ const TransactionHistory = () => {
             onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
           >
             <option value="all">All Types</option>
-            <option value="1">1 (GST)</option>
-            <option value="0">0 (Non GST)</option>
+            <option value="1">1</option>
+            <option value="0">0</option>
           </Select>
           
           <Input
