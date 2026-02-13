@@ -42,7 +42,7 @@ class AuthController extends GetxController {
         try {
           final profile = await _api.getProfile();
           user.value = profile;
-          Get.offAllNamed(AppRoutes.home);
+          navigateByRole();
         } catch (e) {
           await _client.clearToken();
           Get.offAllNamed(AppRoutes.login);
@@ -52,6 +52,14 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       Get.offAllNamed(AppRoutes.login);
+    }
+  }
+
+  void navigateByRole() {
+    if (isAdminLogin) {
+      Get.offAllNamed(AppRoutes.adminHome);
+    } else {
+      Get.offAllNamed(AppRoutes.home);
     }
   }
 

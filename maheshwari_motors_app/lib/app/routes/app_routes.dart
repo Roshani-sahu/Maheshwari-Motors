@@ -4,6 +4,7 @@ class AppRoutes {
   static const String splash = '/splash';
   static const String login = '/login';
   static const String home = '/home';
+  static const String adminHome = '/admin-home';
 
   static const String itemMaster = '/item-master';
   static const String itemView = '/item-view';

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/network/api_client.dart';
-import '../../routes/app_routes.dart';
 import '../shared/widgets/common_widgets.dart';
 import 'auth_controller.dart';
 
@@ -40,7 +39,7 @@ class LoginController extends GetxController {
         success = await _auth.loginFirm(username, password);
       }
       if (success) {
-        Get.offAllNamed(AppRoutes.home);
+        _auth.navigateByRole();
       }
     } catch (e) {
       AppSnackbar.error(ApiClient.parseError(e));

@@ -311,6 +311,14 @@ class ApiService {
     await _client.delete('/admin/users/$id');
   }
 
+  Future<void> deactivateUser(String id) async {
+    await _client.patch('/admin/users/$id/deactivate');
+  }
+
+  Future<void> reactivateUser(String id) async {
+    await _client.patch('/admin/users/$id/reactivate');
+  }
+
   Future<Map<String, dynamic>> getFirmDashboard({
     String period = 'monthly',
   }) async {

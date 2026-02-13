@@ -61,4 +61,19 @@ class UserMasterController extends GetxController {
       AppSnackbar.error(ApiClient.parseError(e));
     }
   }
+
+  Future<void> toggleUserActive(UserModel user) async {
+    try {
+      if (user.isActive) {
+        await _api.deactivateUser(user.id);
+        AppSnackbar.success('User deactivated');
+      } else {
+        await _api.reactivateUser(user.id);
+        AppSnackbar.success('User reactivated');
+      }
+      await loadUsers();
+    } catch (e) {
+      AppSnackbar.error(ApiClient.parseError(e));
+    }
+  }
 }

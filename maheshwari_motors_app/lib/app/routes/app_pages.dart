@@ -7,6 +7,7 @@ import '../presentation/controllers/add_user_controller.dart';
 import '../presentation/screens/splash/splash_screen.dart';
 import '../presentation/screens/auth/login/login_screen.dart';
 import '../presentation/screens/home/home_screen.dart';
+import '../presentation/screens/admin_home/admin_home_screen.dart';
 import '../presentation/screens/item_master/item_master_screen.dart';
 import '../presentation/screens/item_master/item_view_screen.dart';
 import '../presentation/screens/item_master/add_item_screen.dart';
@@ -54,6 +55,7 @@ class AppPages {
     GetPage(name: AppRoutes.splash, page: () => const SplashScreen()),
     GetPage(name: AppRoutes.login, page: () => const LoginScreen()),
     GetPage(name: AppRoutes.home, page: () => const HomeScreen()),
+    GetPage(name: AppRoutes.adminHome, page: () => const AdminHomeScreen()),
     GetPage(name: AppRoutes.itemMaster, page: () => const ItemMasterScreen()),
     GetPage(name: AppRoutes.itemView, page: () => const ItemViewScreen()),
     GetPage(
