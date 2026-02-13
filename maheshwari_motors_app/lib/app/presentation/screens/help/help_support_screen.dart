@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../shared/widgets/common_widgets.dart';
+import 'widgets/contact_card.dart';
+import 'widgets/faq_item.dart';
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
@@ -80,14 +82,14 @@ class HelpSupportScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _ContactCard(
+          ContactCard(
             icon: Icons.email_outlined,
             title: 'Email Support',
             subtitle: 'support@maheshwarimotors.com',
             onTap: () => _launchUrl('mailto:support@maheshwarimotors.com'),
           ),
           const SizedBox(height: 10),
-          _ContactCard(
+          ContactCard(
             icon: Icons.phone_outlined,
             title: 'Phone Support',
             subtitle: 'Call us for immediate help',
@@ -104,22 +106,22 @@ class HelpSupportScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _FaqItem(
+          FaqItem(
             question: 'How do I create a challan?',
             answer:
                 'Go to Transactions → Challan List and tap the + button to create a new delivery challan.',
           ),
-          _FaqItem(
+          FaqItem(
             question: 'How do I convert challans to bills?',
             answer:
                 'Go to Bills → Generate Bill, select a party, choose the challans to convert, and generate the bill.',
           ),
-          _FaqItem(
+          FaqItem(
             question: 'How can I manage stock alerts?',
             answer:
                 'Go to Inventory → Stock Alert Master to view items below their threshold levels.',
           ),
-          _FaqItem(
+          FaqItem(
             question: 'How do I switch between firms?',
             answer:
                 'Open the drawer menu and tap "Switch Firm" under the Account section.',
@@ -136,113 +138,5 @@ class HelpSupportScreen extends StatelessWidget {
     } catch (_) {
       Get.snackbar('Error', 'Could not open the link');
     }
-  }
-}
-
-class _ContactCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ContactCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border, width: 0.5),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.accentLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: AppColors.accent, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.textSecondary,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FaqItem extends StatelessWidget {
-  final String question;
-  final String answer;
-  const _FaqItem({required this.question, required this.answer});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border, width: 0.5),
-      ),
-      child: ExpansionTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        collapsedShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-        title: Text(
-          question,
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        children: [
-          Text(
-            answer,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.5),
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/utils/formatters.dart';
-import '../../controllers/item_master_controller.dart';
+import '../../controllers/item_master/item_master_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
-import '../../../data/models/item_model.dart';
 import '../../../routes/app_routes.dart';
+import 'widgets/mini_stat.dart';
+import 'widgets/item_card.dart';
 
 class ItemMasterScreen extends StatelessWidget {
   const ItemMasterScreen({super.key});
@@ -42,14 +41,14 @@ class ItemMasterScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  _MiniStat(
+                  MiniStat(
                     label: 'Low Stock',
                     value:
                         '${controller.items.where((i) => i.isLowStock).length}',
                     color: AppColors.error,
                   ),
                   const SizedBox(width: 12),
-                  _MiniStat(
+                  MiniStat(
                     label: 'Total Items',
                     value: '${controller.items.length}',
                     color: AppColors.accent,
@@ -85,7 +84,7 @@ class ItemMasterScreen extends StatelessWidget {
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = controller.filteredItems[index];
-                    return _ItemCard(
+                    return ItemCard(
                       item: item,
                       onEdit: () async {
                         final result = await Get.toNamed(
@@ -106,170 +105,6 @@ class ItemMasterScreen extends StatelessWidget {
                 ),
               );
             }),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _MiniStat({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border(left: BorderSide(color: color, width: 3)),
-        ),
-        child: Row(
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ItemCard extends StatelessWidget {
-  final ItemModel item;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  const _ItemCard({
-    required this.item,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: 52,
-              height: 52,
-              color: AppColors.surface,
-              child: item.image != null
-                  ? CachedNetworkImage(
-                      imageUrl: item.image!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) => const Icon(
-                        Icons.image_outlined,
-                        color: AppColors.textSecondary,
-                      ),
-                      errorWidget: (_, _, _) => const Icon(
-                        Icons.image_outlined,
-                        color: AppColors.textSecondary,
-                      ),
-                    )
-                  : const Icon(
-                      Icons.inventory_2_outlined,
-                      color: AppColors.textSecondary,
-                    ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.itemName,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      AppFormatters.currencyDecimal(item.amount),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Stock: ',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    Text(
-                      '${item.totalStock}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: item.isLowStock
-                            ? AppColors.error
-                            : AppColors.success,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '/ ${item.threshold}',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(fontSize: 11),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              StatusBadge.gst(item.isGst == 1 ? 'GST' : 'NON_GST'),
-              const SizedBox(height: 4),
-              StatusBadge.stock(item.stockStatus),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ActionIcon(
-                    icon: Icons.edit_outlined,
-                    color: AppColors.accent,
-                    onTap: onEdit,
-                  ),
-                  const SizedBox(width: 6),
-                  ActionIcon(
-                    icon: Icons.delete_outline,
-                    color: AppColors.error,
-                    onTap: onDelete,
-                  ),
-                ],
-              ),
-            ],
           ),
         ],
       ),

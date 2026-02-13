@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
-import '../../controllers/add_user_controller.dart';
+import '../../controllers/user_master/add_user_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
 class AddUserScreen extends StatelessWidget {

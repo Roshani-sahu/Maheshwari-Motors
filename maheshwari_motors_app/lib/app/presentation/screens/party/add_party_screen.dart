@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
-import '../../controllers/add_party_controller.dart';
+import '../../controllers/party/add_party_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
 class AddPartyScreen extends StatelessWidget {

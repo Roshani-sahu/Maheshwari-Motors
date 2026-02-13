@@ -3,8 +3,9 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../routes/app_routes.dart';
-import '../../controllers/supplier_master_controller.dart';
+import '../../controllers/supplier_master/supplier_master_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
+import 'widgets/supplier_info_row.dart';
 
 class SupplierMasterScreen extends StatelessWidget {
   const SupplierMasterScreen({super.key});
@@ -90,20 +91,20 @@ class SupplierMasterScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 3),
                                 if (supplier.phone != null)
-                                  _InfoRow(
+                                  SupplierInfoRow(
                                     icon: Icons.phone_outlined,
                                     text: supplier.phone!,
                                   ),
                                 if (supplier.email != null) ...[
                                   const SizedBox(height: 2),
-                                  _InfoRow(
+                                  SupplierInfoRow(
                                     icon: Icons.email_outlined,
                                     text: supplier.email!,
                                   ),
                                 ],
                                 if (supplier.city != null) ...[
                                   const SizedBox(height: 2),
-                                  _InfoRow(
+                                  SupplierInfoRow(
                                     icon: Icons.location_on_outlined,
                                     text: supplier.city!,
                                   ),
@@ -152,29 +153,6 @@ class SupplierMasterScreen extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _InfoRow({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 13, color: AppColors.textSecondary),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodySmall,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
     );
   }
 }

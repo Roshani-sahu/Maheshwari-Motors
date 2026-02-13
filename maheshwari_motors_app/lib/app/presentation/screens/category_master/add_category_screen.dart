@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../controllers/add_category_controller.dart';
+import '../../controllers/category_master/add_category_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
 class AddCategoryScreen extends GetView<AddCategoryController> {

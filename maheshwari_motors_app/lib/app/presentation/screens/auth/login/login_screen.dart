@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../controllers/login_controller.dart';
+import '../../../controllers/auth/login_controller.dart';
 import '../../../shared/widgets/common_widgets.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends GetView<LoginController> {
   const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(LoginController());
-
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
@@ -58,36 +56,7 @@ class LoginScreen extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 32),
-
-                Obx(
-                  () => Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.all(4),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _ModeTab(
-                            label: 'Firm Login',
-                            isActive: !controller.isAdminMode,
-                            onTap: () => controller.setLoginMode('firm'),
-                          ),
-                        ),
-                        Expanded(
-                          child: _ModeTab(
-                            label: 'Admin Login',
-                            isActive: controller.isAdminMode,
-                            onTap: () => controller.setLoginMode('admin'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 36),
 
                 AppTextField(
                   label: 'Username',
@@ -132,9 +101,7 @@ class LoginScreen extends StatelessWidget {
 
                 Obx(
                   () => AppButton(
-                    text: controller.isAdminMode
-                        ? 'Sign In as Admin'
-                        : 'Sign In to Firm',
+                    text: 'Sign In',
                     isLoading: controller.isLoading.value,
                     onPressed: controller.login,
                   ),
@@ -143,42 +110,6 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 32),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ModeTab extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _ModeTab({
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-            color: isActive ? AppColors.white : AppColors.textSecondary,
           ),
         ),
       ),

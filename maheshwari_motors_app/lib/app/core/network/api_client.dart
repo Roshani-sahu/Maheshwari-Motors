@@ -42,8 +42,13 @@ class ApiClient {
         },
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
-            await _storage.delete(key: AppConstants.tokenKey);
-            Get.offAllNamed(AppRoutes.login);
+            final path = error.requestOptions.path;
+            final isPublic = path.contains('/login') ||
+                path.contains('/register');
+            if (!isPublic) {
+              await _storage.delete(key: AppConstants.tokenKey);
+              Get.offAllNamed(AppRoutes.login);
+            }
             return handler.reject(error);
           }
           return handler.next(error);

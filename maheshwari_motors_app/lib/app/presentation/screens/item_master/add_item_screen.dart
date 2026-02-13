@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../controllers/add_item_controller.dart';
+import '../../controllers/item_master/add_item_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
 class AddItemScreen extends StatelessWidget {

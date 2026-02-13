@@ -17,32 +17,14 @@ import '../models/discount_model.dart';
 class ApiService {
   final ApiClient _client = Get.find<ApiClient>();
 
-  Future<Map<String, dynamic>> loginAdmin(
+  Future<Map<String, dynamic>> login(
     String username,
     String password, {
     String? deviceName,
     String? deviceType,
   }) async {
     final res = await _client.post(
-      '/auth/admin/login',
-      data: {
-        'username': username,
-        'password': password,
-        'device_name': ?deviceName,
-        'device_type': ?deviceType,
-      },
-    );
-    return res.data;
-  }
-
-  Future<Map<String, dynamic>> loginFirm(
-    String username,
-    String password, {
-    String? deviceName,
-    String? deviceType,
-  }) async {
-    final res = await _client.post(
-      '/auth/firm/login',
+      '/auth/login',
       data: {
         'username': username,
         'password': password,

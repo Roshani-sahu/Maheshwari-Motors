@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../routes/app_routes.dart';
-import '../../controllers/category_master_controller.dart';
+import '../../controllers/category_master/category_master_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
 class CategoryMasterScreen extends StatelessWidget {

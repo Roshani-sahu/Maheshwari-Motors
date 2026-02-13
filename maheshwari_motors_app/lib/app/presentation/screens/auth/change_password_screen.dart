@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/validators.dart';
-import '../../controllers/change_password_controller.dart';
+import '../../controllers/auth/change_password_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
 class ChangePasswordScreen extends StatelessWidget {

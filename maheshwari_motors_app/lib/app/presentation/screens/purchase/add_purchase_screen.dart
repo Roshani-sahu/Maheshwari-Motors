@@ -3,8 +3,10 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../controllers/add_purchase_controller.dart';
+import '../../controllers/purchase/add_purchase_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
+import 'widgets/purchase_line_item_card.dart';
+import 'widgets/purchase_section_title.dart';
 
 class AddPurchaseScreen extends StatelessWidget {
   const AddPurchaseScreen({super.key});
@@ -24,11 +26,11 @@ class AddPurchaseScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionTitle(title: 'Supplier'),
+                  PurchaseSectionTitle(title: 'Supplier'),
                   const SizedBox(height: 8),
                   Obx(() {
                     if (c.isLoadingData.value) {
-                      return _loadingBox('Loading suppliers…');
+                      return loadingBox('Loading suppliers…');
                     }
                     return DropdownButtonFormField<String>(
                       initialValue: c.selectedSupplier.value?.id,
@@ -57,7 +59,7 @@ class AddPurchaseScreen extends StatelessWidget {
 
                   const SizedBox(height: 20),
 
-                  _SectionTitle(title: 'Purchase Type'),
+                  PurchaseSectionTitle(title: 'Purchase Type'),
                   const SizedBox(height: 8),
                   Obx(
                     () => Row(
@@ -94,7 +96,7 @@ class AddPurchaseScreen extends StatelessWidget {
 
                   Row(
                     children: [
-                      const _SectionTitle(title: 'Items'),
+                      const PurchaseSectionTitle(title: 'Items'),
                       const Spacer(),
                       TextButton.icon(
                         onPressed: c.addLineItem,
@@ -107,7 +109,7 @@ class AddPurchaseScreen extends StatelessWidget {
                   Obx(() {
                     return Column(
                       children: List.generate(c.lineItems.length, (i) {
-                        return _LineItemCard(
+                        return PurchaseLineItemCard(
                           index: i,
                           line: c.lineItems[i],
                           items: c.items,
@@ -179,7 +181,7 @@ class AddPurchaseScreen extends StatelessWidget {
     );
   }
 
-  static Widget _loadingBox(String label) {
+  static Widget loadingBox(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       decoration: BoxDecoration(
@@ -198,222 +200,6 @@ class AddPurchaseScreen extends StatelessWidget {
           Text(label, style: const TextStyle(color: AppColors.textSecondary)),
         ],
       ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  const _SectionTitle({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-}
-
-class _LineItemCard extends StatelessWidget {
-  final int index;
-  final PurchaseLineItem line;
-  final List items;
-  final bool isLoading;
-  final ValueChanged onItemSelected;
-  final VoidCallback? onRemove;
-  final VoidCallback onChanged;
-
-  const _LineItemCard({
-    required this.index,
-    required this.line,
-    required this.items,
-    required this.isLoading,
-    required this.onItemSelected,
-    this.onRemove,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.secondary.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.accentLight,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '#${index + 1}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.accent,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              if (onRemove != null)
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20),
-                  color: AppColors.error,
-                  onPressed: onRemove,
-                  visualDensity: VisualDensity.compact,
-                ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (isLoading)
-            AddPurchaseScreen._loadingBox('Loading items…')
-          else
-            DropdownButtonFormField(
-              initialValue: line.item?.id,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                hintText: 'Select item',
-                prefixIcon: Icon(Icons.inventory_2_outlined, size: 20),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-              ),
-              items: items
-                  .map(
-                    (item) => DropdownMenuItem(
-                      value: item.id,
-                      child: Text(
-                        item.itemName,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (id) {
-                final item = items.firstWhereOrNull((i) => i.id == id);
-                onItemSelected(item);
-              },
-            ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _MiniField(
-                  label: 'Qty',
-                  controller: line.quantityC,
-                  onChanged: (_) => onChanged(),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _MiniField(
-                  label: 'Rate (₹)',
-                  controller: line.rateC,
-                  onChanged: (_) => onChanged(),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Amount',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Text(
-                        AppFormatters.currencyDecimal(line.amount),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.accent,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniField extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final ValueChanged<String>? onChanged;
-
-  const _MiniField({
-    required this.label,
-    required this.controller,
-    this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        TextFormField(
-          controller: controller,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(fontSize: 14),
-          decoration: const InputDecoration(
-            hintText: '0',
-            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            isDense: true,
-          ),
-          onChanged: onChanged,
-        ),
-      ],
     );
   }
 }

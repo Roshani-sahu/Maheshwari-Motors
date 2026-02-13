@@ -1,9 +1,10 @@
 import 'package:get/get.dart';
 
 import '../routes/app_routes.dart';
-import '../presentation/controllers/add_item_controller.dart';
-import '../presentation/controllers/add_party_controller.dart';
-import '../presentation/controllers/add_user_controller.dart';
+import '../presentation/controllers/item_master/add_item_controller.dart';
+import '../presentation/controllers/party/add_party_controller.dart';
+import '../presentation/controllers/user_master/add_user_controller.dart';
+import '../presentation/controllers/auth/login_controller.dart';
 import '../presentation/screens/splash/splash_screen.dart';
 import '../presentation/screens/auth/login/login_screen.dart';
 import '../presentation/screens/home/home_screen.dart';
@@ -22,8 +23,8 @@ import '../presentation/screens/transaction/transaction_history_screen.dart';
 import '../presentation/screens/party/party_master_screen.dart';
 import '../presentation/screens/party/add_party_screen.dart';
 import '../presentation/screens/auth/change_password_screen.dart';
-import '../presentation/controllers/change_password_controller.dart';
-import '../presentation/controllers/active_sessions_controller.dart';
+import '../presentation/controllers/auth/change_password_controller.dart';
+import '../presentation/controllers/sessions/active_sessions_controller.dart';
 import '../presentation/screens/sessions/active_sessions_screen.dart';
 import '../presentation/screens/category_master/category_master_screen.dart';
 import '../presentation/screens/category_master/view_category_screen.dart';
@@ -31,15 +32,15 @@ import '../presentation/screens/category_master/add_category_screen.dart';
 import '../presentation/screens/supplier_master/supplier_master_screen.dart';
 import '../presentation/screens/supplier_master/view_supplier_screen.dart';
 import '../presentation/screens/supplier_master/add_supplier_screen.dart';
-import '../presentation/controllers/add_category_controller.dart';
-import '../presentation/controllers/add_supplier_controller.dart';
-import '../presentation/controllers/create_challan_controller.dart';
-import '../presentation/controllers/generate_bill_controller.dart';
-import '../presentation/controllers/purchase_controller.dart';
-import '../presentation/controllers/add_purchase_controller.dart';
-import '../presentation/controllers/discount_controller.dart';
-import '../presentation/controllers/add_discount_controller.dart';
-import '../presentation/controllers/account_master_controller.dart';
+import '../presentation/controllers/category_master/add_category_controller.dart';
+import '../presentation/controllers/supplier_master/add_supplier_controller.dart';
+import '../presentation/controllers/challan/create_challan_controller.dart';
+import '../presentation/controllers/bill/generate_bill_controller.dart';
+import '../presentation/controllers/purchase/purchase_controller.dart';
+import '../presentation/controllers/purchase/add_purchase_controller.dart';
+import '../presentation/controllers/discount/discount_controller.dart';
+import '../presentation/controllers/discount/add_discount_controller.dart';
+import '../presentation/controllers/account_master/account_master_controller.dart';
 import '../presentation/screens/purchase/purchase_master_screen.dart';
 import '../presentation/screens/purchase/add_purchase_screen.dart';
 import '../presentation/screens/discount/discount_master_screen.dart';
@@ -53,7 +54,11 @@ class AppPages {
 
   static final pages = <GetPage>[
     GetPage(name: AppRoutes.splash, page: () => const SplashScreen()),
-    GetPage(name: AppRoutes.login, page: () => const LoginScreen()),
+    GetPage(
+      name: AppRoutes.login,
+      page: () => const LoginScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => LoginController())),
+    ),
     GetPage(name: AppRoutes.home, page: () => const HomeScreen()),
     GetPage(name: AppRoutes.adminHome, page: () => const AdminHomeScreen()),
     GetPage(name: AppRoutes.itemMaster, page: () => const ItemMasterScreen()),

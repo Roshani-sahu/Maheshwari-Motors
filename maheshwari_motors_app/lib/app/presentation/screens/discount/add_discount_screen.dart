@@ -3,8 +3,9 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/discount_model.dart';
-import '../../controllers/add_discount_controller.dart';
+import '../../controllers/discount/add_discount_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
+import 'widgets/type_chip.dart';
 
 class AddDiscountScreen extends StatelessWidget {
   const AddDiscountScreen({super.key});
@@ -40,7 +41,7 @@ class AddDiscountScreen extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: DiscountModel.typeOptions.map((t) {
-                      return _TypeChip(
+                      return TypeChip(
                         label: _typeLabel(t),
                         icon: _typeIcon(t),
                         selected: c.type.value == t,
@@ -270,57 +271,5 @@ class AddDiscountScreen extends StatelessWidget {
       default:
         return Icons.percent;
     }
-  }
-}
-
-class _TypeChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _TypeChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.accentLight : AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppColors.accent : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: selected ? AppColors.accent : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? AppColors.accent : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

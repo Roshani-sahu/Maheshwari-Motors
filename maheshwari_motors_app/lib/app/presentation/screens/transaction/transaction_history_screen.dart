@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../data/models/transaction_model.dart';
-import '../../controllers/transaction_controller.dart';
+import '../../controllers/transaction/transaction_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
+import 'widgets/transaction_card.dart';
 
 class TransactionHistoryScreen extends StatelessWidget {
   const TransactionHistoryScreen({super.key});
@@ -116,86 +116,10 @@ class TransactionHistoryScreen extends StatelessWidget {
                   itemCount: controller.filtered.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (_, i) =>
-                      _TransactionCard(txn: controller.filtered[i]),
+                      TransactionCard(txn: controller.filtered[i]),
                 ),
               );
             }),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TransactionCard extends StatelessWidget {
-  final TransactionModel txn;
-  const _TransactionCard({required this.txn});
-
-  @override
-  Widget build(BuildContext context) {
-    IconData icon;
-    Color iconColor;
-    switch (txn.type.toLowerCase()) {
-      case 'sale':
-        icon = Icons.arrow_upward;
-        iconColor = AppColors.success;
-      case 'purchase':
-        icon = Icons.arrow_downward;
-        iconColor = AppColors.error;
-      case 'payment':
-        icon = Icons.payment;
-        iconColor = AppColors.info;
-      default:
-        icon = Icons.account_balance_wallet;
-        iconColor = AppColors.warning;
-    }
-
-    return AppCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  txn.partyName ?? txn.supplierName ?? 'N/A',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${txn.type.capitalizeFirst} • ${txn.paymentMode.capitalizeFirst}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  AppFormatters.dateTime(txn.createdAt),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            AppFormatters.currency(txn.amount),
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: iconColor,
-            ),
           ),
         ],
       ),

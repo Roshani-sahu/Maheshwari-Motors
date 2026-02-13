@@ -1,20 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:maheshwari_motors_app/app/presentation/shared/widgets/drawer/drawer_item.dart';
+import 'package:maheshwari_motors_app/app/presentation/shared/widgets/drawer/drawer_section_divider.dart';
+import 'package:maheshwari_motors_app/app/presentation/shared/widgets/drawer/drawer_section_header.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../routes/app_routes.dart';
-import '../../controllers/auth_controller.dart';
-
-class AppDrawerButton extends StatelessWidget {
-  const AppDrawerButton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.menu_rounded),
-      onPressed: () => Scaffold.of(context).openDrawer(),
-    );
-  }
-}
+import '../../controllers/auth/auth_controller.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -102,31 +93,31 @@ class AppDrawer extends StatelessWidget {
                 return ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   children: [
-                    _DrawerItem(
+                    DrawerItem(
                       icon: Icons.dashboard_rounded,
                       label: 'Dashboard',
                       isActive: currentRoute == AppRoutes.home,
                       onTap: () => _navigate(AppRoutes.home),
                     ),
 
-                    const _SectionDivider(),
+                    const DrawerSectionDivider(),
 
-                    const _DrawerSectionHeader(title: 'Masters'),
+                    const DrawerSectionHeader(title: 'Masters'),
                     if (auth.isMainUser)
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.people_rounded,
                         label: 'User Master',
                         isActive: currentRoute == AppRoutes.userMaster,
                         onTap: () => _navigate(AppRoutes.userMaster),
                       ),
                     if (isFirm) ...[
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.groups_rounded,
                         label: 'Party Master',
                         isActive: currentRoute == AppRoutes.partyMaster,
                         onTap: () => _navigate(AppRoutes.partyMaster),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.account_balance_rounded,
                         label: 'Account Master',
                         isActive: currentRoute == AppRoutes.accountMaster,
@@ -135,78 +126,78 @@ class AppDrawer extends StatelessWidget {
                     ],
 
                     if (isFirm) ...[
-                      const _SectionDivider(),
+                      const DrawerSectionDivider(),
 
-                      const _DrawerSectionHeader(title: 'Inventory'),
-                      _DrawerItem(
+                      const DrawerSectionHeader(title: 'Inventory'),
+                      DrawerItem(
                         icon: Icons.inventory_2_rounded,
                         label: 'Item Master',
                         isActive: currentRoute == AppRoutes.itemMaster,
                         onTap: () => _navigate(AppRoutes.itemMaster),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.view_list_rounded,
                         label: 'Item View',
                         isActive: currentRoute == AppRoutes.itemView,
                         onTap: () => _navigate(AppRoutes.itemView),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.category_rounded,
                         label: 'Category Master',
                         isActive: currentRoute == AppRoutes.categoryMaster,
                         onTap: () => _navigate(AppRoutes.categoryMaster),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.local_shipping_rounded,
                         label: 'Supplier Master',
                         isActive: currentRoute == AppRoutes.supplierMaster,
                         onTap: () => _navigate(AppRoutes.supplierMaster),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.warning_amber_rounded,
                         label: 'Stock Alerts',
                         isActive: currentRoute == AppRoutes.stockAlertMaster,
                         onTap: () => _navigate(AppRoutes.stockAlertMaster),
                       ),
 
-                      const _SectionDivider(),
+                      const DrawerSectionDivider(),
 
-                      const _DrawerSectionHeader(title: 'Transactions'),
-                      _DrawerItem(
+                      const DrawerSectionHeader(title: 'Transactions'),
+                      DrawerItem(
                         icon: Icons.receipt_long_rounded,
                         label: 'Challans',
                         isActive: currentRoute == AppRoutes.challanList,
                         onTap: () => _navigate(AppRoutes.challanList),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.description_rounded,
                         label: 'Bills',
                         isActive: currentRoute == AppRoutes.billList,
                         onTap: () => _navigate(AppRoutes.billList),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.shopping_cart_rounded,
                         label: 'Purchases',
                         isActive: currentRoute == AppRoutes.purchaseMaster,
                         onTap: () => _navigate(AppRoutes.purchaseMaster),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.swap_horiz_rounded,
                         label: 'Transactions',
                         isActive: currentRoute == AppRoutes.transactionHistory,
                         onTap: () => _navigate(AppRoutes.transactionHistory),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.percent_rounded,
                         label: 'Discounts',
                         isActive: currentRoute == AppRoutes.discountMaster,
                         onTap: () => _navigate(AppRoutes.discountMaster),
                       ),
 
-                      const _SectionDivider(),
+                      const DrawerSectionDivider(),
 
-                      const _DrawerSectionHeader(title: 'Reports'),
-                      _DrawerItem(
+                      const DrawerSectionHeader(title: 'Reports'),
+                      DrawerItem(
                         icon: Icons.bar_chart_rounded,
                         label: 'Business Reports',
                         isActive: false,
@@ -215,7 +206,7 @@ class AppDrawer extends StatelessWidget {
                           arguments: 'Business Reports',
                         ),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.receipt_rounded,
                         label: 'GST Report',
                         isActive: false,
@@ -224,7 +215,7 @@ class AppDrawer extends StatelessWidget {
                           arguments: 'GST Report',
                         ),
                       ),
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.point_of_sale_rounded,
                         label: 'Sales Report',
                         isActive: false,
@@ -234,9 +225,9 @@ class AppDrawer extends StatelessWidget {
                         ),
                       ),
 
-                      const _SectionDivider(),
+                      const DrawerSectionDivider(),
 
-                      _DrawerItem(
+                      DrawerItem(
                         icon: Icons.help_outline_rounded,
                         label: 'Help & Support',
                         isActive: currentRoute == AppRoutes.helpSupport,
@@ -244,22 +235,22 @@ class AppDrawer extends StatelessWidget {
                       ),
                     ],
 
-                    const _SectionDivider(),
+                    const DrawerSectionDivider(),
 
-                    const _DrawerSectionHeader(title: 'Account'),
-                    _DrawerItem(
+                    const DrawerSectionHeader(title: 'Account'),
+                    DrawerItem(
                       icon: Icons.lock_outline_rounded,
                       label: 'Change Password',
                       isActive: currentRoute == AppRoutes.changePassword,
                       onTap: () => _navigate(AppRoutes.changePassword),
                     ),
-                    _DrawerItem(
+                    DrawerItem(
                       icon: Icons.devices_rounded,
                       label: 'Active Sessions',
                       isActive: currentRoute == AppRoutes.activeSessions,
                       onTap: () => _navigate(AppRoutes.activeSessions),
                     ),
-                    _DrawerItem(
+                    DrawerItem(
                       icon: Icons.logout_rounded,
                       label: 'Logout',
                       isActive: false,
@@ -303,106 +294,6 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerSectionHeader extends StatelessWidget {
-  final String title;
-  const _DrawerSectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
-      child: Text(
-        title.toUpperCase(),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppColors.textSecondary,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.3,
-          fontSize: 10,
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionDivider extends StatelessWidget {
-  const _SectionDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Divider(height: 1, color: AppColors.border.withValues(alpha: 0.4)),
-    );
-  }
-}
-
-class _DrawerItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool isActive;
-  final Color? color;
-
-  const _DrawerItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.isActive,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final activeColor = color ?? AppColors.accent;
-    final inactiveColor = color ?? AppColors.textSecondary;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
-      child: Material(
-        color: isActive ? AppColors.accentLight : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 21,
-                  color: isActive ? activeColor : inactiveColor,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isActive
-                          ? activeColor
-                          : (color ?? AppColors.textPrimary),
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                    ),
-                  ),
-                ),
-                if (isActive)
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: activeColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ),
       ),
     );

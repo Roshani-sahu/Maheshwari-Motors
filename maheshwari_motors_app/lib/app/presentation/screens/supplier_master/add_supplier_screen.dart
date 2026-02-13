@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../controllers/add_supplier_controller.dart';
+import '../../controllers/supplier_master/add_supplier_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
 
 class AddSupplierScreen extends GetView<AddSupplierController> {

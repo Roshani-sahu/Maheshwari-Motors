@@ -3,9 +3,11 @@ import 'package:get/get.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../data/models/challan_model.dart';
-import '../../controllers/generate_bill_controller.dart';
+import '../../controllers/bill/generate_bill_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
+import 'widgets/bill_placeholder.dart';
+import 'widgets/bill_summary_row.dart';
+import 'widgets/challan_tile.dart';
 
 class GenerateBillScreen extends StatelessWidget {
   const GenerateBillScreen({super.key});
@@ -67,7 +69,7 @@ class GenerateBillScreen extends StatelessWidget {
 
                   Obx(() {
                     if (c.selectedParty.value == null) {
-                      return const _Placeholder(
+                      return const BillPlaceholder(
                         icon: Icons.receipt_long_outlined,
                         text: 'Select a party to see unbilled challans',
                       );
@@ -116,7 +118,7 @@ class GenerateBillScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         ...c.challans.map(
-                          (ch) => _ChallanTile(
+                          (ch) => ChallanTile(
                             challan: ch,
                             isSelected: c.selectedChallanIds.contains(ch.id),
                             onToggle: () => c.toggleChallan(ch.id),
@@ -316,19 +318,19 @@ class GenerateBillScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          _SummaryRow(
+                          BillSummaryRow(
                             label: 'Challans Selected',
                             value:
                                 '${c.selectedChallanIds.length} of ${c.challans.length}',
                           ),
                           const SizedBox(height: 8),
-                          _SummaryRow(
+                          BillSummaryRow(
                             label: 'Total Amount',
                             value: AppFormatters.currencyDecimal(c.totalAmount),
                           ),
                           if (c.applyBalance.value && c.partyBalance != 0) ...[
                             const SizedBox(height: 8),
-                            _SummaryRow(
+                            BillSummaryRow(
                               label: 'Balance Applied',
                               value:
                                   '- ${AppFormatters.currencyDecimal(c.partyBalance)}',
@@ -338,7 +340,7 @@ class GenerateBillScreen extends StatelessWidget {
                           if (c.partialDelivery.value &&
                               c.undeliveredAmount > 0) ...[
                             const SizedBox(height: 8),
-                            _SummaryRow(
+                            BillSummaryRow(
                               label: 'Undelivered → Prepaid',
                               value:
                                   '- ${AppFormatters.currencyDecimal(c.undeliveredAmount)}',
@@ -346,7 +348,7 @@ class GenerateBillScreen extends StatelessWidget {
                             ),
                           ],
                           const Divider(height: 20),
-                          _SummaryRow(
+                          BillSummaryRow(
                             label: 'Bill Amount',
                             value: AppFormatters.currencyDecimal(c.billAmount),
                             isBold: true,
@@ -402,195 +404,6 @@ class GenerateBillScreen extends StatelessWidget {
           Text(label, style: const TextStyle(color: AppColors.textSecondary)),
         ],
       ),
-    );
-  }
-}
-
-class _Placeholder extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  const _Placeholder({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Column(
-          children: [
-            Icon(icon, size: 48, color: AppColors.textSecondary),
-            const SizedBox(height: 12),
-            Text(
-              text,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ChallanTile extends StatelessWidget {
-  final ChallanModel challan;
-  final bool isSelected;
-  final VoidCallback onToggle;
-
-  const _ChallanTile({
-    required this.challan,
-    required this.isSelected,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onToggle,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.accentLight : AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.accent : AppColors.border,
-            width: isSelected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.accent : Colors.transparent,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: isSelected ? AppColors.accent : AppColors.border,
-                  width: 2,
-                ),
-              ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 16, color: AppColors.white)
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '#${challan.challanNo}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: challan.isGst == 1
-                              ? AppColors.accentLight
-                              : AppColors.warningLight,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          challan.isGst == 1 ? 'GST' : 'NON_GST',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: challan.isGst == 1
-                                ? AppColors.accent
-                                : AppColors.warning,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${challan.items.length} items • ${AppFormatters.dateShort(challan.date)}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  AppFormatters.currencyDecimal(challan.amount),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: isSelected
-                        ? AppColors.accent
-                        : AppColors.textPrimary,
-                    fontSize: 14,
-                  ),
-                ),
-                if (challan.discount > 0)
-                  Text(
-                    '${challan.discount.toStringAsFixed(1)}% disc',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.success,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SummaryRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final bool isBold;
-  final Color? valueColor;
-
-  const _SummaryRow({
-    required this.label,
-    required this.value,
-    this.isBold = false,
-    this.valueColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
-            color: isBold ? AppColors.textPrimary : AppColors.textSecondary,
-          ),
-        ),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-            color: valueColor ?? AppColors.textPrimary,
-            fontSize: isBold ? 16 : null,
-          ),
-        ),
-      ],
     );
   }
 }
