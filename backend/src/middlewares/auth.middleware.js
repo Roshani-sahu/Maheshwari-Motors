@@ -7,9 +7,9 @@ import env from "../config/env.js";
 const auth = asyncHandler(async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  // if (!authHeader || !authHeader.startsWith("Bearer ")) {
-  //   throw ApiError.unauthorized("No token provided");
-  // }
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw ApiError.unauthorized("No token provided");
+  }
 
   const token = authHeader.split(" ")[1];
 
