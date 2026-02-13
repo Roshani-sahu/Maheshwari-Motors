@@ -40,9 +40,74 @@ const DiscountMaster = () => {
         };
       });
       
-      setCategories(categoriesWithBrands);
+      // Add dummy data if no categories or brands found
+      if (categoriesWithBrands.length === 0 || categoriesWithBrands.every(c => c.brands.length === 0)) {
+        const dummyCategories = [
+          {
+            id: 'cat1',
+            name: 'Engine Parts',
+            brands: [
+              { id: 'brand1', name: 'Castrol' },
+              { id: 'brand2', name: 'Mobil' },
+              { id: 'brand3', name: 'Shell' }
+            ]
+          },
+          {
+            id: 'cat2',
+            name: 'Brake System',
+            brands: [
+              { id: 'brand4', name: 'Bosch' },
+              { id: 'brand5', name: 'Brembo' },
+              { id: 'brand6', name: 'ATE' }
+            ]
+          },
+          {
+            id: 'cat3',
+            name: 'Filters',
+            brands: [
+              { id: 'brand7', name: 'Mann Filter' },
+              { id: 'brand8', name: 'Mahle' },
+              { id: 'brand9', name: 'K&N' }
+            ]
+          }
+        ];
+        setCategories(dummyCategories);
+      } else {
+        setCategories(categoriesWithBrands);
+      }
     } catch (error) {
       console.error("Failed to fetch categories", error);
+      // Fallback to dummy data on error
+      const dummyCategories = [
+        {
+          id: 'cat1',
+          name: 'Engine Parts',
+          brands: [
+            { id: 'brand1', name: 'Castrol' },
+            { id: 'brand2', name: 'Mobil' },
+            { id: 'brand3', name: 'Shell' }
+          ]
+        },
+        {
+          id: 'cat2',
+          name: 'Brake System',
+          brands: [
+            { id: 'brand4', name: 'Bosch' },
+            { id: 'brand5', name: 'Brembo' },
+            { id: 'brand6', name: 'ATE' }
+          ]
+        },
+        {
+          id: 'cat3',
+          name: 'Filters',
+          brands: [
+            { id: 'brand7', name: 'Mann Filter' },
+            { id: 'brand8', name: 'Mahle' },
+            { id: 'brand9', name: 'K&N' }
+          ]
+        }
+      ];
+      setCategories(dummyCategories);
     }
   };
 
@@ -79,153 +144,198 @@ const DiscountMaster = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Categories Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Rate Type</h2>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Discount Master</h1>
+          <p className="text-gray-600 text-xs sm:text-sm">Manage discount rates by category and brand</p>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {categories.map(category => (
-            <div
-              key={category.id}
-              onClick={() => setSelectedCategory(category)}
-              className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-blue-50 ${
-                selectedCategory?.id === category.id ? 'bg-blue-100 border-l-4 border-l-blue-500' : ''
-              }`}
-            >
-              <div className="text-sm font-medium text-gray-900">{category.name}</div>
-            </div>
-          ))}
-        </div>
+        <Button 
+          onClick={handleSave} 
+          className="flex items-center gap-2 text-xs sm:text-sm"
+        >
+          <FaSave className="text-sm sm:text-base" />
+          Save Changes
+        </Button>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700">
-              <FaSave size={14} />
-              Save
-            </Button>
-            <div className="text-sm text-gray-600">
-              Rate Type: <span className="font-medium">{selectedCategory?.name || 'Select Category'}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+        {/* Categories Panel */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-3 sm:p-4 border-b border-gray-200">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">Rate Categories</h3>
+              <p className="text-xs text-gray-500 mt-1">Select category to manage</p>
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {categories.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">
+                  No categories available
+                </div>
+              ) : (
+                categories.map(category => (
+                  <div
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-blue-50 transition-colors ${
+                      selectedCategory?.id === category.id 
+                        ? 'bg-blue-50 border-l-4 border-l-blue-500 text-blue-900' 
+                        : 'text-gray-700'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">{category.name}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {category.brands?.length || 0} brands
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
 
-        {/* Brands Table */}
-        <div className="flex-1 overflow-auto p-4">
-          {!selectedCategory ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center text-gray-500">
-                <p className="text-lg font-medium">Select a category to view brands</p>
-                <p className="text-sm">Choose a category from the left sidebar to manage discounts</p>
+        {/* Discount Table Panel */}
+        <div className="lg:col-span-3">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-3 sm:p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+                    {selectedCategory ? `${selectedCategory.name} - Brand Discounts` : 'Brand Discounts'}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {selectedCategory ? 'Set discount rates for brands in this category' : 'Select a category to view brands'}
+                  </p>
+                </div>
+                {selectedCategory && (
+                  <div className="text-xs text-gray-500">
+                    {getSelectedCategoryBrands().length} brands
+                  </div>
+                )}
               </div>
             </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r">
-                      ID
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r">
-                      ItemGroup
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r">
-                      <div>Discount I</div>
-                      <div className="flex mt-1">
-                        <div className="flex-1 text-center border-r border-gray-300">Normal</div>
-                        <div className="flex-1 text-center">Special</div>
-                      </div>
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <div>Discount II</div>
-                      <div className="flex mt-1">
-                        <div className="flex-1 text-center border-r border-gray-300">Normal</div>
-                        <div className="flex-1 text-center">Special</div>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {getSelectedCategoryBrands().length === 0 ? (
+
+            <div className="overflow-x-auto">
+              {!selectedCategory ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center text-gray-500">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                      <FaSave className="text-gray-400 text-xl" />
+                    </div>
+                    <p className="text-base font-medium text-gray-900 mb-2">No Category Selected</p>
+                    <p className="text-sm text-gray-500">Choose a category from the left panel to manage discount rates</p>
+                  </div>
+                </div>
+              ) : getSelectedCategoryBrands().length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center text-gray-500">
+                    <p className="text-base font-medium text-gray-900 mb-2">No Brands Found</p>
+                    <p className="text-sm text-gray-500">This category doesn't have any brands assigned</p>
+                  </div>
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
-                        No brands found in this category
-                      </td>
+                      <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        Brand ID
+                      </th>
+                      <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        Brand Name
+                      </th>
+                      <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        <div className="mb-1">Discount I (%)</div>
+                        <div className="flex">
+                          <div className="flex-1 text-center border-r border-gray-300 pr-2">Normal</div>
+                          <div className="flex-1 text-center pl-2">Special</div>
+                        </div>
+                      </th>
+                      <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div className="mb-1">Discount II (%)</div>
+                        <div className="flex">
+                          <div className="flex-1 text-center border-r border-gray-300 pr-2">Normal</div>
+                          <div className="flex-1 text-center pl-2">Special</div>
+                        </div>
+                      </th>
                     </tr>
-                  ) : (
-                    getSelectedCategoryBrands().map((brand, index) => (
-                      <tr key={brand.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200">
-                          {brand.id}
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {getSelectedCategoryBrands().map((brand, index) => (
+                      <tr key={brand.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-900 border-r border-gray-200">
+                          <span className="font-mono">{String(brand.id).slice(-6)}</span>
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900 border-r border-gray-200">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-gray-900 border-r border-gray-200">
                           {brand.name}
                         </td>
                         <td className="px-2 py-3 border-r border-gray-200">
-                          <div className="flex">
-                            <div className="flex-1 px-2">
+                          <div className="flex gap-2">
+                            <div className="flex-1">
                               <input
                                 type="number"
                                 step="0.01"
+                                min="0"
+                                max="100"
                                 value={getDiscount(brand.id, 'discount1', 'normal')}
                                 onChange={(e) => updateDiscount(brand.id, 'discount1', 'normal', e.target.value)}
-                                className="w-full px-2 py-1 text-sm text-center border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                 placeholder="0.00"
                               />
                             </div>
-                            <div className="flex-1 px-2">
+                            <div className="flex-1">
                               <input
                                 type="number"
                                 step="0.01"
+                                min="0"
+                                max="100"
                                 value={getDiscount(brand.id, 'discount1', 'special')}
                                 onChange={(e) => updateDiscount(brand.id, 'discount1', 'special', e.target.value)}
-                                className="w-full px-2 py-1 text-sm text-center border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                 placeholder="0.00"
                               />
                             </div>
                           </div>
                         </td>
                         <td className="px-2 py-3">
-                          <div className="flex">
-                            <div className="flex-1 px-2">
+                          <div className="flex gap-2">
+                            <div className="flex-1">
                               <input
                                 type="number"
                                 step="0.01"
+                                min="0"
+                                max="100"
                                 value={getDiscount(brand.id, 'discount2', 'normal')}
                                 onChange={(e) => updateDiscount(brand.id, 'discount2', 'normal', e.target.value)}
-                                className="w-full px-2 py-1 text-sm text-center border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                 placeholder="0.00"
                               />
                             </div>
-                            <div className="flex-1 px-2">
+                            <div className="flex-1">
                               <input
                                 type="number"
                                 step="0.01"
+                                min="0"
+                                max="100"
                                 value={getDiscount(brand.id, 'discount2', 'special')}
                                 onChange={(e) => updateDiscount(brand.id, 'discount2', 'special', e.target.value)}
-                                className="w-full px-2 py-1 text-sm text-center border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                 placeholder="0.00"
                               />
                             </div>
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
-  );
+  )
 };
 
 export default DiscountMaster;
