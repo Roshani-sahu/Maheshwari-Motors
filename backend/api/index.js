@@ -1,15 +1,21 @@
 import "dotenv/config";
 import createApp from "../src/app.js";
 import { connectDB } from "../src/config/database.js";
+import env from "../src/config/env.js";
 
-let isConnected = false;
+const PORT = env.PORT || 3000;
 
-const app = createApp();
-
-export default async function handler(req, res) {
-  if (!isConnected) {
+async function startServer() {
+  try {
     await connectDB();
-    isConnected = true;
+    const app = createApp();
+    app.listen(PORT, () => {
+      console.log(`✅ Server running on PORT :: ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
   }
-  return app(req, res);
 }
+
+startServer();

@@ -2,18 +2,18 @@ import { categoryService } from "../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../utils/index.js";
 
 const categorySchema = {
-  name: {
+  category_name: {
     required: true,
     type: "string",
     min: 1,
     max: 100,
     label: "Category name",
   },
-  description: {
+  brands: {
     required: false,
-    type: "string",
-    max: 500,
-    label: "Description",
+    type: "array",
+    arrayType: "objectId",
+    label: "Brands",
   },
 };
 
@@ -36,7 +36,10 @@ export const getCategoryById = asyncHandler(async (req, res) => {
 
 export const createCategory = asyncHandler(async (req, res) => {
   const data = validate(req.body, categorySchema);
-  const category = await categoryService.createCategory(data, req.user._id);
+  const category = await categoryService.createCategory(
+    { name: data.category_name, brand_ids: data.brands },
+    req.user._id,
+  );
   res
     .status(201)
     .json(new ApiResponse(201, category, "Category created successfully"));
@@ -44,10 +47,13 @@ export const createCategory = asyncHandler(async (req, res) => {
 
 export const updateCategory = asyncHandler(async (req, res) => {
   const data = validate(req.body, categorySchema, { allowPartial: true });
+  const updateData = {};
+  if (data.category_name) updateData.name = data.category_name;
+  if (data.brands) updateData.brand_ids = data.brands;
   const category = await categoryService.updateCategory(
     req.params.categoryId,
     req.user._id,
-    data,
+    updateData,
   );
   res
     .status(200)

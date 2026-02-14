@@ -1,38 +1,32 @@
 import mongoose from "mongoose";
 
+const discountFieldSchema = new mongoose.Schema(
+  {
+    normal: { type: Number, default: 0, min: 0 },
+    special: { type: Number, default: 0, min: 0 },
+  },
+  { _id: false },
+);
+
 const discountSchema = new mongoose.Schema(
   {
-    type: {
-      type: String,
-      enum: ["item", "party_item", "party_all", "item_group", "profit_margin"],
+    brand_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Brand",
       required: true,
     },
-
-    percent1: { type: Number, default: 0, min: 0, max: 100 },
-    percent2: { type: Number, default: 0, min: 0, max: 100 },
-    fixed_amount: { type: Number, default: 0, min: 0 },
-
-    profit_percent: { type: Number, default: 0, min: 0 },
-
-    item_id: { type: mongoose.Schema.Types.ObjectId, ref: "Item" },
-    party_id: { type: mongoose.Schema.Types.ObjectId, ref: "Party" },
-
-    item_group_name: { type: String },
-    item_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: "Item" }],
-
+    discount1: { type: discountFieldSchema, default: () => ({}) },
+    discount2: { type: discountFieldSchema, default: () => ({}) },
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
-
-    is_active: { type: Boolean, default: true },
   },
   { timestamps: true },
 );
 
-discountSchema.index({ user_id: 1, type: 1 });
-discountSchema.index({ user_id: 1, item_id: 1 });
-discountSchema.index({ user_id: 1, party_id: 1 });
+discountSchema.index({ brand_id: 1, user_id: 1 }, { unique: true });
 
 export default mongoose.model("Discount", discountSchema);

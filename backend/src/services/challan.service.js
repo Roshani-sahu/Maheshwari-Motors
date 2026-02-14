@@ -2,7 +2,6 @@ import Challan from "../models/challan.model.js";
 import Item from "../models/item.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 import stockService from "./stock.service.js";
-import discountService from "./discount.service.js";
 
 class ChallanService {
   async getChallans(userId, isGst, query) {
@@ -85,23 +84,6 @@ class ChallanService {
       throw ApiError.badRequest("At least one item is required");
     }
 
-    const { itemDiscounts, partyAllDiscount } =
-      await discountService.resolveDiscounts(itemIds, party_id, userId);
-
-    const applyDiscount = (originalPrice, rule) => {
-      let price = originalPrice;
-      if (rule.percent1) price *= 1 - rule.percent1 / 100;
-      if (rule.percent2) price *= 1 - rule.percent2 / 100;
-      if (rule.fixed_amount) price -= rule.fixed_amount;
-      return Math.max(0, price);
-    };
-
-    const effectivePercent = (originalPrice, rule) => {
-      const discounted = applyDiscount(originalPrice, rule);
-      if (originalPrice <= 0) return 0;
-      return ((originalPrice - discounted) / originalPrice) * 100;
-    };
-
     const buildChallanDoc = async (groupItems, challanIsGst) => {
       const challanCount = await Challan.countDocuments({
         user_id: userId,
@@ -114,19 +96,7 @@ class ChallanService {
 
       const processedItems = groupItems.map((item) => {
         const grossAmount = item.quantity * item.rate;
-
-        let itemDiscount = 0;
-        if (item.discount !== undefined && item.discount !== null) {
-          itemDiscount = item.discount;
-        } else {
-          const rule = itemDiscounts.get(
-            item.item_id.toString?.() ?? item.item_id,
-          );
-          if (rule && rule.type !== "profit_margin") {
-            itemDiscount = effectivePercent(grossAmount, rule);
-          }
-        }
-
+        const itemDiscount = item.discount ?? 0;
         const discountedAmount = grossAmount * (1 - itemDiscount / 100);
         grossTotal += grossAmount;
         subTotal += discountedAmount;
@@ -142,16 +112,7 @@ class ChallanService {
         };
       });
 
-      let challanDiscount = 0;
-      if (
-        manualChallanDiscount !== undefined &&
-        manualChallanDiscount !== null
-      ) {
-        challanDiscount = manualChallanDiscount;
-      } else if (partyAllDiscount) {
-        challanDiscount = effectivePercent(subTotal, partyAllDiscount);
-      }
-
+      const challanDiscount = manualChallanDiscount ?? 0;
       const challanDiscountAmount = subTotal * (challanDiscount / 100);
       const totalAmount = subTotal - challanDiscountAmount;
 
@@ -224,45 +185,12 @@ class ChallanService {
         await stockService.restoreStock(challan.items, userId);
       }
 
-      const itemIds = updateData.items.map((i) => i.item_id);
-      const { itemDiscounts, partyAllDiscount } =
-        await discountService.resolveDiscounts(
-          itemIds,
-          challan.party_id.toString(),
-          userId,
-        );
-
-      const applyDiscount = (originalPrice, rule) => {
-        let price = originalPrice;
-        if (rule.percent1) price *= 1 - rule.percent1 / 100;
-        if (rule.percent2) price *= 1 - rule.percent2 / 100;
-        if (rule.fixed_amount) price -= rule.fixed_amount;
-        return Math.max(0, price);
-      };
-      const effectivePercent = (originalPrice, rule) => {
-        const discounted = applyDiscount(originalPrice, rule);
-        if (originalPrice <= 0) return 0;
-        return ((originalPrice - discounted) / originalPrice) * 100;
-      };
-
       let grossTotal = 0;
       let subTotal = 0;
 
       const processedItems = updateData.items.map((item) => {
         const grossAmount = item.quantity * item.rate;
-
-        let itemDiscount = 0;
-        if (item.discount !== undefined && item.discount !== null) {
-          itemDiscount = item.discount;
-        } else {
-          const rule = itemDiscounts.get(
-            item.item_id.toString?.() ?? item.item_id,
-          );
-          if (rule && rule.type !== "profit_margin") {
-            itemDiscount = effectivePercent(grossAmount, rule);
-          }
-        }
-
+        const itemDiscount = item.discount ?? 0;
         const discountedAmount = grossAmount * (1 - itemDiscount / 100);
         grossTotal += grossAmount;
         subTotal += discountedAmount;
@@ -278,15 +206,7 @@ class ChallanService {
         };
       });
 
-      let discount = updateData.discount ?? challan.discount;
-      if (
-        updateData.discount === undefined &&
-        challan.discount === 0 &&
-        partyAllDiscount
-      ) {
-        discount = effectivePercent(subTotal, partyAllDiscount);
-      }
-
+      const discount = updateData.discount ?? challan.discount ?? 0;
       const challanDiscountAmount = subTotal * (discount / 100);
       const totalAmount = subTotal - challanDiscountAmount;
 

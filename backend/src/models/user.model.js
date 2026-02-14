@@ -104,6 +104,7 @@ userSchema.statics.findByFirmCredentials = async function (username, password) {
     "gst_firm.username": username,
     is_active: true,
   });
+
   if (user) {
     const isMatch = await bcrypt.compare(password, user.gst_firm.password);
     if (!isMatch) throw ApiError.unauthorized("Invalid firm credentials");
@@ -114,6 +115,7 @@ userSchema.statics.findByFirmCredentials = async function (username, password) {
     "nongst_firm.username": username,
     is_active: true,
   });
+
   if (user) {
     const isMatch = await bcrypt.compare(password, user.nongst_firm.password);
     if (!isMatch) throw ApiError.unauthorized("Invalid firm credentials");
