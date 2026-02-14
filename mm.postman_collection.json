@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "mm-api-collection",
         "name": "Maheshwari Motors API",
-        "description": "Complete API collection for Maheshwari Motors inventory and billing management system.",
+        "description": "Complete API collection for Maheshwari Motors inventory and billing management system.\n\nSeed Credentials:\n- Admin: seed_admin / Admin@1234\n- GST Firm: seed_gst_firm / Test@1234\n- Non-GST Firm: seed_nongst_firm / Test@1234\n- Staff GST: seed_gst_staff / Test@1234\n- Staff Non-GST: seed_nongst_staff / Test@1234",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "auth": {
@@ -92,7 +92,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Maheshwari Motors\",\n  \"email\": \"owner@mm.com\",\n  \"phone\": \"9876543210\",\n  \"admin\": {\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n  },\n  \"gst_firm\": {\n    \"username\": \"gstfirm\",\n    \"password\": \"gst123\",\n    \"name\": \"MM GST Firm\",\n    \"phone\": \"9876543210\",\n    \"email\": \"gst@mm.com\",\n    \"address\": \"123 Main St\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\",\n    \"GSTIN\": \"08AAACM1234H1Z5\"\n  },\n  \"nongst_firm\": {\n    \"username\": \"nongstfirm\",\n    \"password\": \"nongst123\",\n    \"name\": \"MM Non-GST Firm\",\n    \"phone\": \"9876543210\",\n    \"email\": \"nongst@mm.com\",\n    \"address\": \"123 Main St\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  }\n}",
+                            "raw": "{\n  \"name\": \"Ramesh Maheshwari\",\n  \"email\": \"ramesh@maheshwarimotors.com\",\n  \"phone\": \"9876543210\",\n  \"admin\": {\n    \"username\": \"seed_admin\",\n    \"password\": \"Admin@1234\"\n  },\n  \"gst_firm\": {\n    \"username\": \"seed_gst_firm\",\n    \"password\": \"Test@1234\",\n    \"name\": \"Maheshwari Motors GST\",\n    \"phone\": \"9876543210\",\n    \"email\": \"gst@maheshwarimotors.com\",\n    \"address\": \"123 Industrial Area\",\n    \"godown_address\": \"456 Warehouse Lane\",\n    \"city\": \"Indore\",\n    \"state\": \"Madhya Pradesh\",\n    \"GSTIN\": \"23AABCU9603R1ZM\",\n    \"CIN\": \"U29100MP2020PTC012345\",\n    \"reg_number\": \"MP-IND-2020-0001\",\n    \"bank_name\": \"State Bank of India\",\n    \"bank_branch\": \"Indore Main\",\n    \"ifsc_code\": \"SBIN0001234\",\n    \"account_number\": \"12345678901234\"\n  },\n  \"nongst_firm\": {\n    \"username\": \"seed_nongst_firm\",\n    \"password\": \"Test@1234\",\n    \"name\": \"Maheshwari Motors Non-GST\",\n    \"phone\": \"9876543211\",\n    \"email\": \"nongst@maheshwarimotors.com\",\n    \"address\": \"789 Market Road\",\n    \"city\": \"Indore\",\n    \"state\": \"Madhya Pradesh\"\n  }\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -113,42 +113,21 @@
                     }
                 },
                 {
-                    "name": "Admin Login",
-                    "request": {
-                        "auth": {
-                            "type": "noauth"
-                        },
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data.token) {",
+                                    "    pm.collectionVariables.set('token', res.data.token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
                             }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\",\n  \"device_name\": \"Postman\",\n  \"device_type\": \"desktop\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/auth/admin/login",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "auth",
-                                "admin",
-                                "login"
-                            ]
                         }
-                    }
-                },
-                {
-                    "name": "Firm Login (GST)",
+                    ],
                     "request": {
                         "auth": {
                             "type": "noauth"
@@ -162,7 +141,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"username\": \"gstfirm\",\n  \"password\": \"gst123\",\n  \"device_name\": \"Postman\",\n  \"device_type\": \"desktop\"\n}",
+                            "raw": "{\n  \"username\": \"seed_admin\",\n  \"password\": \"Admin@1234\",\n  \"device_name\": \"Postman\",\n  \"device_type\": \"desktop\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -170,13 +149,12 @@
                             }
                         },
                         "url": {
-                            "raw": "{{base_url}}/auth/firm/login",
+                            "raw": "{{base_url}}/auth/login",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "auth",
-                                "firm",
                                 "login"
                             ]
                         }
@@ -228,7 +206,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"current_password\": \"old123\",\n  \"new_password\": \"new456\"\n}",
+                            "raw": "{\n  \"current_password\": \"Admin@1234\",\n  \"new_password\": \"NewAdmin@5678\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -303,6 +281,7 @@
         },
         {
             "name": "Admin - Users",
+            "description": "Requires Admin Token. Login as seed_admin first.",
             "item": [
                 {
                     "name": "List Secondary Users",
@@ -333,7 +312,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Staff One\",\n  \"email\": \"staff@mm.com\",\n  \"phone\": \"9123456789\",\n  \"gst_firm\": {\n    \"username\": \"staff_gst\",\n    \"password\": \"pass123\",\n    \"name\": \"Staff GST\",\n    \"phone\": \"9123456789\",\n    \"email\": \"staffgst@mm.com\",\n    \"address\": \"Staff Address\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  },\n  \"nongst_firm\": {\n    \"username\": \"staff_nongst\",\n    \"password\": \"pass123\",\n    \"name\": \"Staff Non-GST\",\n    \"phone\": \"9123456789\",\n    \"email\": \"staffnongst@mm.com\",\n    \"address\": \"Staff Address\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  }\n}",
+                            "raw": "{\n  \"name\": \"Suresh Staff\",\n  \"email\": \"suresh@maheshwarimotors.com\",\n  \"phone\": \"9988776655\",\n  \"gst_firm\": {\n    \"username\": \"seed_gst_staff\",\n    \"password\": \"Test@1234\",\n    \"name\": \"Staff GST Login\",\n    \"phone\": \"9988776655\",\n    \"email\": \"staffgst@maheshwarimotors.com\",\n    \"address\": \"123 Industrial Area\",\n    \"city\": \"Indore\",\n    \"state\": \"Madhya Pradesh\"\n  },\n  \"nongst_firm\": {\n    \"username\": \"seed_nongst_staff\",\n    \"password\": \"Test@1234\",\n    \"name\": \"Staff Non-GST Login\",\n    \"phone\": \"9988776655\",\n    \"email\": \"staffnongst@maheshwarimotors.com\",\n    \"address\": \"789 Market Road\",\n    \"city\": \"Indore\",\n    \"state\": \"Madhya Pradesh\"\n  }\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -382,7 +361,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Staff Updated\",\n  \"email\": \"staffnew@mm.com\"\n}",
+                            "raw": "{\n  \"name\": \"Suresh Staff Updated\",\n  \"email\": \"suresh.updated@maheshwarimotors.com\",\n  \"phone\": \"9988776600\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -505,251 +484,6 @@
             ]
         },
         {
-            "name": "Items",
-            "item": [
-                {
-                    "name": "List Items",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/items",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "items"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Create Item",
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {
-                                    "key": "item_name",
-                                    "value": "Bearing",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "amount",
-                                    "value": "500",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "purchase_rate",
-                                    "value": "350",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "threshold",
-                                    "value": "10",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "is_gst",
-                                    "value": "1",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "gst_stock",
-                                    "value": "50",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "nongst_stock",
-                                    "value": "20",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "category_ids",
-                                    "value": "{{category_id}}",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "supplier_id",
-                                    "value": "{{supplier_id}}",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "image",
-                                    "type": "file",
-                                    "src": []
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/items",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "items"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Low Stock Items",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/items/low-stock",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "items",
-                                "low-stock"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Item",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/items/{{item_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "items",
-                                "{{item_id}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Item",
-                    "request": {
-                        "method": "PUT",
-                        "header": [],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {
-                                    "key": "item_name",
-                                    "value": "Updated Bearing",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "amount",
-                                    "value": "600",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "purchase_rate",
-                                    "value": "400",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "threshold",
-                                    "value": "15",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "supplier_id",
-                                    "value": "{{supplier_id}}",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "image",
-                                    "type": "file",
-                                    "src": []
-                                }
-                            ]
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/items/{{item_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "items",
-                                "{{item_id}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Delete Item",
-                    "request": {
-                        "method": "DELETE",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/items/{{item_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "items",
-                                "{{item_id}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Stock",
-                    "request": {
-                        "method": "PATCH",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"gst_stock\": 100,\n  \"nongst_stock\": 50\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/items/{{item_id}}/stock",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "items",
-                                "{{item_id}}",
-                                "stock"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Item Discounts",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/items/{{item_id}}/discount",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "items",
-                                "{{item_id}}",
-                                "discount"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
             "name": "Categories",
             "item": [
                 {
@@ -770,6 +504,20 @@
                 },
                 {
                     "name": "Create Category",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('category_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -780,7 +528,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Bearings\",\n  \"description\": \"Ball bearings and roller bearings\"\n}",
+                            "raw": "{\n  \"category_name\": \"Engine Parts\",\n  \"brands\": []\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -827,7 +575,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Updated Bearings\"\n}",
+                            "raw": "{\n  \"category_name\": \"Engine & Transmission Parts\",\n  \"brands\": [\"{{brand_id}}\"]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -866,6 +614,136 @@
             ]
         },
         {
+            "name": "Brands",
+            "item": [
+                {
+                    "name": "List Brands",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/brands",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "brands"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Brand",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('brand_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"brand_name\": \"Bosch\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/brands",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "brands"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Brand",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/brands/{{brand_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "brands",
+                                "{{brand_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Brand",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"brand_name\": \"Bosch India\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/brands/{{brand_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "brands",
+                                "{{brand_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Brand",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/brands/{{brand_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "brands",
+                                "{{brand_id}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "Suppliers",
             "item": [
                 {
@@ -886,6 +764,20 @@
                 },
                 {
                     "name": "Create Supplier",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('supplier_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -896,7 +788,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"ABC Supplier\",\n  \"phone\": \"9876543210\",\n  \"email\": \"abc@supplier.com\",\n  \"address\": \"Industrial Area\",\n  \"city\": \"Delhi\",\n  \"state\": \"Delhi\",\n  \"gstin\": \"07AAACM1234H1Z5\"\n}",
+                            "raw": "{\n  \"name\": \"AutoParts India Pvt Ltd\",\n  \"phone\": \"9111222333\",\n  \"email\": \"sales@autopartsindia.com\",\n  \"address\": \"45 MIDC, Pune\",\n  \"city\": \"Pune\",\n  \"state\": \"Maharashtra\",\n  \"gstin\": \"27AABCA1234B1ZP\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -943,7 +835,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"ABC Updated\",\n  \"phone\": \"9876543211\"\n}",
+                            "raw": "{\n  \"name\": \"AutoParts India Updated\",\n  \"phone\": \"9111222444\",\n  \"email\": \"updated@autopartsindia.com\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1002,6 +894,20 @@
                 },
                 {
                     "name": "Create Party",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('party_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1012,7 +918,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Raj Auto Parts\",\n  \"phone\": \"9876543210\",\n  \"email\": \"raj@auto.com\",\n  \"address\": \"Market Road\",\n  \"city\": \"Jaipur\",\n  \"state\": \"Rajasthan\",\n  \"gstin\": \"08AAACR1234H1Z5\"\n}",
+                            "raw": "{\n  \"name\": \"Sharma Auto Works\",\n  \"phone\": \"9123456789\",\n  \"email\": \"sharma@autoworks.com\",\n  \"address\": \"100 Vijay Nagar\",\n  \"city\": \"Indore\",\n  \"state\": \"Madhya Pradesh\",\n  \"gstin\": \"23AABCS1234D1ZR\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1093,7 +999,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"name\": \"Raj Auto Updated\",\n  \"phone\": \"9876543211\"\n}",
+                            "raw": "{\n  \"name\": \"Sharma Auto Works Updated\",\n  \"phone\": \"9123456700\",\n  \"email\": \"sharma.updated@autoworks.com\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1182,6 +1088,252 @@
             ]
         },
         {
+            "name": "Items",
+            "item": [
+                {
+                    "name": "List Items",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/items",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "items"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Item",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('item_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "item_name",
+                                    "value": "Piston Assembly (Bajaj Pulsar)",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "amount",
+                                    "value": "1200",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "purchase_rate",
+                                    "value": "800",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "threshold",
+                                    "value": "5",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "is_gst",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "gst_stock",
+                                    "value": "25",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "nongst_stock",
+                                    "value": "10",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "brand_id",
+                                    "value": "{{brand_id}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "supplier_id",
+                                    "value": "{{supplier_id}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/items",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "items"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Low Stock Items",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/items/low-stock",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "items",
+                                "low-stock"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Item",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/items/{{item_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "items",
+                                "{{item_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Item",
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "item_name",
+                                    "value": "Piston Assembly V2 (Bajaj Pulsar)",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "amount",
+                                    "value": "1350",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "purchase_rate",
+                                    "value": "900",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "threshold",
+                                    "value": "8",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "brand_id",
+                                    "value": "{{brand_id}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "supplier_id",
+                                    "value": "{{supplier_id}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": []
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/items/{{item_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "items",
+                                "{{item_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete Item",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/items/{{item_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "items",
+                                "{{item_id}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Update Stock",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"gst_stock\": 50,\n  \"nongst_stock\": 20\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/items/{{item_id}}/stock",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "items",
+                                "{{item_id}}",
+                                "stock"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "Discounts",
             "item": [
                 {
@@ -1196,12 +1348,33 @@
                             ],
                             "path": [
                                 "discounts"
+                            ],
+                            "query": [
+                                {
+                                    "key": "category_id",
+                                    "value": "{{category_id}}",
+                                    "disabled": true
+                                }
                             ]
                         }
                     }
                 },
                 {
-                    "name": "Create Item Discount",
+                    "name": "Upsert Discount",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('discount_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1212,7 +1385,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"type\": \"item\",\n  \"item_id\": \"{{item_id}}\",\n  \"percent1\": 10,\n  \"percent2\": 5,\n  \"fixed_amount\": 0\n}",
+                            "raw": "{\n  \"brand_id\": \"{{brand_id}}\",\n  \"discount1\": {\n    \"normal\": 10,\n    \"special\": 5\n  },\n  \"discount2\": {\n    \"normal\": 8,\n    \"special\": 3\n  }\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1231,205 +1404,19 @@
                     }
                 },
                 {
-                    "name": "Create Party Item Discount",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"type\": \"party_item\",\n  \"party_id\": \"{{party_id}}\",\n  \"item_id\": \"{{item_id}}\",\n  \"percent1\": 15,\n  \"percent2\": 0,\n  \"fixed_amount\": 100\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/discounts",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "discounts"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Create Party All Discount",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"type\": \"party_all\",\n  \"party_id\": \"{{party_id}}\",\n  \"percent1\": 5,\n  \"percent2\": 0,\n  \"fixed_amount\": 0\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/discounts",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "discounts"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Create Item Group Discount",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"type\": \"item_group\",\n  \"item_group_name\": \"Bearings Group\",\n  \"item_ids\": [\"{{item_id}}\"],\n  \"percent1\": 10,\n  \"percent2\": 0,\n  \"fixed_amount\": 0\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/discounts",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "discounts"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Create Profit Margin Discount",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"type\": \"profit_margin\",\n  \"item_id\": \"{{item_id}}\",\n  \"profit_percent\": 20\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/discounts",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "discounts"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Item Discounts",
+                    "name": "Get Discount by Brand",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{base_url}}/discounts/item/{{item_id}}",
+                            "raw": "{{base_url}}/discounts/brand/{{brand_id}}",
                             "host": [
                                 "{{base_url}}"
                             ],
                             "path": [
                                 "discounts",
-                                "item",
-                                "{{item_id}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Party Discounts",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/discounts/party/{{party_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "discounts",
-                                "party",
-                                "{{party_id}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Get Discount",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/discounts/{{discount_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "discounts",
-                                "{{discount_id}}"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Update Discount",
-                    "request": {
-                        "method": "PUT",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"percent1\": 12,\n  \"percent2\": 3\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/discounts/{{discount_id}}",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "discounts",
-                                "{{discount_id}}"
+                                "brand",
+                                "{{brand_id}}"
                             ]
                         }
                     }
@@ -1528,7 +1515,7 @@
         },
         {
             "name": "Challans",
-            "description": "Firm Token Required",
+            "description": "Requires Firm Token. Login as seed_gst_firm or seed_nongst_firm first.",
             "item": [
                 {
                     "name": "List Challans",
@@ -1548,6 +1535,20 @@
                 },
                 {
                     "name": "Create Challan",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('challan_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1558,7 +1559,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"party_id\": \"{{party_id}}\",\n  \"date\": \"2025-01-15\",\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 5,\n      \"rate\": 1500\n    }\n  ],\n  \"discount\": 0\n}",
+                            "raw": "{\n  \"party_id\": \"{{party_id}}\",\n  \"date\": \"2026-02-13\",\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 2,\n      \"rate\": 1200\n    }\n  ],\n  \"discount\": 0\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1624,7 +1625,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 10,\n      \"rate\": 1500\n    }\n  ],\n  \"discount\": 2\n}",
+                            "raw": "{\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 5,\n      \"rate\": 1200\n    }\n  ],\n  \"discount\": 100\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1664,7 +1665,7 @@
         },
         {
             "name": "Bills",
-            "description": "Firm Token Required",
+            "description": "Requires Firm Token. Login as seed_gst_firm or seed_nongst_firm first.",
             "item": [
                 {
                     "name": "List Bills",
@@ -1684,6 +1685,20 @@
                 },
                 {
                     "name": "Create Bill",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('bill_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1713,7 +1728,7 @@
                     }
                 },
                 {
-                    "name": "Bills By Status (Due)",
+                    "name": "Bills By Status",
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -1726,24 +1741,6 @@
                                 "bills",
                                 "status",
                                 "due"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Bills By Status (Paid)",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/bills/status/paid",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "bills",
-                                "status",
-                                "paid"
                             ]
                         }
                     }
@@ -1795,7 +1792,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"amount\": 25000\n}",
+                            "raw": "{\n  \"amount\": 3000\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1827,7 +1824,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"return_amount\": 5000\n}",
+                            "raw": "{\n  \"return_amount\": 500\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1868,7 +1865,7 @@
         },
         {
             "name": "Purchases",
-            "description": "Firm Token Required",
+            "description": "Requires Firm Token. Login as seed_gst_firm or seed_nongst_firm first.",
             "item": [
                 {
                     "name": "List Purchases",
@@ -1888,6 +1885,20 @@
                 },
                 {
                     "name": "Create Purchase",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('purchase_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1898,7 +1909,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"supplier_id\": \"{{supplier_id}}\",\n  \"purchase_type\": \"GST\",\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 100,\n      \"rate\": 500\n    }\n  ]\n}",
+                            "raw": "{\n  \"supplier_id\": \"{{supplier_id}}\",\n  \"purchase_type\": \"GST\",\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 30,\n      \"rate\": 800\n    }\n  ]\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1917,7 +1928,7 @@
                     }
                 },
                 {
-                    "name": "Purchases By Type (GST)",
+                    "name": "Purchases By Type",
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -1930,24 +1941,6 @@
                                 "purchases",
                                 "type",
                                 "GST"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Purchases By Type (NON_GST)",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/purchases/type/NON_GST",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "purchases",
-                                "type",
-                                "NON_GST"
                             ]
                         }
                     }
@@ -1981,7 +1974,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"amount\": 50000\n}",
+                            "raw": "{\n  \"amount\": 24000\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2022,7 +2015,7 @@
         },
         {
             "name": "Transactions",
-            "description": "Firm Token Required",
+            "description": "Requires Firm Token. Login as seed_gst_firm or seed_nongst_firm first.",
             "item": [
                 {
                     "name": "List Transactions",
@@ -2042,6 +2035,20 @@
                 },
                 {
                     "name": "Create Sale Transaction",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const res = pm.response.json();",
+                                    "if (res.data && res.data._id) {",
+                                    "    pm.collectionVariables.set('transaction_id', res.data._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [
@@ -2052,7 +2059,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"bill_id\": \"{{bill_id}}\",\n  \"amount\": 25000,\n  \"payment_mode\": \"bank\",\n  \"utr\": \"UTR123456\",\n  \"transaction_ref\": \"REF001\",\n  \"remarks\": \"Partial payment\"\n}",
+                            "raw": "{\n  \"bill_id\": \"{{bill_id}}\",\n  \"amount\": 6400,\n  \"payment_mode\": \"bank\",\n  \"utr\": \"UTR2026021301\",\n  \"transaction_ref\": \"TXN-S-001\",\n  \"remarks\": \"Full payment for bill\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2083,7 +2090,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"purchase_id\": \"{{purchase_id}}\",\n  \"amount\": 50000,\n  \"payment_mode\": \"cash\"\n}",
+                            "raw": "{\n  \"purchase_id\": \"{{purchase_id}}\",\n  \"amount\": 46500,\n  \"payment_mode\": \"bank\",\n  \"utr\": \"UTR2026012501\",\n  \"transaction_ref\": \"TXN-P-001\",\n  \"remarks\": \"Full purchase payment to supplier\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -2120,7 +2127,7 @@
                     }
                 },
                 {
-                    "name": "Transactions By Type (Sale)",
+                    "name": "Transactions By Type",
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -2138,25 +2145,7 @@
                     }
                 },
                 {
-                    "name": "Transactions By Type (Purchase)",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/transactions/type/purchase",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "transactions",
-                                "type",
-                                "purchase"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Transactions By Mode (Cash)",
+                    "name": "Transactions By Mode",
                     "request": {
                         "method": "GET",
                         "header": [],
@@ -2169,24 +2158,6 @@
                                 "transactions",
                                 "mode",
                                 "cash"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "Transactions By Mode (Bank)",
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{base_url}}/transactions/mode/bank",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "transactions",
-                                "mode",
-                                "bank"
                             ]
                         }
                     }

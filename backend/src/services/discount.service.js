@@ -1,45 +1,80 @@
 import Discount from "../models/discount.model.js";
+import Category from "../models/category.model.js";
+import Brand from "../models/brand.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class DiscountService {
   async getDiscounts(userId, query) {
+    if (query.category_id) {
+      return this._getDiscountsByCategory(query.category_id, userId);
+    }
+
     const filter = { user_id: userId };
-    if (query.type) filter.type = query.type;
-    if (query.item_id) filter.item_id = query.item_id;
-    if (query.party_id) filter.party_id = query.party_id;
+    if (query.brand_id) filter.brand_id = query.brand_id;
 
     return Pagination.paginate(Discount, filter, {
       ...query,
-      populate: [
-        { path: "item_id", select: "item_name" },
-        { path: "party_id", select: "name" },
-      ],
+      populate: [{ path: "brand_id", select: "name" }],
       sort: { createdAt: -1 },
     });
   }
 
-  async getDiscountById(discountId, userId) {
-    const discount = await Discount.findOne({
-      _id: discountId,
+  async _getDiscountsByCategory(categoryId, userId) {
+    const category = await Category.findOne({
+      _id: categoryId,
       user_id: userId,
-    })
-      .populate("item_id", "item_name")
-      .populate("party_id", "name");
-    if (!discount) throw ApiError.notFound("Discount not found");
+    }).populate("brand_ids", "name");
+    if (!category) throw ApiError.notFound("Category not found");
+
+    const brandIds = category.brand_ids.map((b) => b._id);
+    const existingDiscounts = await Discount.find({
+      brand_id: { $in: brandIds },
+      user_id: userId,
+    }).populate("brand_id", "name");
+
+    const discountMap = new Map();
+    for (const d of existingDiscounts) {
+      discountMap.set(d.brand_id._id.toString(), d);
+    }
+
+    const data = category.brand_ids.map((brand) => {
+      const existing = discountMap.get(brand._id.toString());
+      if (existing) return existing.toObject();
+      return {
+        _id: null,
+        brand_id: { _id: brand._id, name: brand.name },
+        discount1: { normal: 0, special: 0 },
+        discount2: { normal: 0, special: 0 },
+      };
+    });
+
+    return { data, total: data.length, page: 1, limit: data.length };
+  }
+
+  async getDiscountByBrand(brandId, userId) {
+    const discount = await Discount.findOne({
+      brand_id: brandId,
+      user_id: userId,
+    }).populate("brand_id", "name");
     return discount;
   }
 
-  async createDiscount(data, userId) {
-    return Discount.create({ ...data, user_id: userId });
-  }
+  async upsertDiscount(data, userId) {
+    const brand = await Brand.findOne({ _id: data.brand_id, user_id: userId });
+    if (!brand) throw ApiError.notFound("Brand not found");
 
-  async updateDiscount(discountId, userId, updateData) {
-    const discount = await Discount.findOne({
-      _id: discountId,
-      user_id: userId,
-    });
-    if (!discount) throw ApiError.notFound("Discount not found");
-    return Discount.findByIdAndUpdate(discountId, updateData, { new: true });
+    const discount = await Discount.findOneAndUpdate(
+      { brand_id: data.brand_id, user_id: userId },
+      {
+        brand_id: data.brand_id,
+        discount1: data.discount1 || { normal: 0, special: 0 },
+        discount2: data.discount2 || { normal: 0, special: 0 },
+        user_id: userId,
+      },
+      { new: true, upsert: true },
+    ).populate("brand_id", "name");
+
+    return discount;
   }
 
   async deleteDiscount(discountId, userId) {
@@ -49,46 +84,6 @@ class DiscountService {
     });
     if (!discount) throw ApiError.notFound("Discount not found");
     await Discount.findByIdAndDelete(discountId);
-  }
-
-  async resolveDiscounts(itemIds, partyId, userId) {
-    const discounts = await Discount.find({
-      user_id: userId,
-      $or: [
-        { type: "item", item_id: { $in: itemIds } },
-        { type: "party_item", party_id: partyId, item_id: { $in: itemIds } },
-        { type: "party_all", party_id: partyId },
-      ],
-    }).lean();
-
-    const discountMap = {};
-    for (const itemId of itemIds) {
-      const strId = itemId.toString();
-      const partyItem = discounts.find(
-        (d) =>
-          d.type === "party_item" &&
-          d.item_id?.toString() === strId &&
-          d.party_id?.toString() === partyId?.toString(),
-      );
-      const itemDiscount = discounts.find(
-        (d) => d.type === "item" && d.item_id?.toString() === strId,
-      );
-      const partyAll = discounts.find(
-        (d) =>
-          d.type === "party_all" &&
-          d.party_id?.toString() === partyId?.toString(),
-      );
-      discountMap[strId] = partyItem || itemDiscount || partyAll || null;
-    }
-    return discountMap;
-  }
-
-  async getItemDiscount(itemId, userId) {
-    return Discount.find({ item_id: itemId, user_id: userId });
-  }
-
-  async getPartyDiscount(partyId, userId) {
-    return Discount.find({ party_id: partyId, user_id: userId });
   }
 }
 

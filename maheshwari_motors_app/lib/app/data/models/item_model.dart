@@ -10,8 +10,8 @@ class ItemModel {
   final int? physicalStock;
   final int? nongstAvailable;
   final int isGst;
-  final List<String> categoryIds;
-  final List<String> categoryNames;
+  final String? brandId;
+  final String? brandName;
   final String? supplierId;
 
   ItemModel({
@@ -26,12 +26,13 @@ class ItemModel {
     this.physicalStock,
     this.nongstAvailable,
     this.isGst = 1,
-    this.categoryIds = const [],
-    this.categoryNames = const [],
+    this.brandId,
+    this.brandName,
     this.supplierId,
   });
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
+    final brand = json['brand_id'];
     return ItemModel(
       id: json['_id'] ?? '',
       itemName: json['item_name'] ?? '',
@@ -44,17 +45,8 @@ class ItemModel {
       physicalStock: json['physical_stock'],
       nongstAvailable: json['nongst_available'],
       isGst: json['is_gst'] ?? 1,
-      categoryIds:
-          (json['category_ids'] as List?)
-              ?.map((e) => e is Map ? e['_id'].toString() : e.toString())
-              .toList() ??
-          [],
-      categoryNames:
-          (json['category_ids'] as List?)
-              ?.where((e) => e is Map && e['name'] != null)
-              .map((e) => e['name'].toString())
-              .toList() ??
-          [],
+      brandId: brand is Map ? brand['_id'] : brand?.toString(),
+      brandName: brand is Map ? brand['name'] : null,
       supplierId: json['supplier_id'] is Map
           ? json['supplier_id']['_id']
           : json['supplier_id'],
@@ -79,7 +71,7 @@ class ItemModel {
     if (image != null) map['image'] = image;
     if (physicalStock != null) map['physical_stock'] = physicalStock;
     if (nongstAvailable != null) map['nongst_available'] = nongstAvailable;
-    if (categoryIds.isNotEmpty) map['category_ids'] = categoryIds;
+    if (brandId != null) map['brand_id'] = brandId;
     if (supplierId != null) map['supplier_id'] = supplierId;
     return map;
   }

@@ -46,7 +46,6 @@ class AuthService {
   }
 
   async login(username, password, deviceInfo = {}) {
-    // Try admin credentials first
     try {
       const user = await User.findByAdminCredentials(username, password);
       const token = user.generateAdminToken();
@@ -72,56 +71,54 @@ class AuthService {
       };
     } catch (_) {
       // Not admin credentials, try firm
+      const { user, firmType } = await User.findByFirmCredentials(
+        username,
+        password,
+      );
+      const token = user.generateFirmToken(firmType);
+
+      await Session.create({
+        user_id: user._id,
+        role: "firm",
+        firm_type: firmType,
+        token,
+        device_name: deviceInfo.device_name || "Unknown Device",
+        device_type: deviceInfo.device_type || "unknown",
+        ip_address: deviceInfo.ip_address || "",
+      });
+
+      const firmObj = firmType === "GST" ? user.gst_firm : user.nongst_firm;
+      const firmData = {
+        firm_type: firmType,
+        name: firmObj.name,
+        username: firmObj.username,
+        email: firmObj.email,
+        phone: firmObj.phone,
+        address: firmObj.address,
+        godown_address: firmObj.godown_address || null,
+        city: firmObj.city,
+        state: firmObj.state,
+        GSTIN: firmObj.GSTIN || null,
+        CIN: firmObj.CIN || null,
+        reg_number: firmObj.reg_number || null,
+        bank_name: firmObj.bank_name || null,
+        bank_branch: firmObj.bank_branch || null,
+        ifsc_code: firmObj.ifsc_code || null,
+        account_number: firmObj.account_number || null,
+      };
+
+      return {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        type: user.type,
+        is_admin: false,
+        role: "firm",
+        firm_data: firmData,
+        token,
+      };
     }
-
-    // Try firm credentials
-    const { user, firmType } = await User.findByFirmCredentials(
-      username,
-      password,
-    );
-    const token = user.generateFirmToken(firmType);
-
-    await Session.create({
-      user_id: user._id,
-      role: "firm",
-      firm_type: firmType,
-      token,
-      device_name: deviceInfo.device_name || "Unknown Device",
-      device_type: deviceInfo.device_type || "unknown",
-      ip_address: deviceInfo.ip_address || "",
-    });
-
-    const firmObj = firmType === "GST" ? user.gst_firm : user.nongst_firm;
-    const firmData = {
-      firm_type: firmType,
-      name: firmObj.name,
-      username: firmObj.username,
-      email: firmObj.email,
-      phone: firmObj.phone,
-      address: firmObj.address,
-      godown_address: firmObj.godown_address || null,
-      city: firmObj.city,
-      state: firmObj.state,
-      GSTIN: firmObj.GSTIN || null,
-      CIN: firmObj.CIN || null,
-      reg_number: firmObj.reg_number || null,
-      bank_name: firmObj.bank_name || null,
-      bank_branch: firmObj.bank_branch || null,
-      ifsc_code: firmObj.ifsc_code || null,
-      account_number: firmObj.account_number || null,
-    };
-
-    return {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      type: user.type,
-      is_admin: false,
-      role: "firm",
-      firm_data: firmData,
-      token,
-    };
   }
 
   async getProfile(user, role, firmType) {

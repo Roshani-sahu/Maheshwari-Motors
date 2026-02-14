@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../controllers/challan/challan_line_item.dart';
-import 'auto_discount_chip.dart';
 import 'loading_dropdown.dart';
 import 'mini_field.dart';
 
@@ -15,6 +14,7 @@ class ChallanLineItemCard extends StatelessWidget {
   final ValueChanged onItemSelected;
   final VoidCallback? onRemove;
   final VoidCallback onChanged;
+  final ValueChanged<int>? onGstToggled;
 
   const ChallanLineItemCard({
     super.key,
@@ -25,6 +25,7 @@ class ChallanLineItemCard extends StatelessWidget {
     required this.onItemSelected,
     this.onRemove,
     required this.onChanged,
+    this.onGstToggled,
   });
 
   @override
@@ -107,10 +108,17 @@ class ChallanLineItemCard extends StatelessWidget {
               },
             ),
 
-          if (line.autoDiscountLabel != null && !line.hasManualDiscount)
+          if (line.autoDiscount > 0 && !line.hasManualDiscount)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: AutoDiscountChip(label: line.autoDiscountLabel!),
+              child: Text(
+                'Brand discount: ${line.autoDiscount.toStringAsFixed(1)}%',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.accent,
+                ),
+              ),
             ),
 
           const SizedBox(height: 10),
@@ -151,7 +159,11 @@ class ChallanLineItemCard extends StatelessWidget {
                       ],
                       selected: {line.isGst.value},
                       onSelectionChanged: line.canToggleGst
-                          ? (v) => line.isGst.value = v.first
+                          ? (v) {
+                              final val = v.first;
+                              line.isGst.value = val;
+                              onGstToggled?.call(val);
+                            }
                           : null,
                       showSelectedIcon: false,
                       style: ButtonStyle(
@@ -204,8 +216,8 @@ class ChallanLineItemCard extends StatelessWidget {
                 child: ChallanMiniField(
                   label: 'Disc %',
                   controller: line.discountC,
-                  hint: line.autoDiscount != null
-                      ? line.autoDiscount!.toStringAsFixed(1)
+                  hint: line.autoDiscount > 0
+                      ? line.autoDiscount.toStringAsFixed(1)
                       : '0',
                   onChanged: (_) => onChanged(),
                 ),

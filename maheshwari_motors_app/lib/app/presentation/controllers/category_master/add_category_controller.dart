@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../data/models/brand_model.dart';
 import '../../../data/models/category_model.dart';
 import '../../../data/services/api_service.dart';
 import 'category_master_controller.dart';
@@ -7,10 +8,12 @@ import 'category_master_controller.dart';
 class AddCategoryController extends GetxController {
   final formKey = GlobalKey<FormState>();
   final nameCtrl = TextEditingController();
-  final descriptionCtrl = TextEditingController();
 
   final ApiService _api = Get.find<ApiService>();
   final RxBool isLoading = false.obs;
+  final RxBool isLoadingBrands = true.obs;
+  final RxList<BrandModel> allBrands = <BrandModel>[].obs;
+  final RxSet<String> selectedBrandIds = <String>{}.obs;
 
   CategoryModel? editCategory;
   bool get isEdit => editCategory != null;
@@ -21,7 +24,24 @@ class AddCategoryController extends GetxController {
     editCategory = Get.arguments as CategoryModel?;
     if (editCategory != null) {
       nameCtrl.text = editCategory!.name;
-      descriptionCtrl.text = editCategory!.description ?? '';
+      selectedBrandIds.addAll(editCategory!.brandIds);
+    }
+    _loadBrands();
+  }
+
+  Future<void> _loadBrands() async {
+    isLoadingBrands.value = true;
+    try {
+      allBrands.value = await _api.getBrands();
+    } catch (_) {}
+    isLoadingBrands.value = false;
+  }
+
+  void toggleBrand(String brandId) {
+    if (selectedBrandIds.contains(brandId)) {
+      selectedBrandIds.remove(brandId);
+    } else {
+      selectedBrandIds.add(brandId);
     }
   }
 
@@ -30,10 +50,10 @@ class AddCategoryController extends GetxController {
     isLoading.value = true;
 
     try {
-      final data = <String, dynamic>{'name': nameCtrl.text.trim()};
-      if (descriptionCtrl.text.trim().isNotEmpty) {
-        data['description'] = descriptionCtrl.text.trim();
-      }
+      final data = <String, dynamic>{
+        'category_name': nameCtrl.text.trim(),
+        'brands': selectedBrandIds.toList(),
+      };
 
       if (isEdit) {
         await _api.updateCategory(editCategory!.id, data);

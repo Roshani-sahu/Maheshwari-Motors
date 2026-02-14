@@ -11,10 +11,11 @@ import {
   Bill,
   Transaction,
   Report,
-  Discount,
+  Brand,
   Party,
   Supplier,
   Category,
+  Discount,
   Purchase,
 } from "../src/models/index.js";
 
@@ -35,10 +36,11 @@ async function seed() {
       Bill,
       Transaction,
       Report,
-      Discount,
+      Brand,
       Party,
       Supplier,
       Category,
+      Discount,
       Purchase,
     ];
     for (const M of models) {
@@ -185,6 +187,64 @@ async function seed() {
     ]);
     console.log("✅ Categories created:", categories.length);
 
+    // ─── 4b. BRANDS ───
+    const brands = await Brand.insertMany([
+      { name: "Bajaj Genuine", user_id: userId },
+      { name: "Honda OEM", user_id: userId },
+      { name: "TVS Star City", user_id: userId },
+      { name: "Hero Splendor", user_id: userId },
+      { name: "Royal Enfield Parts", user_id: userId },
+    ]);
+    // Link brands to categories
+    const brandCategoryMap = [
+      [0, 0], // Bajaj Genuine → Engine Parts
+      [1, 2], // Honda OEM → Electrical
+      [2, 3], // TVS Star City → Suspension
+      [3, 4], // Hero Splendor → Brakes
+      [4, 1], // Royal Enfield Parts → Body Parts
+    ];
+    for (const [brandIdx, catIdx] of brandCategoryMap) {
+      await Category.findByIdAndUpdate(categories[catIdx]._id, {
+        $addToSet: { brand_ids: brands[brandIdx]._id },
+      });
+    }
+    console.log("✅ Brands created:", brands.length);
+
+    // ─── 4c. DISCOUNTS (separate from brands) ───
+    const discounts = await Discount.insertMany([
+      {
+        brand_id: brands[0]._id,
+        discount1: { normal: 10, special: 2 },
+        discount2: { normal: 8, special: 1 },
+        user_id: userId,
+      },
+      {
+        brand_id: brands[1]._id,
+        discount1: { normal: 12, special: 3 },
+        discount2: { normal: 10, special: 2 },
+        user_id: userId,
+      },
+      {
+        brand_id: brands[2]._id,
+        discount1: { normal: 8, special: 0 },
+        discount2: { normal: 6, special: 0 },
+        user_id: userId,
+      },
+      {
+        brand_id: brands[3]._id,
+        discount1: { normal: 15, special: 5 },
+        discount2: { normal: 12, special: 3 },
+        user_id: userId,
+      },
+      {
+        brand_id: brands[4]._id,
+        discount1: { normal: 5, special: 0 },
+        discount2: { normal: 3, special: 0 },
+        user_id: userId,
+      },
+    ]);
+    console.log("✅ Discounts created:", discounts.length);
+
     // ─── 5. SUPPLIERS ───
     const suppliers = await Supplier.insertMany([
       {
@@ -277,7 +337,7 @@ async function seed() {
         nongst_sold: 2,
         is_gst: 1,
         user_id: userId,
-        category_ids: [categories[0]._id],
+        brand_id: brands[0]._id,
         supplier_id: suppliers[0]._id,
       },
       {
@@ -290,7 +350,7 @@ async function seed() {
         nongst_sold: 1,
         is_gst: 1,
         user_id: userId,
-        category_ids: [categories[2]._id],
+        brand_id: brands[1]._id,
         supplier_id: suppliers[1]._id,
       },
       {
@@ -303,7 +363,7 @@ async function seed() {
         nongst_sold: 0,
         is_gst: 1,
         user_id: userId,
-        category_ids: [categories[3]._id],
+        brand_id: brands[2]._id,
         supplier_id: suppliers[0]._id,
       },
       {
@@ -316,7 +376,7 @@ async function seed() {
         nongst_sold: 5,
         is_gst: 1,
         user_id: userId,
-        category_ids: [categories[4]._id],
+        brand_id: brands[3]._id,
         supplier_id: suppliers[2]._id,
       },
       {
@@ -329,7 +389,7 @@ async function seed() {
         nongst_sold: 0,
         is_gst: 1,
         user_id: userId,
-        category_ids: [categories[1]._id],
+        brand_id: brands[4]._id,
         supplier_id: suppliers[1]._id,
       },
       {
@@ -342,7 +402,7 @@ async function seed() {
         nongst_sold: 1,
         is_gst: 1,
         user_id: userId,
-        category_ids: [categories[2]._id, categories[0]._id],
+        brand_id: brands[1]._id,
         supplier_id: suppliers[0]._id,
       },
       {
@@ -355,7 +415,7 @@ async function seed() {
         nongst_sold: 3,
         is_gst: 1,
         user_id: userId,
-        category_ids: [categories[0]._id],
+        brand_id: brands[0]._id,
         supplier_id: suppliers[2]._id,
       },
       {
@@ -368,10 +428,18 @@ async function seed() {
         nongst_sold: 1,
         is_gst: 1,
         user_id: userId,
-        category_ids: [categories[2]._id],
+        brand_id: brands[1]._id,
         supplier_id: suppliers[1]._id,
       },
     ]);
+    // Link items to brands
+    for (const item of items) {
+      if (item.brand_id) {
+        await Brand.findByIdAndUpdate(item.brand_id, {
+          $addToSet: { item_ids: item._id },
+        });
+      }
+    }
     console.log("✅ Items created:", items.length);
 
     // ─── 8. STOCK ALERTS ───
@@ -718,71 +786,6 @@ async function seed() {
     ]);
     console.log("✅ Transactions created:", transactions.length);
 
-    // ─── 15. DISCOUNTS (all 5 types) ───
-    const discounts = await Discount.insertMany([
-      // Type 1: item discount
-      {
-        type: "item",
-        percent1: 10,
-        percent2: 5,
-        fixed_amount: 0,
-        item_id: items[0]._id,
-        user_id: userId,
-        is_active: true,
-      },
-      // Type 2: party_item discount
-      {
-        type: "party_item",
-        percent1: 15,
-        percent2: 0,
-        fixed_amount: 50,
-        item_id: items[1]._id,
-        party_id: parties[0]._id,
-        user_id: userId,
-        is_active: true,
-      },
-      // Type 3: party_all discount
-      {
-        type: "party_all",
-        percent1: 8,
-        percent2: 3,
-        fixed_amount: 0,
-        party_id: parties[1]._id,
-        user_id: userId,
-        is_active: true,
-      },
-      // Type 4: item_group discount
-      {
-        type: "item_group",
-        percent1: 12,
-        percent2: 0,
-        fixed_amount: 100,
-        item_group_name: "Engine Essentials",
-        item_ids: [items[0]._id, items[5]._id, items[6]._id],
-        user_id: userId,
-        is_active: true,
-      },
-      // Type 5: profit_margin discount
-      {
-        type: "profit_margin",
-        profit_percent: 20,
-        item_id: items[7]._id,
-        user_id: userId,
-        is_active: true,
-      },
-      // Inactive discount
-      {
-        type: "item",
-        percent1: 5,
-        percent2: 0,
-        fixed_amount: 0,
-        item_id: items[3]._id,
-        user_id: userId,
-        is_active: false,
-      },
-    ]);
-    console.log("✅ Discounts created:", discounts.length);
-
     // ─── 16. REPORTS ───
     const reports = await Report.insertMany([
       {
@@ -814,6 +817,7 @@ async function seed() {
     console.log("Users:        2 (1 main + 1 secondary)");
     console.log("Sessions:     1");
     console.log("Categories:   5");
+    console.log("Brands:       5");
     console.log("Suppliers:    3");
     console.log("Parties:      4");
     console.log("Items:        8");
@@ -822,7 +826,6 @@ async function seed() {
     console.log("Bills:        4 (3 GST + 1 Non-GST)");
     console.log("Purchases:    3 (2 GST + 1 Non-GST)");
     console.log("Transactions: 7");
-    console.log("Discounts:    6 (all 5 types + 1 inactive)");
     console.log("Reports:      3");
     console.log("===================================");
     console.log("\n🔑 LOGIN CREDENTIALS:");

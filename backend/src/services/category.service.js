@@ -1,5 +1,4 @@
 import Category from "../models/category.model.js";
-import Item from "../models/item.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class CategoryService {
@@ -12,6 +11,7 @@ class CategoryService {
 
     return Pagination.paginate(Category, filter, {
       ...query,
+      populate: [{ path: "brand_ids", select: "name item_ids" }],
       sort: { createdAt: -1 },
     });
   }
@@ -20,10 +20,8 @@ class CategoryService {
     const category = await Category.findOne({
       _id: categoryId,
       user_id: userId,
-    });
-    if (!category) {
-      throw ApiError.notFound("Category not found");
-    }
+    }).populate("brand_ids", "name item_ids");
+    if (!category) throw ApiError.notFound("Category not found");
     return category;
   }
 
@@ -42,7 +40,8 @@ class CategoryService {
     }
 
     const category = await Category.create({
-      ...categoryData,
+      name: categoryData.name,
+      brand_ids: categoryData.brand_ids || [],
       user_id: userId,
     });
     return category;
@@ -53,9 +52,7 @@ class CategoryService {
       _id: categoryId,
       user_id: userId,
     });
-    if (!category) {
-      throw ApiError.notFound("Category not found");
-    }
+    if (!category) throw ApiError.notFound("Category not found");
 
     const updatedCategory = await Category.findByIdAndUpdate(
       categoryId,
@@ -70,14 +67,7 @@ class CategoryService {
       _id: categoryId,
       user_id: userId,
     });
-    if (!category) {
-      throw ApiError.notFound("Category not found");
-    }
-
-    await Item.updateMany(
-      { category_ids: categoryId, user_id: userId },
-      { $pull: { category_ids: categoryId } },
-    );
+    if (!category) throw ApiError.notFound("Category not found");
 
     await Category.findByIdAndDelete(categoryId);
   }

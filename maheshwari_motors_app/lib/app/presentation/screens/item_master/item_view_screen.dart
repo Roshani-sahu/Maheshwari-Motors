@@ -93,9 +93,9 @@ class ItemViewScreen extends StatelessWidget {
                                       ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 4),
-                                if (item.categoryNames.isNotEmpty)
+                                if (item.brandName != null)
                                   Text(
-                                    item.categoryNames.join(', '),
+                                    item.brandName!,
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: AppColors.textSecondary,

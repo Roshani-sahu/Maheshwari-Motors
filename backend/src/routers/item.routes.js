@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { itemController, discountController } from "../controllers/index.js";
+import { itemController } from "../controllers/index.js";
 import { authMiddleware } from "../middlewares/index.js";
 
 const router = Router();
@@ -28,6 +28,5 @@ router.get("/:itemId", itemController.getItemById);
 router.put("/:itemId", upload.single("image"), itemController.updateItem);
 router.delete("/:itemId", itemController.deleteItem);
 router.patch("/:itemId/stock", itemController.updateStock);
-router.get("/:itemId/discount", discountController.getItemDiscount);
 
 export default router;

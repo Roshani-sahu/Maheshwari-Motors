@@ -11,15 +11,19 @@ class ChallanLineItem {
 
   final RxInt isGst = 1.obs;
 
-  double? autoDiscount;
-  String? autoDiscountLabel;
+  double brandGstDiscount = 0;
+  double brandNonGstDiscount = 0;
 
   double get quantity => double.tryParse(quantityC.text) ?? 0;
   double get rate => double.tryParse(rateC.text) ?? 0;
+
+  double get autoDiscount =>
+      isGst.value == 1 ? brandGstDiscount : brandNonGstDiscount;
+
   double get discount {
     final manual = double.tryParse(discountC.text);
     if (manual != null) return manual;
-    return autoDiscount ?? 0;
+    return autoDiscount;
   }
 
   bool get hasManualDiscount =>

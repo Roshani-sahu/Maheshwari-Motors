@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../data/models/challan_model.dart';
+import '../../../data/models/discount_model.dart';
 import '../../../data/models/item_model.dart';
 import '../../../data/models/party_model.dart';
 import '../../../data/services/api_service.dart';
@@ -18,12 +19,11 @@ class CreateChallanController extends GetxController {
 
   final RxList<PartyModel> parties = <PartyModel>[].obs;
   final RxList<ItemModel> items = <ItemModel>[].obs;
+  final RxList<DiscountModel> discounts = <DiscountModel>[].obs;
   final Rx<PartyModel?> selectedParty = Rx<PartyModel?>(null);
   final RxList<ChallanLineItem> lineItems = <ChallanLineItem>[].obs;
 
   final challanDiscountC = TextEditingController();
-  double? autoPartyDiscount;
-  String? autoPartyDiscountLabel;
 
   final RxDouble grossTotal = 0.0.obs;
   final RxDouble subTotal = 0.0.obs;
@@ -43,9 +43,14 @@ class CreateChallanController extends GetxController {
 
   Future<void> _loadData() async {
     try {
-      final results = await Future.wait([_api.getParties(), _api.getItems()]);
+      final results = await Future.wait([
+        _api.getParties(),
+        _api.getItems(),
+        _api.getDiscounts(),
+      ]);
       parties.value = results[0] as List<PartyModel>;
       items.value = results[1] as List<ItemModel>;
+      discounts.value = results[2] as List<DiscountModel>;
 
       if (isEdit) _populateEditData();
     } catch (e) {
@@ -70,6 +75,7 @@ class CreateChallanController extends GetxController {
       if (ci.discount > 0) {
         line.discountC.text = ci.discount.toStringAsFixed(2);
       }
+      _applyBrandDiscount(line);
       lineItems.add(line);
     }
     _recalculate();
@@ -87,74 +93,44 @@ class CreateChallanController extends GetxController {
     }
   }
 
-  Future<void> onItemSelected(int index, ItemModel? item) async {
+  void _applyBrandDiscount(ChallanLineItem line) {
+    if (line.item == null || line.item!.brandId == null) {
+      line.brandGstDiscount = 0;
+      line.brandNonGstDiscount = 0;
+      return;
+    }
+    final discount =
+        discounts.firstWhereOrNull((d) => d.brandId == line.item!.brandId);
+    if (discount != null) {
+      line.brandGstDiscount = discount.discount1.total;
+      line.brandNonGstDiscount = discount.discount2.total;
+    } else {
+      line.brandGstDiscount = 0;
+      line.brandNonGstDiscount = 0;
+    }
+  }
+
+  void onItemSelected(int index, ItemModel? item) {
     final line = lineItems[index];
     line.item = item;
     if (item != null) {
       line.rateC.text = item.amount.toStringAsFixed(2);
       line.isGst.value = item.isGst;
-      await _resolveItemDiscount(index, item.id);
-    }
-    _recalculate();
-  }
-
-  Future<void> onPartySelected(PartyModel? party) async {
-    selectedParty.value = party;
-    autoPartyDiscount = null;
-    autoPartyDiscountLabel = null;
-    if (party != null) {
-      final rules = await _api.getPartyDiscount(party.id);
-      if (rules.isNotEmpty) {
-        final rule = rules.first;
-        final p1 = (rule['percent1'] as num?)?.toDouble() ?? 0;
-        final p2 = (rule['percent2'] as num?)?.toDouble() ?? 0;
-        final fixed = (rule['fixed_amount'] as num?)?.toDouble() ?? 0;
-        final parts = <String>[];
-        if (p1 > 0) parts.add('${p1.toStringAsFixed(1)}%');
-        if (p2 > 0) parts.add('+${p2.toStringAsFixed(1)}%');
-        if (fixed > 0) parts.add('-₹${fixed.toStringAsFixed(0)}');
-        if (parts.isNotEmpty) {
-          autoPartyDiscountLabel = '${parts.join(' ')} (auto)';
-          autoPartyDiscount = p1;
-        }
-      }
-    }
-    _recalculate();
-  }
-
-  Future<void> _resolveItemDiscount(int index, String itemId) async {
-    final rules = await _api.getItemDiscount(itemId);
-    final line = lineItems[index];
-    if (rules.isNotEmpty) {
-      final rule = rules.first;
-      final p1 = (rule['percent1'] as num?)?.toDouble() ?? 0;
-      final p2 = (rule['percent2'] as num?)?.toDouble() ?? 0;
-      final fixed = (rule['fixed_amount'] as num?)?.toDouble() ?? 0;
-
-      if (p1 > 0 || p2 > 0 || fixed > 0) {
-        final parts = <String>[];
-        if (p1 > 0) parts.add('${p1.toStringAsFixed(1)}%');
-        if (p2 > 0) parts.add('+${p2.toStringAsFixed(1)}%');
-        if (fixed > 0) parts.add('-₹${fixed.toStringAsFixed(0)}');
-        line.autoDiscountLabel = '${parts.join(' ')} (auto)';
-
-        final rate = line.rate;
-        if (rate > 0) {
-          final afterPercents = rate * (1 - p1 / 100) * (1 - p2 / 100);
-          final afterFixed = afterPercents - fixed;
-          line.autoDiscount = ((rate - afterFixed) / rate) * 100;
-        } else {
-          line.autoDiscount = p1;
-        }
-      } else {
-        line.autoDiscount = null;
-        line.autoDiscountLabel = null;
-      }
-    } else {
-      line.autoDiscount = null;
-      line.autoDiscountLabel = null;
+      _applyBrandDiscount(line);
     }
     lineItems.refresh();
+    _recalculate();
+  }
+
+  void onPartySelected(PartyModel? party) {
+    selectedParty.value = party;
+    _recalculate();
+  }
+
+  void onGstToggled(int index, int value) {
+    lineItems[index].isGst.value = value;
+    lineItems.refresh();
+    _recalculate();
   }
 
   void _recalculate() {
@@ -167,10 +143,7 @@ class CreateChallanController extends GetxController {
     grossTotal.value = gross;
     subTotal.value = sub;
 
-    double cd = double.tryParse(challanDiscountC.text) ?? 0;
-    if (cd == 0 && autoPartyDiscount != null) {
-      cd = autoPartyDiscount!;
-    }
+    final cd = double.tryParse(challanDiscountC.text) ?? 0;
     challanDiscountAmount.value = sub * (cd / 100);
     finalAmount.value = sub - challanDiscountAmount.value;
   }
@@ -194,16 +167,13 @@ class CreateChallanController extends GetxController {
         'party_id': selectedParty.value!.id,
         'date': DateTime.now().toIso8601String(),
         'items': validLines.map((l) {
-          final map = <String, dynamic>{
+          return <String, dynamic>{
             'item_id': l.item!.id,
             'quantity': l.quantity,
             'rate': l.rate,
             'is_gst': l.isGst.value,
+            'discount': l.discount,
           };
-          if (l.hasManualDiscount) {
-            map['discount'] = l.discount;
-          }
-          return map;
         }).toList(),
       };
 

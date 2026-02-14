@@ -2,7 +2,6 @@ import Party from "../models/party.model.js";
 import Challan from "../models/challan.model.js";
 import Bill from "../models/bill.model.js";
 import Transaction from "../models/transaction.model.js";
-import Discount from "../models/discount.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 
 class PartyService {
@@ -73,7 +72,6 @@ class PartyService {
       Transaction.deleteMany({ party_id: partyId, user_id: userId }),
       Bill.deleteMany({ party_id: partyId, user_id: userId }),
       Challan.deleteMany({ party_id: partyId, user_id: userId }),
-      Discount.deleteMany({ party_id: partyId, user_id: userId }),
     ]);
 
     await Party.findByIdAndDelete(partyId);

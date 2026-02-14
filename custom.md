@@ -252,62 +252,63 @@ update the backend and write me a md file in easiest and simplest words for my f
 # ------------------------------------------------
 
 stock management:
+
 - items purchased from nongst supplier dont add on in stock, it is only sold
 
 # ------------------------------------------------
 
 User {
-    type: "secondary" (enum ["main", "secondary"])
-    common firm data,
-    stock = 0,
-    gst_firm {
-        credentials: {username, password}
-        data: {challans, bills, items, transactions}
-    },
-    non_gst_firm {
-        credentials: {username, password}
-        data: {challans, bills, items, transactions}
-    },
-    admin: null
+type: "secondary" (enum ["main", "secondary"])
+common firm data,
+stock = 0,
+gst_firm {
+credentials: {username, password}
+data: {challans, bills, items, transactions}
+},
+non_gst_firm {
+credentials: {username, password}
+data: {challans, bills, items, transactions}
+},
+admin: null
 }
 
 User {
-    type: "main" (enum ["main", "secondary"])
-    common firm data,
-    stock = 0,
-    gst_firm {
-        credentials: {username, password}
-        data: {challans, bills, items, transactions}
-    },
-    non_gst_firm {
-        credentials: {username, password}
-        data: {challans, bills, items, transactions}
-    },
-    admin: {
-        credentials: {username, password}
-    }
+type: "main" (enum ["main", "secondary"])
+common firm data,
+stock = 0,
+gst_firm {
+credentials: {username, password}
+data: {challans, bills, items, transactions}
+},
+non_gst_firm {
+credentials: {username, password}
+data: {challans, bills, items, transactions}
+},
+admin: {
+credentials: {username, password}
+}
 }
 
 login as gst firm sends: {
-    is_admin: true/false
-    common firm data,
-    firm_data: {gst firm data}
-    token:
-    // and rest other necessary things
+is_admin: true/false
+common firm data,
+firm_data: {gst firm data}
+token:
+// and rest other necessary things
 }
 
 login as non-gst firm sends: {
-    is_admin: true/false
-    common firm data,
-    firm_data: {non-gst firm data}
-    token
-    // and rest other necessary things
+is_admin: true/false
+common firm data,
+firm_data: {non-gst firm data}
+token
+// and rest other necessary things
 }
 
 login as admin sends {
-    is_admin: true/false,
-    token:
-    // and rest other necessary things which I dont think is any more
+is_admin: true/false,
+token:
+// and rest other necessary things which I dont think is any more
 }
 
 # ------------------------------------------------
@@ -320,70 +321,176 @@ login > if logged in as admin > user management screen only with nothing else to
 
 DATA SEPERATION:
 common:
+
 - items (view & manage)
 - category (view & manage)
 - supplier (view & manage)
 - create challans // (challans can be created for gst or nongst (there will be a dropdown in every item in challans [0, 1] 0 for nongst and 1 for gst) that 0 or 1 will decide which items will go in the gst challan and which ones will go in nongst challan. so technically user created one challan and mixed gst and nongst items in it and as he presses save challan button in frontend > frontend will send all items and other details to backend > backend seperates items with 0 and 1 > creates 2 challans and saves as: [if 0 then save in nongst_firm data else if 1 then save in gst firm data])
 
 gst firm data:
+
 - gst transactions
 - gst challans
 - gst bills
 - gst reports
 
 nongst firm data:
+
 - nongst transactions
 - nongst challans
 - nongst bills
 - nongst reports
 
-
 so to optimize my idea is to create 3 collections and add reference in each other:
+
 - USER
 - FIRM
 - ADMIN
 
 relation:
+
+```json
 USER {
-    data: { // common data
-        items, categories, suppliers, etc
-    }
-    gst_firm: ObjectId of FIRM
-    nongst_firm: ObjectId of FIRM
-    admin: ObjectId of ADMIN
+   data: { // common data
+      items, categories, suppliers, etc
+   }
+   gst_firm: ObjectId of FIRM
+   nongst_firm: ObjectId of FIRM
+   admin: ObjectId of ADMIN
 }
 
 FIRM {
-    type: "1" or "0" (1 for gst & 0 for nongst)
-    credentials: {username, password}
-    firm_info: {name, phone, address, godown address, city, state, reg no, cin, bank name, ifsc code, email, account no}
-    data: {challans, bills, items, transactions}
-    user: ObjectId of USER
+   type: "1" or "0" (1 for gst & 0 for nongst)
+   credentials: {username, password}
+   firm_info: {name, phone, address, godown address, city, state, reg no, cin, bank name, ifsc code, email, account no}
+   data: {challans, bills, items, transactions}
+   user: ObjectId of USER
 }
 
 ADMIN {
-    credentials: {username, password}
-    user: ObjectId of USER
+   credentials: {username, password}
+   user: ObjectId of USER
 }
+```
 
 # ------------------------------------------------
 
+```json
 User {
-    _id,
-    type: "secondary" (enum ["main", "secondary"]),
-    data: { // common data
-        items, categories, suppliers, etc
-    },
-    stock = 0,
-    gst_firm {
-        credentials: {username, password}
-        firm_info: {name, phone, address, godown address, city, state, reg no, cin, bank name, ifsc code, email, account no, gstin}
-        data: {challans, bills, items, transactions}
-    },
-    non_gst_firm {
-        credentials: {username, password}
-        firm_info: {name, phone, address, godown address, city, state, reg no, cin, bank name, ifsc code, email, account no}
-        data: {challans, bills, items, transactions}
-    },
-    admin: {username, password} or null
+   \_id,
+   type: "secondary" (enum ["main", "secondary"]),
+   data: { // common data
+      items, categories, suppliers, etc
+   },
+   stock = 0,
+   gst_firm {
+      credentials: {username, password}
+      firm_info: {name, phone, address, godown address, city, state, reg no, cin, bank name, ifsc code, email, account no, gstin}
+      data: {challans, bills, items, transactions}
+   },
+   non_gst_firm {
+      credentials: {username, password}
+      firm_info: {name, phone, address, godown address, city, state, reg no, cin, bank name, ifsc code, email, account no}
+      data: {challans, bills, items, transactions}
+   },
+   admin: {username, password} or null
 }
+```
+
+# ------------------------------------------------
+
+Category1
+
+- Brand1 {discount1: {normal: 0%, special: 0%}, discount2: {normal: 0%, special: 0%}}
+- - Brand1's item1
+- - Brand1's item2
+- - Brand1's item3
+
+- Brand2 {discount1: {normal: 0%, special: 0%}, discount2: {normal: 0%, special: 0%}}
+- - Brand2's item1
+- - Brand2's item2
+- - Brand2's item3
+- - Brand2's item4
+
+Category2
+
+- Brand1 {discount1: {normal: 0%, special: 0%}, discount2: {normal: 0%, special: 0%}}
+- - Brand1's item1
+- - Brand1's item2
+- - Brand1's item3
+
+- Brand2 {discount1: {normal: 0%, special: 0%}, discount2: {normal: 0%, special: 0%}}
+- - Brand2's item1
+- - Brand2's item2
+- - Brand2's item3
+- - Brand2's item4
+
+in collection:
+
+```json
+   CATEGORY {
+   ObjectId[] of BRAND
+   ...
+}
+
+BRAND {
+   ObjectId[] of ITEM,
+   discounts: {discount1: {normal: 0%, special: 0%}, discount2: {normal: 0%, special: 0%}}
+   ...
+}
+
+ITEM {...}
+```
+
+# ------------------------------------------------
+
+```json
+{
+   type: 0 or 1, (1 = gst, 0 = nongst),
+   items: ObjectId[] of ITEM,
+}
+```
+
+item will have fields, modified by frontend at the time of challan creation:
+item id, type, pcs, discount amount
+as per this image: D:\Projects\flutter_projects\ROYAL\maheshwari-motors\Challan.jpg
+
+# ------------------------------------------------
+
+frontend sends:  
+
+API - /add category / update
+
+```json
+{
+  "category_name": "",
+  "brands": [] // list of BRAND object IDs
+}
+```
+
+API - /add brand / update
+
+```json
+{
+  "brand_name": "",
+  "items": [] // list of ITEM object IDs
+}
+```
+
+API - /add discount / update
+
+```json
+{
+  "brand_id": "", // BRAND object ID
+  "discount1": { "normal": 2, "special": 0 },
+  "discount2": { "normal": 3, "special": 0 }
+}
+```
+
+```json
+API - /delete category
+{ "category_id": ""} // CATEGORY object ID
+
+API - /delete brand
+{ "brand_id": ""} // BRAND object ID
+```

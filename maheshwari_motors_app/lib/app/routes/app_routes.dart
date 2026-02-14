@@ -5,6 +5,8 @@ class AppRoutes {
   static const String login = '/login';
   static const String home = '/home';
   static const String adminHome = '/admin-home';
+  static const String addUser = '/add-user';
+  static const String editUser = '/edit-user';
 
   static const String itemMaster = '/item-master';
   static const String itemView = '/item-view';
@@ -13,9 +15,7 @@ class AppRoutes {
 
   static const String stockAlertMaster = '/stock-alert-master';
 
-  static const String userMaster = '/user-master';
-  static const String addUser = '/add-user';
-  static const String editUser = '/edit-user';
+
 
   static const String partyMaster = '/party-master';
   static const String addParty = '/add-party';
@@ -25,6 +25,13 @@ class AppRoutes {
   static const String viewCategory = '/view-category';
   static const String addCategory = '/add-category';
   static const String editCategory = '/edit-category';
+
+  static const String brandMaster = '/brand-master';
+  static const String viewBrand = '/view-brand';
+  static const String addBrand = '/add-brand';
+  static const String editBrand = '/edit-brand';
+
+  static const String discountMaster = '/discount-master';
 
   static const String supplierMaster = '/supplier-master';
   static const String viewAllSupplier = '/view-all-supplier';
@@ -48,9 +55,7 @@ class AppRoutes {
   static const String purchaseMaster = '/purchase-master';
   static const String addPurchase = '/add-purchase';
 
-  static const String discountMaster = '/discount-master';
-  static const String addDiscount = '/add-discount';
-  static const String editDiscount = '/edit-discount';
+
 
   static const String report = '/report';
 

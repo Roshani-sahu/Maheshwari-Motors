@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../data/models/item_model.dart';
-import '../../../data/models/category_model.dart';
+import '../../../data/models/brand_model.dart';
 import '../../../data/models/supplier_model.dart';
 import '../../../data/services/api_service.dart';
 import '../../shared/widgets/common_widgets.dart';
@@ -22,9 +22,9 @@ class AddItemController extends GetxController {
   final RxBool isLoading = false.obs;
   final Rx<XFile?> imageFile = Rx<XFile?>(null);
 
-  final RxList<CategoryModel> categoryList = <CategoryModel>[].obs;
+  final RxList<BrandModel> brandList = <BrandModel>[].obs;
   final RxList<SupplierModel> supplierList = <SupplierModel>[].obs;
-  final RxList<String> selectedCategoryIds = <String>[].obs;
+  final Rx<String?> selectedBrandId = Rx<String?>(null);
   final Rx<String?> selectedSupplierId = Rx<String?>(null);
   final RxInt isGst = 1.obs;
 
@@ -51,7 +51,7 @@ class AddItemController extends GetxController {
       if (editItem!.nongstStock > 0) {
         nongstStockController.text = editItem!.nongstStock.toString();
       }
-      selectedCategoryIds.assignAll(editItem!.categoryIds);
+      selectedBrandId.value = editItem!.brandId;
       selectedSupplierId.value = editItem!.supplierId;
       isGst.value = editItem!.isGst;
     }
@@ -59,8 +59,8 @@ class AddItemController extends GetxController {
 
   Future<void> fetchDropdowns() async {
     try {
-      final cats = await _api.getCategories();
-      categoryList.assignAll(cats);
+      final cats = await _api.getBrands();
+      brandList.assignAll(cats);
       final sups = await _api.getSuppliers();
       supplierList.assignAll(sups);
     } catch (e) {
@@ -100,11 +100,9 @@ class AddItemController extends GetxController {
         'is_gst': isGst.value,
       };
 
-      final validCatIds = selectedCategoryIds
-          .where((id) => id.isNotEmpty)
-          .toList();
-      if (validCatIds.isNotEmpty) {
-        data['category_ids'] = validCatIds;
+      final brandId = selectedBrandId.value;
+      if (brandId != null && brandId.isNotEmpty) {
+        data['brand_id'] = brandId;
       }
 
       final suppId = selectedSupplierId.value;

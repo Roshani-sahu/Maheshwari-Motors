@@ -10,9 +10,11 @@ import '../models/bill_model.dart';
 import '../models/transaction_model.dart';
 import '../models/stock_alert_model.dart';
 import '../models/category_model.dart';
+import '../models/brand_model.dart';
+import '../models/discount_model.dart';
 import '../models/supplier_model.dart';
 import '../models/purchase_model.dart';
-import '../models/discount_model.dart';
+
 
 class ApiService {
   final ApiClient _client = Get.find<ApiClient>();
@@ -368,55 +370,52 @@ class ApiService {
     await _client.delete('/suppliers/$id');
   }
 
-  Future<List<DiscountModel>> getDiscounts() async {
-    final res = await _client.get(
-      '/discounts',
-      queryParameters: {'limit': 1000},
-    );
+  Future<List<BrandModel>> getBrands({String? categoryId}) async {
+    final qp = <String, dynamic>{'limit': 1000};
+    if (categoryId != null) qp['category_id'] = categoryId;
+    final res = await _client.get('/brands', queryParameters: qp);
+    final data = res.data['data']['data'] as List;
+    return data.map((e) => BrandModel.fromJson(e)).toList();
+  }
+
+  Future<BrandModel> getBrandById(String id) async {
+    final res = await _client.get('/brands/$id');
+    return BrandModel.fromJson(res.data['data']);
+  }
+
+  Future<BrandModel> createBrand(Map<String, dynamic> data) async {
+    final res = await _client.post('/brands', data: data);
+    return BrandModel.fromJson(res.data['data']);
+  }
+
+  Future<BrandModel> updateBrand(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await _client.put('/brands/$id', data: data);
+    return BrandModel.fromJson(res.data['data']);
+  }
+
+  Future<void> deleteBrand(String id) async {
+    await _client.delete('/brands/$id');
+  }
+
+  // ── Discounts ────────────────────────────────────────
+
+  Future<List<DiscountModel>> getDiscounts({String? categoryId}) async {
+    final qp = <String, dynamic>{'limit': 1000};
+    if (categoryId != null) qp['category_id'] = categoryId;
+    final res = await _client.get('/discounts', queryParameters: qp);
     final data = res.data['data']['data'] as List;
     return data.map((e) => DiscountModel.fromJson(e)).toList();
   }
 
-  Future<DiscountModel> createDiscount(Map<String, dynamic> data) async {
+  Future<DiscountModel> upsertDiscount(Map<String, dynamic> data) async {
     final res = await _client.post('/discounts', data: data);
-    return DiscountModel.fromJson(res.data['data']);
-  }
-
-  Future<DiscountModel> updateDiscount(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    final res = await _client.put('/discounts/$id', data: data);
     return DiscountModel.fromJson(res.data['data']);
   }
 
   Future<void> deleteDiscount(String id) async {
     await _client.delete('/discounts/$id');
-  }
-
-  Future<List<Map<String, dynamic>>> getItemDiscount(String itemId) async {
-    try {
-      final res = await _client.get('/discounts/item/$itemId');
-      final data = res.data['data'];
-      if (data is List) {
-        return data.cast<Map<String, dynamic>>();
-      }
-      return [];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getPartyDiscount(String partyId) async {
-    try {
-      final res = await _client.get('/discounts/party/$partyId');
-      final data = res.data['data'];
-      if (data is List) {
-        return data.cast<Map<String, dynamic>>();
-      }
-      return [];
-    } catch (_) {
-      return [];
-    }
   }
 }

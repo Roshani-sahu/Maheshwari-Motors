@@ -7,11 +7,8 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get("/", discountController.getDiscounts);
-router.post("/", discountController.createDiscount);
-router.get("/item/:itemId", discountController.getItemDiscount);
-router.get("/party/:partyId", discountController.getPartyDiscount);
-router.get("/:discountId", discountController.getDiscountById);
-router.put("/:discountId", discountController.updateDiscount);
+router.post("/", discountController.upsertDiscount);
+router.get("/brand/:brandId", discountController.getDiscountByBrand);
 router.delete("/:discountId", discountController.deleteDiscount);
 
 export default router;

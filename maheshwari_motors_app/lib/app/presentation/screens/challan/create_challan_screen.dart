@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../controllers/challan/create_challan_controller.dart';
 import '../../shared/widgets/common_widgets.dart';
-import 'widgets/auto_discount_chip.dart';
 import 'widgets/challan_line_item_card.dart';
 import 'widgets/loading_dropdown.dart';
 import 'widgets/section_title.dart';
@@ -59,19 +58,6 @@ class CreateChallanScreen extends StatelessWidget {
                       },
                     );
                   }),
-                  Obx(() {
-                    if (c.autoPartyDiscountLabel != null &&
-                        c.selectedParty.value != null) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: AutoDiscountChip(
-                          label: c.autoPartyDiscountLabel!,
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }),
-
                   const SizedBox(height: 20),
 
                   Row(
@@ -99,6 +85,7 @@ class CreateChallanScreen extends StatelessWidget {
                               ? () => c.removeLineItem(i)
                               : null,
                           onChanged: c.onFieldChanged,
+                          onGstToggled: (v) => c.onGstToggled(i, v),
                         );
                       }),
                     );
@@ -116,11 +103,9 @@ class CreateChallanScreen extends StatelessWidget {
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
-                          decoration: InputDecoration(
-                            hintText: c.autoPartyDiscountLabel != null
-                                ? 'Auto: ${c.autoPartyDiscountLabel}'
-                                : 'Enter discount %',
-                            prefixIcon: const Icon(Icons.percent, size: 20),
+                          decoration: const InputDecoration(
+                            hintText: 'Enter discount %',
+                            prefixIcon: Icon(Icons.percent, size: 20),
                           ),
                           onChanged: (_) => c.onFieldChanged(),
                         ),

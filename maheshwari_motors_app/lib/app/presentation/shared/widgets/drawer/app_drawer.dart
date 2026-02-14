@@ -61,9 +61,7 @@ class AppDrawer extends StatelessWidget {
                   const SizedBox(height: 14),
                   Obx(
                     () => Text(
-                      auth.firmData?.name ??
-                          auth.user.value?.name ??
-                          'Maheshwari Motors',
+                      auth.firmData?.name ?? auth.user.value?.name ?? 'N/A',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: AppColors.white,
@@ -73,16 +71,14 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Obx(
-                    () => Text(
-                      auth.isAdminLogin
-                          ? 'Admin'
-                          : auth.firmData?.firmType ?? '',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                    ),
-                  ),
+                  // Obx(
+                  //   () => Text(
+                  //     auth.isAdminLogin ? 'N/A' : auth.firmData?.firmType ?? '',
+                  //     style: Theme.of(
+                  //       context,
+                  //     ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                  //   ),
+                  // ),
                 ],
               ),
             ),
@@ -103,13 +99,6 @@ class AppDrawer extends StatelessWidget {
                     const DrawerSectionDivider(),
 
                     const DrawerSectionHeader(title: 'Masters'),
-                    if (auth.isMainUser)
-                      DrawerItem(
-                        icon: Icons.people_rounded,
-                        label: 'User Master',
-                        isActive: currentRoute == AppRoutes.userMaster,
-                        onTap: () => _navigate(AppRoutes.userMaster),
-                      ),
                     if (isFirm) ...[
                       DrawerItem(
                         icon: Icons.groups_rounded,
@@ -146,6 +135,18 @@ class AppDrawer extends StatelessWidget {
                         label: 'Category Master',
                         isActive: currentRoute == AppRoutes.categoryMaster,
                         onTap: () => _navigate(AppRoutes.categoryMaster),
+                      ),
+                      DrawerItem(
+                        icon: Icons.branding_watermark_rounded,
+                        label: 'Brand Master',
+                        isActive: currentRoute == AppRoutes.brandMaster,
+                        onTap: () => _navigate(AppRoutes.brandMaster),
+                      ),
+                      DrawerItem(
+                        icon: Icons.local_offer_rounded,
+                        label: 'Discount Master',
+                        isActive: currentRoute == AppRoutes.discountMaster,
+                        onTap: () => _navigate(AppRoutes.discountMaster),
                       ),
                       DrawerItem(
                         icon: Icons.local_shipping_rounded,
@@ -187,12 +188,7 @@ class AppDrawer extends StatelessWidget {
                         isActive: currentRoute == AppRoutes.transactionHistory,
                         onTap: () => _navigate(AppRoutes.transactionHistory),
                       ),
-                      DrawerItem(
-                        icon: Icons.percent_rounded,
-                        label: 'Discounts',
-                        isActive: currentRoute == AppRoutes.discountMaster,
-                        onTap: () => _navigate(AppRoutes.discountMaster),
-                      ),
+
 
                       const DrawerSectionDivider(),
 

@@ -96,65 +96,37 @@ class AddItemScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              Text(
-                'Categories',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+              Obx(
+                () => DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Brand',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  initialValue:
+                      controller.brandList.any(
+                        (b) => b.id == controller.selectedBrandId.value,
+                      )
+                      ? controller.selectedBrandId.value
+                      : null,
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    ...controller.brandList.map((brand) {
+                      return DropdownMenuItem(
+                        value: brand.id,
+                        child: Text(brand.name),
+                      );
+                    }),
+                  ],
+                  onChanged: (val) => controller.selectedBrandId.value = val,
                 ),
               ),
-              const SizedBox(height: 8),
-              Obx(() {
-                final selectedCats = controller.categoryList
-                    .where((c) => controller.selectedCategoryIds.contains(c.id))
-                    .toList();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ...selectedCats.map(
-                          (cat) => Chip(
-                            label: Text(cat.name),
-                            deleteIcon: const Icon(Icons.close, size: 16),
-                            onDeleted: () =>
-                                controller.selectedCategoryIds.remove(cat.id),
-                            backgroundColor: AppColors.accent.withValues(
-                              alpha: 0.12,
-                            ),
-                            side: BorderSide(
-                              color: AppColors.accent.withValues(alpha: 0.3),
-                            ),
-                            labelStyle: const TextStyle(
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        ActionChip(
-                          avatar: const Icon(Icons.add, size: 18),
-                          label: const Text('Add Category'),
-                          onPressed: () =>
-                              _showCategoryPicker(context, controller),
-                          backgroundColor: AppColors.surface,
-                          side: BorderSide(color: AppColors.border),
-                        ),
-                      ],
-                    ),
-                    if (selectedCats.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          'Tap "Add Category" to select categories',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppColors.textSecondary),
-                        ),
-                      ),
-                  ],
-                );
-              }),
               const SizedBox(height: 18),
 
               Obx(
@@ -319,144 +291,5 @@ class AddItemScreen extends StatelessWidget {
     );
   }
 
-  void _showCategoryPicker(BuildContext context, AddItemController controller) {
-    final searchQuery = ''.obs;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        height: MediaQuery.of(context).size.height * 0.65,
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Text(
-                    'Select Categories',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Done'),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search categories...',
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onChanged: (v) => searchQuery.value = v,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: Obx(() {
-                final query = searchQuery.value.toLowerCase();
-                final filtered = controller.categoryList
-                    .where((c) => c.name.toLowerCase().contains(query))
-                    .toList();
-
-                if (filtered.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No categories found',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: filtered.length,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  itemBuilder: (_, i) {
-                    final cat = filtered[i];
-                    return Obx(() {
-                      final isSelected = controller.selectedCategoryIds
-                          .contains(cat.id);
-                      return ListTile(
-                        leading: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.accent
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: isSelected
-                                  ? AppColors.accent
-                                  : AppColors.border,
-                              width: 2,
-                            ),
-                          ),
-                          child: isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: AppColors.white,
-                                )
-                              : null,
-                        ),
-                        title: Text(
-                          cat.name,
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                            color: isSelected
-                                ? AppColors.accent
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                        dense: true,
-                        onTap: () {
-                          if (isSelected) {
-                            controller.selectedCategoryIds.remove(cat.id);
-                          } else {
-                            controller.selectedCategoryIds.add(cat.id);
-                          }
-                        },
-                      );
-                    });
-                  },
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -3,18 +3,19 @@ import 'package:get/get.dart';
 import '../routes/app_routes.dart';
 import '../presentation/controllers/item_master/add_item_controller.dart';
 import '../presentation/controllers/party/add_party_controller.dart';
-import '../presentation/controllers/user_master/add_user_controller.dart';
+
 import '../presentation/controllers/auth/login_controller.dart';
 import '../presentation/screens/splash/splash_screen.dart';
 import '../presentation/screens/auth/login/login_screen.dart';
 import '../presentation/screens/home/home_screen.dart';
 import '../presentation/screens/admin_home/admin_home_screen.dart';
+import '../presentation/controllers/user_master/add_user_controller.dart';
+import '../presentation/screens/user_master/add_user_screen.dart';
 import '../presentation/screens/item_master/item_master_screen.dart';
 import '../presentation/screens/item_master/item_view_screen.dart';
 import '../presentation/screens/item_master/add_item_screen.dart';
 import '../presentation/screens/stock_alert/stock_alert_screen.dart';
-import '../presentation/screens/user_master/user_master_screen.dart';
-import '../presentation/screens/user_master/add_user_screen.dart';
+
 import '../presentation/screens/challan/challan_list_screen.dart';
 import '../presentation/screens/challan/create_challan_screen.dart';
 import '../presentation/screens/bill/bill_list_screen.dart';
@@ -38,13 +39,17 @@ import '../presentation/controllers/challan/create_challan_controller.dart';
 import '../presentation/controllers/bill/generate_bill_controller.dart';
 import '../presentation/controllers/purchase/purchase_controller.dart';
 import '../presentation/controllers/purchase/add_purchase_controller.dart';
-import '../presentation/controllers/discount/discount_controller.dart';
-import '../presentation/controllers/discount/add_discount_controller.dart';
+
 import '../presentation/controllers/account_master/account_master_controller.dart';
 import '../presentation/screens/purchase/purchase_master_screen.dart';
 import '../presentation/screens/purchase/add_purchase_screen.dart';
-import '../presentation/screens/discount/discount_master_screen.dart';
-import '../presentation/screens/discount/add_discount_screen.dart';
+import '../presentation/controllers/brand_master/brand_master_controller.dart';
+import '../presentation/controllers/brand_master/add_brand_controller.dart';
+import '../presentation/screens/brand_master/brand_master_screen.dart';
+import '../presentation/screens/brand_master/view_brand_screen.dart';
+import '../presentation/screens/brand_master/add_brand_screen.dart';
+import '../presentation/controllers/discount_master/discount_master_controller.dart';
+import '../presentation/screens/discount_master/discount_master_screen.dart';
 import '../presentation/screens/account_master/account_master_screen.dart';
 import '../presentation/screens/reports/report_screen.dart';
 import '../presentation/screens/help/help_support_screen.dart';
@@ -61,6 +66,16 @@ class AppPages {
     ),
     GetPage(name: AppRoutes.home, page: () => const HomeScreen()),
     GetPage(name: AppRoutes.adminHome, page: () => const AdminHomeScreen()),
+    GetPage(
+      name: AppRoutes.addUser,
+      page: () => const AddUserScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => AddUserController())),
+    ),
+    GetPage(
+      name: AppRoutes.editUser,
+      page: () => const AddUserScreen(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => AddUserController())),
+    ),
     GetPage(name: AppRoutes.itemMaster, page: () => const ItemMasterScreen()),
     GetPage(name: AppRoutes.itemView, page: () => const ItemViewScreen()),
     GetPage(
@@ -77,17 +92,7 @@ class AppPages {
       name: AppRoutes.stockAlertMaster,
       page: () => const StockAlertScreen(),
     ),
-    GetPage(name: AppRoutes.userMaster, page: () => const UserMasterScreen()),
-    GetPage(
-      name: AppRoutes.addUser,
-      page: () => const AddUserScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => AddUserController())),
-    ),
-    GetPage(
-      name: AppRoutes.editUser,
-      page: () => const AddUserScreen(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => AddUserController())),
-    ),
+
     GetPage(name: AppRoutes.challanList, page: () => const ChallanListScreen()),
     GetPage(
       name: AppRoutes.createChallan,
@@ -199,24 +204,35 @@ class AppPages {
       ),
     ),
     GetPage(
+      name: AppRoutes.brandMaster,
+      page: () => const BrandMasterScreen(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => BrandMasterController()),
+      ),
+    ),
+    GetPage(
+      name: AppRoutes.viewBrand,
+      page: () => const ViewBrandScreen(),
+    ),
+    GetPage(
+      name: AppRoutes.addBrand,
+      page: () => const AddBrandScreen(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => AddBrandController()),
+      ),
+    ),
+    GetPage(
+      name: AppRoutes.editBrand,
+      page: () => const AddBrandScreen(),
+      binding: BindingsBuilder(
+        () => Get.lazyPut(() => AddBrandController()),
+      ),
+    ),
+    GetPage(
       name: AppRoutes.discountMaster,
       page: () => const DiscountMasterScreen(),
       binding: BindingsBuilder(
         () => Get.lazyPut(() => DiscountMasterController()),
-      ),
-    ),
-    GetPage(
-      name: AppRoutes.addDiscount,
-      page: () => const AddDiscountScreen(),
-      binding: BindingsBuilder(
-        () => Get.lazyPut(() => AddDiscountController()),
-      ),
-    ),
-    GetPage(
-      name: AppRoutes.editDiscount,
-      page: () => const AddDiscountScreen(),
-      binding: BindingsBuilder(
-        () => Get.lazyPut(() => AddDiscountController()),
       ),
     ),
     GetPage(
