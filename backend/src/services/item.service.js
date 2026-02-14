@@ -1,5 +1,5 @@
 import Item from "../models/item.model.js";
-import Discount from "../models/discount.model.js";
+import Brand from "../models/brand.model.js";
 import StockAlert from "../models/stockAlert.model.js";
 import { ApiError, Pagination } from "../utils/index.js";
 import s3Service from "./s3.service.js";
@@ -43,6 +43,13 @@ class ItemService {
       image: imageUrl,
       user_id: userId,
     });
+
+    if (itemData.brand_id) {
+      await Brand.findByIdAndUpdate(itemData.brand_id, {
+        $addToSet: { item_ids: item._id },
+      });
+    }
+
     return item;
   }
 
@@ -81,8 +88,11 @@ class ItemService {
     }
 
     await Promise.all([
-      Discount.deleteMany({ item_id: itemId, user_id: userId }),
       StockAlert.deleteMany({ item_id: itemId, user_id: userId }),
+      Brand.updateMany(
+        { item_ids: itemId, user_id: userId },
+        { $pull: { item_ids: itemId } },
+      ),
     ]);
 
     await Item.findByIdAndDelete(itemId);

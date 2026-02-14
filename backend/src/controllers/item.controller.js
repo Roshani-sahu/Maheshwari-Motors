@@ -18,12 +18,7 @@ const createItemSchema = {
     min: 0,
     label: "Non-GST stock",
   },
-  category_ids: {
-    required: false,
-    type: "array",
-    arrayType: "objectId",
-    label: "Category IDs",
-  },
+  brand_id: { required: false, type: "objectId", label: "Brand ID" },
   supplier_id: { required: false, type: "objectId", label: "Supplier ID" },
   is_gst: {
     required: false,

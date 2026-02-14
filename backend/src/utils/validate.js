@@ -89,18 +89,6 @@ function validateField(fieldName, value, rule) {
         break;
 
       case "array":
-        if (typeof value === "string") {
-            try {
-                const parsed = JSON.parse(value);
-                if (Array.isArray(parsed)) {
-                     value = parsed;
-                } else {
-                     value = [parsed];
-                }
-            } catch (e) {
-                value = [value];
-            }
-        }
         if (!Array.isArray(value)) {
           errors.push(`${label} must be an array`);
           return errors;
@@ -159,12 +147,8 @@ function validateField(fieldName, value, rule) {
     }
   }
 
-  if (rule.enum) {
-    const stringValue = String(value);
-    const allowedValues = rule.enum.map(e => String(e));
-    if (!allowedValues.includes(stringValue)) {
-        errors.push(`${label} must be one of: ${rule.enum.join(", ")}`);
-    }
+  if (rule.enum && !rule.enum.includes(value)) {
+    errors.push(`${label} must be one of: ${rule.enum.join(", ")}`);
   }
 
   if (rule.type === "array" && Array.isArray(value) && rule.items) {
@@ -233,19 +217,6 @@ function extractFields(data, schema) {
 
     if (rule.type === "boolean" && typeof value === "string") {
       value = value === "true";
-    }
-
-    if (rule.type === "array" && typeof value === "string") {
-        try {
-            const parsed = JSON.parse(value);
-            if (Array.isArray(parsed)) {
-                 value = parsed;
-            } else {
-                 value = [parsed];
-            }
-        } catch(e) {
-            value = [value];
-        }
     }
 
     if (typeof value === "string") {
