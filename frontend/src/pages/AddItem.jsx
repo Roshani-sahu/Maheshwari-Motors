@@ -3,40 +3,53 @@ import { useNavigate } from 'react-router-dom';
 import { FaSave } from 'react-icons/fa';
 import { Button, Input } from '../components/ui';
 import useStore from '../store';
-import { itemAPI, brandAPI } from '../services/api';
+import { itemAPI, categoryAPI, brandAPI, supplierAPI } from '../services/api';
 
 const AddItem = () => {
   const navigate = useNavigate();
   const { showToast } = useStore();
+  const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   const [formData, setFormData] = useState({
-    itemName: '',
-    amount: '',
+    name: '',
+    stock: '',
+    category: '',
+    brand: '',
+    gst_percent: '',
+    sale_rate: '',
+    purchase_rate: '',
+    mrp_rate: '',
+    discount: '',
+    image: null,
     threshold: '',
-    stockCount: '',
-    itemMedia: null,
-    brandId: '',
-    type: 1
+    is_gst: 1
   });
 
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    const fetchBrands = async () => {
+    const fetchData = async () => {
         try {
-            const response = await brandAPI.getAll();
-            const val = response.data?.data;
-            const list = Array.isArray(val) ? val : (val?.data || []);
-            setBrands(list.map(b => ({ _id: b._id, name: b.name })));
-            if (list.length > 0 && !formData.brandId) {
-                setFormData(prev => ({ ...prev, brandId: list[0]._id }));
-            }
+            const [catRes, brandRes, supplierRes] = await Promise.all([
+                categoryAPI.getAll(),
+                brandAPI.getAll(),
+                supplierAPI.getAll()
+            ]);
+            
+            const cats = Array.isArray(catRes.data?.data) ? catRes.data.data : (Array.isArray(catRes.data) ? catRes.data : []);
+            const brds = Array.isArray(brandRes.data?.data) ? brandRes.data.data : (Array.isArray(brandRes.data) ? brandRes.data : []);
+            const sups = Array.isArray(supplierRes.data?.data) ? supplierRes.data.data : (Array.isArray(supplierRes.data) ? supplierRes.data : []);
+            
+            setCategories(cats);
+            setBrands(brds);
+            setSuppliers(sups);
         } catch (error) {
-            console.error("Failed to fetch brands", error);
+            console.error("Failed to fetch data", error);
         }
     };
-    fetchBrands();
+    fetchData();
   }, []);
 
   const handleChange = (name, value) => {
@@ -48,17 +61,16 @@ const AddItem = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setFormData(prev => ({ ...prev, itemMedia: file }));
+    setFormData(prev => ({ ...prev, image: file }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
 
-    if (!formData.itemName.trim()) newErrors.itemName = 'Item name is required';
-    if (!formData.amount || parseFloat(formData.amount) <= 0) newErrors.amount = 'Valid amount is required';
-    if (!formData.threshold || parseInt(formData.threshold) <= 0) newErrors.threshold = 'Valid threshold is required';
-    if (!formData.stockCount || parseInt(formData.stockCount) < 0) newErrors.stockCount = 'Valid stock count is required';
+    if (!formData.name.trim()) newErrors.name = 'Item name is required';
+    if (!formData.sale_rate || parseFloat(formData.sale_rate) <= 0) newErrors.sale_rate = 'Valid sale rate is required';
+    if (!formData.stock || parseInt(formData.stock) < 0) newErrors.stock = 'Valid stock is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -66,31 +78,27 @@ const AddItem = () => {
     }
 
     try {
-        // Step 1: Create Item via JSON
-        const jsonPayload = {
-            item_name: formData.itemName,
-            amount: parseFloat(formData.amount),
-            threshold: parseInt(formData.threshold),
-            is_gst: formData.type, // Sends number 1 or 0
-            brand_id: formData.brandId ? formData.brandId : undefined,
+        const payload = {
+            item_name: formData.name,
+            sale_rate: parseFloat(formData.sale_rate),
+            purchase_rate: parseFloat(formData.purchase_rate) || 0,
+            mrp_rate: parseFloat(formData.mrp_rate) || 0,
+            gst_percent: parseFloat(formData.gst_percent) || 0,
+            discount: parseFloat(formData.discount) || 0,
+            stock: parseInt(formData.stock),
+            threshold: parseInt(formData.threshold) || 0,
+            is_gst: formData.is_gst,
+            category_id: formData.category || undefined,
+            brand_id: formData.brand || undefined,
+            supplier_id: undefined
         };
-        
-        if (formData.type === 1) {
-             jsonPayload.gst_stock = parseInt(formData.stockCount);
-        } else {
-             jsonPayload.nongst_stock = parseInt(formData.stockCount);
-        }
 
-        const res = await itemAPI.create(jsonPayload);
+        const res = await itemAPI.create(payload);
         const newItemId = res.data?.data?._id;
 
-        // Step 2: Upload Image (if any) via Update
-        if (formData.itemMedia && newItemId) {
+        if (formData.image && newItemId) {
             const imagePayload = new FormData();
-            imagePayload.append('image', formData.itemMedia);
-            // Must send at least one field for update validation to pass? 
-            // Controller handles file separately usually, but let's check. 
-            // itemService.updateItem handles 'file' argument.
+            imagePayload.append('image', formData.image);
             await itemAPI.update(newItemId, imagePayload);
         }
 
@@ -98,17 +106,7 @@ const AddItem = () => {
         navigate('/inventory/item-master');
     } catch (error) {
         console.error("Add item failed", error);
-        if (error.response && error.response.data) {
-            const { message, errors } = error.response.data;
-            let displayMsg = message || 'Failed to add item';
-            if (Array.isArray(errors)) {
-                displayMsg += ': ' + errors.join(', ');
-            }
-            alert("Error: " + displayMsg);
-            showToast(displayMsg, 'error');
-        } else {
-            showToast('Failed to add item', 'error');
-        }
+        showToast('Failed to add item', 'error');
     }
   };
 
@@ -132,42 +130,159 @@ const AddItem = () => {
                 Item Name *
               </label>
               <Input
-                name="itemName"
-                value={formData.itemName}
-                onChange={(value) => handleChange('itemName', value)}
+                name="name"
+                value={formData.name}
+                onChange={(value) => handleChange('name', value)}
                 placeholder="Enter item name"
               />
-              {errors.itemName && (
+              {errors.name && (
                 <p className="text-red-600 text-sm mt-1">
-                  {errors.itemName}
+                  {errors.name}
                 </p>
               )}
             </div>
 
-            {/* Amount */}
+            {/* Stock */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount (₹) *
+                Stock *
               </label>
               <Input
-                name="amount"
+                name="stock"
                 type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={(value) => handleChange('amount', value)}
-                placeholder="0.00"
+                value={formData.stock}
+                onChange={(value) => handleChange('stock', value)}
+                placeholder="0"
               />
-              {errors.amount && (
+              {errors.stock && (
                 <p className="text-red-600 text-sm mt-1">
-                  {errors.amount}
+                  {errors.stock}
                 </p>
               )}
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <select
+                value={formData.category || ''}
+                onChange={(e) => handleChange('category', e.target.value)}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">Select Category</option>
+                {categories.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Brand */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Brand
+              </label>
+              <select
+                value={formData.brand || ''}
+                onChange={(e) => handleChange('brand', e.target.value)}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">Select Brand</option>
+                {brands.map((b) => (
+                  <option key={b._id} value={b._id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* GST % */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                GST %
+              </label>
+              <Input
+                name="gst_percent"
+                type="number"
+                step="0.01"
+                value={formData.gst_percent}
+                onChange={(value) => handleChange('gst_percent', value)}
+                placeholder="0"
+              />
+            </div>
+
+            {/* Sale Rate */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sale Rate (₹) *
+              </label>
+              <Input
+                name="sale_rate"
+                type="number"
+                step="0.01"
+                value={formData.sale_rate}
+                onChange={(value) => handleChange('sale_rate', value)}
+                placeholder="0.00"
+              />
+              {errors.sale_rate && (
+                <p className="text-red-600 text-sm mt-1">
+                  {errors.sale_rate}
+                </p>
+              )}
+            </div>
+
+            {/* Purchase Rate */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Purchase Rate (₹)
+              </label>
+              <Input
+                name="purchase_rate"
+                type="number"
+                step="0.01"
+                value={formData.purchase_rate}
+                onChange={(value) => handleChange('purchase_rate', value)}
+                placeholder="0.00"
+              />
+            </div>
+
+            {/* MRP Rate */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                MRP Rate (₹)
+              </label>
+              <Input
+                name="mrp_rate"
+                type="number"
+                step="0.01"
+                value={formData.mrp_rate}
+                onChange={(value) => handleChange('mrp_rate', value)}
+                placeholder="0.00"
+              />
+            </div>
+
+            {/* Discount */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Discount (₹)
+              </label>
+              <Input
+                name="discount"
+                type="number"
+                step="0.01"
+                value={formData.discount}
+                onChange={(value) => handleChange('discount', value)}
+                placeholder="0.00"
+              />
             </div>
 
             {/* Threshold */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Threshold *
+                Threshold
               </label>
               <Input
                 name="threshold"
@@ -176,51 +291,27 @@ const AddItem = () => {
                 onChange={(value) => handleChange('threshold', value)}
                 placeholder="Minimum stock level"
               />
-              {errors.threshold && (
-                <p className="text-red-600 text-sm mt-1">
-                  {errors.threshold}
-                </p>
-              )}
-            </div>
-
-            {/* Stock Count */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Initial Stock Count *
-              </label>
-              <Input
-                name="stockCount"
-                type="number"
-                value={formData.stockCount}
-                onChange={(value) => handleChange('stockCount', value)}
-                placeholder="Current stock quantity"
-              />
-              {errors.stockCount && (
-                <p className="text-red-600 text-sm mt-1">
-                  {errors.stockCount}
-                </p>
-              )}
             </div>
 
             {/* Toggle Switch */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Type *
+                GST Type *
               </label>
 
               <div
                 onClick={() =>
-                  handleChange('type', formData.type === 0 ? 1 : 0)
+                  handleChange('is_gst', formData.is_gst === 0 ? 1 : 0)
                 }
                 className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
-                  formData.type === 0
+                  formData.is_gst === 0
                     ? 'bg-green-500'
                     : 'bg-gray-300'
                 }`}
               >
                 <div
                   className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
-                    formData.type === 0
+                    formData.is_gst === 0
                       ? 'translate-x-7'
                       : 'translate-x-0'
                   }`}
@@ -228,27 +319,6 @@ const AddItem = () => {
               </div>
             </div>
 
-          </div>
-
-          {/* Brand */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Brand
-            </label>
-            <select
-              value={formData.brandId || ''}
-              onChange={(e) =>
-                handleChange('brandId', e.target.value)
-              }
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-            >
-              <option value="">Select Brand</option>
-              {brands.map((b) => (
-                <option key={b._id} value={b._id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Image Upload */}
