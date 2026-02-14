@@ -63,7 +63,9 @@ const ChallanList = () => {
     party: '',
     items: [],
     amount: '',
-    gstType: 1
+    gstType: 0,
+    date: new Date().toISOString().split('T')[0],
+    itemDetails: {} // Store item-specific details like quantity, rate, etc.
   });
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -116,7 +118,25 @@ const ChallanList = () => {
     {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (challan) => {
-        setEditingChallan({...challan});
+        // Pre-fill with existing data and initialize items
+        const itemDetails = {};
+        const itemIds = loadedItems.slice(0, 2).map(item => {
+          itemDetails[item.id] = {
+            pcs: 1,
+            rate: item.amount || 0,
+            disPercent: 0,
+            spDis: 0,
+            gstPercent: 0
+          };
+          return item.id;
+        });
+        
+        setEditingChallan({
+          ...challan,
+          partyId: challan.partyId,
+          items: itemIds,
+          itemDetails: itemDetails
+        });
         setIsEditModalOpen(true);
       },
       className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
@@ -219,23 +239,26 @@ const ChallanList = () => {
 
   const handleCreateChallan = async () => {
     try {
+      const totalAmount = calculateTotalAmount();
       const payload = {
-         date: new Date(),
-         party_id: newChallan.party, // ID
+         date: newChallan.date,
+         party_id: newChallan.party,
          items: newChallan.items.map(itemId => {
              const item = loadedItems.find(i => i.id === itemId);
+             const details = newChallan.itemDetails[itemId] || {};
+             const calc = calculateItemAmount(itemId);
              return {
                  item_id: itemId,
-                 quantity: 1,
-                 rate: item?.amount || 0,
-                 amount: item?.amount || 0,
-                 gross_amount: item?.amount || 0
+                 quantity: parseFloat(details.pcs || 1),
+                 rate: parseFloat(details.rate || item?.amount || 0),
+                 amount: calc.finalAmount,
+                 gross_amount: calc.finalAmount
              };
          }),
-         amount: parseFloat(newChallan.amount),
-         gross_total: parseFloat(newChallan.amount),
-         sub_total: parseFloat(newChallan.amount),
-         is_gst: parseInt(newChallan.gstType)
+         amount: totalAmount,
+         gross_total: totalAmount,
+         sub_total: totalAmount,
+         is_gst: newChallan.gstType
       };
 
       await challanAPI.create(payload);
@@ -254,11 +277,20 @@ const ChallanList = () => {
            party: c.party_id?.name || 'Unknown',
            items: c.items?.map(i => i.item_id?.item_name || 'Item') || [],
            amount: c.amount,
-           gstType: c.is_gst
+           gstType: c.is_gst,
+           vehicleNo: c.vehicle_no
       }));
       setChallans(cList);
       
-      setNewChallan({ challanNo: '', party: '', items: [], amount: '', gstType: 1 });
+      setNewChallan({ 
+        challanNo: '', 
+        party: '', 
+        items: [], 
+        amount: '', 
+        gstType: 0,
+        date: new Date().toISOString().split('T')[0],
+        itemDetails: {}
+      });
       setIsCreateModalOpen(false);
 
     } catch (error) {
@@ -267,13 +299,57 @@ const ChallanList = () => {
     }
   };
 
-  const handleEditChallan = () => {
-    // Edit unimplemented in backend API usage for now (requires logic update)
-    // Keeping dummy logic or disabling?
-    // Let's just close modal for now to avoid errors, or implement update
-    setIsEditModalOpen(false);
-    setEditingChallan(null);
-    showToast('Edit feature pending backend integration', 'info');
+  const handleEditChallan = async () => {
+    try {
+      const totalAmount = calculateEditTotalAmount();
+      const payload = {
+         date: editingChallan.date,
+         party_id: editingChallan.partyId,
+         items: editingChallan.items.map(itemId => {
+             const item = loadedItems.find(i => i.id === itemId);
+             const details = editingChallan.itemDetails[itemId] || {};
+             const calc = calculateEditItemAmount(itemId);
+             return {
+                 item_id: itemId,
+                 quantity: parseFloat(details.pcs || 1),
+                 rate: parseFloat(details.rate || item?.amount || 0),
+                 amount: calc.finalAmount,
+                 gross_amount: calc.finalAmount
+             };
+         }),
+         amount: totalAmount,
+         gross_total: totalAmount,
+         sub_total: totalAmount,
+         is_gst: editingChallan.gstType
+      };
+
+      await challanAPI.update(editingChallan.id, payload);
+      showToast('Challan updated successfully', 'success');
+      
+      // Refresh
+      const cRes = await challanAPI.getAll();
+      const cVal = cRes.data?.data;
+      const cListRaw = Array.isArray(cVal) ? cVal : (cVal?.data || []);
+
+      const cList = cListRaw.map(c => ({
+           id: c._id,
+           challanNo: c.challan_no,
+           date: c.date,
+           partyId: c.party_id?._id,
+           party: c.party_id?.name || 'Unknown',
+           items: c.items?.map(i => i.item_id?.item_name || 'Item') || [],
+           amount: c.amount,
+           gstType: c.is_gst
+      }));
+      setChallans(cList);
+      
+      setIsEditModalOpen(false);
+      setEditingChallan(null);
+
+    } catch (error) {
+       console.error(error);
+       showToast('Failed to update challan', 'error');
+    }
   };
 
   const toggleItemSelection = (itemId, isEditing = false) => {
@@ -282,6 +358,20 @@ const ChallanList = () => {
         const items = prev.items.includes(itemId)
           ? prev.items.filter(i => i !== itemId)
           : [...prev.items, itemId];
+        
+        // Initialize item details when adding
+        if (!prev.items.includes(itemId)) {
+          const item = loadedItems.find(i => i.id === itemId);
+          prev.itemDetails = prev.itemDetails || {};
+          prev.itemDetails[itemId] = {
+            pcs: 1,
+            rate: item?.amount || 0,
+            disPercent: 0,
+            spDis: 0,
+            gstPercent: 0
+          };
+        }
+        
         return { ...prev, items };
       });
     } else {
@@ -289,9 +379,108 @@ const ChallanList = () => {
         const items = prev.items.includes(itemId)
           ? prev.items.filter(i => i !== itemId)
           : [...prev.items, itemId];
+        
+        // Initialize item details when adding
+        if (!prev.items.includes(itemId)) {
+          const item = loadedItems.find(i => i.id === itemId);
+          prev.itemDetails[itemId] = {
+            pcs: 1,
+            rate: item?.amount || 0,
+            disPercent: 0,
+            spDis: 0,
+            gstPercent: 0
+          };
+        }
+        
         return { ...prev, items };
       });
     }
+  };
+
+  const calculateEditItemAmount = (itemId) => {
+    const details = editingChallan.itemDetails[itemId] || {};
+    const pcs = parseFloat(details.pcs || 1);
+    const rate = parseFloat(details.rate || 0);
+    const disPercent = parseFloat(details.disPercent || 0);
+    const spDis = parseFloat(details.spDis || 0);
+    const gstPercent = parseFloat(details.gstPercent || 0);
+    
+    const baseAmount = pcs * rate;
+    const discountAmount = (baseAmount * disPercent / 100) + spDis;
+    const afterDiscount = baseAmount - discountAmount;
+    const gstAmount = editingChallan.gstType === 1 ? (afterDiscount * gstPercent / 100) : 0;
+    const finalAmount = afterDiscount + gstAmount;
+    
+    return {
+      baseAmount,
+      discountAmount,
+      afterDiscount,
+      gstAmount,
+      finalAmount
+    };
+  };
+
+  const updateEditItemDetail = (itemId, field, value) => {
+    setEditingChallan(prev => ({
+      ...prev,
+      itemDetails: {
+        ...prev.itemDetails,
+        [itemId]: {
+          ...prev.itemDetails[itemId],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const calculateEditTotalAmount = () => {
+    return editingChallan.items.reduce((total, itemId) => {
+      const calc = calculateEditItemAmount(itemId);
+      return total + calc.finalAmount;
+    }, 0);
+  };
+
+  const calculateItemAmount = (itemId) => {
+    const details = newChallan.itemDetails[itemId] || {};
+    const pcs = parseFloat(details.pcs || 1);
+    const rate = parseFloat(details.rate || 0);
+    const disPercent = parseFloat(details.disPercent || 0);
+    const spDis = parseFloat(details.spDis || 0);
+    const gstPercent = parseFloat(details.gstPercent || 0);
+    
+    const baseAmount = pcs * rate;
+    const discountAmount = (baseAmount * disPercent / 100) + spDis;
+    const afterDiscount = baseAmount - discountAmount;
+    const gstAmount = newChallan.gstType === 1 ? (afterDiscount * gstPercent / 100) : 0;
+    const finalAmount = afterDiscount + gstAmount;
+    
+    return {
+      baseAmount,
+      discountAmount,
+      afterDiscount,
+      gstAmount,
+      finalAmount
+    };
+  };
+
+  const updateItemDetail = (itemId, field, value) => {
+    setNewChallan(prev => ({
+      ...prev,
+      itemDetails: {
+        ...prev.itemDetails,
+        [itemId]: {
+          ...prev.itemDetails[itemId],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const calculateTotalAmount = () => {
+    return newChallan.items.reduce((total, itemId) => {
+      const calc = calculateItemAmount(itemId);
+      return total + calc.finalAmount;
+    }, 0);
   };
 
   const filteredChallans = challans.filter(challan => {
@@ -502,109 +691,495 @@ const ChallanList = () => {
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Create New Challan"
-        size="md"
+        title="CHALLAN ENTRY"
+        size="2xl"
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
-            <select
-              value={newChallan.party}
-              onChange={(e) => setNewChallan(prev => ({ ...prev, party: e.target.value }))}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-            >
-              <option value="">Select Party</option>
-              {loadedParties.map(party => (
-                <option key={party.id} value={party.id}>{party.name}</option>
-              ))}
-            </select>
+        <div className="space-y-6">
+          {/* Header Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
+              <select
+                value={newChallan.party}
+                onChange={(e) => setNewChallan(prev => ({ ...prev, party: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+              >
+                <option value="">Select Party</option>
+                {loadedParties.map(party => (
+                  <option key={party.id} value={party.id}>{party.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <input 
+                type="date" 
+                value={newChallan.date}
+                onChange={(e) => setNewChallan(prev => ({ ...prev, date: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-md text-sm" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <div className="flex gap-4 mt-2">
+                <label className="flex items-center gap-1">
+                  <input 
+                    type="radio" 
+                    name="gstType" 
+                    value={0}
+                    checked={newChallan.gstType === 0}
+                    onChange={(e) => setNewChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
+                  />
+                  <span className="text-sm">0</span>
+                </label>
+                <label className="flex items-center gap-1">
+                  <input 
+                    type="radio" 
+                    name="gstType" 
+                    value={1}
+                    checked={newChallan.gstType === 1}
+                    onChange={(e) => setNewChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
+                  />
+                  <span className="text-sm">1</span>
+                </label>
+              </div>
+            </div>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Items *</label>
-            <div className="border rounded-md p-3 max-h-48 overflow-y-auto bg-gray-50">
-              <div className="space-y-2">
-                {loadedItems.map(item => (
-                  <label key={item.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded">
-                    <input
-                      type="checkbox"
-                      checked={newChallan.items.includes(item.id)}
-                      onChange={() => toggleItemSelection(item.id)}
-                      className="rounded text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">{item.name}</span>
-                  </label>
+
+          {/* Items Section */}
+          <div className="border rounded-lg overflow-hidden">
+            <div className="bg-gray-100 px-4 py-2">
+              <h3 className="font-medium text-gray-900">Rate Information - Add / Less</h3>
+            </div>
+            
+            {/* Items Table Header */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-2 py-2 text-left border-r">SNo</th>
+                    <th className="px-2 py-2 text-left border-r">ItemName</th>
+                    <th className="px-2 py-2 text-left border-r">MRP</th>
+                    <th className="px-2 py-2 text-left border-r">Stock</th>
+                    <th className="px-2 py-2 text-left border-r">Type</th>
+                    <th className="px-2 py-2 text-left border-r">PCS</th>
+                    <th className="px-2 py-2 text-left border-r">Rate</th>
+                    <th className="px-2 py-2 text-left border-r">Dis %</th>
+                    <th className="px-2 py-2 text-left border-r">SP Dis</th>
+                    <th className="px-2 py-2 text-left border-r">Disc Amt</th>
+                    {newChallan.gstType === 1 && (
+                      <>
+                        <th className="px-2 py-2 text-left border-r">GST %</th>
+                        <th className="px-2 py-2 text-left border-r">GST Amt</th>
+                      </>
+                    )}
+                    <th className="px-2 py-2 text-left border-r">Amount</th>
+                    <th className="px-2 py-2 text-left">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {newChallan.items.map((itemId, index) => {
+                    const item = loadedItems.find(i => i.id === itemId);
+                    const details = newChallan.itemDetails[itemId] || {};
+                    const calc = calculateItemAmount(itemId);
+                    
+                    return (
+                      <tr key={itemId} className="border-t">
+                        <td className="px-2 py-2 border-r">{index + 1}</td>
+                        <td className="px-2 py-2 border-r">
+                          <span className="text-xs">{item?.name || 'Unknown Item'}</span>
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input 
+                            type="number" 
+                            value={details.rate || item?.amount || 0} 
+                            onChange={(e) => updateItemDetail(itemId, 'rate', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs" 
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input type="number" defaultValue="5.00" className="w-16 px-1 py-1 border rounded text-xs" />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input type="text" defaultValue="1" className="w-12 px-1 py-1 border rounded text-xs" />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input 
+                            type="number" 
+                            value={details.pcs || 1} 
+                            onChange={(e) => updateItemDetail(itemId, 'pcs', e.target.value)}
+                            className="w-12 px-1 py-1 border rounded text-xs" 
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input 
+                            type="number" 
+                            value={details.rate || item?.amount || 0} 
+                            onChange={(e) => updateItemDetail(itemId, 'rate', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs" 
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input 
+                            type="number" 
+                            value={details.disPercent || 0} 
+                            onChange={(e) => updateItemDetail(itemId, 'disPercent', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs" 
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input 
+                            type="number" 
+                            value={details.spDis || 0} 
+                            onChange={(e) => updateItemDetail(itemId, 'spDis', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs" 
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <span className="text-xs">{calc.discountAmount.toFixed(2)}</span>
+                        </td>
+                        {newChallan.gstType === 1 && (
+                          <>
+                            <td className="px-2 py-2 border-r">
+                              <input 
+                                type="number" 
+                                value={details.gstPercent || 0} 
+                                onChange={(e) => updateItemDetail(itemId, 'gstPercent', e.target.value)}
+                                className="w-16 px-1 py-1 border rounded text-xs" 
+                              />
+                            </td>
+                            <td className="px-2 py-2 border-r">
+                              <span className="text-xs">{calc.gstAmount.toFixed(2)}</span>
+                            </td>
+                          </>
+                        )}
+                        <td className="px-2 py-2 border-r">
+                          <span className="text-xs font-medium">{calc.finalAmount.toFixed(2)}</span>
+                        </td>
+                        <td className="px-2 py-2">
+                          <button 
+                            onClick={() => toggleItemSelection(itemId)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <FaTimes size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Add Item Section */}
+            <div className="p-4 bg-gray-50 border-t">
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className="text-sm font-medium text-gray-700">Add Items:</span>
+                {loadedItems.filter(item => !newChallan.items.includes(item.id)).map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => toggleItemSelection(item.id)}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded hover:bg-blue-200"
+                  >
+                    + {item.name}
+                  </button>
                 ))}
               </div>
             </div>
-            {newChallan.items.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {newChallan.items.map(itemId => {
-                  const item = loadedItems.find(i => i.id === itemId);
-                  return (
-                    <span key={itemId} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                      {item ? item.name : 'Unknown'}
-                      <button onClick={() => toggleItemSelection(itemId)} className="hover:text-blue-900">
-                        <FaTimes size={10} />
-                      </button>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
-            <input
-              type="number"
-              value={newChallan.amount}
-              onChange={(e) => setNewChallan(prev => ({ ...prev, amount: e.target.value }))}
-              placeholder="Enter amount"
-              onWheel={(e) => e.target.blur()}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-            />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
-            <select
-              value={newChallan.gstType}
-              onChange={(e) => setNewChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-            >
-              <option value={1}>1 </option>
-              <option value={0}>0 </option>
-            </select>
+          {/* Totals Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium w-32">Net Amount:</span>
+                <input 
+                  type="number"
+                  value={calculateTotalAmount().toFixed(2)}
+                  readOnly
+                  className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50"
+                />
+              </div>
+            </div>
           </div>
           
-          <div className="flex gap-3 pt-4">
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t">
             <Button 
               onClick={handleCreateChallan}
-              disabled={!newChallan.party || newChallan.items.length === 0 || !newChallan.amount}
-              className="flex items-center gap-2"
+              disabled={!newChallan.party || newChallan.items.length === 0}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
             >
               <FaPlus />
-              Create Challan
+              Save Challan
             </Button>
             <Button
               variant="outline"
               onClick={() => {
                 setIsCreateModalOpen(false);
-                setNewChallan({ challanNo: '', party: '', items: [], amount: '', gstType: 1 });
+                setNewChallan({ 
+                  challanNo: '', 
+                  party: '', 
+                  items: [], 
+                  amount: '', 
+                  gstType: 0,
+                  date: new Date().toISOString().split('T')[0],
+                  itemDetails: {}
+                });
               }}
             >
               Cancel
+            </Button>
+            <Button
+              variant="outline"
+              className="bg-red-50 text-red-600 hover:bg-red-100"
+            >
+              Delete
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Edit Challan Modal - KEEPING DUMMY UI BUT DISABLING ACTIONS */}
-      {/* (Skipping detailed update for brevity and since Edit is less critical than Create) */}
-      {/* Actually I should hide edit button or make it show toast that it's disabled? */}
-      {/* I'll leave the Edit Modal mostly as is but wired to filtered data? No, it used 'parties' strings. */}
-      {/* I will remove Edit Modal content or simple disable it to prevent errors */}
+      {/* Edit Challan Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="EDIT CHALLAN"
+        size="6xl"
+      >
+        {editingChallan && (
+          <div className="space-y-6">
+            {/* Header Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
+                <select
+                  value={editingChallan.partyId || ''}
+                  onChange={(e) => setEditingChallan(prev => ({ ...prev, partyId: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">Select Party</option>
+                  {loadedParties.map(party => (
+                    <option key={party.id} value={party.id}>{party.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input 
+                  type="date" 
+                  value={editingChallan.date ? new Date(editingChallan.date).toISOString().split('T')[0] : ''}
+                  onChange={(e) => setEditingChallan(prev => ({ ...prev, date: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-md text-sm" 
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <div className="flex gap-4 mt-2">
+                  <label className="flex items-center gap-1">
+                    <input 
+                      type="radio" 
+                      name="editGstType" 
+                      value={0}
+                      checked={editingChallan.gstType === 0}
+                      onChange={(e) => setEditingChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
+                    />
+                    <span className="text-sm">0</span>
+                  </label>
+                  <label className="flex items-center gap-1">
+                    <input 
+                      type="radio" 
+                      name="editGstType" 
+                      value={1}
+                      checked={editingChallan.gstType === 1}
+                      onChange={(e) => setEditingChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
+                    />
+                    <span className="text-sm">1</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Items Section */}
+            <div className="border rounded-lg overflow-hidden">
+              <div className="bg-gray-100 px-4 py-2">
+                <h3 className="font-medium text-gray-900">Rate Information - Add / Less</h3>
+              </div>
+              
+              {/* Items Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-2 py-2 text-left border-r">SNo</th>
+                      <th className="px-2 py-2 text-left border-r">ItemName</th>
+                      <th className="px-2 py-2 text-left border-r">MRP</th>
+                      <th className="px-2 py-2 text-left border-r">Stock</th>
+                      <th className="px-2 py-2 text-left border-r">Type</th>
+                      <th className="px-2 py-2 text-left border-r">PCS</th>
+                      <th className="px-2 py-2 text-left border-r">Rate</th>
+                      <th className="px-2 py-2 text-left border-r">Dis %</th>
+                      <th className="px-2 py-2 text-left border-r">SP Dis</th>
+                      <th className="px-2 py-2 text-left border-r">Disc Amt</th>
+                      {editingChallan.gstType === 1 && (
+                        <>
+                          <th className="px-2 py-2 text-left border-r">GST %</th>
+                          <th className="px-2 py-2 text-left border-r">GST Amt</th>
+                        </>
+                      )}
+                      <th className="px-2 py-2 text-left border-r">Amount</th>
+                      <th className="px-2 py-2 text-left">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editingChallan.items.map((itemId, index) => {
+                      const item = loadedItems.find(i => i.id === itemId);
+                      const details = editingChallan.itemDetails[itemId] || {};
+                      const calc = calculateEditItemAmount(itemId);
+                      
+                      return (
+                        <tr key={itemId} className="border-t">
+                          <td className="px-2 py-2 border-r">{index + 1}</td>
+                          <td className="px-2 py-2 border-r">
+                            <span className="text-xs">{item?.name || 'Unknown Item'}</span>
+                          </td>
+                          <td className="px-2 py-2 border-r">
+                            <input 
+                              type="number" 
+                              value={details.rate || item?.amount || 0} 
+                              onChange={(e) => updateEditItemDetail(itemId, 'rate', e.target.value)}
+                              className="w-16 px-1 py-1 border rounded text-xs" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 border-r">
+                            <input type="number" defaultValue="5.00" className="w-16 px-1 py-1 border rounded text-xs" />
+                          </td>
+                          <td className="px-2 py-2 border-r">
+                            <input type="text" defaultValue="1" className="w-12 px-1 py-1 border rounded text-xs" />
+                          </td>
+                          <td className="px-2 py-2 border-r">
+                            <input 
+                              type="number" 
+                              value={details.pcs || 1} 
+                              onChange={(e) => updateEditItemDetail(itemId, 'pcs', e.target.value)}
+                              className="w-12 px-1 py-1 border rounded text-xs" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 border-r">
+                            <input 
+                              type="number" 
+                              value={details.rate || item?.amount || 0} 
+                              onChange={(e) => updateEditItemDetail(itemId, 'rate', e.target.value)}
+                              className="w-16 px-1 py-1 border rounded text-xs" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 border-r">
+                            <input 
+                              type="number" 
+                              value={details.disPercent || 0} 
+                              onChange={(e) => updateEditItemDetail(itemId, 'disPercent', e.target.value)}
+                              className="w-16 px-1 py-1 border rounded text-xs" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 border-r">
+                            <input 
+                              type="number" 
+                              value={details.spDis || 0} 
+                              onChange={(e) => updateEditItemDetail(itemId, 'spDis', e.target.value)}
+                              className="w-16 px-1 py-1 border rounded text-xs" 
+                            />
+                          </td>
+                          <td className="px-2 py-2 border-r">
+                            <span className="text-xs">{calc.discountAmount.toFixed(2)}</span>
+                          </td>
+                          {editingChallan.gstType === 1 && (
+                            <>
+                              <td className="px-2 py-2 border-r">
+                                <input 
+                                  type="number" 
+                                  value={details.gstPercent || 0} 
+                                  onChange={(e) => updateEditItemDetail(itemId, 'gstPercent', e.target.value)}
+                                  className="w-16 px-1 py-1 border rounded text-xs" 
+                                />
+                              </td>
+                              <td className="px-2 py-2 border-r">
+                                <span className="text-xs">{calc.gstAmount.toFixed(2)}</span>
+                              </td>
+                            </>
+                          )}
+                          <td className="px-2 py-2 border-r">
+                            <span className="text-xs font-medium">{calc.finalAmount.toFixed(2)}</span>
+                          </td>
+                          <td className="px-2 py-2">
+                            <button 
+                              onClick={() => toggleItemSelection(itemId, true)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <FaTimes size={12} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Add Item Section */}
+              <div className="p-4 bg-gray-50 border-t">
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className="text-sm font-medium text-gray-700">Add Items:</span>
+                  {loadedItems.filter(item => !editingChallan.items.includes(item.id)).map(item => (
+                    <button
+                      key={item.id}
+                      onClick={() => toggleItemSelection(item.id, true)}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded hover:bg-blue-200"
+                    >
+                      + {item.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Totals Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium w-32">Net Amount:</span>
+                  <input 
+                    type="number"
+                    value={calculateEditTotalAmount().toFixed(2)}
+                    readOnly
+                    className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t">
+              <Button 
+                onClick={handleEditChallan}
+                disabled={!editingChallan.partyId || editingChallan.items.length === 0}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              >
+                <FaEdit />
+                Update Challan
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditModalOpen(false);
+                  setEditingChallan(null);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
       
       <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}
