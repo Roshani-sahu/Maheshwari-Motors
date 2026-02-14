@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FaEye, FaFileInvoiceDollar, FaFilter, FaCheck, FaPlus, FaCheckSquare, FaEdit, FaTrash, FaDownload, FaTimes } from 'react-icons/fa';
+import { FaFileInvoiceDollar, FaCheck, FaPlus, FaEdit, FaTrash, FaDownload, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
-import { Button, Select, Input } from '../../components/ui';
+import { Button, } from '../../components/ui';
 import useStore from '../../store';
 import { challanAPI, accountAPI, itemAPI, billAPI } from '../../services/api';
 
@@ -53,8 +52,7 @@ const ChallanList = () => {
     gstType: 'all'
   });
 
-  const [selectedChallan, setSelectedChallan] = useState(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedChallans, setSelectedChallans] = useState([]);
@@ -519,57 +517,7 @@ const ChallanList = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white p-3 sm:p-4 rounded-lg border">
-        <div className="flex items-center gap-2 mb-3 sm:mb-4">
-          <FaFilter className="text-gray-500 text-sm sm:text-base" />
-          <h3 className="font-medium text-gray-900 text-sm sm:text-base">Filters</h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-              Party
-            </label>
-            <input
-              type="text"
-              value={filters.party}
-              onChange={(e) => setFilters(prev => ({ ...prev, party: e.target.value }))}
-              placeholder="Search party..."
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-              GST Type
-            </label>
-            <select
-              value={filters.gstType}
-              onChange={(e) => setFilters(prev => ({ ...prev, gstType: e.target.value }))}
-              className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-            >
-              <option value="all">All Types</option>
-              <option value="1">1</option>
-              <option value="0">0</option>
-            </select>
-          </div>
-          
-          <div className="flex items-end">
-            <Button
-              variant="outline"
-              onClick={() => setFilters({
-                dateFrom: '',
-                dateTo: '',
-                party: '',
-                gstType: 'all'
-              })}
-              className="w-full sm:w-auto text-xs sm:text-sm py-2"
-            >
-              Clear Filters
-            </Button>
-          </div>
-        </div>
-      </div>
+     
 
       {/* Challans Table */}
       <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
