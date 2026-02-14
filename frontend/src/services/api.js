@@ -198,3 +198,20 @@ export const adminAPI = {
   deleteUser: (id) => api.delete(`/admin/users/${id}`),
   toggleStatus: (id, isActive) => api.post(`/admin/users/${id}/${isActive ? "reactivate" : "deactivate"}`),
 };
+
+export const brandAPI = {
+  getAll: () => api.get('/brands').catch(err => {
+    console.error('Brand API error:', err.response?.data || err.message);
+    return { data: [] };
+  }),
+  create: (data) => api.post('/brands', data),
+  update: (id, data) => api.put(`/brands/${id}`, data),
+  delete: (id) => api.delete(`/brands/${id}`),
+};
+
+export const discountAPI = {
+  getAll: () => api.get('/discounts'),
+  getByBrand: (brandId) => api.get(`/discounts/brand/${brandId}`),
+  upsert: (data) => api.post('/discounts', data),
+  delete: (id) => api.delete(`/discounts/${id}`),
+};

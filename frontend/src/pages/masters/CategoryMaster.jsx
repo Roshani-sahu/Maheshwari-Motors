@@ -3,15 +3,13 @@ import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { categoryAPI } from '../../services/api';
+import { categoryAPI, brandAPI } from '../../services/api';
 
 const CategoryMaster = () => {
   const { showToast } = useStore();
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState(() => {
-    const saved = localStorage.getItem('brands');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [brands, setBrands] = useState([]);
+  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -20,17 +18,35 @@ const CategoryMaster = () => {
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, category: null });
 
   useEffect(() => {
-    fetchCategories();
+    fetchData();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchData = async () => {
     try {
-      const response = await categoryAPI.getAll();
-      const val = response.data?.data;
-      const list = Array.isArray(val) ? val : (val?.data || []);
-      setCategories(list.map(c => ({ id: c._id, name: c.name })));
+      const [catRes, brandRes] = await Promise.all([
+        categoryAPI.getAll(),
+        brandAPI.getAll()
+      ]);
+
+      const catList = Array.isArray(catRes.data?.data) ? catRes.data.data : (catRes.data?.data?.data || []);
+      const brandList = Array.isArray(brandRes.data?.data) ? brandRes.data.data : (brandRes.data?.data?.data || []);
+
+      setCategories(catList.map(c => ({ 
+        id: c._id, 
+        name: c.name,
+        // Brands in category might be populated or just IDs. Ideally backend should populate them.
+        // If not populated, we might only have IDs.
+        brands: c.brand_ids?.map(bid => {
+            const b = brandList.find(bl => bl._id === bid || bl._id === bid._id);
+            return b ? { id: b._id, name: b.name } : null;
+        }).filter(Boolean) || []
+      })));
+
+      setBrands(brandList.map(b => ({ id: b._id, name: b.name, items: b.item_ids || [] })));
+
     } catch (error) {
-      console.error("Failed to fetch categories", error);
+      console.error("Failed to fetch data", error);
+      showToast('Failed to load data', 'error');
     }
   };
 
@@ -61,11 +77,15 @@ const CategoryMaster = () => {
 
   const handleAddCategory = async () => {
     try {
-        await categoryAPI.create({ name: newCategoryName });
+        await categoryAPI.create({ 
+            category_name: newCategoryName,
+            brands: selectedBrands.map(b => b.id)
+        });
         showToast('Category added successfully', 'success');
         setNewCategoryName('');
+        setSelectedBrands([]);
         setIsAddModalOpen(false);
-        fetchCategories();
+        fetchData();
     } catch (error) {
         showToast('Failed to add category', 'error');
     }
@@ -73,12 +93,16 @@ const CategoryMaster = () => {
 
   const handleEditCategory = async () => {
     try {
-        await categoryAPI.update(editingCategory.id, { name: newCategoryName });
+        await categoryAPI.update(editingCategory.id, { 
+            category_name: newCategoryName,
+            brands: selectedBrands.map(b => b.id)
+        });
         showToast('Category updated successfully', 'success');
         setIsEditModalOpen(false);
         setEditingCategory(null);
         setNewCategoryName('');
-        fetchCategories();
+        setSelectedBrands([]);
+        fetchData();
     } catch (error) {
         showToast('Failed to update category', 'error');
     }
@@ -89,7 +113,7 @@ const CategoryMaster = () => {
           await categoryAPI.delete(deleteDialog.category.id);
           showToast('Category deleted successfully', 'success');
           setDeleteDialog({ isOpen: false, category: null });
-          fetchCategories();
+          fetchData();
       } catch (error) {
           showToast('Failed to delete category', 'error');
       }

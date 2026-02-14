@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { FaSave } from 'react-icons/fa';
 import { Button, Input } from '../components/ui';
 import useStore from '../store';
-import { itemAPI, categoryAPI } from '../services/api';
+import { itemAPI, brandAPI } from '../services/api';
 
 const AddItem = () => {
   const navigate = useNavigate();
   const { showToast } = useStore();
-  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
 
   const [formData, setFormData] = useState({
     itemName: '',
@@ -16,27 +16,27 @@ const AddItem = () => {
     threshold: '',
     stockCount: '',
     itemMedia: null,
-    categoryId: '',
+    brandId: '',
     type: 1
   });
 
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchBrands = async () => {
         try {
-            const response = await categoryAPI.getAll();
+            const response = await brandAPI.getAll();
             const val = response.data?.data;
             const list = Array.isArray(val) ? val : (val?.data || []);
-            setCategories(list);
-            if (list.length > 0 && !formData.categoryId) {
-                setFormData(prev => ({ ...prev, categoryId: list[0]._id }));
+            setBrands(list.map(b => ({ _id: b._id, name: b.name })));
+            if (list.length > 0 && !formData.brandId) {
+                setFormData(prev => ({ ...prev, brandId: list[0]._id }));
             }
         } catch (error) {
-            console.error("Failed to fetch categories", error);
+            console.error("Failed to fetch brands", error);
         }
     };
-    fetchCategories();
+    fetchBrands();
   }, []);
 
   const handleChange = (name, value) => {
@@ -66,13 +66,13 @@ const AddItem = () => {
     }
 
     try {
-        // Step 1: Create Item via JSON to ensure correct types (Array/Enum)
+        // Step 1: Create Item via JSON
         const jsonPayload = {
             item_name: formData.itemName,
             amount: parseFloat(formData.amount),
             threshold: parseInt(formData.threshold),
             is_gst: formData.type, // Sends number 1 or 0
-            category_ids: formData.categoryId ? [formData.categoryId] : [],
+            brand_id: formData.brandId ? formData.brandId : undefined,
         };
         
         if (formData.type === 1) {
@@ -88,8 +88,9 @@ const AddItem = () => {
         if (formData.itemMedia && newItemId) {
             const imagePayload = new FormData();
             imagePayload.append('image', formData.itemMedia);
-            // Must send at least one field for update validation to pass
-            imagePayload.append('item_name', formData.itemName); 
+            // Must send at least one field for update validation to pass? 
+            // Controller handles file separately usually, but let's check. 
+            // itemService.updateItem handles 'file' argument.
             await itemAPI.update(newItemId, imagePayload);
         }
 
@@ -229,22 +230,22 @@ const AddItem = () => {
 
           </div>
 
-          {/* Category */}
+          {/* Brand */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category *
+              Brand
             </label>
             <select
-              value={formData.categoryId || ''}
+              value={formData.brandId || ''}
               onChange={(e) =>
-                handleChange('categoryId', e.target.value)
+                handleChange('brandId', e.target.value)
               }
               className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             >
-              <option value="">Select Category</option>
-              {categories.map((cat) => (
-                <option key={cat._id} value={cat._id}>
-                  {cat.name}
+              <option value="">Select Brand</option>
+              {brands.map((b) => (
+                <option key={b._id} value={b._id}>
+                  {b.name}
                 </option>
               ))}
             </select>

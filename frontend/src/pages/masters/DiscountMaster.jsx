@@ -2,119 +2,58 @@ import React, { useState, useEffect } from 'react';
 import { FaSave } from 'react-icons/fa';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
-import { categoryAPI } from '../../services/api';
+import { categoryAPI, brandAPI, discountAPI } from '../../services/api';
 
 const DiscountMaster = () => {
   const { showToast } = useStore();
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState(() => {
-    const saved = localStorage.getItem('brands');
-    return saved ? JSON.parse(saved) : [];
-  });
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [discounts, setDiscounts] = useState(() => {
-    const saved = localStorage.getItem('discounts');
-    return saved ? JSON.parse(saved) : {};
-  });
+  const [discounts, setDiscounts] = useState({});
 
   useEffect(() => {
-    fetchCategories();
+    fetchData();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchData = async () => {
     try {
-      const response = await categoryAPI.getAll();
-      const val = response.data?.data;
-      const list = Array.isArray(val) ? val : (val?.data || []);
-      
-      // Get category-brand relationships from localStorage
-      const savedCategories = localStorage.getItem('categories');
-      const localCategories = savedCategories ? JSON.parse(savedCategories) : [];
-      
-      const categoriesWithBrands = list.map(c => {
-        const localCategory = localCategories.find(lc => lc.name === c.name);
-        return {
+      const [catRes, brandRes, discountRes] = await Promise.all([
+        categoryAPI.getAll(),
+        brandAPI.getAll(),
+        discountAPI.getAll()
+      ]);
+
+      const catList = Array.isArray(catRes.data?.data) ? catRes.data.data : (catRes.data?.data?.data || []);
+      const brandList = Array.isArray(brandRes.data?.data) ? brandRes.data.data : (brandRes.data?.data?.data || []);
+      const discountList = Array.isArray(discountRes.data?.data) ? discountRes.data.data : (discountRes.data?.data?.data || []);
+
+      // Create a map of brandId -> discountData for easy access
+      const discountMap = {};
+      discountList.forEach(d => {
+          if(d.brand_id) {
+             const bId = typeof d.brand_id === 'object' ? d.brand_id._id : d.brand_id;
+             discountMap[bId] = {
+                 discount1: d.discount1 || { normal: 0, special: 0 },
+                 discount2: d.discount2 || { normal: 0, special: 0 }
+             };
+          }
+      });
+      setDiscounts(discountMap);
+
+      // Populate categories with brand objects
+      setCategories(catList.map(c => ({
           id: c._id,
           name: c.name,
-          brands: localCategory?.brands || []
-        };
-      });
-      
-      // Add dummy data if no categories or brands found
-      if (categoriesWithBrands.length === 0 || categoriesWithBrands.every(c => c.brands.length === 0)) {
-        const dummyCategories = [
-          {
-            id: 'cat1',
-            name: 'Engine Parts',
-            brands: [
-              { id: 'brand1', name: 'Castrol' },
-              { id: 'brand2', name: 'Mobil' },
-              { id: 'brand3', name: 'Shell' }
-            ]
-          },
-          {
-            id: 'cat2',
-            name: 'Brake System',
-            brands: [
-              { id: 'brand4', name: 'Bosch' },
-              { id: 'brand5', name: 'Brembo' },
-              { id: 'brand6', name: 'ATE' }
-            ]
-          },
-          {
-            id: 'cat3',
-            name: 'Filters',
-            brands: [
-              { id: 'brand7', name: 'Mann Filter' },
-              { id: 'brand8', name: 'Mahle' },
-              { id: 'brand9', name: 'K&N' }
-            ]
-          }
-        ];
-        setCategories(dummyCategories);
-      } else {
-        setCategories(categoriesWithBrands);
-      }
+          brands: c.brand_ids?.map(bid => {
+              const b = brandList.find(bl => bl._id === bid || bl._id === bid._id);
+              return b ? { id: b._id, name: b.name } : null;
+          }).filter(Boolean) || []
+      })));
+
     } catch (error) {
-      console.error("Failed to fetch categories", error);
-      // Fallback to dummy data on error
-      const dummyCategories = [
-        {
-          id: 'cat1',
-          name: 'Engine Parts',
-          brands: [
-            { id: 'brand1', name: 'Castrol' },
-            { id: 'brand2', name: 'Mobil' },
-            { id: 'brand3', name: 'Shell' }
-          ]
-        },
-        {
-          id: 'cat2',
-          name: 'Brake System',
-          brands: [
-            { id: 'brand4', name: 'Bosch' },
-            { id: 'brand5', name: 'Brembo' },
-            { id: 'brand6', name: 'ATE' }
-          ]
-        },
-        {
-          id: 'cat3',
-          name: 'Filters',
-          brands: [
-            { id: 'brand7', name: 'Mann Filter' },
-            { id: 'brand8', name: 'Mahle' },
-            { id: 'brand9', name: 'K&N' }
-          ]
-        }
-      ];
-      setCategories(dummyCategories);
+      console.error("Failed to fetch data", error);
+      showToast('Failed to load data', 'error');
     }
   };
-
-  // Save discounts to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('discounts', JSON.stringify(discounts));
-  }, [discounts]);
 
   const getSelectedCategoryBrands = () => {
     if (!selectedCategory) return [];
@@ -128,8 +67,8 @@ const DiscountMaster = () => {
       [brandId]: {
         ...prev[brandId],
         [discountType]: {
-          ...prev[brandId]?.[discountType],
-          [field]: parseFloat(value) || 0
+            ...prev[brandId]?.[discountType], // Preserve other fields in discountType
+            [field]: parseFloat(value) || 0
         }
       }
     }));
@@ -139,8 +78,24 @@ const DiscountMaster = () => {
     return discounts[brandId]?.[discountType]?.[field] || 0;
   };
 
-  const handleSave = () => {
-    showToast('Discounts saved successfully', 'success');
+  const handleSave = async () => {
+    try {
+        const promises = Object.keys(discounts).map(brandId => {
+            const d = discounts[brandId];
+            return discountAPI.upsert({
+                brand_id: brandId,
+                discount1: d.discount1,
+                discount2: d.discount2
+            });
+        });
+
+        await Promise.all(promises);
+        showToast('Discounts saved successfully', 'success');
+        fetchData(); // Refresh to ensure sync
+    } catch (error) {
+        console.error("Save failed", error);
+        showToast('Failed to save discounts', 'error');
+    }
   };
 
   return (

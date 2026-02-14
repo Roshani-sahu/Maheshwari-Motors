@@ -3,17 +3,13 @@ import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
+import { brandAPI, itemAPI } from '../../services/api';
 
 const BrandMaster = () => {
-  const { items, showToast } = useStore();
-  const [brands, setBrands] = useState(() => {
-    const saved = localStorage.getItem('brands');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: 'Castrol', items: [] },
-      { id: 2, name: 'Bosch', items: [] },
-      { id: 3, name: 'Mahle', items: [] }
-    ];
-  });
+  const { showToast } = useStore();
+  const [brands, setBrands] = useState([]);
+  const [items, setItems] = useState([]);
+  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
@@ -21,13 +17,46 @@ const BrandMaster = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, brand: null });
 
-  // Save to localStorage whenever brands change
   useEffect(() => {
-    localStorage.setItem('brands', JSON.stringify(brands));
-  }, [brands]);
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+      try {
+          const [brandRes, itemRes] = await Promise.all([
+              brandAPI.getAll(),
+              itemAPI.getAll()
+          ]);
+          
+          const brandList = Array.isArray(brandRes.data?.data) ? brandRes.data.data : (brandRes.data?.data?.data || []);
+          const itemList = Array.isArray(itemRes.data?.data) ? itemRes.data.data : (itemRes.data?.data?.data || []);
+
+          setItems(itemList.map(i => ({ 
+              id: i._id, 
+              itemName: i.item_name,
+              amount: i.amount,
+              type: i.is_gst // 1 = GST, 0 = Non-GST
+          })));
+
+          setBrands(brandList.map(b => ({
+              id: b._id,
+              name: b.name,
+              // Items might be populated or just IDs. check backend response likely ObjectId.
+              // If populated, use it. If IDs, find in itemList.
+              items: b.item_ids?.map(itemId => {
+                  const item = itemList.find(i => i._id === itemId || i._id === itemId._id);
+                  return item ? { id: item._id, itemName: item.item_name } : null;
+              }).filter(Boolean) || []
+          })));
+
+      } catch (error) {
+          console.error("Failed to fetch data", error);
+          showToast('Failed to load data', 'error');
+      }
+  };
 
   const columns = [
-    { key: 'id', label: 'Brand ID' },
+    { key: 'id', label: 'Brand ID', render: (val) => <span className="text-xs">{val?.slice(-4)}</span> },
     { key: 'name', label: 'Brand Name' },
     { 
       key: 'items', 
@@ -56,30 +85,48 @@ const BrandMaster = () => {
     }
   ];
 
-  const handleAddBrand = () => {
-    const newBrand = { 
-      id: Math.max(...brands.map(b => b.id), 0) + 1, 
-      name: newBrandName, 
-      items: selectedItems 
-    };
-    setBrands([...brands, newBrand]);
-    setNewBrandName('');
-    setSelectedItems([]);
-    setIsAddModalOpen(false);
-    showToast('Brand added successfully', 'success');
+  const handleAddBrand = async () => {
+    try {
+        await brandAPI.create({ 
+            brand_name: newBrandName, 
+            items: selectedItems.map(i => i.id) 
+        });
+        showToast('Brand added successfully', 'success');
+        setNewBrandName('');
+        setSelectedItems([]);
+        setIsAddModalOpen(false);
+        fetchData();
+    } catch (error) {
+        showToast('Failed to add brand', 'error');
+    }
   };
 
-  const handleEditBrand = () => {
-    setBrands(brands.map(b => 
-      b.id === editingBrand.id 
-        ? { ...b, name: newBrandName, items: selectedItems } 
-        : b
-    ));
-    setIsEditModalOpen(false);
-    setEditingBrand(null);
-    setNewBrandName('');
-    setSelectedItems([]);
-    showToast('Brand updated successfully', 'success');
+  const handleEditBrand = async () => {
+    try {
+        await brandAPI.update(editingBrand.id, { 
+            brand_name: newBrandName, 
+            items: selectedItems.map(i => i.id) 
+        });
+        showToast('Brand updated successfully', 'success');
+        setIsEditModalOpen(false);
+        setEditingBrand(null);
+        setNewBrandName('');
+        setSelectedItems([]);
+        fetchData();
+    } catch (error) {
+        showToast('Failed to update brand', 'error');
+    }
+  };
+
+  const handleDeleteBrand = async () => {
+      try {
+          await brandAPI.delete(deleteDialog.brand.id);
+          showToast('Brand deleted successfully', 'success');
+          setDeleteDialog({ isOpen: false, brand: null });
+          fetchData();
+      } catch (error) {
+          showToast('Failed to delete brand', 'error');
+      }
   };
 
   const handleItemToggle = (item) => {

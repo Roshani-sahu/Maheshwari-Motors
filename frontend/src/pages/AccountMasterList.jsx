@@ -2,40 +2,78 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { FaPlus, FaMagnifyingGlass, FaPencil, FaFilter, FaSort, FaEye, FaTrashCan } from "react-icons/fa6";
 
+import { accountAPI } from '../services/api';
+import useStore from '../store';
+
 const AccountMasterList = () => {
+  const { showToast } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('All Groups');
   const [selectedGSTType, setSelectedGSTType] = useState('All GST Types');
+  const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const accounts = [
-    { name: "City Car Service", group: "Sundry Debtors", gstType: "GST Regular", gstin: "24AAFCE1234F1Z5", mobile: "9876543210", balance: "8,450.00 Dr", balanceType: "dr" },
-    { name: "Auto Parts Inc.", group: "Sundry Creditors", gstType: "GST Regular", gstin: "27BBFCE5678G2A6", mobile: "9876543211", balance: "25,000.00 Cr", balanceType: "cr" },
-    { name: "National Garage", group: "Sundry Debtors", gstType: "Unregistered", gstin: "-", mobile: "9876543212", balance: "5,000.00 Dr", balanceType: "dr" },
-    { name: "HDFC Bank", group: "Bank Accounts", gstType: "Not Applicable", gstin: "-", mobile: "-", balance: "2,50,000.00 Dr", balanceType: "dr" },
-    { name: "Cash Account", group: "Cash Accounts", gstType: "Not Applicable", gstin: "-", mobile: "-", balance: "15,890.75 Dr", balanceType: "dr" },
-    { name: "Speedy Spares Ltd.", group: "Sundry Creditors", gstType: "Composition", gstin: "29CCFCE9012H3B7", mobile: "9876543213", balance: "12,300.00 Cr", balanceType: "cr" },
-  ];
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    setLoading(true);
+    try {
+      const response = await accountAPI.getAll();
+       const val = response.data?.data;
+       const list = Array.isArray(val) ? val : (val?.data || []);
+       
+       setAccounts(list.map(p => ({
+           id: p._id,
+           name: p.name,
+           group: 'N/A', // Not in backend model
+           gstType: p.gstin ? 'Registered' : 'Unregistered',
+           gstin: p.gstin || '-',
+           mobile: p.phone || '-',
+           balance: Math.abs(p.balance || 0).toFixed(2),
+           balanceType: (p.balance || 0) >= 0 ? 'dr' : 'cr', // Assuming +ve is Dr (receivable) and -ve is Cr (payable) or vice versa. Standard accounting: Asset/Expense Dr +ve. Party Dr means they owe us.
+           // However without specific logic from user, I'll assume +ve is Dr.
+           originalBalance: p.balance || 0
+       })));
+    } catch (error) {
+       console.error("Failed to fetch accounts", error);
+       showToast('Failed to fetch accounts', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredAccounts = accounts.filter(account => {
     const matchesSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          account.gstin.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          account.mobile.includes(searchTerm);
-    const matchesGroup = selectedGroup === 'All Groups' || account.group === selectedGroup;
-    const matchesGST = selectedGSTType === 'All GST Types' || account.gstType === selectedGSTType;
+    // Group filtering not supported yet as backend doesn't have group
+    const matchesGroup = selectedGroup === 'All Groups' || true; 
+    const matchesGST = selectedGSTType === 'All GST Types' || 
+                       (selectedGSTType === 'GST Regular' && account.gstType === 'Registered') ||
+                       (selectedGSTType === 'Unregistered' && account.gstType === 'Unregistered');
+                       
     return matchesSearch && matchesGroup && matchesGST;
   });
 
   const handleView = (accountName) => {
-    alert(`Viewing details for: ${accountName}`);
+    // navigate/view logic
   };
 
   const handleEdit = (accountName) => {
-    alert(`Editing: ${accountName}`);
+    // navigate/edit logic
   };
 
-  const handleDelete = (accountName) => {
-    if (window.confirm(`Are you sure you want to delete ${accountName}?`)) {
-      alert(`Deleted: ${accountName}`);
+  const handleDelete = async (id, name) => {
+    if (window.confirm(`Are you sure you want to delete ${name}?`)) {
+        try {
+            await accountAPI.delete(id);
+            showToast('Account deleted successfully', 'success');
+            fetchAccounts();
+        } catch (error) {
+             showToast('Failed to delete account', 'error');
+        }
     }
   };
   return (
@@ -72,6 +110,7 @@ const AccountMasterList = () => {
             className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 rounded-md"
           >
             <option>All Groups</option>
+            {/* Groups are not yet in backend, keeping UI placeholders or could remove */}
             <option>Sundry Debtors</option>
             <option>Sundry Creditors</option>
             <option>Bank Accounts</option>
@@ -84,9 +123,8 @@ const AccountMasterList = () => {
           >
             <option>All GST Types</option>
             <option>GST Regular</option>
-            <option>Composition</option>
+            {/* Composition not in backend logic yet, mapped to Registered? */}
             <option>Unregistered</option>
-            <option>Not Applicable</option>
           </select>
           <button className="px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50 flex items-center gap-2">
             <FaFilter />
@@ -98,6 +136,9 @@ const AccountMasterList = () => {
       {/* Table */}
       <div className="bg-white border border-neutral-200 rounded-lg">
         <div className="overflow-x-auto">
+          {loading ? (
+              <div className="p-8 text-center text-neutral-500">Loading accounts...</div>
+          ) : (
           <table className="w-full text-xs md:text-sm min-w-[800px]">
             <thead className="bg-neutral-50">
               <tr>
@@ -144,7 +185,7 @@ const AccountMasterList = () => {
                           <FaPencil className="text-xs" />
                         </button>
                         <button
-                          onClick={() => handleDelete(account.name)}
+                          onClick={() => handleDelete(account.id, account.name)}
                           className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
                           title="Delete"
                         >
@@ -163,6 +204,7 @@ const AccountMasterList = () => {
               )}
             </tbody>
           </table>
+          )}
         </div>
         
         <div className="p-3 border-t border-neutral-200 flex justify-between items-center text-xs md:text-sm text-neutral-600">
