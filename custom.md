@@ -257,6 +257,7 @@ stock management:
 
 # ------------------------------------------------
 
+```json
 User {
 type: "secondary" (enum ["main", "secondary"])
 common firm data,
@@ -310,6 +311,7 @@ is_admin: true/false,
 token:
 // and rest other necessary things which I dont think is any more
 }
+```
 
 # ------------------------------------------------
 
@@ -457,7 +459,7 @@ as per this image: D:\Projects\flutter_projects\ROYAL\maheshwari-motors\Challan.
 
 # ------------------------------------------------
 
-frontend sends:  
+frontend sends:
 
 API - /add category / update
 
@@ -494,3 +496,5 @@ API - /delete category
 API - /delete brand
 { "brand_id": ""} // BRAND object ID
 ```
+
+# ------------------------------------------------

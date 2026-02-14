@@ -2,6 +2,7 @@ import 'purchase_item_model.dart';
 
 class PurchaseModel {
   final String id;
+  final int? numericId;
   final String purchaseNo;
   final String? supplierId;
   final String? supplierName;
@@ -14,6 +15,7 @@ class PurchaseModel {
 
   PurchaseModel({
     required this.id,
+    this.numericId,
     required this.purchaseNo,
     this.supplierId,
     this.supplierName,
@@ -31,6 +33,7 @@ class PurchaseModel {
     final supplier = json['supplier_id'];
     return PurchaseModel(
       id: json['_id'] ?? '',
+      numericId: json['id'],
       purchaseNo: json['purchase_no'] ?? '',
       supplierId: supplier is Map ? supplier['_id'] : supplier?.toString(),
       supplierName: supplier is Map ? supplier['name'] : null,

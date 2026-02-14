@@ -19,6 +19,7 @@ class DiscountField {
 
 class DiscountModel {
   final String id;
+  final int? numericId;
   final String brandId;
   final String? brandName;
   final DiscountField discount1;
@@ -26,17 +27,19 @@ class DiscountModel {
 
   DiscountModel({
     required this.id,
+    this.numericId,
     required this.brandId,
     this.brandName,
     DiscountField? discount1,
     DiscountField? discount2,
-  })  : discount1 = discount1 ?? DiscountField(),
-        discount2 = discount2 ?? DiscountField();
+  }) : discount1 = discount1 ?? DiscountField(),
+       discount2 = discount2 ?? DiscountField();
 
   factory DiscountModel.fromJson(Map<String, dynamic> json) {
     final brand = json['brand_id'];
     return DiscountModel(
       id: json['_id'] ?? '',
+      numericId: json['id'],
       brandId: brand is Map ? brand['_id'] ?? '' : brand?.toString() ?? '',
       brandName: brand is Map ? brand['name'] : null,
       discount1: DiscountField.fromJson(json['discount1']),
@@ -45,10 +48,10 @@ class DiscountModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'brand_id': brandId,
-        'discount1': discount1.toJson(),
-        'discount2': discount2.toJson(),
-      };
+    'brand_id': brandId,
+    'discount1': discount1.toJson(),
+    'discount2': discount2.toJson(),
+  };
 
   String get discount1Display =>
       discount1.total > 0 ? '${discount1.total}%' : '-';

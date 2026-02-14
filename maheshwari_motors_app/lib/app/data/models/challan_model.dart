@@ -2,6 +2,7 @@ import 'challan_item_model.dart';
 
 class ChallanModel {
   final String id;
+  final int? numericId;
   final String challanNo;
   final DateTime date;
   final String? partyId;
@@ -18,6 +19,7 @@ class ChallanModel {
 
   ChallanModel({
     required this.id,
+    this.numericId,
     required this.challanNo,
     required this.date,
     this.partyId,
@@ -37,6 +39,7 @@ class ChallanModel {
     final partyData = json['party_id'];
     return ChallanModel(
       id: json['_id'] ?? '',
+      numericId: json['id'],
       challanNo: json['challan_no'] ?? '',
       date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
       partyId: partyData is Map ? partyData['_id'] : partyData?.toString(),

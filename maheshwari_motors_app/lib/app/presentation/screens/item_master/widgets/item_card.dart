@@ -63,7 +63,7 @@ class ItemCard extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      AppFormatters.currencyDecimal(item.amount),
+                      AppFormatters.currencyDecimal(item.saleRate),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
                       ),

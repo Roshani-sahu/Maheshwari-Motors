@@ -106,7 +106,7 @@ class ItemViewScreen extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            AppFormatters.currencyDecimal(item.amount),
+                            AppFormatters.currencyDecimal(item.saleRate),
                             style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w700,

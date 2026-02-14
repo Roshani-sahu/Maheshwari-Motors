@@ -147,8 +147,18 @@ function validateField(fieldName, value, rule) {
     }
   }
 
-  if (rule.enum && !rule.enum.includes(value)) {
-    errors.push(`${label} must be one of: ${rule.enum.join(", ")}`);
+  if (rule.enum) {
+    let checkValue = value;
+    if (rule.type === "number" && typeof value === "string") {
+      const parsed = Number(value);
+      if (!isNaN(parsed)) checkValue = parsed;
+    }
+    if (rule.type === "boolean" && typeof value === "string") {
+      checkValue = value === "true";
+    }
+    if (!rule.enum.includes(checkValue)) {
+      errors.push(`${label} must be one of: ${rule.enum.join(", ")}`);
+    }
   }
 
   if (rule.type === "array" && Array.isArray(value) && rule.items) {

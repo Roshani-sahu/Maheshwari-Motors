@@ -1,5 +1,6 @@
 class StockAlertModel {
   final String id;
+  final int? numericId;
   final String? itemId;
   final String? itemName;
   final int stockCount;
@@ -9,6 +10,7 @@ class StockAlertModel {
 
   StockAlertModel({
     required this.id,
+    this.numericId,
     this.itemId,
     this.itemName,
     required this.stockCount,

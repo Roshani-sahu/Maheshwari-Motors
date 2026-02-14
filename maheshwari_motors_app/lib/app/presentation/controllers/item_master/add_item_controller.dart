@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/network/api_client.dart';
 import '../../../data/models/item_model.dart';
 import '../../../data/models/brand_model.dart';
+import '../../../data/models/category_model.dart';
 import '../../../data/models/supplier_model.dart';
 import '../../../data/services/api_service.dart';
 import '../../shared/widgets/common_widgets.dart';
@@ -13,17 +14,22 @@ import '../../shared/widgets/common_widgets.dart';
 class AddItemController extends GetxController {
   final formKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
-  final amountController = TextEditingController();
+  final saleRateController = TextEditingController();
+  final purchaseRateController = TextEditingController();
+  final mrpRateController = TextEditingController();
+  final gstPercentController = TextEditingController();
+  final discountController = TextEditingController();
+  final stockController = TextEditingController();
   final thresholdController = TextEditingController();
-  final gstStockController = TextEditingController();
-  final nongstStockController = TextEditingController();
 
   final ApiService _api = Get.find<ApiService>();
   final RxBool isLoading = false.obs;
   final Rx<XFile?> imageFile = Rx<XFile?>(null);
 
+  final RxList<CategoryModel> categoryList = <CategoryModel>[].obs;
   final RxList<BrandModel> brandList = <BrandModel>[].obs;
   final RxList<SupplierModel> supplierList = <SupplierModel>[].obs;
+  final Rx<String?> selectedCategoryId = Rx<String?>(null);
   final Rx<String?> selectedBrandId = Rx<String?>(null);
   final Rx<String?> selectedSupplierId = Rx<String?>(null);
   final RxInt isGst = 1.obs;
@@ -38,19 +44,35 @@ class AddItemController extends GetxController {
     editItem = Get.arguments as ItemModel?;
     if (editItem != null) {
       nameController.text = editItem!.itemName;
-      amountController.text =
-          editItem!.amount == editItem!.amount.roundToDouble()
-          ? editItem!.amount.toInt().toString()
-          : editItem!.amount.toString();
+      saleRateController.text =
+          editItem!.saleRate == editItem!.saleRate.roundToDouble()
+          ? editItem!.saleRate.toInt().toString()
+          : editItem!.saleRate.toString();
+      if (editItem!.purchaseRate > 0) {
+        purchaseRateController.text =
+            editItem!.purchaseRate == editItem!.purchaseRate.roundToDouble()
+            ? editItem!.purchaseRate.toInt().toString()
+            : editItem!.purchaseRate.toString();
+      }
+      if (editItem!.mrpRate > 0) {
+        mrpRateController.text =
+            editItem!.mrpRate == editItem!.mrpRate.roundToDouble()
+            ? editItem!.mrpRate.toInt().toString()
+            : editItem!.mrpRate.toString();
+      }
+      if (editItem!.gstPercent > 0) {
+        gstPercentController.text = editItem!.gstPercent.toString();
+      }
+      if (editItem!.discount > 0) {
+        discountController.text = editItem!.discount.toString();
+      }
+      if (editItem!.stock > 0) {
+        stockController.text = editItem!.stock.toString();
+      }
       if (editItem!.threshold > 0) {
         thresholdController.text = editItem!.threshold.toString();
       }
-      if (editItem!.gstStock > 0) {
-        gstStockController.text = editItem!.gstStock.toString();
-      }
-      if (editItem!.nongstStock > 0) {
-        nongstStockController.text = editItem!.nongstStock.toString();
-      }
+      selectedCategoryId.value = editItem!.categoryId;
       selectedBrandId.value = editItem!.brandId;
       selectedSupplierId.value = editItem!.supplierId;
       isGst.value = editItem!.isGst;
@@ -59,10 +81,14 @@ class AddItemController extends GetxController {
 
   Future<void> fetchDropdowns() async {
     try {
-      final cats = await _api.getBrands();
-      brandList.assignAll(cats);
-      final sups = await _api.getSuppliers();
-      supplierList.assignAll(sups);
+      final results = await Future.wait([
+        _api.getCategories(),
+        _api.getBrands(),
+        _api.getSuppliers(),
+      ]);
+      categoryList.assignAll(results[0] as List<CategoryModel>);
+      brandList.assignAll(results[1] as List<BrandModel>);
+      supplierList.assignAll(results[2] as List<SupplierModel>);
     } catch (e) {
       debugPrint('Error fetching dropdowns: $e');
     }
@@ -87,18 +113,32 @@ class AddItemController extends GetxController {
     try {
       final data = <String, dynamic>{
         'item_name': nameController.text.trim(),
-        'amount': amountController.text.trim(),
+        'sale_rate': saleRateController.text.trim(),
+        'purchase_rate': purchaseRateController.text.trim().isEmpty
+            ? '0'
+            : purchaseRateController.text.trim(),
+        'mrp_rate': mrpRateController.text.trim().isEmpty
+            ? '0'
+            : mrpRateController.text.trim(),
+        'gst_percent': gstPercentController.text.trim().isEmpty
+            ? '0'
+            : gstPercentController.text.trim(),
+        'discount': discountController.text.trim().isEmpty
+            ? '0'
+            : discountController.text.trim(),
+        'stock': stockController.text.trim().isEmpty
+            ? '0'
+            : stockController.text.trim(),
         'threshold': thresholdController.text.trim().isEmpty
             ? '0'
             : thresholdController.text.trim(),
-        'gst_stock': gstStockController.text.trim().isEmpty
-            ? '0'
-            : gstStockController.text.trim(),
-        'nongst_stock': nongstStockController.text.trim().isEmpty
-            ? '0'
-            : nongstStockController.text.trim(),
         'is_gst': isGst.value,
       };
+
+      final catId = selectedCategoryId.value;
+      if (catId != null && catId.isNotEmpty) {
+        data['category_id'] = catId;
+      }
 
       final brandId = selectedBrandId.value;
       if (brandId != null && brandId.isNotEmpty) {
@@ -138,10 +178,13 @@ class AddItemController extends GetxController {
   @override
   void onClose() {
     nameController.dispose();
-    amountController.dispose();
+    saleRateController.dispose();
+    purchaseRateController.dispose();
+    mrpRateController.dispose();
+    gstPercentController.dispose();
+    discountController.dispose();
+    stockController.dispose();
     thresholdController.dispose();
-    gstStockController.dispose();
-    nongstStockController.dispose();
     super.onClose();
   }
 }

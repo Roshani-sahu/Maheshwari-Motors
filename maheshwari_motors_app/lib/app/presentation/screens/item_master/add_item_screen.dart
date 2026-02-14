@@ -99,6 +99,39 @@ class AddItemScreen extends StatelessWidget {
               Obx(
                 () => DropdownButtonFormField<String>(
                   decoration: const InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  initialValue:
+                      controller.categoryList.any(
+                        (c) => c.id == controller.selectedCategoryId.value,
+                      )
+                      ? controller.selectedCategoryId.value
+                      : null,
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('None'),
+                    ),
+                    ...controller.categoryList.map((cat) {
+                      return DropdownMenuItem(
+                        value: cat.id,
+                        child: Text(cat.name),
+                      );
+                    }),
+                  ],
+                  onChanged: (val) => controller.selectedCategoryId.value = val,
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              Obx(
+                () => DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
                     labelText: 'Brand',
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(
@@ -163,19 +196,97 @@ class AddItemScreen extends StatelessWidget {
               const SizedBox(height: 18),
 
               AppTextField(
-                label: 'Amount (₹) *',
-                hint: 'Enter price',
-                controller: controller.amountController,
+                label: 'Sale Rate (₹) *',
+                hint: 'Enter sale rate',
+                controller: controller.saleRateController,
                 keyboardType: TextInputType.number,
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) {
-                    return 'Amount is required';
+                    return 'Sale rate is required';
                   }
                   if (double.tryParse(v.trim()) == null) {
                     return 'Invalid amount';
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 18),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      label: 'Purchase Rate (₹)',
+                      hint: '0',
+                      controller: controller.purchaseRateController,
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        if (v != null &&
+                            v.trim().isNotEmpty &&
+                            double.tryParse(v.trim()) == null) {
+                          return 'Invalid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: AppTextField(
+                      label: 'MRP Rate (₹)',
+                      hint: '0',
+                      controller: controller.mrpRateController,
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        if (v != null &&
+                            v.trim().isNotEmpty &&
+                            double.tryParse(v.trim()) == null) {
+                          return 'Invalid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      label: 'GST %',
+                      hint: '0',
+                      controller: controller.gstPercentController,
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        if (v != null &&
+                            v.trim().isNotEmpty &&
+                            double.tryParse(v.trim()) == null) {
+                          return 'Invalid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: AppTextField(
+                      label: 'Discount %',
+                      hint: '0',
+                      controller: controller.discountController,
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        if (v != null &&
+                            v.trim().isNotEmpty &&
+                            double.tryParse(v.trim()) == null) {
+                          return 'Invalid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 18),
 
@@ -238,42 +349,19 @@ class AddItemScreen extends StatelessWidget {
               ),
               const SizedBox(height: 18),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: AppTextField(
-                      label: 'GST Stock',
-                      hint: '0',
-                      controller: controller.gstStockController,
-                      keyboardType: TextInputType.number,
-                      validator: (v) {
-                        if (v != null &&
-                            v.trim().isNotEmpty &&
-                            int.tryParse(v.trim()) == null) {
-                          return 'Invalid';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: AppTextField(
-                      label: 'Non-GST Stock',
-                      hint: '0',
-                      controller: controller.nongstStockController,
-                      keyboardType: TextInputType.number,
-                      validator: (v) {
-                        if (v != null &&
-                            v.trim().isNotEmpty &&
-                            int.tryParse(v.trim()) == null) {
-                          return 'Invalid';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
+              AppTextField(
+                label: 'Stock',
+                hint: '0',
+                controller: controller.stockController,
+                keyboardType: TextInputType.number,
+                validator: (v) {
+                  if (v != null &&
+                      v.trim().isNotEmpty &&
+                      int.tryParse(v.trim()) == null) {
+                    return 'Enter a valid number';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 32),
 
@@ -290,6 +378,4 @@ class AddItemScreen extends StatelessWidget {
       ),
     );
   }
-
-
 }

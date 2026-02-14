@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
-import User from "../models/user.model.js";
-import Session from "../models/session.model.js";
+import User from "../models/auth/user.model.js";
+import Session from "../models/auth/session.model.js";
 import { ApiError, asyncHandler } from "../utils/index.js";
 import env from "../config/env.js";
 

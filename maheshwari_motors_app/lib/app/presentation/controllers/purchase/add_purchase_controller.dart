@@ -54,7 +54,9 @@ class AddPurchaseController extends GetxController {
     final line = lineItems[index];
     line.item = item;
     if (item != null) {
-      line.rateC.text = item.amount.toStringAsFixed(2);
+      line.rateC.text = item.purchaseRate > 0
+          ? item.purchaseRate.toStringAsFixed(2)
+          : item.saleRate.toStringAsFixed(2);
     }
     recalculate();
   }

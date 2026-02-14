@@ -1,10 +1,12 @@
 class BrandModel {
   final String id;
+  final int? numericId;
   final String name;
   final List<String> itemIds;
 
   BrandModel({
     required this.id,
+    this.numericId,
     required this.name,
     this.itemIds = const [],
   });
@@ -12,8 +14,10 @@ class BrandModel {
   factory BrandModel.fromJson(Map<String, dynamic> json) {
     return BrandModel(
       id: json['_id'] ?? '',
+      numericId: json['id'],
       name: json['name'] ?? '',
-      itemIds: (json['item_ids'] as List?)
+      itemIds:
+          (json['item_ids'] as List?)
               ?.map((e) => e is Map ? e['_id'].toString() : e.toString())
               .toList() ??
           [],

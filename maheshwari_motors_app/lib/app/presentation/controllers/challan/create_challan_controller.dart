@@ -99,8 +99,9 @@ class CreateChallanController extends GetxController {
       line.brandNonGstDiscount = 0;
       return;
     }
-    final discount =
-        discounts.firstWhereOrNull((d) => d.brandId == line.item!.brandId);
+    final discount = discounts.firstWhereOrNull(
+      (d) => d.brandId == line.item!.brandId,
+    );
     if (discount != null) {
       line.brandGstDiscount = discount.discount1.total;
       line.brandNonGstDiscount = discount.discount2.total;
@@ -114,7 +115,7 @@ class CreateChallanController extends GetxController {
     final line = lineItems[index];
     line.item = item;
     if (item != null) {
-      line.rateC.text = item.amount.toStringAsFixed(2);
+      line.rateC.text = item.saleRate.toStringAsFixed(2);
       line.isGst.value = item.isGst;
       _applyBrandDiscount(line);
     }

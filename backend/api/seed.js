@@ -17,6 +17,7 @@ import {
   Category,
   Discount,
   Purchase,
+  Counter,
 } from "../src/models/index.js";
 
 const SALT = 10;
@@ -42,6 +43,7 @@ async function seed() {
       Category,
       Discount,
       Purchase,
+      Counter,
     ];
     for (const M of models) {
       await M.deleteMany({});
@@ -160,26 +162,31 @@ async function seed() {
     // ─── 4. CATEGORIES ───
     const categories = await Category.insertMany([
       {
+        id: 1,
         name: "Engine Parts",
         description: "All engine related parts",
         user_id: userId,
       },
       {
+        id: 2,
         name: "Body Parts",
         description: "Body panels, bumpers, etc.",
         user_id: userId,
       },
       {
+        id: 3,
         name: "Electrical",
         description: "Wiring, lights, batteries",
         user_id: userId,
       },
       {
+        id: 4,
         name: "Suspension",
         description: "Shockers, springs, bushes",
         user_id: userId,
       },
       {
+        id: 5,
         name: "Brakes",
         description: "Brake pads, discs, drums",
         user_id: userId,
@@ -189,11 +196,11 @@ async function seed() {
 
     // ─── 4b. BRANDS ───
     const brands = await Brand.insertMany([
-      { name: "Bajaj Genuine", user_id: userId },
-      { name: "Honda OEM", user_id: userId },
-      { name: "TVS Star City", user_id: userId },
-      { name: "Hero Splendor", user_id: userId },
-      { name: "Royal Enfield Parts", user_id: userId },
+      { id: 1, name: "Bajaj Genuine", user_id: userId },
+      { id: 2, name: "Honda OEM", user_id: userId },
+      { id: 3, name: "TVS Star City", user_id: userId },
+      { id: 4, name: "Hero Splendor", user_id: userId },
+      { id: 5, name: "Royal Enfield Parts", user_id: userId },
     ]);
     // Link brands to categories
     const brandCategoryMap = [
@@ -213,30 +220,35 @@ async function seed() {
     // ─── 4c. DISCOUNTS (separate from brands) ───
     const discounts = await Discount.insertMany([
       {
+        id: 1,
         brand_id: brands[0]._id,
         discount1: { normal: 10, special: 2 },
         discount2: { normal: 8, special: 1 },
         user_id: userId,
       },
       {
+        id: 2,
         brand_id: brands[1]._id,
         discount1: { normal: 12, special: 3 },
         discount2: { normal: 10, special: 2 },
         user_id: userId,
       },
       {
+        id: 3,
         brand_id: brands[2]._id,
         discount1: { normal: 8, special: 0 },
         discount2: { normal: 6, special: 0 },
         user_id: userId,
       },
       {
+        id: 4,
         brand_id: brands[3]._id,
         discount1: { normal: 15, special: 5 },
         discount2: { normal: 12, special: 3 },
         user_id: userId,
       },
       {
+        id: 5,
         brand_id: brands[4]._id,
         discount1: { normal: 5, special: 0 },
         discount2: { normal: 3, special: 0 },
@@ -248,6 +260,7 @@ async function seed() {
     // ─── 5. SUPPLIERS ───
     const suppliers = await Supplier.insertMany([
       {
+        id: 1,
         name: "AutoParts India Pvt Ltd",
         phone: "9111222333",
         email: "sales@autopartsindia.com",
@@ -258,6 +271,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 2,
         name: "Bharat Spares",
         phone: "9444555666",
         email: "bharat@spares.com",
@@ -268,6 +282,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 3,
         name: "Royal Auto Components",
         phone: "9777888999",
         email: "royal@autocomp.com",
@@ -282,6 +297,7 @@ async function seed() {
     // ─── 6. PARTIES ───
     const parties = await Party.insertMany([
       {
+        id: 1,
         name: "Sharma Auto Works",
         phone: "9123456789",
         email: "sharma@autoworks.com",
@@ -293,6 +309,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 2,
         name: "Patel Garage",
         phone: "9234567890",
         email: "patel@garage.com",
@@ -303,6 +320,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 3,
         name: "Singh Motors",
         phone: "9345678901",
         email: "singh@motors.com",
@@ -314,6 +332,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 4,
         name: "Kumar Automobiles",
         phone: "9456789012",
         address: "88 Nehru Nagar",
@@ -328,106 +347,130 @@ async function seed() {
     // ─── 7. ITEMS ───
     const items = await Item.insertMany([
       {
+        id: 1,
         item_name: "Piston Assembly (Bajaj Pulsar)",
-        amount: 1200,
+        sale_rate: 1200,
         purchase_rate: 800,
+        mrp_rate: 1400,
+        gst_percent: 18,
+        discount: 0,
+        stock: 35,
         threshold: 5,
-        gst_stock: 25,
-        nongst_stock: 10,
-        nongst_sold: 2,
         is_gst: 1,
         user_id: userId,
+        category_id: categories[0]._id,
         brand_id: brands[0]._id,
         supplier_id: suppliers[0]._id,
       },
       {
+        id: 2,
         item_name: "Headlight Assembly (Honda Activa)",
-        amount: 850,
+        sale_rate: 850,
         purchase_rate: 550,
+        mrp_rate: 1000,
+        gst_percent: 18,
+        discount: 0,
+        stock: 23,
         threshold: 3,
-        gst_stock: 15,
-        nongst_stock: 8,
-        nongst_sold: 1,
         is_gst: 1,
         user_id: userId,
+        category_id: categories[2]._id,
         brand_id: brands[1]._id,
         supplier_id: suppliers[1]._id,
       },
       {
+        id: 3,
         item_name: "Front Shocker (TVS Apache)",
-        amount: 2200,
+        sale_rate: 2200,
         purchase_rate: 1500,
+        mrp_rate: 2600,
+        gst_percent: 18,
+        discount: 0,
+        stock: 18,
         threshold: 4,
-        gst_stock: 12,
-        nongst_stock: 6,
-        nongst_sold: 0,
         is_gst: 1,
         user_id: userId,
+        category_id: categories[3]._id,
         brand_id: brands[2]._id,
         supplier_id: suppliers[0]._id,
       },
       {
+        id: 4,
         item_name: "Brake Pad Set (Hero Splendor)",
-        amount: 350,
+        sale_rate: 350,
         purchase_rate: 200,
+        mrp_rate: 420,
+        gst_percent: 12,
+        discount: 0,
+        stock: 70,
         threshold: 10,
-        gst_stock: 50,
-        nongst_stock: 20,
-        nongst_sold: 5,
         is_gst: 1,
         user_id: userId,
+        category_id: categories[4]._id,
         brand_id: brands[3]._id,
         supplier_id: suppliers[2]._id,
       },
       {
+        id: 5,
         item_name: "Side Panel (Bajaj CT100)",
-        amount: 650,
+        sale_rate: 650,
         purchase_rate: 400,
+        mrp_rate: 780,
+        gst_percent: 18,
+        discount: 0,
+        stock: 12,
         threshold: 3,
-        gst_stock: 8,
-        nongst_stock: 4,
-        nongst_sold: 0,
         is_gst: 1,
         user_id: userId,
+        category_id: categories[1]._id,
         brand_id: brands[4]._id,
         supplier_id: suppliers[1]._id,
       },
       {
+        id: 6,
         item_name: "CDI Unit (Royal Enfield)",
-        amount: 1800,
+        sale_rate: 1800,
         purchase_rate: 1200,
+        mrp_rate: 2100,
+        gst_percent: 18,
+        discount: 0,
+        stock: 9,
         threshold: 2,
-        gst_stock: 6,
-        nongst_stock: 3,
-        nongst_sold: 1,
         is_gst: 1,
         user_id: userId,
+        category_id: categories[2]._id,
         brand_id: brands[1]._id,
         supplier_id: suppliers[0]._id,
       },
       {
+        id: 7,
         item_name: "Chain Sprocket Kit (Yamaha FZ)",
-        amount: 950,
+        sale_rate: 950,
         purchase_rate: 600,
+        mrp_rate: 1100,
+        gst_percent: 18,
+        discount: 0,
+        stock: 30,
         threshold: 5,
-        gst_stock: 20,
-        nongst_stock: 10,
-        nongst_sold: 3,
         is_gst: 1,
         user_id: userId,
+        category_id: categories[0]._id,
         brand_id: brands[0]._id,
         supplier_id: suppliers[2]._id,
       },
       {
+        id: 8,
         item_name: "Battery 12V (Exide)",
-        amount: 1400,
+        sale_rate: 1400,
         purchase_rate: 950,
+        mrp_rate: 1650,
+        gst_percent: 18,
+        discount: 0,
+        stock: 15,
         threshold: 3,
-        gst_stock: 10,
-        nongst_stock: 5,
-        nongst_sold: 1,
         is_gst: 1,
         user_id: userId,
+        category_id: categories[2]._id,
         brand_id: brands[1]._id,
         supplier_id: suppliers[1]._id,
       },
@@ -445,6 +488,7 @@ async function seed() {
     // ─── 8. STOCK ALERTS ───
     const stockAlerts = await StockAlert.insertMany([
       {
+        id: 1,
         item_id: items[0]._id,
         stock_count: 3,
         threshold: 5,
@@ -452,6 +496,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 2,
         item_id: items[5]._id,
         stock_count: 1,
         threshold: 2,
@@ -459,6 +504,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 3,
         item_id: items[3]._id,
         stock_count: 8,
         threshold: 10,
@@ -471,6 +517,7 @@ async function seed() {
     // ─── 9. CHALLANS (GST) ───
     const challans = await Challan.insertMany([
       {
+        id: 1,
         challan_no: "GST-CH-001",
         date: new Date("2026-02-01"),
         party_id: parties[0]._id,
@@ -503,6 +550,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 2,
         challan_no: "GST-CH-002",
         date: new Date("2026-02-05"),
         party_id: parties[2]._id,
@@ -526,6 +574,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 3,
         challan_no: "GST-CH-003",
         date: new Date("2026-02-10"),
         party_id: parties[1]._id,
@@ -562,6 +611,7 @@ async function seed() {
 
     // ─── 10. NON-GST CHALLAN ───
     const nongstChallan = await Challan.create({
+      id: 4,
       challan_no: "NGST-CH-001",
       date: new Date("2026-02-03"),
       party_id: parties[3]._id,
@@ -589,6 +639,7 @@ async function seed() {
     // ─── 11. BILLS (GST) ───
     const bills = await Bill.insertMany([
       {
+        id: 1,
         bill_no: "GST-BILL-001",
         date: new Date("2026-02-06"),
         party_id: parties[2]._id,
@@ -602,6 +653,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 2,
         bill_no: "GST-BILL-002",
         date: new Date("2026-02-12"),
         party_id: parties[0]._id,
@@ -615,6 +667,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 3,
         bill_no: "GST-BILL-003",
         date: new Date("2026-02-13"),
         party_id: parties[1]._id,
@@ -634,6 +687,7 @@ async function seed() {
 
     // ─── 12. NON-GST BILL ───
     const nongstBill = await Bill.create({
+      id: 4,
       bill_no: "NGST-BILL-001",
       date: new Date("2026-02-08"),
       party_id: parties[3]._id,
@@ -651,6 +705,7 @@ async function seed() {
     // ─── 13. PURCHASES ───
     const purchases = await Purchase.insertMany([
       {
+        id: 1,
         purchase_no: "PUR-GST-001",
         date: new Date("2026-01-25"),
         supplier_id: suppliers[0]._id,
@@ -665,6 +720,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 2,
         purchase_no: "PUR-GST-002",
         date: new Date("2026-02-01"),
         supplier_id: suppliers[1]._id,
@@ -679,6 +735,7 @@ async function seed() {
         user_id: userId,
       },
       {
+        id: 3,
         purchase_no: "PUR-NGST-001",
         date: new Date("2026-02-05"),
         supplier_id: suppliers[2]._id,
@@ -699,6 +756,7 @@ async function seed() {
     const transactions = await Transaction.insertMany([
       // Sale payment for GST-BILL-001
       {
+        id: 1,
         type: "sale",
         party_id: parties[2]._id,
         bill_id: bills[0]._id,
@@ -712,6 +770,7 @@ async function seed() {
       },
       // Partial sale payment for GST-BILL-002
       {
+        id: 2,
         type: "sale",
         party_id: parties[0]._id,
         bill_id: bills[1]._id,
@@ -724,6 +783,7 @@ async function seed() {
       },
       // Overpayment for GST-BILL-003
       {
+        id: 3,
         type: "sale",
         party_id: parties[1]._id,
         bill_id: bills[2]._id,
@@ -737,6 +797,7 @@ async function seed() {
       },
       // Purchase payment - full
       {
+        id: 4,
         type: "purchase",
         supplier_id: suppliers[0]._id,
         purchase_id: purchases[0]._id,
@@ -750,6 +811,7 @@ async function seed() {
       },
       // Purchase payment - partial
       {
+        id: 5,
         type: "purchase",
         supplier_id: suppliers[1]._id,
         purchase_id: purchases[1]._id,
@@ -762,6 +824,7 @@ async function seed() {
       },
       // Non-GST sale payment
       {
+        id: 6,
         type: "sale",
         party_id: parties[3]._id,
         bill_id: nongstBill._id,
@@ -774,6 +837,7 @@ async function seed() {
       },
       // Credit transaction
       {
+        id: 7,
         type: "sale",
         party_id: parties[0]._id,
         amount: 1500,
@@ -812,6 +876,22 @@ async function seed() {
     ]);
     console.log("✅ Reports created:", reports.length);
 
+    // ─── 17. COUNTER INITIALIZATION ───
+    await Counter.insertMany([
+      { model_name: "Category", user_id: userId, seq: 5 },
+      { model_name: "Brand", user_id: userId, seq: 5 },
+      { model_name: "Discount", user_id: userId, seq: 5 },
+      { model_name: "Item", user_id: userId, seq: 8 },
+      { model_name: "Supplier", user_id: userId, seq: 3 },
+      { model_name: "Party", user_id: userId, seq: 4 },
+      { model_name: "Challan", user_id: userId, seq: 4 },
+      { model_name: "Bill", user_id: userId, seq: 4 },
+      { model_name: "Purchase", user_id: userId, seq: 3 },
+      { model_name: "Transaction", user_id: userId, seq: 7 },
+      { model_name: "StockAlert", user_id: userId, seq: 3 },
+    ]);
+    console.log("✅ Counters initialized for all models");
+
     // ─── SUMMARY ───
     console.log("\n========== SEED COMPLETE ==========");
     console.log("Users:        2 (1 main + 1 secondary)");
@@ -827,6 +907,7 @@ async function seed() {
     console.log("Purchases:    3 (2 GST + 1 Non-GST)");
     console.log("Transactions: 7");
     console.log("Reports:      3");
+    console.log("Counters:     11");
     console.log("===================================");
     console.log("\n🔑 LOGIN CREDENTIALS:");
     console.log("Admin    → username: seed_admin      | password: Admin@1234");

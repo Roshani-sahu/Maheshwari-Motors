@@ -1134,13 +1134,33 @@
                                     "type": "text"
                                 },
                                 {
-                                    "key": "amount",
+                                    "key": "sale_rate",
                                     "value": "1200",
                                     "type": "text"
                                 },
                                 {
                                     "key": "purchase_rate",
                                     "value": "800",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "mrp_rate",
+                                    "value": "1500",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "gst_percent",
+                                    "value": "18",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "discount",
+                                    "value": "5",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "stock",
+                                    "value": "25",
                                     "type": "text"
                                 },
                                 {
@@ -1154,13 +1174,8 @@
                                     "type": "text"
                                 },
                                 {
-                                    "key": "gst_stock",
-                                    "value": "25",
-                                    "type": "text"
-                                },
-                                {
-                                    "key": "nongst_stock",
-                                    "value": "10",
+                                    "key": "category_id",
+                                    "value": "{{category_id}}",
                                     "type": "text"
                                 },
                                 {
@@ -1239,7 +1254,7 @@
                                     "type": "text"
                                 },
                                 {
-                                    "key": "amount",
+                                    "key": "sale_rate",
                                     "value": "1350",
                                     "type": "text"
                                 },
@@ -1249,8 +1264,33 @@
                                     "type": "text"
                                 },
                                 {
+                                    "key": "mrp_rate",
+                                    "value": "1650",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "gst_percent",
+                                    "value": "18",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "discount",
+                                    "value": "5",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "stock",
+                                    "value": "30",
+                                    "type": "text"
+                                },
+                                {
                                     "key": "threshold",
                                     "value": "8",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "category_id",
+                                    "value": "{{category_id}}",
                                     "type": "text"
                                 },
                                 {
@@ -1311,7 +1351,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"gst_stock\": 50,\n  \"nongst_stock\": 20\n}",
+                            "raw": "{\n  \"stock\": 50\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1559,7 +1599,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"party_id\": \"{{party_id}}\",\n  \"date\": \"2026-02-13\",\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 2,\n      \"rate\": 1200\n    }\n  ],\n  \"discount\": 0\n}",
+                            "raw": "{\n  \"party_id\": \"{{party_id}}\",\n  \"date\": \"2026-02-13\",\n  \"items\": [\n    {\n      \"item_id\": \"{{item_id}}\",\n      \"quantity\": 1,\n      \"rate\": 348,\n      \"discount\": 10,\n      \"special_discount\": 5,\n      \"gst_percent\": 0\n    }\n  ],\n  \"discount\": 0\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -1691,8 +1731,8 @@
                             "script": {
                                 "exec": [
                                     "const res = pm.response.json();",
-                                    "if (res.data && res.data._id) {",
-                                    "    pm.collectionVariables.set('bill_id', res.data._id);",
+                                    "if (res.data && res.data.bill && res.data.bill._id) {",
+                                    "    pm.collectionVariables.set('bill_id', res.data.bill._id);",
                                     "}"
                                 ],
                                 "type": "text/javascript"
@@ -1709,7 +1749,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"party_id\": \"{{party_id}}\",\n  \"challan_ids\": [\"{{challan_id}}\"],\n  \"apply_balance\": false\n}",
+                            "raw": "{\n  \"party_id\": \"{{party_id}}\",\n  \"challan_ids\": [\"{{challan_id}}\"],\n  \"apply_balance\": false,\n  \"delivered_amount\": null\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"

@@ -15,7 +15,6 @@ import '../models/discount_model.dart';
 import '../models/supplier_model.dart';
 import '../models/purchase_model.dart';
 
-
 class ApiService {
   final ApiClient _client = Get.find<ApiClient>();
 
@@ -197,7 +196,7 @@ class ApiService {
 
   Future<BillModel> createBill(Map<String, dynamic> data) async {
     final res = await _client.post('/bills', data: data);
-    return BillModel.fromJson(res.data['data']);
+    return BillModel.fromJson(res.data['data']['bill']);
   }
 
   Future<BillModel> updateBill(String id, Map<String, dynamic> data) async {
@@ -388,10 +387,7 @@ class ApiService {
     return BrandModel.fromJson(res.data['data']);
   }
 
-  Future<BrandModel> updateBrand(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
+  Future<BrandModel> updateBrand(String id, Map<String, dynamic> data) async {
     final res = await _client.put('/brands/$id', data: data);
     return BrandModel.fromJson(res.data['data']);
   }

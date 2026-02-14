@@ -1,5 +1,6 @@
 class BillModel {
   final String id;
+  final int? numericId;
   final String billNo;
   final DateTime date;
   final String? partyId;
@@ -15,6 +16,7 @@ class BillModel {
 
   BillModel({
     required this.id,
+    this.numericId,
     required this.billNo,
     required this.date,
     this.partyId,
@@ -33,6 +35,7 @@ class BillModel {
     final partyData = json['party_id'];
     return BillModel(
       id: json['_id'] ?? '',
+      numericId: json['id'],
       billNo: json['bill_no'] ?? '',
       date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
       partyId: partyData is Map ? partyData['_id'] : partyData?.toString(),

@@ -1,5 +1,6 @@
 class SupplierModel {
   final String id;
+  final int? numericId;
   final String name;
   final String? phone;
   final String? email;
@@ -10,6 +11,7 @@ class SupplierModel {
 
   SupplierModel({
     required this.id,
+    this.numericId,
     required this.name,
     this.phone,
     this.email,
@@ -22,6 +24,7 @@ class SupplierModel {
   factory SupplierModel.fromJson(Map<String, dynamic> json) {
     return SupplierModel(
       id: json['_id'] ?? '',
+      numericId: json['id'],
       name: json['name'] ?? '',
       phone: json['phone'],
       email: json['email'],

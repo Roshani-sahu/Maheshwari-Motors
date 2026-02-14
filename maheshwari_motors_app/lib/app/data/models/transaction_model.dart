@@ -1,5 +1,6 @@
 class TransactionModel {
   final String id;
+  final int? numericId;
   final String type;
   final String? partyId;
   final String? partyName;
@@ -18,6 +19,7 @@ class TransactionModel {
 
   TransactionModel({
     required this.id,
+    this.numericId,
     required this.type,
     this.partyId,
     this.partyName,

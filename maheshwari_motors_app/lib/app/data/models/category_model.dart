@@ -8,6 +8,7 @@ class CategoryBrandRef {
 
 class CategoryModel {
   final String id;
+  final int? numericId;
   final String name;
   final String? description;
   final List<CategoryBrandRef> brands;
@@ -16,6 +17,7 @@ class CategoryModel {
 
   CategoryModel({
     required this.id,
+    this.numericId,
     required this.name,
     this.description,
     this.brands = const [],
@@ -25,6 +27,7 @@ class CategoryModel {
     final rawBrands = json['brand_ids'] as List? ?? [];
     return CategoryModel(
       id: json['_id'] ?? '',
+      numericId: json['id'],
       name: json['name'] ?? '',
       description: json['description'],
       brands: rawBrands.map((e) {
