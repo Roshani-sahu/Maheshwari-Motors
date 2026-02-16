@@ -1,0 +1,115 @@
+import Purchase from "../../models/transaction/purchase.model.js";
+import { ApiError, Pagination } from "../../utils/index.js";
+import { getNextId } from "../../helpers/counter.js";
+import stockService from "../inventory/stock.service.js";
+
+class PurchaseService {
+  async getPurchases(userId, isGst, query) {
+    const filter = { user_id: userId };
+    if (isGst !== undefined) {
+      filter.purchase_type = isGst === 1 ? "GST" : "NON_GST";
+    }
+
+    if (query.supplier_id) filter.supplier_id = query.supplier_id;
+    if (query.purchase_type) filter.purchase_type = query.purchase_type;
+    if (query.payment_status) filter.payment_status = query.payment_status;
+
+    return Pagination.paginate(Purchase, filter, {
+      ...query,
+      populate: [
+        { path: "supplier_id", select: "name phone" },
+        { path: "items.item_id", select: "item_name" },
+      ],
+      sort: { createdAt: -1 },
+    });
+  }
+
+  async getPurchaseById(purchaseId, userId) {
+    const purchase = await Purchase.findOne({
+      _id: purchaseId,
+      user_id: userId,
+    })
+      .populate("supplier_id")
+      .populate("items.item_id");
+
+    if (!purchase) throw ApiError.notFound("Purchase not found");
+    return purchase;
+  }
+
+  async createPurchase(purchaseData, userId) {
+    const { items, supplier_id, purchase_type, date } = purchaseData;
+
+    const purchaseNoSeq = await getNextId(
+      `PurchaseNo_${purchase_type}`,
+      userId,
+    );
+    const purchase_no = `PO-${String(purchaseNoSeq).padStart(6, "0")}`;
+
+    let totalAmount = 0;
+    const processedItems = items.map((item) => {
+      const amount = item.quantity * item.rate;
+      totalAmount += amount;
+      return {
+        item_id: item.item_id,
+        quantity: item.quantity,
+        rate: item.rate,
+        amount,
+      };
+    });
+
+    await stockService.addStock(items, userId);
+
+    const nextId = await getNextId("Purchase", userId);
+
+    const purchase = await Purchase.create({
+      id: nextId,
+      purchase_no,
+      supplier_id,
+      date: date || new Date(),
+      items: processedItems,
+      purchase_type,
+      amount: totalAmount,
+      user_id: userId,
+    });
+
+    return purchase.populate([
+      { path: "supplier_id", select: "name" },
+      { path: "items.item_id", select: "item_name" },
+    ]);
+  }
+
+  async recordPayment(purchaseId, userId, amount) {
+    const purchase = await Purchase.findOne({
+      _id: purchaseId,
+      user_id: userId,
+    });
+    if (!purchase) throw ApiError.notFound("Purchase not found");
+
+    const newPaidAmount = purchase.paid_amount + amount;
+    let paymentStatus;
+    if (newPaidAmount < purchase.amount) paymentStatus = "due";
+    else if (newPaidAmount === purchase.amount) paymentStatus = "paid";
+    else paymentStatus = "overpaid";
+
+    const updatedPurchase = await Purchase.findByIdAndUpdate(
+      purchaseId,
+      { paid_amount: newPaidAmount, payment_status: paymentStatus },
+      { new: true },
+    ).populate("supplier_id", "name");
+
+    return updatedPurchase;
+  }
+
+  async deletePurchase(purchaseId, userId) {
+    const purchase = await Purchase.findOne({
+      _id: purchaseId,
+      user_id: userId,
+    });
+    if (!purchase) throw ApiError.notFound("Purchase not found");
+
+    await stockService.removeStock(purchase.items, userId);
+    await Purchase.findByIdAndDelete(purchaseId);
+  }
+}
+
+export default new PurchaseService();

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import routes from "./routers/index.js";
 import { errorHandler, notFoundHandler } from "./middlewares/index.js";
+import env from "./config/env.js";
 
 const createApp = () => {
   const app = express();
@@ -10,7 +11,7 @@ const createApp = () => {
 
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN || "*",
+      origin: env.CORS_ORIGIN.length > 0 ? env.CORS_ORIGIN : "*",
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
       allowedHeaders: ["Content-Type", "Authorization"],
