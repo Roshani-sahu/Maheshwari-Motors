@@ -19,15 +19,37 @@ const ItemView = () => {
             const finalCats = Array.isArray(catList) ? catList : (catList?.data || []);
             setCategories(finalCats.map(c => ({ id: c._id, name: c.name })));
 
-            // Fetch Items
-            const itemRes = await itemAPI.getAll();
-            const val = itemRes.data?.data;
-            const rawList = Array.isArray(val) ? val : (val?.data || []);
-            const backendItems = rawList.map(item => ({
+            // Fetch Items - Loop paging
+            let allDocs = [];
+            let page = 1;
+            let hasMore = true;
+            
+            while(hasMore) {
+                const response = await itemAPI.getAll({ page, limit: 100 });
+                const payload = response.data?.data;
+                let pageData = [];
+                
+                if (Array.isArray(payload)) {
+                    pageData = payload;
+                    hasMore = false;
+                } else {
+                    pageData = payload?.data || [];
+                    if (payload?.meta && payload.meta.hasNextPage) {
+                        page++;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+                
+                allDocs = [...allDocs, ...pageData];
+                if (page > 100) break;
+            }
+
+            const backendItems = allDocs.map(item => ({
                 id: item._id,
                 itemName: item.item_name,
-                amount: item.amount,
-                categoryId: item.category_ids?.[0], // ObjectId
+                amount: item.sale_rate || item.amount || 0,
+                categoryId: item.category_id || item.category_ids?.[0], // Handle both singular and array
                 itemMedia: item.image,
             }));
             setItems(backendItems);

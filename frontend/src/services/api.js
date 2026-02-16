@@ -134,7 +134,12 @@ export const accountAPI = {
 };
 
 export const itemAPI = {
-  getAll: (firmId) => api.get(`/items?firmId=${firmId}`),
+  getAll: (options) => {
+    if (typeof options === 'object') {
+       return api.get('/items', { params: options });
+    }
+    return api.get(`/items?firmId=${options}`);
+  },
   getById: (id) => api.get(`/items/${id}`),
   create: (data) => {
     if (data instanceof FormData) {
@@ -203,6 +208,8 @@ export const reportAPI = {
   sales: (firmId, params) => api.get(`/dashboard/firm`, { params }),
   purchase: (firmId, params) => api.get(`/dashboard/firm`, { params }),
   stock: (firmId, params) => api.get(`/items/low-stock`, { params }), 
+  getStockAlertItems: () => api.get('/stock-alerts/items'),
+  getAlertCount: () => api.get('/stock-alerts/count'),
   getAlerts: () => api.get('/stock-alerts'),
   resolveAlert: (id) => api.patch(`/stock-alerts/${id}/resolve`),
 };

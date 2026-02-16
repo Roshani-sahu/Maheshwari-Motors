@@ -68,14 +68,17 @@ const Dashboard = () => {
         // Let's check both
         const isGst = (selectedFirm?.type === 'GST' || selectedFirm?.id === 'gst' || currentFirmId === 'gst');
 
-        // Fetch General Dashboard Data (Big Object) and Items (for stock)
-        const [dashboardRes, itemRes] = await Promise.all([
+        // Fetch General Dashboard Data (Big Object), Items (for stock), and Alert Count
+        const [dashboardRes, itemRes, alertCountRes] = await Promise.all([
              api.reportAPI.getDashboard(),
-             api.itemAPI.getAll(currentFirmId)
+             api.itemAPI.getAll(currentFirmId),
+             api.reportAPI.getAlertCount()
         ]);
         
         const data = dashboardRes.data?.data || {};
         const items = Array.isArray(itemRes.data?.data) ? itemRes.data.data : (Array.isArray(itemRes.data) ? itemRes.data : []);
+        // Get alert count safely
+        const alertCountVal = alertCountRes?.data?.data?.count || 0;
 
         // Counts based on Firm Selection
         let totalChallans = 0;
@@ -88,31 +91,13 @@ const Dashboard = () => {
             totalChallans = data.counts?.nongst_challans || 0;
             totalBills = data.counts?.nongst_bills || 0;
         }
-        
-        // Low Stock
-        const lowStockCount = items.filter(item => {
-             const limit = item.threshold || 5; 
-             const stock = item.physical_stock || (item.gst_stock + item.nongst_stock) || 0;
-             // Only count if item belongs to this firm type? 
-             // Items usually shared but stock might be specific? 
-             // Item model has gst_stock/nongst_stock but usually we check total vs threshold?
-             // Or check item.is_gst match?
-             // If item.is_gst doesn't match current firm, skip?
-             // Backend item list is already filtered by currentFirmId call usually? 
-             // Actually itemAPI.getAll takes firmId. If backend respects it, items are correct. 
-             // If not, we filter:
-             const itemIsGst = item.is_gst === 1;
-             if (isGst !== itemIsGst) return false;
-             
-             return stock < limit;
-        }).length;
 
         setDashboardData({
             totalFirms: 2, 
             todaysChallans: totalChallans, // Using Total as per API availability
             todaysBills: totalBills,
             thisMonthBills: totalBills, // API gives total, not monthly sep. Reusing total.
-            lowStockAlerts: lowStockCount
+            lowStockAlerts: alertCountVal
         });
         
         // Recent Lists - Backend returns mixed, we filter
@@ -231,11 +216,11 @@ const Dashboard = () => {
                   <span className="text-gray-600 ml-2">{challan.party_name}</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-gray-900">{formatCurrency(challan.total_amount)}</div>
+                  <div className="font-medium text-gray-900">{formatCurrency(challan.amount || 0)}</div>
                   <div className="text-xs text-gray-500">{formatDate(new Date(challan.date))}</div>
                   <div className="text-xs mt-1">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${challan.is_billed ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
-                      {challan.is_billed ? 'Converted' : 'Not Converted'}
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${challan.converted_to_bill ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                      {challan.converted_to_bill ? 'Converted' : 'Not Converted'}
                     </span>
                   </div>
                 </div>
@@ -261,10 +246,10 @@ const Dashboard = () => {
               <div key={bill._id || bill.id} className="flex items-center justify-between text-sm">
                 <div>
                   <span className="font-medium text-gray-900">{bill.bill_no || bill.id}</span>
-                  <span className="text-gray-600 ml-2">{bill.party_name}</span>
+                  <span className="text-gray-600 ml-2">{bill.party_id?.name || bill.party_name}</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-gray-900">{formatCurrency(bill.total_amount)}</div>
+                  <div className="font-medium text-gray-900">{formatCurrency(bill.amount || 0)}</div>
                   <div className="text-xs text-gray-500">{formatDate(new Date(bill.date))}</div>
                 </div>
               </div>
