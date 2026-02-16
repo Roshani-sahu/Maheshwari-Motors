@@ -120,14 +120,14 @@ export const firmAPI = {
   getById: (id) => Promise.resolve({ data: {} }), // Not really used if we have getAll
   create: (data) => Promise.resolve({ data }), // Not supported via API
   update: (id, data) => Promise.resolve({ data }), // Not supported via API
-  delete: (id) => Promise.resolve({ data: {} }), // Not supported via API
+  // delete: (id) => Promise.resolve({ data: {} }), // Not supported via API
 };
 
 export const accountAPI = {
   getAll: (firmId) => api.get(`/parties?firmId=${firmId}`),
   create: (data) => api.post('/parties', data),
   update: (id, data) => api.put(`/parties/${id}`, data),
-  delete: (id) => api.delete(`/parties/${id}`),
+  // delete: (id) => api.// delete(`/parties/${id}`),
   getDue: (days) => api.get(`/parties/due?days=${days || 30}`),
   getOverpaid: () => api.get('/parties/overpaid'),
   getBalance: (id) => api.get(`/parties/${id}/balance`),
@@ -152,7 +152,7 @@ export const itemAPI = {
     }
     return api.put(`/items/${id}`, data);
   },
-  delete: (id) => api.delete(`/items/${id}`),
+  // delete: (id) => api.// delete(`/items/${id}`),
   getLowStock: () => api.get('/items/low-stock'),
   updateStock: (id, quantity) => api.patch(`/items/${id}/stock`, { quantity }),
   checkStock: (itemId, qty) => Promise.resolve({ data: { available: true } }), 
@@ -163,7 +163,7 @@ export const challanAPI = {
   getNextNumber: (firmId) => Promise.resolve({ data: { nextNumber: 'Auto' } }), 
   create: (data) => api.post('/challans', data),
   update: (id, data) => api.put(`/challans/${id}`, data),
-  delete: (id) => api.delete(`/challans/${id}`),
+  // delete: (id) => api.// delete(`/challans/${id}`),
   getUnconverted: (partyId) => api.get(`/challans/party/${partyId}/unconverted`),
 };
 
@@ -171,7 +171,7 @@ export const billAPI = {
   getAll: (firmId) => api.get(`/bills?firmId=${firmId}`),
   create: (data) => api.post('/bills', data), // Accepts { party_id, challan_ids, ... }
   // Update not supported
-  delete: (id) => api.delete(`/bills/${id}`),
+  // delete: (id) => api.// delete(`/bills/${id}`),
   recordPayment: (id, amount) => api.post(`/bills/${id}/payment`, { amount }),
   handleReturn: (id, returnAmount) => api.post(`/bills/${id}/return`, { return_amount: returnAmount }),
 };
@@ -192,7 +192,7 @@ export const paymentAPI = {
 export const purchaseAPI = {
   getAll: () => api.get('/purchases'),
   create: (data) => api.post('/purchases', data),
-  delete: (id) => api.delete(`/purchases/${id}`),
+  // delete: (id) => api.// delete(`/purchases/${id}`),
   recordPayment: (id, amount) => api.post(`/purchases/${id}/payment`, { amount }),
 };
 
@@ -216,7 +216,7 @@ export const categoryAPI = {
   }),
   create: (data) => api.post('/categories', data),
   update: (id, data) => api.put(`/categories/${id}`, data),
-  delete: (id) => api.delete(`/categories/${id}`),
+  // delete: (id) => api.// delete(`/categories/${id}`),
 };
 
 export const supplierAPI = {
@@ -226,7 +226,7 @@ export const supplierAPI = {
   }),
   create: (data) => api.post('/suppliers', data),
   update: (id, data) => api.put(`/suppliers/${id}`, data),
-  delete: (id) => api.delete(`/suppliers/${id}`),
+  // delete: (id) => api.// delete(`/suppliers/${id}`),
 };
 
 export const groupAPI = {
@@ -249,7 +249,7 @@ export const adminAPI = {
   createUser: (data) => api.post('/admin/users', data),
   getUser: (id) => api.get(`/admin/users/${id}`),
   updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
-  deleteUser: (id) => api.delete(`/admin/users/${id}`),
+  // deleteUser: (id) => api.// delete(`/admin/users/${id}`),
   toggleStatus: (id, isActive) => api.post(`/admin/users/${id}/${isActive ? "reactivate" : "deactivate"}`),
 };
 
@@ -260,12 +260,12 @@ export const brandAPI = {
   }),
   create: (data) => api.post('/brands', data),
   update: (id, data) => api.put(`/brands/${id}`, data),
-  delete: (id) => api.delete(`/brands/${id}`),
+  // delete: (id) => api.// delete(`/brands/${id}`),
 };
 
 export const discountAPI = {
   getAll: () => api.get('/discounts'),
   getByBrand: (brandId) => api.get(`/discounts/brand/${brandId}`),
   upsert: (data) => api.post('/discounts', data),
-  delete: (id) => api.delete(`/discounts/${id}`),
+  // delete: (id) => api.// delete(`/discounts/${id}`),
 };
