@@ -50,7 +50,7 @@ const ItemView = () => {
     {
       key: 'amount',
       label: 'Amount',
-      render: (value) => `₹${Number(value).toFixed(2)}`
+      render: (value) => `₹${Number(value || 0).toFixed(2)}`
     },
     {
       key: 'itemMedia',

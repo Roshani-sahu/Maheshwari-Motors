@@ -31,7 +31,7 @@ const AccountMasterList = () => {
            gstType: p.gstin ? 'Registered' : 'Unregistered',
            gstin: p.gstin || '-',
            mobile: p.phone || '-',
-           balance: Math.abs(p.balance || 0).toFixed(2),
+           balance: Math.abs(Number(p.balance) || 0).toFixed(2),
            balanceType: (p.balance || 0) >= 0 ? 'dr' : 'cr', // Assuming +ve is Dr (receivable) and -ve is Cr (payable) or vice versa. Standard accounting: Asset/Expense Dr +ve. Party Dr means they owe us.
            // However without specific logic from user, I'll assume +ve is Dr.
            originalBalance: p.balance || 0

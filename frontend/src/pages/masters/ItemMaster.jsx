@@ -90,7 +90,7 @@ const ItemMaster = () => {
     {
       key: 'amount',
       label: 'Amount',
-      render: (value) => <span className="text-xs sm:text-sm">₹{(value || 0).toFixed(2)}</span>
+      render: (value) => <span className="text-xs sm:text-sm">₹{Number(value || 0).toFixed(2)}</span>
     },
     {
       key: 'stockCount',
