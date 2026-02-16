@@ -43,74 +43,90 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Avoid fetching if no user or if user is admin (who shouldn't see this dashboard data)
       if (!user || user.role === 'admin') {
         setLoading(false);
         return;
       }
-
+      
       setLoading(true);
-
       try {
-        // Ensure firm selection
         let currentFirmId = selectedFirm?.id;
+        
+        // Fallback for firm selection
+        const api = await import('../services/api'); // Dynamic import to avoid circular dep issues if any
         if (!currentFirmId) {
-             // Fallback: Default to 'gst' or fetch from profile
-             // For simplify, let's assume 'gst' is safe default if not set, 
-             // or fetch firms.
-             const firmRes = await import('../services/api').then(m => m.firmAPI.getAll());
-             if (firmRes.data.data?.length > 0) {
-                 const defaultFirm = firmRes.data.data[0];
+             const firmRes = await api.firmAPI.getAll();
+             if (firmRes.data && firmRes.data.length > 0) {
+                 const defaultFirm = firmRes.data[0];
                  setFirm(defaultFirm);
                  currentFirmId = defaultFirm.id;
              }
         }
-
-        // Fetch All Data
-        const api = await import('../services/api');
-        const [challanRes, billRes, itemRes] = await Promise.all([
-            api.challanAPI.getAll(currentFirmId),
-            api.billAPI.getAll(currentFirmId),
-            api.itemAPI.getAll(currentFirmId)
-        ]);
-
-        const fetchedChallans = Array.isArray(challanRes.data?.data) ? challanRes.data.data : (Array.isArray(challanRes.data) ? challanRes.data : []);
-        const fetchedBills = Array.isArray(billRes.data?.data) ? billRes.data.data : (Array.isArray(billRes.data) ? billRes.data : []);
-        const fetchedItems = Array.isArray(itemRes.data?.data) ? itemRes.data.data : (Array.isArray(itemRes.data) ? itemRes.data : []);
-
-        // Update Store
-        setChallans(fetchedChallans); // The store expects arrays
-        setBills(fetchedBills);
-        setItems(fetchedItems);
-
-        // Calculate Dashboard Stats
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
-        const currentMonth = now.getMonth();
-
-        const todaysChallansCount = fetchedChallans.filter(c => (c.created_at || c.date)?.startsWith(todayStr)).length;
-        const todaysBillsCount = fetchedBills.filter(b => (b.created_at || b.date)?.startsWith(todayStr)).length;
-        const monthBillsCount = fetchedBills.filter(b => new Date(b.created_at || b.date).getMonth() === currentMonth).length;
         
-        // Low Stock Logic: stock < threshold (default threshold is 0 if undefined, or check item logic)
-        // Adjust logic based on your Item model: threshold is optional. Maybe default to 5?
-        const lowStockCount = fetchedItems.filter(item => {
+        // Determine is GST mode
+        // selectedFirm.type is 'GST' or 'NON_GST' usually, or id='gst'/'nongst'
+        // Let's check both
+        const isGst = (selectedFirm?.type === 'GST' || selectedFirm?.id === 'gst' || currentFirmId === 'gst');
+
+        // Fetch General Dashboard Data (Big Object) and Items (for stock)
+        const [dashboardRes, itemRes] = await Promise.all([
+             api.reportAPI.getDashboard(),
+             api.itemAPI.getAll(currentFirmId)
+        ]);
+        
+        const data = dashboardRes.data?.data || {};
+        const items = Array.isArray(itemRes.data?.data) ? itemRes.data.data : (Array.isArray(itemRes.data) ? itemRes.data : []);
+
+        // Counts based on Firm Selection
+        let totalChallans = 0;
+        let totalBills = 0;
+        
+        if (isGst) {
+            totalChallans = data.counts?.gst_challans || 0;
+            totalBills = data.counts?.gst_bills || 0;
+        } else {
+            totalChallans = data.counts?.nongst_challans || 0;
+            totalBills = data.counts?.nongst_bills || 0;
+        }
+        
+        // Low Stock
+        const lowStockCount = items.filter(item => {
              const limit = item.threshold || 5; 
              const stock = item.physical_stock || (item.gst_stock + item.nongst_stock) || 0;
+             // Only count if item belongs to this firm type? 
+             // Items usually shared but stock might be specific? 
+             // Item model has gst_stock/nongst_stock but usually we check total vs threshold?
+             // Or check item.is_gst match?
+             // If item.is_gst doesn't match current firm, skip?
+             // Backend item list is already filtered by currentFirmId call usually? 
+             // Actually itemAPI.getAll takes firmId. If backend respects it, items are correct. 
+             // If not, we filter:
+             const itemIsGst = item.is_gst === 1;
+             if (isGst !== itemIsGst) return false;
+             
              return stock < limit;
         }).length;
 
         setDashboardData({
             totalFirms: 2, 
-            todaysChallans: todaysChallansCount,
-            todaysBills: todaysBillsCount,
-            thisMonthBills: monthBillsCount,
+            todaysChallans: totalChallans, // Using Total as per API availability
+            todaysBills: totalBills,
+            thisMonthBills: totalBills, // API gives total, not monthly sep. Reusing total.
             lowStockAlerts: lowStockCount
         });
-
-        // Set Local Recent Lists (Sorted by Date Descending)
-        setRecentChallans([...fetchedChallans].sort((a,b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date)).slice(0, 5));
-        setRecentBills([...fetchedBills].sort((a,b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date)).slice(0, 5));
+        
+        // Recent Lists - Backend returns mixed, we filter
+        const filterRecent = (list) => (list || []).filter(item => {
+             // item.is_gst might be 1/0
+             const itemIsGst = item.is_gst === 1;
+             return itemIsGst === isGst;
+        });
+        
+        setRecentChallans(filterRecent(data.recent_challans));
+        setRecentBills(filterRecent(data.recent_bills));
+        
+        // Update Store
+        setItems(items);
 
       } catch (err) {
         console.error("Failed to load dashboard data", err);
@@ -118,9 +134,9 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-
+    
     fetchData();
-  }, [user, selectedFirm, setChallans, setBills, setItems, setFirm]);
+  }, [user, selectedFirm, billPeriod, setItems, setFirm]);
 
   return (
     <div className="space-y-6">

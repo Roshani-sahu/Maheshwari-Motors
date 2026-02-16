@@ -166,7 +166,7 @@ export const purchaseAPI = {
 };
 
 export const reportAPI = {
-  getFirmStats: (firmId, period) => api.get(`/dashboard/firm`, { params: { period } }),
+  getFirmStats: (firmId, period) => api.get(`/dashboard/firm`, { params: { firmId, period } }),
   getDashboard: () => api.get('/dashboard'),
   gst: (firmId, params) => api.get(`/dashboard/firm`, { params }), 
   sales: (firmId, params) => api.get(`/dashboard/firm`, { params }),
