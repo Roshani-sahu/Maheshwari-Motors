@@ -42,9 +42,17 @@ const Header = ({ onMenuClick }) => {
   //   navigate('/sale-entry');
   // };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      // Call the API to invalidate the session on the server
+      await import('../services/api').then(m => m.authAPI.logout());
+    } catch (error) {
+      console.error("Logout API failed", error);
+    } finally {
+      // Always clear local storage and redirect
+      localStorage.removeItem('token');
+      navigate('/login');
+    }
   };
   return (
     <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between h-auto sm:h-16 px-4 sm:px-6 py-2 sm:py-0 bg-white border-b border-neutral-200">
