@@ -23,22 +23,37 @@ const BrandMaster = () => {
 
   const fetchData = async () => {
       try {
-          const [brandRes, itemRes] = await Promise.all([
-              brandAPI.getAll(),
-              itemAPI.getAll()
-          ]);
-          
-          // Helper to extract data array from potentially paginated response
-          const extractData = (res) => {
-              const payload = res?.data?.data; // ApiResponse returns { data: ... }
-              if (Array.isArray(payload)) return payload;
-              if (payload?.docs && Array.isArray(payload.docs)) return payload.docs; // Mongoose pagination
-              if (payload?.data && Array.isArray(payload.data)) return payload.data; // Other pagination
-              return [];
+          // Helper function to fetch all pages from an API endpoint
+          const fetchAllPages = async (apiCall) => {
+              let allDocs = [];
+              let page = 1;
+              let hasMore = true;
+              while(hasMore) {
+                  const res = await apiCall({ page, limit: 100 });
+                  const payload = res.data?.data;
+                  let pageData = [];
+
+                  if (Array.isArray(payload)) {
+                      pageData = payload;
+                      hasMore = false;
+                  } else {
+                      pageData = payload?.data || [];
+                      if (payload?.meta && payload.meta.hasNextPage) {
+                          page++;
+                      } else {
+                          hasMore = false;
+                      }
+                  }
+                  allDocs = [...allDocs, ...pageData];
+                  if (page > 50) break;
+              }
+              return allDocs;
           };
 
-          const brandList = extractData(brandRes);
-          const itemList = extractData(itemRes);
+          const [brandList, itemList] = await Promise.all([
+              fetchAllPages(brandAPI.getAll),
+              fetchAllPages(itemAPI.getAll)
+          ]);
 
           setItems(itemList.map(i => ({ 
               id: i._id, 

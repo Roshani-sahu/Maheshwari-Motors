@@ -60,16 +60,35 @@ const UserMaster = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await adminAPI.getUsers();
-      // Pagination returns { data: [...], meta: ... } inside response.data.data
-      const paginationData = response.data.data;
-      const userList = paginationData.data || (Array.isArray(paginationData) ? paginationData : []);
-      const mappedUsers = userList.map(u => ({
+      let allUsers = [];
+      let page = 1;
+      let hasMore = true;
+
+      while(hasMore) {
+          const response = await adminAPI.getUsers({ page, limit: 100 });
+          const paginationData = response.data.data;
+          
+          let pageData = [];
+           if (Array.isArray(paginationData)) {
+              pageData = paginationData;
+              hasMore = false;
+          } else {
+              pageData = paginationData.data || [];
+              if (paginationData?.meta && paginationData.meta.hasNextPage) {
+                  page++;
+              } else {
+                  hasMore = false;
+              }
+          }
+          allUsers = [...allUsers, ...pageData];
+          if (page > 50) break;
+      }
+
+      const mappedUsers = allUsers.map(u => ({
          id: u._id,
          username: u.name, 
          email: u.email,
          role: 'secondary',
-         // Store full object for editing if needed
          original: u 
       }));
       setUsers(mappedUsers);
