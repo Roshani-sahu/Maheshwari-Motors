@@ -28,23 +28,45 @@ const ItemMaster = () => {
       fetchCategories();
   }, []);
 
-  // Fetch items from backend
+  // Fetch items from backend - Iterate all pages
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await itemAPI.getAll();
-        console.log("Items response:", response);
-        const val = response.data?.data;
-        const rawList = Array.isArray(val) ? val : (val?.data || []);
+        let allDocs = [];
+        let page = 1;
+        let hasMore = true;
         
-        const backendItems = rawList.map(item => ({
+        while(hasMore) {
+            // Request large limit, backend will cap it to MAX_PAGE_SIZE (10)
+            const response = await itemAPI.getAll({ page, limit: 100 });
+            const payload = response.data?.data;
+            let pageData = [];
+            
+            if (Array.isArray(payload)) {
+                pageData = payload;
+                hasMore = false; // If array, likely no pagination meta, assume single page or all
+            } else {
+                pageData = payload?.data || [];
+                // Check if we have more pages
+                if (payload?.meta && payload.meta.hasNextPage) {
+                    page++;
+                } else {
+                    hasMore = false;
+                }
+            }
+            
+            allDocs = [...allDocs, ...pageData];
+            if (page > 100) break; // Safety break
+        }
+        
+        const backendItems = allDocs.map(item => ({
           id: item._id,
           itemName: item.item_name,
           amount: item.sale_rate || item.amount || 0,
           threshold: item.threshold || 0,
-          stockCount: item.stock || item.physical_stock || (item.gst_stock + item.nongst_stock) || 0,
+          stockCount: Number(item.stock) || Number(item.current_stock) || Number(item.opening_stock) || Number(item.physical_stock) || Number(item.quantity) || (Number(item.gst_stock || 0) + Number(item.nongst_stock || 0)) || 0,
           itemMedia: item.image,
-          status: ((item.stock || item.physical_stock || 0) <= (item.threshold || 0)) ? 'LOW' : 'OK',
+          status: ((Number(item.stock) || 0) <= (Number(item.threshold) || 0)) ? 'LOW' : 'OK',
           type: item.is_gst,
           categoryId: item.category_id || item.category_ids?.[0]
         }));

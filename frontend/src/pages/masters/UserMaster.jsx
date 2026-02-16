@@ -85,18 +85,12 @@ const UserMaster = () => {
 
   const handleLogout = async () => {
     try {
-        await adminAPI.logout ? adminAPI.logout() : localStorage.removeItem('token'); // usage of authAPI via service import in handleLogout usually
-        // But since we are in UserMaster, let's use the standard logout approach 
-        
-        // Actually, let's just clear token as requested but if there is an API call we should do it.
-        // The user complained about "hitting delete api". We want to be sure we DON'T.
-        // We will just do the standard safe logout.
-        localStorage.removeItem('token');
-        localStorage.removeItem('userRole');
-        navigate('/login');
+        await import('../../services/api').then(m => m.authAPI.logout());
     } catch (e) {
         console.error(e);
+    } finally {
         localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
         navigate('/login');
     }
   };

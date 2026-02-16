@@ -8,15 +8,15 @@ const StockAlertMaster = () => {
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const response = await reportAPI.stock();
+            const response = await reportAPI.getStockAlertItems(); // Use the endpoint you confirmed works
             const val = response.data?.data;
             const items = Array.isArray(val) ? val : (val?.data || []);
             setStockAlerts(items.map(i => ({
                 id: i._id,
                 itemName: i.item_name,
                 stockCount: i.stock,
-                threshold: i.low_stock_threshold || 5,
-                status: (i.stock || 0) <= (i.low_stock_threshold || 5) ? 'LOW' : 'OK'
+                threshold: i.threshold || i.low_stock_threshold || 5, // Use threshold first as API returns it
+                status: (Number(i.stock) || 0) <= (Number(i.threshold) || Number(i.low_stock_threshold) || 5) ? 'LOW' : 'OK'
             })));
         } catch (error) {
             console.error("Failed to fetch stock alerts", error);
@@ -52,8 +52,8 @@ const StockAlertMaster = () => {
     }
   ];
 
-  // Filter to show only LOW stock items by default
-  const [showOnlyLow, setShowOnlyLow] = useState(true);
+  // Filter to show only LOW stock items by default - CHANGED to false to show all data for debugging
+  const [showOnlyLow, setShowOnlyLow] = useState(false);
   const filteredData = showOnlyLow ? 
     stockAlerts.filter(item => item.status === 'LOW') : 
     stockAlerts;
