@@ -28,8 +28,17 @@ const CategoryMaster = () => {
         brandAPI.getAll()
       ]);
 
-      const catList = Array.isArray(catRes.data?.data) ? catRes.data.data : (catRes.data?.data?.data || []);
-      const brandList = Array.isArray(brandRes.data?.data) ? brandRes.data.data : (brandRes.data?.data?.data || []);
+      // Helper to extract data array from potentially paginated response
+      const extractData = (res) => {
+          const payload = res?.data?.data; // ApiResponse returns { data: ... }
+          if (Array.isArray(payload)) return payload;
+          if (payload?.docs && Array.isArray(payload.docs)) return payload.docs; // Mongoose pagination
+          if (payload?.data && Array.isArray(payload.data)) return payload.data; // Other pagination
+          return [];
+      };
+
+      const catList = extractData(catRes);
+      const brandList = extractData(brandRes);
 
       setCategories(catList.map(c => ({ 
         id: c._id, 

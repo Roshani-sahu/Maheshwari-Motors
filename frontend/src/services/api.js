@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api-maheshwari-motors.koyeb.app/api/v1';
+const API_BASE_URL = import.meta.env.DEV 
+  ? '/api/v1' 
+  : (import.meta.env.VITE_API_URL || 'https://api-maheshwari-motors.koyeb.app/api/v1');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -63,7 +65,7 @@ export const authAPI = {
   
   logout: () => api.post('/auth/logout'),
   getProfile: () => api.get('/auth/me'),
-  updateProfile: (data) => api.put('/auth/profile', data),
+  // updateProfile: Not supported by backend
   changePassword: (data) => api.put('/auth/change-password', data),
 };
 
@@ -91,16 +93,19 @@ export const firmAPI = {
 };
 
 export const accountAPI = {
-  getAll: (firmId) => api.get(`/parties?firmId=${firmId}`), // Backend ignores firmId, filters by user
+  getAll: (firmId) => api.get(`/parties?firmId=${firmId}`),
   create: (data) => api.post('/parties', data),
   update: (id, data) => api.put(`/parties/${id}`, data),
   delete: (id) => api.delete(`/parties/${id}`),
+  getDue: (days) => api.get(`/parties/due?days=${days || 30}`),
+  getOverpaid: () => api.get('/parties/overpaid'),
+  getBalance: (id) => api.get(`/parties/${id}/balance`),
 };
 
 export const itemAPI = {
   getAll: (firmId) => api.get(`/items?firmId=${firmId}`),
+  getById: (id) => api.get(`/items/${id}`),
   create: (data) => {
-    // Handle file upload if data contains image
     if (data instanceof FormData) {
       return api.post('/items', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -117,40 +122,58 @@ export const itemAPI = {
     return api.put(`/items/${id}`, data);
   },
   delete: (id) => api.delete(`/items/${id}`),
-  checkStock: (itemId, qty) => Promise.resolve({ data: { available: true } }), // Not implemented in backend explicitly, logical check
+  getLowStock: () => api.get('/items/low-stock'),
+  updateStock: (id, quantity) => api.patch(`/items/${id}/stock`, { quantity }),
+  checkStock: (itemId, qty) => Promise.resolve({ data: { available: true } }), 
 };
 
 export const challanAPI = {
   getAll: (firmId) => api.get(`/challans?firmId=${firmId}`), 
-  getNextNumber: (firmId) => Promise.resolve({ data: { nextNumber: 'Auto' } }), // Backend handles this
+  getNextNumber: (firmId) => Promise.resolve({ data: { nextNumber: 'Auto' } }), 
   create: (data) => api.post('/challans', data),
   update: (id, data) => api.put(`/challans/${id}`, data),
   delete: (id) => api.delete(`/challans/${id}`),
-  convertToBill: (challanIds) => api.post('/challans/convert-to-bill', { challanIds }), // Need to verify if this endpoint exists. 
-  // Backend `challanRoutes` does NOT have convertToBill. `billRoutes` might have it.
+  getUnconverted: (partyId) => api.get(`/challans/party/${partyId}/unconverted`),
 };
 
 export const billAPI = {
   getAll: (firmId) => api.get(`/bills?firmId=${firmId}`),
-  create: (data) => api.post('/bills', data),
-  update: (id, data) => api.put(`/bills/${id}`, data),
+  create: (data) => api.post('/bills', data), // Accepts { party_id, challan_ids, ... }
+  // Update not supported
   delete: (id) => api.delete(`/bills/${id}`),
+  recordPayment: (id, amount) => api.post(`/bills/${id}/payment`, { amount }),
+  handleReturn: (id, returnAmount) => api.post(`/bills/${id}/return`, { return_amount: returnAmount }),
+};
+
+export const transactionAPI = {
+  getAll: (firmId) => api.get(`/transactions?firmId=${firmId}`),
+  createSale: (data) => api.post('/transactions/sale', data),
+  createPurchase: (data) => api.post('/transactions/purchase', data),
+  getSummary: () => api.get('/transactions/summary'),
 };
 
 export const paymentAPI = {
-  create: (data) => api.post('/transactions', data),
+  // Alias to ensure backward compatibility if needed, but preferably use transactionAPI
+  create: (data) => api.post('/transactions/sale', data), // Assumes sale transaction
   getAll: (firmId) => api.get(`/transactions?firmId=${firmId}`),
 };
 
+export const purchaseAPI = {
+  getAll: () => api.get('/purchases'),
+  create: (data) => api.post('/purchases', data),
+  delete: (id) => api.delete(`/purchases/${id}`),
+  recordPayment: (id, amount) => api.post(`/purchases/${id}/payment`, { amount }),
+};
+
 export const reportAPI = {
-  // Backend has /dashboard. We'll map to that for now, or use specific report routes if they exist.
-  // Backend `routers/index.js` shows `stock-alerts` but no `reports`.
-  // `dashboardRoutes` likely has stats.
-  gst: (firmId, params) => api.get(`/dashboard/stats`, { params }), // Placeholder
-  sales: (firmId, params) => api.get(`/dashboard/stats`, { params }),
-  purchase: (firmId, params) => api.get(`/dashboard/stats`, { params }),
-  stock: (firmId, params) => api.get(`/items/low-stock`, { params }), // We have this
-  ledger: (firmId, accountId, params) => Promise.resolve({ data: [] }), // Not explicitly found
+  getFirmStats: (firmId, period) => api.get(`/dashboard/firm`, { params: { period } }),
+  getDashboard: () => api.get('/dashboard'),
+  gst: (firmId, params) => api.get(`/dashboard/firm`, { params }), 
+  sales: (firmId, params) => api.get(`/dashboard/firm`, { params }),
+  purchase: (firmId, params) => api.get(`/dashboard/firm`, { params }),
+  stock: (firmId, params) => api.get(`/items/low-stock`, { params }), 
+  getAlerts: () => api.get('/stock-alerts'),
+  resolveAlert: (id) => api.patch(`/stock-alerts/${id}/resolve`),
 };
 
 export default api;

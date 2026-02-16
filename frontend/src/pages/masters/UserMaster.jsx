@@ -385,15 +385,26 @@ const UserMaster = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
-              <Button onClick={() => {
-                const updatedUser = { ...editingUser };
-                if (newPassword) {
-                  updatedUser.password = newPassword;
+              <Button onClick={async () => {
+                try {
+                  const updatedUser = { ...editingUser };
+                  if (newPassword) {
+                    updatedUser.password = newPassword;
+                  }
+                  // Call API
+                  await adminAPI.updateUser(editingUser.id, updatedUser);
+                  
+                  // Update Store
+                  // updateUser(editingUser.id, updatedUser); // Optional if we fetchUsers
+                  
+                  setIsEditModalOpen(false);
+                  setNewPassword('');
+                  showToast('User updated successfully', 'success');
+                  fetchUsers(); // Refresh list
+                } catch (error) {
+                  console.error(error);
+                  showToast('Failed to update user', 'error');
                 }
-                updateUser(editingUser.id, updatedUser);
-                setIsEditModalOpen(false);
-                setNewPassword('');
-                showToast('User updated successfully', 'success');
               }} className="text-xs sm:text-sm py-1.5 sm:py-2">
                 Save Changes
               </Button>
