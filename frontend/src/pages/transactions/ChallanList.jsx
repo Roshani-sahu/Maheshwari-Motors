@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaFileInvoiceDollar, FaCheck, FaPlus, FaEdit, FaTrash, FaDownload, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, } from '../../components/ui';
@@ -658,13 +658,13 @@ const ChallanList = () => {
       </Modal>
 
       {/* Create Challan Modal */}
-      <Modal
+     <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         title="CHALLAN ENTRY"
         size="2xl"
       >
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Header Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg">
             <div>
@@ -716,16 +716,69 @@ const ChallanList = () => {
             </div>
           </div>
 
-          {/* Items Section */}
-          <div className="border rounded-lg overflow-hidden h-[300px]">
+          {/* Search & Add Items Section */}
+          <div className="border rounded-lg ">
+            <div className="bg-gray-100 px-4 py-2">
+              <h3 className="font-medium text-gray-900">Search & Add Items</h3>
+            </div>
+            <div className="p-4">
+              <div className="relative" ref={itemDropdownRef} >
+                <input
+                  type="text"
+                  placeholder="Search items..."
+                  value={itemSearchTerm}
+                  onChange={(e) => {
+                    setItemSearchTerm(e.target.value);
+                    setShowItemDropdown(true);
+                  }}
+                  onFocus={() => setShowItemDropdown(true)}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                />
+                {showItemDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-96 overflow-y-auto">
+                    {loadedItems
+                      .filter(item => 
+                        !newChallan.items.includes(item.id) &&
+                        (itemSearchTerm === '' || item.name.toLowerCase().includes(itemSearchTerm.toLowerCase()))
+                      )
+                      .map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            toggleItemSelection(item.id);
+                            setItemSearchTerm('');
+                            setShowItemDropdown(false);
+                          }}
+                          className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="truncate">{item.name}</span>
+                            <span className="text-gray-500 text-xs ml-2">₹{item.amount}</span>
+                          </div>
+                        </button>
+                      ))
+                    }
+                    {loadedItems.filter(item => 
+                      !newChallan.items.includes(item.id) &&
+                      (itemSearchTerm === '' || item.name.toLowerCase().includes(itemSearchTerm.toLowerCase()))
+                    ).length === 0 && (
+                      <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Items Table Section */}
+          <div className="border rounded-lg">
             <div className="bg-gray-100 px-4 py-2">
               <h3 className="font-medium text-gray-900">Rate Information - Add / Less</h3>
             </div>
             
-            {/* Items Table Header */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-80 overflow-y-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 sticky top-0">
                   <tr>
                     <th className="px-2 py-2 text-left border-r">SNo</th>
                     <th className="px-2 py-2 text-left border-r">ItemName</th>
@@ -837,85 +890,40 @@ const ChallanList = () => {
                       </tr>
                     );
                   })}
+                  {newChallan.items.length === 0 && (
+                    <tr>
+                      <td colSpan={newChallan.gstType === 1 ? 14 : 12} className="px-4 py-8 text-center text-gray-500">
+                        No items selected. Use the search above to add items.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-
-            {/* Add Item Section */}
-            <div className="p-4 bg-gray-50 border-t">
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Search & Add Items:</label>
-                <div className="relative" ref={itemDropdownRef}>
-                  <input
-                    type="text"
-                    placeholder="Search items..."
-                    value={itemSearchTerm}
-                    onChange={(e) => {
-                      setItemSearchTerm(e.target.value);
-                      setShowItemDropdown(true);
-                    }}
-                    onFocus={() => setShowItemDropdown(true)}
-                    className="w-full px-3 py-2 border rounded-md text-sm"
-                  />
-                  {showItemDropdown && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-64 overflow-y-scoll">
-                      {loadedItems
-                        .filter(item => 
-                          !newChallan.items.includes(item.id) &&
-                          item.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
-                        )
-                        .map(item => (
-                          <button
-                            key={item.id}
-                            onClick={() => {
-                              toggleItemSelection(item.id);
-                              setItemSearchTerm('');
-                              setShowItemDropdown(false);
-                            }}
-                            className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
-                          >
-                            <div className="flex justify-between items-center">
-                              <span className="truncate">{item.name}</span>
-                              <span className="text-gray-500 text-xs ml-2">₹{item.amount}</span>
-                            </div>
-                          </button>
-                        ))
-                      }
-                      {loadedItems.filter(item => 
-                        !newChallan.items.includes(item.id) &&
-                        item.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
-                      ).length === 0 && (
-                        <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Selected Items Preview */}
-              {newChallan.items.length > 0 && (
-                <div className="mt-3">
-                  <span className="text-sm font-medium text-gray-700">Selected Items:</span>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {newChallan.items.map(itemId => {
-                      const item = loadedItems.find(i => i.id === itemId);
-                      return (
-                        <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
-                          {item?.name}
-                          <button
-                            onClick={() => toggleItemSelection(itemId)}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            <FaTimes size={10} />
-                          </button>
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
+
+          {/* Selected Items Preview */}
+          {newChallan.items.length > 0 && (
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <span className="text-sm font-medium text-gray-700">Selected Items ({newChallan.items.length}):</span>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {newChallan.items.map(itemId => {
+                  const item = loadedItems.find(i => i.id === itemId);
+                  return (
+                    <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
+                      {item?.name}
+                      <button
+                        onClick={() => toggleItemSelection(itemId)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <FaTimes size={10} />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Totals Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -968,7 +976,6 @@ const ChallanList = () => {
           </div>
         </div>
       </Modal>
-
       {/* Edit Challan Modal */}
       <Modal
         isOpen={isEditModalOpen}
