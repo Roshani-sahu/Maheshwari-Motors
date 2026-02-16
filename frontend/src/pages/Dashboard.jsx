@@ -17,13 +17,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { selectedFirm } = useStore();
   
-  const [dashboardData, setDashboardData] = useState({
-    totalFirms: 3,
-    todaysChallans: 12,
-    todaysBills: 8,
-    thisMonthBills: 32,
-    lowStockAlerts: 15
-  });
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [billPeriod, setBillPeriod] = useState('today'); // today | month
 
@@ -49,7 +44,12 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       // Avoid fetching if no user or if user is admin (who shouldn't see this dashboard data)
-      if (!user || user.role === 'admin') return;
+      if (!user || user.role === 'admin') {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
 
       try {
         // Ensure firm selection
@@ -114,6 +114,8 @@ const Dashboard = () => {
 
       } catch (err) {
         console.error("Failed to load dashboard data", err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -122,6 +124,12 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <>
      {/* Header */}
 <div className="flex items-center justify-between">
   <div>
@@ -142,7 +150,7 @@ const Dashboard = () => {
   
   <StatsCard
     title="Total Challans"
-    value={dashboardData.todaysChallans}
+    value={dashboardData?.todaysChallans || 0}
     subtitle="Today's Challan"
     icon={FaFileInvoiceDollar}
     color="green"
@@ -171,13 +179,13 @@ const Dashboard = () => {
       </div>
     </div>
     <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-      {billPeriod === 'today' ? dashboardData.todaysBills : dashboardData.thisMonthBills}
+      {billPeriod === 'today' ? (dashboardData?.todaysBills || 0) : (dashboardData?.thisMonthBills || 0)}
     </p>
   </div>
   
   <StatsCard
     title="Low Stock Alerts"
-    value={dashboardData.lowStockAlerts}
+    value={dashboardData?.lowStockAlerts || 0}
     subtitle="Below threshold"
     icon={FaExclamationTriangle}
     color="red"
@@ -248,6 +256,8 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };
