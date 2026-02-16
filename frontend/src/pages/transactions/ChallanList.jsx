@@ -858,29 +858,8 @@ const ChallanList = () => {
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   />
                   {showItemDropdown && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                      {(loadedItems.length > 0 ? loadedItems : [
-                        {id: 'dummy1', name: 'Engine Oil 5W-30', amount: 450},
-                        {id: 'dummy2', name: 'Brake Pad Set', amount: 1200},
-                        {id: 'dummy3', name: 'Air Filter', amount: 350},
-                        {id: 'dummy4', name: 'Spark Plug', amount: 180},
-                        {id: 'dummy5', name: 'Clutch Plate', amount: 2500},
-                        {id: 'dummy6', name: 'Battery 12V', amount: 3200},
-                        {id: 'dummy7', name: 'Headlight Bulb', amount: 250},
-                        {id: 'dummy8', name: 'Tire 185/65R15', amount: 4500},
-                        {id: 'dummy9', name: 'Radiator Coolant', amount: 320},
-                        {id: 'dummy10', name: 'Windshield Wiper', amount: 180},
-                        {id: 'dummy11', name: 'Fuel Pump', amount: 2800},
-                        {id: 'dummy12', name: 'Alternator', amount: 4200},
-                        {id: 'dummy13', name: 'Shock Absorber', amount: 1800},
-                        {id: 'dummy14', name: 'Timing Belt', amount: 850},
-                        {id: 'dummy15', name: 'Water Pump', amount: 1500},
-                        {id: 'dummy16', name: 'Carburetor', amount: 3500},
-                        {id: 'dummy17', name: 'Exhaust Pipe', amount: 2200},
-                        {id: 'dummy18', name: 'Horn', amount: 420},
-                        {id: 'dummy19', name: 'Side Mirror', amount: 680},
-                        {id: 'dummy20', name: 'Seat Cover', amount: 1200}
-                      ])
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-64 overflow-y-scoll">
+                      {loadedItems
                         .filter(item => 
                           !newChallan.items.includes(item.id) &&
                           item.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
@@ -902,6 +881,12 @@ const ChallanList = () => {
                           </button>
                         ))
                       }
+                      {loadedItems.filter(item => 
+                        !newChallan.items.includes(item.id) &&
+                        item.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
+                      ).length === 0 && (
+                        <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -913,28 +898,7 @@ const ChallanList = () => {
                   <span className="text-sm font-medium text-gray-700">Selected Items:</span>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {newChallan.items.map(itemId => {
-                      const item = (loadedItems.length > 0 ? loadedItems : [
-                        {id: 'dummy1', name: 'Engine Oil 5W-30', amount: 450},
-                        {id: 'dummy2', name: 'Brake Pad Set', amount: 1200},
-                        {id: 'dummy3', name: 'Air Filter', amount: 350},
-                        {id: 'dummy4', name: 'Spark Plug', amount: 180},
-                        {id: 'dummy5', name: 'Clutch Plate', amount: 2500},
-                        {id: 'dummy6', name: 'Battery 12V', amount: 3200},
-                        {id: 'dummy7', name: 'Headlight Bulb', amount: 250},
-                        {id: 'dummy8', name: 'Tire 185/65R15', amount: 4500},
-                        {id: 'dummy9', name: 'Radiator Coolant', amount: 320},
-                        {id: 'dummy10', name: 'Windshield Wiper', amount: 180},
-                        {id: 'dummy11', name: 'Fuel Pump', amount: 2800},
-                        {id: 'dummy12', name: 'Alternator', amount: 4200},
-                        {id: 'dummy13', name: 'Shock Absorber', amount: 1800},
-                        {id: 'dummy14', name: 'Timing Belt', amount: 850},
-                        {id: 'dummy15', name: 'Water Pump', amount: 1500},
-                        {id: 'dummy16', name: 'Carburetor', amount: 3500},
-                        {id: 'dummy17', name: 'Exhaust Pipe', amount: 2200},
-                        {id: 'dummy18', name: 'Horn', amount: 420},
-                        {id: 'dummy19', name: 'Side Mirror', amount: 680},
-                        {id: 'dummy20', name: 'Seat Cover', amount: 1200}
-                      ]).find(i => i.id === itemId);
+                      const item = loadedItems.find(i => i.id === itemId);
                       return (
                         <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
                           {item?.name}
