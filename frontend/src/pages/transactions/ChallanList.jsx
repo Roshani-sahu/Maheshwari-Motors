@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaFileInvoiceDollar, FaCheck, FaPlus, FaEdit, FaTrash, FaDownload, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, } from '../../components/ui';
@@ -69,7 +69,29 @@ const ChallanList = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingChallan, setEditingChallan] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, challan: null });
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [showItemDropdown, setShowItemDropdown] = useState(false);
+  const [editItemSearchTerm, setEditItemSearchTerm] = useState('');
+  const [showEditItemDropdown, setShowEditItemDropdown] = useState(false);
   const [validationError, setValidationError] = useState('');
+  
+  const itemDropdownRef = useRef(null);
+  const editItemDropdownRef = useRef(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (itemDropdownRef.current && !itemDropdownRef.current.contains(event.target)) {
+        setShowItemDropdown(false);
+      }
+      if (editItemDropdownRef.current && !editItemDropdownRef.current.contains(event.target)) {
+        setShowEditItemDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Data comes from loadedParties and loadedItems
 
@@ -821,18 +843,77 @@ const ChallanList = () => {
 
             {/* Add Item Section */}
             <div className="p-4 bg-gray-50 border-t">
-              <div className="flex flex-wrap gap-2 mb-3">
-                <span className="text-sm font-medium text-gray-700">Add Items:</span>
-                {loadedItems.filter(item => !newChallan.items.includes(item.id)).map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => toggleItemSelection(item.id)}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded hover:bg-blue-200"
-                  >
-                    + {item.name}
-                  </button>
-                ))}
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Search & Add Items:</label>
+                <div className="relative" ref={itemDropdownRef}>
+                  <input
+                    type="text"
+                    placeholder="Search items..."
+                    value={itemSearchTerm}
+                    onChange={(e) => {
+                      setItemSearchTerm(e.target.value);
+                      setShowItemDropdown(true);
+                    }}
+                    onFocus={() => setShowItemDropdown(true)}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  />
+                  {showItemDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {loadedItems
+                        .filter(item => 
+                          !newChallan.items.includes(item.id) &&
+                          item.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
+                        )
+                        .map(item => (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              toggleItemSelection(item.id);
+                              setItemSearchTerm('');
+                              setShowItemDropdown(false);
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
+                          >
+                            <div className="flex justify-between items-center">
+                              <span>{item.name}</span>
+                              <span className="text-gray-500 text-xs">₹{item.amount}</span>
+                            </div>
+                          </button>
+                        ))
+                      }
+                      {loadedItems.filter(item => 
+                        !newChallan.items.includes(item.id) &&
+                        item.name.toLowerCase().includes(itemSearchTerm.toLowerCase())
+                      ).length === 0 && (
+                        <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
+              
+              {/* Selected Items Preview */}
+              {newChallan.items.length > 0 && (
+                <div className="mt-3">
+                  <span className="text-sm font-medium text-gray-700">Selected Items:</span>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {newChallan.items.map(itemId => {
+                      const item = loadedItems.find(i => i.id === itemId);
+                      return (
+                        <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
+                          {item?.name}
+                          <button
+                            onClick={() => toggleItemSelection(itemId)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <FaTimes size={10} />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1075,18 +1156,77 @@ const ChallanList = () => {
 
               {/* Add Item Section */}
               <div className="p-4 bg-gray-50 border-t">
-                <div className="flex flex-wrap gap-2 mb-3">
-                  <span className="text-sm font-medium text-gray-700">Add Items:</span>
-                  {loadedItems.filter(item => !editingChallan.items.includes(item.id)).map(item => (
-                    <button
-                      key={item.id}
-                      onClick={() => toggleItemSelection(item.id, true)}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded hover:bg-blue-200"
-                    >
-                      + {item.name}
-                    </button>
-                  ))}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Search & Add Items:</label>
+                  <div className="relative" ref={editItemDropdownRef}>
+                    <input
+                      type="text"
+                      placeholder="Search items..."
+                      value={editItemSearchTerm}
+                      onChange={(e) => {
+                        setEditItemSearchTerm(e.target.value);
+                        setShowEditItemDropdown(true);
+                      }}
+                      onFocus={() => setShowEditItemDropdown(true)}
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                    />
+                    {showEditItemDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {loadedItems
+                          .filter(item => 
+                            !editingChallan.items.includes(item.id) &&
+                            item.name.toLowerCase().includes(editItemSearchTerm.toLowerCase())
+                          )
+                          .map(item => (
+                            <button
+                              key={item.id}
+                              onClick={() => {
+                                toggleItemSelection(item.id, true);
+                                setEditItemSearchTerm('');
+                                setShowEditItemDropdown(false);
+                              }}
+                              className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
+                            >
+                              <div className="flex justify-between items-center">
+                                <span>{item.name}</span>
+                                <span className="text-gray-500 text-xs">₹{item.amount}</span>
+                              </div>
+                            </button>
+                          ))
+                        }
+                        {loadedItems.filter(item => 
+                          !editingChallan.items.includes(item.id) &&
+                          item.name.toLowerCase().includes(editItemSearchTerm.toLowerCase())
+                        ).length === 0 && (
+                          <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Selected Items Preview */}
+                {editingChallan.items.length > 0 && (
+                  <div className="mt-3">
+                    <span className="text-sm font-medium text-gray-700">Selected Items:</span>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {editingChallan.items.map(itemId => {
+                        const item = loadedItems.find(i => i.id === itemId);
+                        return (
+                          <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
+                            {item?.name}
+                            <button
+                              onClick={() => toggleItemSelection(itemId, true)}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <FaTimes size={10} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
