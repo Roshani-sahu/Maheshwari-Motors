@@ -256,8 +256,6 @@ export const adminAPI = {
   createUser: (data) => api.post('/admin/users', data),
   getUser: (id) => api.get(`/admin/users/${id}`),
   updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
-  deleteUser: (id) => api.delete(`/admin/users/${id}`),
-  toggleStatus: (id, isActive) => api.post(`/admin/users/${id}/${isActive ? "reactivate" : "deactivate"}`),
 };
 
 export const brandAPI = {
