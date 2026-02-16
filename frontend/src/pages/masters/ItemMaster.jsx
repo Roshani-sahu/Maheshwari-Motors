@@ -40,13 +40,13 @@ const ItemMaster = () => {
         const backendItems = rawList.map(item => ({
           id: item._id,
           itemName: item.item_name,
-          amount: item.amount,
-          threshold: item.threshold,
-          stockCount: item.physical_stock || (item.gst_stock + item.nongst_stock),
+          amount: item.sale_rate || item.amount || 0,
+          threshold: item.threshold || 0,
+          stockCount: item.stock || item.physical_stock || (item.gst_stock + item.nongst_stock) || 0,
           itemMedia: item.image,
-          status: (item.physical_stock || 0) <= (item.threshold || 0) ? 'LOW' : 'OK',
+          status: ((item.stock || item.physical_stock || 0) <= (item.threshold || 0)) ? 'LOW' : 'OK',
           type: item.is_gst,
-          categoryId: item.category_ids?.[0]
+          categoryId: item.category_id || item.category_ids?.[0]
         }));
         setItems(backendItems);
       } catch (err) {
@@ -90,7 +90,7 @@ const ItemMaster = () => {
     {
       key: 'amount',
       label: 'Amount',
-      render: (value) => <span className="text-xs sm:text-sm">₹{value.toFixed(2)}</span>
+      render: (value) => <span className="text-xs sm:text-sm">₹{(value || 0).toFixed(2)}</span>
     },
     {
       key: 'stockCount',
@@ -178,13 +178,13 @@ const ItemMaster = () => {
         const backendItems = rawList.map(item => ({
             id: item._id,
             itemName: item.item_name,
-            amount: item.amount,
-            threshold: item.threshold,
-            stockCount: item.physical_stock || (item.gst_stock + item.nongst_stock),
+            amount: item.sale_rate || item.amount || 0,
+            threshold: item.threshold || 0,
+            stockCount: item.stock || item.physical_stock || (item.gst_stock + item.nongst_stock) || 0,
             itemMedia: item.image,
-            status: (item.physical_stock || 0) <= (item.threshold || 0) ? 'LOW' : 'OK',
+            status: ((item.stock || item.physical_stock || 0) <= (item.threshold || 0)) ? 'LOW' : 'OK',
             type: item.is_gst,
-            categoryId: item.category_ids?.[0]
+            categoryId: item.category_id || item.category_ids?.[0]
         }));
         setItems(backendItems);
       } catch (error) {
@@ -406,7 +406,7 @@ const ItemMaster = () => {
           try {
              await itemAPI.delete(deleteDialog.item.id);
              showToast('Item deleted successfully', 'success');
-             setItems(prev => prev.filter(i => i.id !== deleteDialog.item.id));
+             deleteItem(deleteDialog.item.id);
              setDeleteDialog({ isOpen: false, item: null });
           } catch (error) {
              console.error(error);
