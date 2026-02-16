@@ -1,8 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.DEV 
-  ? '/api/v1' 
-  : (import.meta.env.VITE_API_URL || 'https://api-maheshwari-motors.koyeb.app/api/v1');
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api-maheshwari-motors.koyeb.app/api/v1';
+
+console.log('🔧 API Configuration:', {
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  API_BASE_URL,
+  MODE: import.meta.env.MODE,
+  DEV: import.meta.env.DEV,
+  PROD: import.meta.env.PROD
+});
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -49,17 +55,42 @@ export const authAPI = {
   loginAdmin: (credentials) => api.post('/auth/login', credentials),
   
   login: async (credentials) => {
+    console.log('🚀 Login attempt:', {
+      credentials: { username: credentials.username, password: '***' },
+      API_BASE_URL,
+      fullURL: `${API_BASE_URL}/auth/login`
+    });
+    
     try {
-      return await api.post('/auth/login', credentials);
+      const response = await api.post('/auth/login', credentials);
+      console.log('✅ Login success:', {
+        status: response.status,
+        hasData: !!response.data,
+        hasToken: !!response.data?.data?.token
+      });
+      return response;
     } catch (error) {
-       if (error.response && error.response.status === 401) {
-         try {
-           return await api.post('/auth/login', credentials);
-         } catch (adminError) {
-           throw adminError;
-         }
-       }
-       throw error;
+      console.error('❌ Login failed:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
+      
+      if (error.response && error.response.status === 401) {
+        try {
+          console.log('🔄 Retrying login...');
+          const retryResponse = await api.post('/auth/login', credentials);
+          console.log('✅ Retry success:', retryResponse.status);
+          return retryResponse;
+        } catch (adminError) {
+          console.error('❌ Retry failed:', adminError.response?.data);
+          throw adminError;
+        }
+      }
+      throw error;
     }
   },
   

@@ -34,24 +34,49 @@ const Login = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    console.log('📝 Login form submitted:', {
+      username: formData.username,
+      hasPassword: !!formData.password,
+      location: window.location.href,
+      userAgent: navigator.userAgent.includes('Chrome') ? 'Chrome' : 'Other'
+    });
+
     setLoading(true);
     try {
+      console.log('🔑 Calling authAPI.login...');
       const response = await authAPI.login(formData);
+      
+      console.log('✅ Login API response:', {
+        status: response.status,
+        hasData: !!response.data,
+        dataKeys: Object.keys(response.data || {}),
+        hasToken: !!response.data?.data?.token,
+        hasUserData: !!response.data?.data
+      });
+      
       const { token, ...userData } = response.data.data;
       
+      console.log('💾 Storing auth data:', {
+        hasToken: !!token,
+        userRole: userData.role,
+        userId: userData._id
+      });
+      
       localStorage.setItem('token', token);
-      // Backend returns role in userData.role ("admin" or "firm")
       localStorage.setItem('userRole', userData.role);
       
       setUser(userData);
       showToast('Login successful', 'success');
       
-      // Determine where to redirect
-      // If the user logs in as "firm", they go to dashboard.
-      // If "admin", maybe still dashboard?
+      console.log('🏁 Redirecting to dashboard...');
       navigate('/dashboard');
     } catch (error) {
-      console.error(error);
+      console.error('❌ Login error in component:', {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
       const msg = error.response?.data?.message || 'Invalid credentials or server error.';
       showToast(msg, 'error');
       setErrors({ general: msg });
