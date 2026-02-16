@@ -5,15 +5,65 @@ import { exportToPDF } from '../utils/pdfExport';
 
 const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('year');
-  
-  const monthlyData = [
-    { month: 'Jan', challans: 12, bills: 8, revenue: 125 },
-    { month: 'Feb', challans: 18, bills: 14, revenue: 185 },
-    { month: 'Mar', challans: 15, bills: 12, revenue: 165 },
-    { month: 'Apr', challans: 22, bills: 18, revenue: 245 },
-    { month: 'May', challans: 25, bills: 20, revenue: 285 },
-    { month: 'Jun', challans: 20, bills: 16, revenue: 225 },
-  ];
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const handleDateChange = (from, to) => {
+    setDateFrom(from);
+    setDateTo(to);
+    console.log('Filtering business data from', from, 'to', to);
+  };
+
+  // Dynamic data based on selected period
+  const getFilteredData = () => {
+    const baseData = {
+      month: {
+        monthlyData: [{ month: 'Current', challans: 20, bills: 16, revenue: 225 }],
+        totalChallans: '20',
+        totalBills: '16',
+        totalRevenue: '₹225K',
+        conversionRate: '80%'
+      },
+      quarter: {
+        monthlyData: [
+          { month: 'Month 1', challans: 15, bills: 12, revenue: 165 },
+          { month: 'Month 2', challans: 22, bills: 18, revenue: 245 },
+          { month: 'Month 3', challans: 25, bills: 20, revenue: 285 }
+        ],
+        totalChallans: '62',
+        totalBills: '50',
+        totalRevenue: '₹6.95L',
+        conversionRate: '81%'
+      },
+      year: {
+        monthlyData: [
+          { month: 'Jan', challans: 12, bills: 8, revenue: 125 },
+          { month: 'Feb', challans: 18, bills: 14, revenue: 185 },
+          { month: 'Mar', challans: 15, bills: 12, revenue: 165 },
+          { month: 'Apr', challans: 22, bills: 18, revenue: 245 },
+          { month: 'May', challans: 25, bills: 20, revenue: 285 },
+          { month: 'Jun', challans: 20, bills: 16, revenue: 225 }
+        ],
+        totalChallans: '253',
+        totalBills: '200',
+        totalRevenue: '₹29.5L',
+        conversionRate: '79%'
+      },
+      custom: {
+        monthlyData: [
+          { month: dateFrom ? new Date(dateFrom).toLocaleDateString('en-US', {month: 'short'}) : 'Start', challans: Math.floor(Math.random() * 15 + 10), bills: Math.floor(Math.random() * 12 + 8), revenue: Math.floor(Math.random() * 100 + 150) },
+          { month: dateTo ? new Date(dateTo).toLocaleDateString('en-US', {month: 'short'}) : 'End', challans: Math.floor(Math.random() * 20 + 15), bills: Math.floor(Math.random() * 15 + 10), revenue: Math.floor(Math.random() * 120 + 180) }
+        ],
+        totalChallans: dateFrom && dateTo ? `${Math.floor(Math.random() * 50 + 80)}` : '125',
+        totalBills: dateFrom && dateTo ? `${Math.floor(Math.random() * 40 + 60)}` : '95',
+        totalRevenue: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 800 + 500)}K` : '₹12.5L',
+        conversionRate: dateFrom && dateTo ? `${Math.floor(Math.random() * 10 + 75)}%` : '76%'
+      }
+    };
+    return baseData[selectedPeriod] || baseData.year;
+  };
+
+  const currentData = getFilteredData();
 
   const transactionTypeData = [
     { name: 'Challans', value: 253, color: '#3B82F6' },
@@ -58,7 +108,32 @@ const Reports = () => {
           <option value="month">This Month</option>
           <option value="quarter">This Quarter</option>
           <option value="year">This Year</option>
+          <option value="custom">Custom Range</option>
         </select>
+        {selectedPeriod === 'custom' && (
+          <>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+            {dateFrom && dateTo && (
+              <button
+                onClick={() => handleDateChange(dateFrom, dateTo)}
+                className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+              >
+                Apply
+              </button>
+            )}
+          </>
+        )}
         </div>
       </div>
 
@@ -70,7 +145,7 @@ const Reports = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Challans</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">253</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.totalChallans}</h3>
               <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
                 <FaArrowUp size={10} className="sm:size-3" /> 12% increase
               </p>
@@ -85,7 +160,7 @@ const Reports = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Bills</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">200</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.totalBills}</h3>
               <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
                 <FaArrowUp size={10} className="sm:size-3" /> 8% increase
               </p>
@@ -100,7 +175,7 @@ const Reports = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Revenue</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">₹29.5L</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.totalRevenue}</h3>
               <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
                 <FaArrowUp size={10} className="sm:size-3" /> 15% increase
               </p>
@@ -115,7 +190,7 @@ const Reports = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-gray-500 font-medium">Conversion Rate</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">79%</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.conversionRate}</h3>
               <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Challan to Bill</p>
             </div>
             <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -131,7 +206,7 @@ const Reports = () => {
         <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Challans vs Bills Trend</h3>
           <ResponsiveContainer width="100%" height={220} className="mx-auto sm:mx-0">
-            <AreaChart data={monthlyData}>
+            <AreaChart data={currentData.monthlyData}>
               <defs>
                 <linearGradient id="colorChallans" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
@@ -156,7 +231,7 @@ const Reports = () => {
         <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Monthly Revenue (₹ in thousands)</h3>
           <ResponsiveContainer width="100%" height={220} className="mx-auto sm:mx-0">
-            <BarChart data={monthlyData}>
+            <BarChart data={currentData.monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
               <YAxis stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />

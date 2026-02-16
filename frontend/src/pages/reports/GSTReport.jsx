@@ -6,15 +6,66 @@ import { exportToPDF } from '../../utils/pdfExport';
 const GSTReport = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('year');
   const [selectedGSTRate, setSelectedGSTRate] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const monthlyGSTData = [
-    { month: 'Jan', cgst: 15000, sgst: 15000, igst: 8000, total: 38000 },
-    { month: 'Feb', cgst: 22000, sgst: 22000, igst: 12000, total: 56000 },
-    { month: 'Mar', cgst: 18000, sgst: 18000, igst: 10000, total: 46000 },
-    { month: 'Apr', cgst: 28000, sgst: 28000, igst: 15000, total: 71000 },
-    { month: 'May', cgst: 32000, sgst: 32000, igst: 18000, total: 82000 },
-    { month: 'Jun', cgst: 25000, sgst: 25000, igst: 14000, total: 64000 }
-  ];
+  const handleDateChange = (from, to) => {
+    setDateFrom(from);
+    setDateTo(to);
+    // Filter data based on date range
+    console.log('Filtering data from', from, 'to', to);
+  };
+
+  // Dynamic data based on selected period
+  const getFilteredData = () => {
+    const baseData = {
+      month: {
+        monthlyGSTData: [{ month: 'Current', cgst: 25000, sgst: 25000, igst: 14000, total: 64000 }],
+        totalGST: '₹64K',
+        inputCredit: '₹58K',
+        netPayable: '₹6K',
+        effectiveRate: '12.8%'
+      },
+      quarter: {
+        monthlyGSTData: [
+          { month: 'Month 1', cgst: 18000, sgst: 18000, igst: 10000, total: 46000 },
+          { month: 'Month 2', cgst: 28000, sgst: 28000, igst: 15000, total: 71000 },
+          { month: 'Month 3', cgst: 32000, sgst: 32000, igst: 18000, total: 82000 }
+        ],
+        totalGST: '₹1.99L',
+        inputCredit: '₹1.85L',
+        netPayable: '₹14K',
+        effectiveRate: '13.5%'
+      },
+      year: {
+        monthlyGSTData: [
+          { month: 'Jan', cgst: 15000, sgst: 15000, igst: 8000, total: 38000 },
+          { month: 'Feb', cgst: 22000, sgst: 22000, igst: 12000, total: 56000 },
+          { month: 'Mar', cgst: 18000, sgst: 18000, igst: 10000, total: 46000 },
+          { month: 'Apr', cgst: 28000, sgst: 28000, igst: 15000, total: 71000 },
+          { month: 'May', cgst: 32000, sgst: 32000, igst: 18000, total: 82000 },
+          { month: 'Jun', cgst: 25000, sgst: 25000, igst: 14000, total: 64000 }
+        ],
+        totalGST: '₹3.57L',
+        inputCredit: '₹3.27L',
+        netPayable: '₹30K',
+        effectiveRate: '14.2%'
+      },
+      custom: {
+        monthlyGSTData: [
+          { month: dateFrom ? new Date(dateFrom).toLocaleDateString('en-US', {month: 'short'}) : 'Start', cgst: 20000, sgst: 20000, igst: 11000, total: 51000 },
+          { month: dateTo ? new Date(dateTo).toLocaleDateString('en-US', {month: 'short'}) : 'End', cgst: 24000, sgst: 24000, igst: 13000, total: 61000 }
+        ],
+        totalGST: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 200 + 100)}K` : '₹1.12L',
+        inputCredit: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 180 + 90)}K` : '₹1.05L',
+        netPayable: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 20 + 5)}K` : '₹7K',
+        effectiveRate: dateFrom && dateTo ? `${(Math.random() * 5 + 10).toFixed(1)}%` : '13.1%'
+      }
+    };
+    return baseData[selectedPeriod] || baseData.year;
+  };
+
+  const currentData = getFilteredData();
 
   const gstRateData = [
     { rate: '5%', amount: 45000, color: '#10B981' },
@@ -72,7 +123,34 @@ const GSTReport = () => {
             <option value="month">This Month</option>
             <option value="quarter">This Quarter</option>
             <option value="year">This Year</option>
+            <option value="custom">Custom Range</option>
           </select>
+          {selectedPeriod === 'custom' && (
+            <>
+              <input
+                type="date"
+                placeholder="From"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="date"
+                placeholder="To"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              {dateFrom && dateTo && (
+                <button
+                  onClick={() => handleDateChange(dateFrom, dateTo)}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                >
+                  Apply
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -83,7 +161,7 @@ const GSTReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-gray-500 font-medium">Total GST Collected</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">₹3.57L</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.totalGST}</h3>
               <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
                 <FaArrowUp size={10} className="sm:size-3" /> 12% increase
               </p>
@@ -98,7 +176,7 @@ const GSTReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-gray-500 font-medium">Input Tax Credit</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">₹3.27L</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.inputCredit}</h3>
               <p className="text-xs sm:text-sm text-blue-600 mt-1 sm:mt-2">Available for offset</p>
             </div>
             <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -111,7 +189,7 @@ const GSTReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-gray-500 font-medium">Net GST Payable</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">₹30K</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.netPayable}</h3>
               <p className="text-xs sm:text-sm text-purple-600 mt-1 sm:mt-2">Due this month</p>
             </div>
             <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -124,7 +202,7 @@ const GSTReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-gray-500 font-medium">Effective GST Rate</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">14.2%</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.effectiveRate}</h3>
               <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Weighted average</p>
             </div>
             <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -145,7 +223,7 @@ const GSTReport = () => {
             </button>
           </div>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={monthlyGSTData}>
+            <AreaChart data={currentData.monthlyGSTData}>
               <defs>
                 <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>

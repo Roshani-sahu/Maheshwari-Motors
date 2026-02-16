@@ -26,15 +26,65 @@ import { exportToPDF } from '../../utils/pdfExport';
 
 const SalesReport = () => {
   const [period, setPeriod] = useState("year");
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const monthlySales = [
-    { month: "Jan", sales: 180, bills: 120 },
-    { month: "Feb", sales: 220, bills: 150 },
-    { month: "Mar", sales: 200, bills: 135 },
-    { month: "Apr", sales: 260, bills: 180 },
-    { month: "May", sales: 310, bills: 210 },
-    { month: "Jun", sales: 285, bills: 195 },
-  ];
+  const handleDateChange = (from, to) => {
+    setDateFrom(from);
+    setDateTo(to);
+    console.log('Filtering sales data from', from, 'to', to);
+  };
+
+  // Dynamic data based on selected period
+  const getFilteredData = () => {
+    const baseData = {
+      month: {
+        monthlySales: [{ month: 'Current', sales: 285, bills: 195 }],
+        totalSales: '₹285K',
+        customers: '32',
+        avgBill: '₹9K',
+        conversionRate: '85%'
+      },
+      quarter: {
+        monthlySales: [
+          { month: 'Month 1', sales: 200, bills: 135 },
+          { month: 'Month 2', sales: 260, bills: 180 },
+          { month: 'Month 3', sales: 310, bills: 210 }
+        ],
+        totalSales: '₹7.7L',
+        customers: '68',
+        avgBill: '₹23K',
+        conversionRate: '82%'
+      },
+      year: {
+        monthlySales: [
+          { month: 'Jan', sales: 180, bills: 120 },
+          { month: 'Feb', sales: 220, bills: 150 },
+          { month: 'Mar', sales: 200, bills: 135 },
+          { month: 'Apr', sales: 260, bills: 180 },
+          { month: 'May', sales: 310, bills: 210 },
+          { month: 'Jun', sales: 285, bills: 195 }
+        ],
+        totalSales: '₹12.8L',
+        customers: '96',
+        avgBill: '₹38K',
+        conversionRate: '79%'
+      },
+      custom: {
+        monthlySales: [
+          { month: dateFrom ? new Date(dateFrom).toLocaleDateString('en-US', {month: 'short'}) : 'Start', sales: Math.floor(Math.random() * 100 + 200), bills: Math.floor(Math.random() * 50 + 120) },
+          { month: dateTo ? new Date(dateTo).toLocaleDateString('en-US', {month: 'short'}) : 'End', sales: Math.floor(Math.random() * 100 + 250), bills: Math.floor(Math.random() * 50 + 150) }
+        ],
+        totalSales: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 500 + 400)}K` : '₹5.2L',
+        customers: dateFrom && dateTo ? `${Math.floor(Math.random() * 30 + 40)}` : '58',
+        avgBill: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 15 + 20)}K` : '₹28K',
+        conversionRate: dateFrom && dateTo ? `${Math.floor(Math.random() * 10 + 75)}%` : '81%'
+      }
+    };
+    return baseData[period] || baseData.year;
+  };
+
+  const currentData = getFilteredData();
 
   const gstSplit = [
     { name: "GST Sales", value: 780, color: "#10B981" },
@@ -77,7 +127,32 @@ const SalesReport = () => {
           <option value="month">This Month</option>
           <option value="quarter">This Quarter</option>
           <option value="year">This Year</option>
+          <option value="custom">Custom Range</option>
         </select>
+        {period === 'custom' && (
+          <>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            {dateFrom && dateTo && (
+              <button
+                onClick={() => handleDateChange(dateFrom, dateTo)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              >
+                Apply
+              </button>
+            )}
+          </>
+        )}
         </div>
       </div>
 
@@ -85,10 +160,10 @@ const SalesReport = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Kpi title="Total Sales" value="₹12.8L" icon={<FaShoppingBag />} color="blue" />
-        <Kpi title="Customers" value="96" icon={<FaUsers />} color="green" />
-        <Kpi title="Avg Bill Value" value="₹38K" icon={<FaRupeeSign />} color="purple" />
-        <Kpi title="Conversion Rate" value="79%" icon={<FaPercentage />} color="orange" />
+        <Kpi title="Total Sales" value={currentData.totalSales} icon={<FaShoppingBag />} color="blue" />
+        <Kpi title="Customers" value={currentData.customers} icon={<FaUsers />} color="green" />
+        <Kpi title="Avg Bill Value" value={currentData.avgBill} icon={<FaRupeeSign />} color="purple" />
+        <Kpi title="Conversion Rate" value={currentData.conversionRate} icon={<FaPercentage />} color="orange" />
       </div>
 
       {/* Charts Row 1 */}
@@ -100,7 +175,7 @@ const SalesReport = () => {
           </h3>
 
           <ResponsiveContainer width="100%" height={260}>
-            <ComposedChart data={monthlySales}>
+            <ComposedChart data={currentData.monthlySales}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" />
               <YAxis />

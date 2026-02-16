@@ -83,10 +83,10 @@ const Header = ({ onMenuClick }) => {
           
           {showUserMenu && (
             <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-neutral-300 rounded-md shadow-lg z-50">
-              <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50">
+              {/* <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50">
                 <FaCog className="text-neutral-500" />
                 Settings
-              </Link>
+              </Link> */}
               <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50 text-left">
                 <FaSignOutAlt className="text-neutral-500" />
                 Logout

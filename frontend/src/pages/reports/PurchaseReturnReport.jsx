@@ -25,15 +25,65 @@ import { exportToPDF } from '../../utils/pdfExport';
 
 const PurchaseReturnReport = () => {
   const [period, setPeriod] = useState("year");
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const monthlyReturnData = [
-    { month: "Jan", qty: 12, value: 18 },
-    { month: "Feb", qty: 16, value: 24 },
-    { month: "Mar", qty: 10, value: 15 },
-    { month: "Apr", qty: 22, value: 32 },
-    { month: "May", qty: 18, value: 26 },
-    { month: "Jun", qty: 14, value: 20 },
-  ];
+  const handleDateChange = (from, to) => {
+    setDateFrom(from);
+    setDateTo(to);
+    console.log('Filtering purchase return data from', from, 'to', to);
+  };
+
+  // Dynamic data based on selected period
+  const getFilteredData = () => {
+    const baseData = {
+      month: {
+        monthlyReturnData: [{ month: 'Current', qty: 14, value: 20 }],
+        totalReturns: '28',
+        returnValue: '₹42K',
+        suppliers: '6',
+        returnRate: '2.8%'
+      },
+      quarter: {
+        monthlyReturnData: [
+          { month: 'Month 1', qty: 10, value: 15 },
+          { month: 'Month 2', qty: 22, value: 32 },
+          { month: 'Month 3', qty: 18, value: 26 }
+        ],
+        totalReturns: '68',
+        returnValue: '₹85K',
+        suppliers: '12',
+        returnRate: '3.2%'
+      },
+      year: {
+        monthlyReturnData: [
+          { month: 'Jan', qty: 12, value: 18 },
+          { month: 'Feb', qty: 16, value: 24 },
+          { month: 'Mar', qty: 10, value: 15 },
+          { month: 'Apr', qty: 22, value: 32 },
+          { month: 'May', qty: 18, value: 26 },
+          { month: 'Jun', qty: 14, value: 20 }
+        ],
+        totalReturns: '92',
+        returnValue: '₹1.35L',
+        suppliers: '14',
+        returnRate: '3.8%'
+      },
+      custom: {
+        monthlyReturnData: [
+          { month: dateFrom ? new Date(dateFrom).toLocaleDateString('en-US', {month: 'short'}) : 'Start', qty: Math.floor(Math.random() * 10 + 8), value: Math.floor(Math.random() * 15 + 12) },
+          { month: dateTo ? new Date(dateTo).toLocaleDateString('en-US', {month: 'short'}) : 'End', qty: Math.floor(Math.random() * 12 + 10), value: Math.floor(Math.random() * 18 + 15) }
+        ],
+        totalReturns: dateFrom && dateTo ? `${Math.floor(Math.random() * 25 + 20)}` : '38',
+        returnValue: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 40 + 25)}K` : '₹55K',
+        suppliers: dateFrom && dateTo ? `${Math.floor(Math.random() * 6 + 4)}` : '8',
+        returnRate: dateFrom && dateTo ? `${(Math.random() * 1.5 + 2.5).toFixed(1)}%` : '3.1%'
+      }
+    };
+    return baseData[period] || baseData.year;
+  };
+
+  const currentData = getFilteredData();
 
   const returnTypeData = [
     { name: "Damaged", value: 38, color: "#EF4444" },
@@ -77,7 +127,32 @@ const PurchaseReturnReport = () => {
           <option value="month">This Month</option>
           <option value="quarter">This Quarter</option>
           <option value="year">This Year</option>
+          <option value="custom">Custom Range</option>
         </select>
+        {period === 'custom' && (
+          <>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            {dateFrom && dateTo && (
+              <button
+                onClick={() => handleDateChange(dateFrom, dateTo)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              >
+                Apply
+              </button>
+            )}
+          </>
+        )}
         </div>
       </div>
 
@@ -87,25 +162,25 @@ const PurchaseReturnReport = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi
           title="Total Returns"
-          value="92"
+          value={currentData.totalReturns}
           icon={<FaUndoAlt />}
           color="red"
         />
         <Kpi
           title="Return Value"
-          value="₹1.35L"
+          value={currentData.returnValue}
           icon={<FaExclamationTriangle />}
           color="orange"
         />
         <Kpi
           title="Suppliers Affected"
-          value="14"
+          value={currentData.suppliers}
           icon={<FaTruck />}
           color="blue"
         />
         <Kpi
           title="Return Rate"
-          value="3.8%"
+          value={currentData.returnRate}
           icon={<FaArrowUp />}
           color="purple"
         />
@@ -120,7 +195,7 @@ const PurchaseReturnReport = () => {
           </h3>
 
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={monthlyReturnData}>
+            <LineChart data={currentData.monthlyReturnData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" />
               <YAxis tickFormatter={(v) => `₹${v}K`} />
@@ -143,7 +218,7 @@ const PurchaseReturnReport = () => {
           </h3>
 
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={monthlyReturnData}>
+            <BarChart data={currentData.monthlyReturnData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" />
               <YAxis />

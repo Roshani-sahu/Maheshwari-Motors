@@ -25,15 +25,65 @@ import { exportToPDF } from '../../utils/pdfExport';
 
 const PurchaseReport = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("year");
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const monthlyPurchaseData = [
-    { month: "Jan", purchase: 120 },
-    { month: "Feb", purchase: 165 },
-    { month: "Mar", purchase: 142 },
-    { month: "Apr", purchase: 190 },
-    { month: "May", purchase: 225 },
-    { month: "Jun", purchase: 210 },
-  ];
+  const handleDateChange = (from, to) => {
+    setDateFrom(from);
+    setDateTo(to);
+    console.log('Filtering purchase data from', from, 'to', to);
+  };
+
+  // Dynamic data based on selected period
+  const getFilteredData = () => {
+    const baseData = {
+      month: {
+        monthlyPurchaseData: [{ month: 'Current', purchase: 210 }],
+        totalPurchase: '₹210K',
+        gstPurchase: '₹150K',
+        suppliers: '12',
+        avgPurchase: '₹18K'
+      },
+      quarter: {
+        monthlyPurchaseData: [
+          { month: 'Month 1', purchase: 142 },
+          { month: 'Month 2', purchase: 190 },
+          { month: 'Month 3', purchase: 225 }
+        ],
+        totalPurchase: '₹5.57L',
+        gstPurchase: '₹3.9L',
+        suppliers: '18',
+        avgPurchase: '₹31K'
+      },
+      year: {
+        monthlyPurchaseData: [
+          { month: 'Jan', purchase: 120 },
+          { month: 'Feb', purchase: 165 },
+          { month: 'Mar', purchase: 142 },
+          { month: 'Apr', purchase: 190 },
+          { month: 'May', purchase: 225 },
+          { month: 'Jun', purchase: 210 }
+        ],
+        totalPurchase: '₹10.5L',
+        gstPurchase: '₹7.2L',
+        suppliers: '28',
+        avgPurchase: '₹42K'
+      },
+      custom: {
+        monthlyPurchaseData: [
+          { month: dateFrom ? new Date(dateFrom).toLocaleDateString('en-US', {month: 'short'}) : 'Start', purchase: Math.floor(Math.random() * 100 + 150) },
+          { month: dateTo ? new Date(dateTo).toLocaleDateString('en-US', {month: 'short'}) : 'End', purchase: Math.floor(Math.random() * 100 + 180) }
+        ],
+        totalPurchase: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 500 + 300)}K` : '₹4.2L',
+        gstPurchase: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 300 + 200)}K` : '₹2.8L',
+        suppliers: dateFrom && dateTo ? `${Math.floor(Math.random() * 10 + 15)}` : '22',
+        avgPurchase: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 20 + 25)}K` : '₹35K'
+      }
+    };
+    return baseData[selectedPeriod] || baseData.year;
+  };
+
+  const currentData = getFilteredData();
 
   const purchaseTypeData = [
     { name: "GST Purchase", value: 720, color: "#10B981" },
@@ -76,7 +126,32 @@ const PurchaseReport = () => {
           <option value="month">This Month</option>
           <option value="quarter">This Quarter</option>
           <option value="year">This Year</option>
+          <option value="custom">Custom Range</option>
         </select>
+        {selectedPeriod === 'custom' && (
+          <>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+            {dateFrom && dateTo && (
+              <button
+                onClick={() => handleDateChange(dateFrom, dateTo)}
+                className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+              >
+                Apply
+              </button>
+            )}
+          </>
+        )}
         </div>
       </div>
 
@@ -86,28 +161,28 @@ const PurchaseReport = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <StatCard
           title="Total Purchase"
-          value="₹10.5L"
+          value={currentData.totalPurchase}
           change="14% increase"
           icon={<FaShoppingCart />}
           color="blue"
         />
         <StatCard
           title="GST Purchase"
-          value="₹7.2L"
+          value={currentData.gstPurchase}
           subtitle="GST invoices"
           icon={<FaRupeeSign />}
           color="green"
         />
         <StatCard
           title="Suppliers"
-          value="28"
+          value={currentData.suppliers}
           subtitle="Active vendors"
           icon={<FaTruck />}
           color="purple"
         />
         <StatCard
           title="Avg Purchase"
-          value="₹42K"
+          value={currentData.avgPurchase}
           subtitle="Per invoice"
           icon={<FaChartBar />}
           color="orange"
@@ -123,7 +198,7 @@ const PurchaseReport = () => {
           </h3>
 
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={monthlyPurchaseData}>
+            <AreaChart data={currentData.monthlyPurchaseData}>
               <defs>
                 <linearGradient id="purchaseGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />

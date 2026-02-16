@@ -24,15 +24,65 @@ import { exportToPDF } from '../../utils/pdfExport';
 
 const SalesReturnReport = () => {
   const [period, setPeriod] = useState("year");
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const monthlyReturnData = [
-    { month: "Jan", value: 14 },
-    { month: "Feb", value: 22 },
-    { month: "Mar", value: 18 },
-    { month: "Apr", value: 28 },
-    { month: "May", value: 24 },
-    { month: "Jun", value: 19 },
-  ];
+  const handleDateChange = (from, to) => {
+    setDateFrom(from);
+    setDateTo(to);
+    console.log('Filtering sales return data from', from, 'to', to);
+  };
+
+  // Dynamic data based on selected period
+  const getFilteredData = () => {
+    const baseData = {
+      month: {
+        monthlyReturnData: [{ month: 'Current', value: 19 }],
+        totalReturns: '32',
+        returnValue: '₹45K',
+        customers: '8',
+        returnRate: '3.2%'
+      },
+      quarter: {
+        monthlyReturnData: [
+          { month: 'Month 1', value: 18 },
+          { month: 'Month 2', value: 28 },
+          { month: 'Month 3', value: 24 }
+        ],
+        totalReturns: '70',
+        returnValue: '₹95K',
+        customers: '18',
+        returnRate: '3.8%'
+      },
+      year: {
+        monthlyReturnData: [
+          { month: 'Jan', value: 14 },
+          { month: 'Feb', value: 22 },
+          { month: 'Mar', value: 18 },
+          { month: 'Apr', value: 28 },
+          { month: 'May', value: 24 },
+          { month: 'Jun', value: 19 }
+        ],
+        totalReturns: '94',
+        returnValue: '₹1.25L',
+        customers: '22',
+        returnRate: '4.1%'
+      },
+      custom: {
+        monthlyReturnData: [
+          { month: dateFrom ? new Date(dateFrom).toLocaleDateString('en-US', {month: 'short'}) : 'Start', value: Math.floor(Math.random() * 15 + 10) },
+          { month: dateTo ? new Date(dateTo).toLocaleDateString('en-US', {month: 'short'}) : 'End', value: Math.floor(Math.random() * 15 + 15) }
+        ],
+        totalReturns: dateFrom && dateTo ? `${Math.floor(Math.random() * 30 + 25)}` : '42',
+        returnValue: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 50 + 30)}K` : '₹65K',
+        customers: dateFrom && dateTo ? `${Math.floor(Math.random() * 8 + 6)}` : '12',
+        returnRate: dateFrom && dateTo ? `${(Math.random() * 2 + 2.5).toFixed(1)}%` : '3.5%'
+      }
+    };
+    return baseData[period] || baseData.year;
+  };
+
+  const currentData = getFilteredData();
 
   const returnReasonData = [
     { name: "Damaged", value: 32, color: "#EF4444" },
@@ -77,7 +127,32 @@ const SalesReturnReport = () => {
           <option value="month">This Month</option>
           <option value="quarter">This Quarter</option>
           <option value="year">This Year</option>
+          <option value="custom">Custom Range</option>
         </select>
+        {period === 'custom' && (
+          <>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            {dateFrom && dateTo && (
+              <button
+                onClick={() => handleDateChange(dateFrom, dateTo)}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              >
+                Apply
+              </button>
+            )}
+          </>
+        )}
         </div>
       </div>
 
@@ -87,25 +162,25 @@ const SalesReturnReport = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi
           title="Total Returns"
-          value="94"
+          value={currentData.totalReturns}
           icon={<FaUndo />}
           color="red"
         />
         <Kpi
           title="Return Value"
-          value="₹1.25L"
+          value={currentData.returnValue}
           icon={<FaRupeeSign />}
           color="orange"
         />
         <Kpi
           title="Customers Involved"
-          value="22"
+          value={currentData.customers}
           icon={<FaUsers />}
           color="blue"
         />
         <Kpi
           title="Return Rate"
-          value="4.1%"
+          value={currentData.returnRate}
           icon={<FaExclamationCircle />}
           color="purple"
         />
@@ -120,7 +195,7 @@ const SalesReturnReport = () => {
           </h3>
 
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={monthlyReturnData}>
+            <AreaChart data={currentData.monthlyReturnData}>
               <defs>
                 <linearGradient id="salesReturnGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#EF4444" stopOpacity={0.35} />
