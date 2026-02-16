@@ -17,6 +17,7 @@ const AddItem = () => {
     stock: '',
     category: '',
     brand: '',
+    supplier: '',
     gst_percent: '',
     sale_rate: '',
     purchase_rate: '',
@@ -29,6 +30,8 @@ const AddItem = () => {
 
   const [errors, setErrors] = useState({});
 
+  const [allBrands, setAllBrands] = useState([]);
+
   useEffect(() => {
     const fetchData = async () => {
         try {
@@ -38,19 +41,59 @@ const AddItem = () => {
                 supplierAPI.getAll()
             ]);
             
-            const cats = Array.isArray(catRes.data?.data) ? catRes.data.data : (Array.isArray(catRes.data) ? catRes.data : []);
-            const brds = Array.isArray(brandRes.data?.data) ? brandRes.data.data : (Array.isArray(brandRes.data) ? brandRes.data : []);
-            const sups = Array.isArray(supplierRes.data?.data) ? supplierRes.data.data : (Array.isArray(supplierRes.data) ? supplierRes.data : []);
+            const getList = (res) => {
+                const val = res.data?.data;
+                return Array.isArray(val) ? val : (val?.data || []);
+            };
+
+            const cats = getList(catRes);
+            const brds = getList(brandRes);
+            const sups = getList(supplierRes);
             
             setCategories(cats);
-            setBrands(brds);
+            setAllBrands(brds); // Store all brands
+            setBrands(brds); // Initially show all brands or empty? User said "after i select cat brand ... will show", likely means filter.
+                             // But usually better to show all if no category selected, or none. 
+                             // Let's default to showing none or all? 
+                             // If I look at the requested flow: "after i select cat brand of the cat will show there"
+                             // I'll show all initially, and filter if a category is picked.
             setSuppliers(sups);
         } catch (error) {
             console.error("Failed to fetch data", error);
+            showToast("Failed to load form data", "error");
         }
     };
     fetchData();
-  }, []);
+  }, [showToast]);
+
+  // Filter brands when category changes
+  useEffect(() => {
+    if (formData.category) {
+      const selectedCat = categories.find(c => c._id === formData.category);
+      if (selectedCat && selectedCat.brand_ids && selectedCat.brand_ids.length > 0) {
+        // If query/population returns objects in brand_ids, map to IDs. If strings, use directly.
+        // Safely handle both
+        const linkedBrandIds = selectedCat.brand_ids.map(b => (typeof b === 'object' ? b._id : b));
+        const filtered = allBrands.filter(b => linkedBrandIds.includes(b._id));
+        setBrands(filtered.length > 0 ? filtered : allBrands); // Fallback to all if filter result is empty (optional decision) or strict?
+        // Let's be strict but safe: if category determines brands, show only those.
+        // However, if the category has NO brands linked, maybe it applies to all?
+        // User said: "brand of the cat will show there".
+        if (filtered.length > 0) {
+            setBrands(filtered);
+        } else {
+             // If no brands linked to this category, maybe show all or none? 
+             // Let's show all for now to avoid blocking the user if data is missing links.
+             setBrands(allBrands); 
+        }
+      } else {
+        // No brand links found, show all
+        setBrands(allBrands);
+      }
+    } else {
+      setBrands(allBrands);
+    }
+  }, [formData.category, categories, allBrands]);
 
   const handleChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -78,35 +121,56 @@ const AddItem = () => {
     }
 
     try {
-        const payload = {
-            item_name: formData.name,
-            sale_rate: parseFloat(formData.sale_rate),
-            purchase_rate: parseFloat(formData.purchase_rate) || 0,
-            mrp_rate: parseFloat(formData.mrp_rate) || 0,
-            gst_percent: parseFloat(formData.gst_percent) || 0,
-            discount: parseFloat(formData.discount) || 0,
-            stock: parseInt(formData.stock),
-            threshold: parseInt(formData.threshold) || 0,
-            is_gst: formData.is_gst,
-            category_id: formData.category || undefined,
-            brand_id: formData.brand || undefined,
-            supplier_id: undefined
-        };
-
-        const res = await itemAPI.create(payload);
-        const newItemId = res.data?.data?._id;
-
-        if (formData.image && newItemId) {
-            const imagePayload = new FormData();
-            imagePayload.append('image', formData.image);
-            await itemAPI.update(newItemId, imagePayload);
+        if (formData.image) {
+            const payload = new FormData();
+            payload.append('item_name', formData.name);
+            payload.append('sale_rate', formData.sale_rate);
+            payload.append('stock', formData.stock);
+            payload.append('is_gst', formData.is_gst);
+            
+            if (formData.purchase_rate) payload.append('purchase_rate', formData.purchase_rate);
+            if (formData.mrp_rate) payload.append('mrp_rate', formData.mrp_rate);
+            if (formData.gst_percent) payload.append('gst_percent', formData.gst_percent);
+            if (formData.discount) payload.append('discount', formData.discount);
+            if (formData.threshold) payload.append('threshold', formData.threshold);
+            
+            if (formData.category) payload.append('category_id', formData.category);
+            if (formData.brand) payload.append('brand_id', formData.brand);
+            if (formData.supplier) payload.append('supplier_id', formData.supplier);
+            
+            payload.append('image', formData.image);
+            
+            await itemAPI.create(payload);
+        } else {
+            const payload = {
+                item_name: formData.name,
+                sale_rate: parseFloat(formData.sale_rate),
+                stock: parseInt(formData.stock),
+                is_gst: formData.is_gst,
+                
+                purchase_rate: parseFloat(formData.purchase_rate) || 0,
+                mrp_rate: parseFloat(formData.mrp_rate) || 0,
+                gst_percent: parseFloat(formData.gst_percent) || 0,
+                discount: parseFloat(formData.discount) || 0,
+                threshold: parseInt(formData.threshold) || 0,
+                
+                category_id: formData.category || undefined,
+                brand_id: formData.brand || undefined,
+                supplier_id: formData.supplier || undefined
+            };
+            await itemAPI.create(payload);
         }
 
         showToast('Item added successfully', 'success');
         navigate('/inventory/item-master');
     } catch (error) {
         console.error("Add item failed", error);
-        showToast('Failed to add item', 'error');
+        const msg = error.response?.data?.message || 'Failed to add item';
+        // Detailed validation error handling
+        const details = error.response?.data?.errors 
+            ? (Array.isArray(error.response.data.errors) ? error.response.data.errors.join(', ') : JSON.stringify(error.response.data.errors))
+            : '';
+        showToast(details ? `${msg}: ${details}` : msg, 'error');
     }
   };
 
@@ -180,25 +244,6 @@ const AddItem = () => {
               </select>
             </div>
 
-            {/* Category */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category
-              </label>
-              <select
-                value={formData.category || ''}
-                onChange={(e) => handleChange('category', e.target.value)}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              >
-                <option value="">Select Category</option>
-                {categories.map((c) => (
-                  <option key={c._id} value={c._id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {/* Brand */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -213,6 +258,25 @@ const AddItem = () => {
                 {brands.map((b) => (
                   <option key={b._id} value={b._id}>
                     {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Supplier */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Supplier
+              </label>
+              <select
+                value={formData.supplier || ''}
+                onChange={(e) => handleChange('supplier', e.target.value)}
+                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">Select Supplier</option>
+                {suppliers.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {s.name}
                   </option>
                 ))}
               </select>
