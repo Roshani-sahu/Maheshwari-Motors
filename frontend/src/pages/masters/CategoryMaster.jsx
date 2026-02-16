@@ -23,22 +23,37 @@ const CategoryMaster = () => {
 
   const fetchData = async () => {
     try {
-      const [catRes, brandRes] = await Promise.all([
-        categoryAPI.getAll(),
-        brandAPI.getAll()
-      ]);
+      // Helper function to fetch all pages from an API endpoint
+      const fetchAllPages = async (apiCall) => {
+          let allDocs = [];
+          let page = 1;
+          let hasMore = true;
+          while(hasMore) {
+              const res = await apiCall({ page, limit: 100 });
+              let pageData = [];
+              const payload = res.data?.data;
 
-      // Helper to extract data array from potentially paginated response
-      const extractData = (res) => {
-          const payload = res?.data?.data; // ApiResponse returns { data: ... }
-          if (Array.isArray(payload)) return payload;
-          if (payload?.docs && Array.isArray(payload.docs)) return payload.docs; // Mongoose pagination
-          if (payload?.data && Array.isArray(payload.data)) return payload.data; // Other pagination
-          return [];
+              if (Array.isArray(payload)) {
+                  pageData = payload;
+                  hasMore = false;
+              } else {
+                  pageData = payload?.data || [];
+                  if (payload?.meta && payload.meta.hasNextPage) {
+                      page++;
+                  } else {
+                      hasMore = false;
+                  }
+              }
+              allDocs = [...allDocs, ...pageData];
+              if (page > 50) break;
+          }
+          return allDocs;
       };
 
-      const catList = extractData(catRes);
-      const brandList = extractData(brandRes);
+      const [catList, brandList] = await Promise.all([
+        fetchAllPages(categoryAPI.getAll),
+        fetchAllPages(brandAPI.getAll)
+      ]);
 
       setCategories(catList.map(c => ({ 
         id: c._id, 
