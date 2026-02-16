@@ -101,14 +101,24 @@ const Dashboard = () => {
         });
         
         // Recent Lists - Backend returns mixed, we filter
+        /*
         const filterRecent = (list) => (list || []).filter(item => {
-             // item.is_gst might be 1/0
-             const itemIsGst = item.is_gst === 1;
+             // item.is_gst might be 1/0 or string '1'/'0'
+             const itemIsGstVal = Number(item.is_gst);
+             const itemIsGst = itemIsGstVal === 1;
              return itemIsGst === isGst;
         });
+
+        const recentC = filterRecent(data.recent_challans);
+        const recentB = filterRecent(data.recent_bills);
+        */
         
-        setRecentChallans(filterRecent(data.recent_challans));
-        setRecentBills(filterRecent(data.recent_bills));
+        // Use raw data to ensure transactions show up (Backend returns global list for user)
+        const recentC = data.recent_challans || [];
+        const recentB = data.recent_bills || [];
+        
+        setRecentChallans(recentC);
+        setRecentBills(recentB);
         
         // Update Store
         setItems(items);

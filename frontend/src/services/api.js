@@ -217,23 +217,23 @@ export const reportAPI = {
 export default api;
 
 export const categoryAPI = {
-  getAll: () => api.get('/categories').catch(err => {
+  getAll: (params) => api.get('/categories', { params }).catch(err => {
     console.error('Category API error:', err.response?.data || err.message);
     return { data: [] };
   }),
   create: (data) => api.post('/categories', data),
   update: (id, data) => api.put(`/categories/${id}`, data),
-  // delete: (id) => api.// delete(`/categories/${id}`),
+  delete: (id) => api.delete(`/categories/${id}`),
 };
 
 export const supplierAPI = {
-  getAll: () => api.get('/suppliers').catch(err => {
+  getAll: (params) => api.get('/suppliers', { params }).catch(err => {
     console.error('Supplier API error:', err.response?.data || err.message);
     return { data: [] };
   }),
   create: (data) => api.post('/suppliers', data),
   update: (id, data) => api.put(`/suppliers/${id}`, data),
-  // delete: (id) => api.// delete(`/suppliers/${id}`),
+  delete: (id) => api.delete(`/suppliers/${id}`),
 };
 
 export const groupAPI = {
@@ -252,27 +252,27 @@ export const hsnAPI = {
 };
 
 export const adminAPI = {
-  getUsers: () => api.get('/admin/users'),
+  getUsers: (params) => api.get('/admin/users', { params }),
   createUser: (data) => api.post('/admin/users', data),
   getUser: (id) => api.get(`/admin/users/${id}`),
   updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
-  // deleteUser: (id) => api.// delete(`/admin/users/${id}`),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
   toggleStatus: (id, isActive) => api.post(`/admin/users/${id}/${isActive ? "reactivate" : "deactivate"}`),
 };
 
 export const brandAPI = {
-  getAll: () => api.get('/brands').catch(err => {
+  getAll: (params) => api.get('/brands', { params }).catch(err => {
     console.error('Brand API error:', err.response?.data || err.message);
     return { data: [] };
   }),
   create: (data) => api.post('/brands', data),
   update: (id, data) => api.put(`/brands/${id}`, data),
-  // delete: (id) => api.// delete(`/brands/${id}`),
+  delete: (id) => api.delete(`/brands/${id}`),
 };
 
 export const discountAPI = {
-  getAll: () => api.get('/discounts'),
+  getAll: (params) => api.get('/discounts', { params }),
   getByBrand: (brandId) => api.get(`/discounts/brand/${brandId}`),
   upsert: (data) => api.post('/discounts', data),
-  // delete: (id) => api.// delete(`/discounts/${id}`),
+  delete: (id) => api.delete(`/discounts/${id}`),
 };

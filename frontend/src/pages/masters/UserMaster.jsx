@@ -149,6 +149,7 @@ const UserMaster = () => {
     //  },
     //  className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
     //},
+    /*
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (user) => {
@@ -162,6 +163,7 @@ const UserMaster = () => {
       },
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
+    */
   ];
 
   const handleAddUser = async () => {

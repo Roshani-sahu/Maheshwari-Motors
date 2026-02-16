@@ -39,17 +39,15 @@ class DashboardService {
       ]),
     ]);
 
-    const recentChallans = await Challan.find({ user_id: userId })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate("party_id", "name")
-      .lean();
+    const [recentGstChallans, recentNongstChallans, recentGstBills, recentNongstBills] = await Promise.all([
+      Challan.find({ user_id: userId, is_gst: 1 }).sort({ createdAt: -1 }).limit(5).populate("party_id", "name").lean(),
+      Challan.find({ user_id: userId, is_gst: 0 }).sort({ createdAt: -1 }).limit(5).populate("party_id", "name").lean(),
+      Bill.find({ user_id: userId, is_gst: 1 }).sort({ createdAt: -1 }).limit(5).populate("party_id", "name").lean(),
+      Bill.find({ user_id: userId, is_gst: 0 }).sort({ createdAt: -1 }).limit(5).populate("party_id", "name").lean()
+    ]);
 
-    const recentBills = await Bill.find({ user_id: userId })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate("party_id", "name")
-      .lean();
+    const recentChallans = [...recentGstChallans, ...recentNongstChallans].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const recentBills = [...recentGstBills, ...recentNongstBills].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     return {
       counts: {
