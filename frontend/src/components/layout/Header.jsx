@@ -8,10 +8,23 @@ import {
   FaCog,
   FaSignOutAlt,
 } from "react-icons/fa";
+import useStore from "../../store";
 import CompanySelector from "../CompanySelector";
 
 const Header = ({ onMenuClick }) => {
+  const { user } = useStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  // Determine email based on user type
+  const getUserEmail = () => {
+    if (!user) return 'user@example.com';
+    return user.firm_data?.email || user.email || 'user@example.com';
+  };
+  
+  const getFirmName = () => {
+    if (!user) return 'Select Company';
+    return user.firm_data?.name || 'Company';
+  };
   // const [showDatePicker, setShowDatePicker] = useState(false);
   const navigate = useNavigate();
   const userMenuRef = useRef(null);
@@ -66,7 +79,10 @@ const Header = ({ onMenuClick }) => {
           <FaBars className="text-neutral-700" />
         </button>
 
-        <CompanySelector />
+        {/* Company Name Display */}
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-md border border-blue-200">
+          <span className="text-sm font-medium text-blue-900">{getFirmName()}</span>
+        </div>
 
         {/* User avatar - moved to top right on mobile */}
         <div className="sm:hidden relative" ref={userMenuRef}>
@@ -173,8 +189,8 @@ const Header = ({ onMenuClick }) => {
             {showUserMenu && (
               <div className="absolute top-full right-0 mt-1 w-48 bg-white border border-neutral-300 rounded-md shadow-lg z-50">
                 <div className="px-3 py-2 border-b border-neutral-200">
-                  <p className="text-xs font-medium text-neutral-800">Admin User</p>
-                  <p className="text-xs text-neutral-500">admin@maheshwarimotors.com</p>
+                  <p className="text-xs font-medium text-neutral-800">{user?.name || 'User'}</p>
+                  <p className="text-xs text-neutral-500">{getUserEmail()}</p>
                 </div>
                 {/* <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50">
                   <FaCog className="text-neutral-500" />
