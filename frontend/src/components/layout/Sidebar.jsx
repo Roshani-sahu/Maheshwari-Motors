@@ -164,7 +164,7 @@ const Sidebar = ({ onClose }) => {
               Stock Alert Master
             </NavLink>
 
-            
+
             {/* <NavLink
               to="/masters/item-master"
               onClick={onClose}
@@ -436,7 +436,7 @@ const Sidebar = ({ onClose }) => {
           </SidebarSection>
 
           {/* 5. Setup & Tools */}
-          {/* <SidebarSection title="Setup & Tools">
+           <SidebarSection title="Setup & Tools">
             <NavLink
               to="/setup/backup-restore"
               onClick={onClose}
@@ -466,7 +466,7 @@ const Sidebar = ({ onClose }) => {
               <FaCalendarXmark className="w-4 h-4" />
               Financial Year Close
             </NavLink>
-          </SidebarSection> */}
+          </SidebarSection> 
         </ul>
       </nav>
 

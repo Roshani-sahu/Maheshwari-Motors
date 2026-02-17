@@ -1418,9 +1418,9 @@ const ChallanList = () => {
                                 loadItemsPage(itemsPage - 1);
                               }}
                               disabled={itemsPage === 1 || isLoadingItems}
-                              className="px-2 py-0.5 bg-white border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200"
+                              className=""
                             >
-                              ←
+                              
                             </button>
                             <span>Page {itemsPage} of {totalItemsPages}</span>
                             <button
@@ -1429,9 +1429,9 @@ const ChallanList = () => {
                                 loadItemsPage(itemsPage + 1);
                               }}
                               disabled={itemsPage === totalItemsPages || isLoadingItems}
-                              className="px-2 py-0.5 bg-white border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200"
+                              className=""
                             >
-                              →
+                              
                             </button>
                           </div>
                           {loadedItems
