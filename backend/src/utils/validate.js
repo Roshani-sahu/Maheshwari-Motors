@@ -95,6 +95,17 @@ function validateField(fieldName, value, rule) {
         }
         break;
 
+      case "object":
+        if (
+          typeof value !== "object" ||
+          value === null ||
+          Array.isArray(value)
+        ) {
+          errors.push(`${label} must be an object`);
+          return errors;
+        }
+        break;
+
       case "objectId":
         if (typeof value !== "string" || !OBJECT_ID_REGEX.test(value)) {
           errors.push(`${label} must be a valid ID`);
@@ -108,6 +119,22 @@ function validateField(fieldName, value, rule) {
           return errors;
         }
         break;
+    }
+  }
+
+  if (
+    rule.type === "object" &&
+    typeof value === "object" &&
+    value !== null &&
+    rule.fields
+  ) {
+    for (const [subField, subRule] of Object.entries(rule.fields)) {
+      const subErrors = validateField(
+        `${fieldName}.${subField}`,
+        value[subField],
+        { ...subRule, label: subRule.label || `${label} → ${subField}` },
+      );
+      errors.push(...subErrors);
     }
   }
 
@@ -232,6 +259,15 @@ function extractFields(data, schema) {
     if (typeof value === "string") {
       value = value.trim();
       if (value === "" && !rule.required) continue;
+    }
+
+    if (
+      rule.type === "object" &&
+      typeof value === "object" &&
+      value !== null &&
+      rule.fields
+    ) {
+      value = extractFields(value, rule.fields);
     }
 
     sanitized[fieldName] = value;

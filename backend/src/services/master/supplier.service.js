@@ -30,9 +30,32 @@ class SupplierService {
   }
 
   async createSupplier(supplierData, userId) {
+    const { name, phone, email, address, city, state, gstin } = supplierData;
+
+    // --- Required field check ---
+    if (!name || typeof name !== "string" || !name.trim()) {
+      throw ApiError.badRequest("Supplier name is required");
+    }
+
+    // --- Duplicate name check ---
+    const escapedName = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const duplicate = await Supplier.findOne({
+      name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+      user_id: userId,
+    });
+    if (duplicate) {
+      throw ApiError.conflict("Supplier with this name already exists");
+    }
+
     const supplier = await Supplier.create({
-      ...supplierData,
       id: await getNextId("Supplier", userId),
+      name: name.trim(),
+      phone,
+      email,
+      address,
+      city,
+      state,
+      gstin,
       user_id: userId,
     });
     return supplier;
@@ -47,9 +70,38 @@ class SupplierService {
       throw ApiError.notFound("Supplier not found");
     }
 
+    const { name, phone, email, address, city, state, gstin } = updateData;
+
+    // --- Name validation on rename ---
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        throw ApiError.badRequest("Supplier name cannot be empty");
+      }
+      const escapedName = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const duplicate = await Supplier.findOne({
+        name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+        user_id: userId,
+        _id: { $ne: supplierId },
+      });
+      if (duplicate) {
+        throw ApiError.conflict(
+          "Another supplier with this name already exists",
+        );
+      }
+    }
+
+    const fields = {};
+    if (name !== undefined) fields.name = name.trim();
+    if (phone !== undefined) fields.phone = phone;
+    if (email !== undefined) fields.email = email;
+    if (address !== undefined) fields.address = address;
+    if (city !== undefined) fields.city = city;
+    if (state !== undefined) fields.state = state;
+    if (gstin !== undefined) fields.gstin = gstin;
+
     const updatedSupplier = await Supplier.findByIdAndUpdate(
       supplierId,
-      updateData,
+      fields,
       { new: true },
     );
     return updatedSupplier;

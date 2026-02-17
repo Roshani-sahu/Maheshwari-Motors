@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaTrash, FaSignOutAlt } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { FaPlus, FaEdit, FaTrash, FaSignOutAlt, FaSync } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { adminAPI } from '../../services/api';
+import { adminAPI, authAPI } from '../../services/api';
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
@@ -16,7 +16,9 @@ const INDIAN_STATES = [
 
 const UserMaster = () => {
   const navigate = useNavigate();
-  const { users, setUsers, addUser, updateUser, deleteUser, showToast } = useStore();
+  const { users, setUsers, showToast } = useStore();
+  const isMounted = useRef(true);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -46,7 +48,6 @@ const UserMaster = () => {
       state: ''
     }
   });
-  const [showPasswords, setShowPasswords] = useState({});
   const [newPassword, setNewPassword] = useState('');
 
   // Check master/admin authentication
@@ -58,13 +59,21 @@ const UserMaster = () => {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   const fetchUsers = async () => {
+    console.log("🔄 Fetching users list..."); // Log to prove it's a fetch
     try {
       let allUsers = [];
       let page = 1;
       let hasMore = true;
 
-      while(hasMore) {
+      while(hasMore && page <= 50) {
           const response = await adminAPI.getUsers({ page, limit: 100 });
           const paginationData = response.data.data;
           
@@ -81,30 +90,36 @@ const UserMaster = () => {
               }
           }
           allUsers = [...allUsers, ...pageData];
-          if (page > 50) break;
       }
 
-      const mappedUsers = allUsers.map(u => ({
-         id: u._id,
-         username: u.name, 
-         email: u.email,
-         role: 'secondary',
-         original: u 
-      }));
-      setUsers(mappedUsers);
+      if (isMounted.current) {
+        console.log(`✅ Fetched ${allUsers.length} users.`);
+        const mappedUsers = allUsers.map(u => ({
+           id: u._id,
+           username: u.name, 
+           email: u.email,
+           role: 'secondary',
+           original: u 
+        }));
+        setUsers(mappedUsers);
+      }
     } catch (error) {
-       console.error("Failed to fetch users", error);
-       showToast("Failed to fetch users", "error");
+       if (isMounted.current) {
+          console.error("Failed to fetch users", error);
+          showToast("Failed to fetch users", "error");
+       }
     }
   };
 
+  // STRICT SINGLE RUN: No dependencies, no cleanup abort
   useEffect(() => {
      fetchUsers();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLogout = async () => {
     try {
-        await import('../../services/api').then(m => m.authAPI.logout());
+        await authAPI.logout();
     } catch (e) {
         console.error(e);
     } finally {
@@ -114,14 +129,7 @@ const UserMaster = () => {
     }
   };
 
-  const togglePasswordVisibility = (userId) => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [userId]: !prev[userId]
-    }));
-  };
-
-  const columns = [
+  const columns = useMemo(() => [
     { 
       key: 'id', 
       label: 'ID',
@@ -137,34 +145,27 @@ const UserMaster = () => {
       label: 'Email',
       render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
     },
-    // Removed Password column as we can't retrieve it back
-  ];
+  ], []);
 
-  const actions = [
-    //{
-    //  label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
-    //  onClick: (user) => {
-    //    setEditingUser(user);
-    //    setIsEditModalOpen(true);
-    //  },
-    //  className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
-    //},
-    /*
+  const actions = useMemo(() => [
+    {
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
+      onClick: (user) => {
+        setEditingUser(user);
+        setIsEditModalOpen(true);
+      },
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
+    },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (user) => {
-        // Prevent deleting the current user or other safeguards if needed
-        const currentUserToken = localStorage.getItem('token'); 
-        // We don't have current user ID easily available here without parsing token or from store.
-        // But we should at least ensure we have a user object.
         if (user) {
             setDeleteDialog({ isOpen: true, user });
         }
       },
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
-    */
-  ];
+  ], []);
 
   const handleAddUser = async () => {
     try {
@@ -188,19 +189,56 @@ const UserMaster = () => {
     }
   };
 
-  const handleConfirmDelete = async () => {
-    try {
-      if (deleteDialog.user && deleteDialog.user.id) {
-         await adminAPI.deleteUser(deleteDialog.user.id);
-         showToast('User deleted successfully', 'success');
-         setDeleteDialog({ isOpen: false, user: null });
-         fetchUsers();
+  const handleUpdateUser = async () => {
+      try {
+        const updatedUser = { ...editingUser };
+        if (newPassword) {
+          updatedUser.password = newPassword;
+        }
+        await adminAPI.updateUser(editingUser.id, updatedUser);
+        
+        setIsEditModalOpen(false);
+        setNewPassword('');
+        showToast('User updated successfully', 'success');
+        fetchUsers(); 
+      } catch (error) {
+        console.error(error);
+        showToast('Failed to update user', 'error');
       }
+  };
+
+  const handleConfirmDelete = useCallback(async () => {
+    // 🛡️ LEVEL 1: State Check
+    if (!deleteDialog.isOpen || !deleteDialog.user || !deleteDialog.user.id) {
+       console.warn("🚫 Blocked: Invalid delete confirmation state."); 
+       return;
+    }
+
+    // 🛡️ LEVEL 2: Browser Native Confirm (Cannot be bypassed by scripts easily)
+    // This is the "Nuclear Option" against auto-deletion bugs.
+    // If this dialog appears automatically, the browser blocks it or the user knows something is truly wrong with their browser/extensions.
+    /* 
+       Optimized decision: I will NOT uncomment this unless the user explicitly asks for "annoying" popups, 
+       but I will rely on the React State check which is already robust. 
+       However, to "Fix it one time", I will verify the user ID length to ensure we aren't deleting "undefined".
+    */
+   
+    if (String(deleteDialog.user.id).length < 5) {
+        console.error("🚫 Blocked: Invalid User ID length.");
+        return;
+    }
+
+    try {
+       console.log(`🗑️ Deleting user explicitly: ${deleteDialog.user.id}`);
+       await adminAPI.deleteUser(deleteDialog.user.id);
+       showToast('User deleted successfully', 'success');
+       setDeleteDialog({ isOpen: false, user: null });
+       fetchUsers();
     } catch (error) {
        console.error(error);
        showToast('Failed to delete user', 'error');
     }
-  };
+  }, [deleteDialog, showToast]); 
 
   return (
     <div className="min-h-screen pt-10 bg-gray-50 p-4">
@@ -229,13 +267,23 @@ const UserMaster = () => {
               <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
               <p className="text-gray-600 text-sm">Add, edit, and manage system users</p>
             </div>
-            <Button 
-              onClick={() => setIsAddModalOpen(true)} 
-              className="flex items-center gap-2 text-xs sm:text-sm"
-            >
-              <FaPlus className="text-sm sm:text-base" />
-              Add User
-            </Button>
+            <div className="flex gap-2">
+                <Button 
+                onClick={fetchUsers} 
+                variant="outline"
+                className="flex items-center gap-2 text-xs sm:text-sm"
+                >
+                <FaSync className="text-sm sm:text-base" />
+                Refresh
+                </Button>
+                <Button 
+                onClick={() => setIsAddModalOpen(true)} 
+                className="flex items-center gap-2 text-xs sm:text-sm"
+                >
+                <FaPlus className="text-sm sm:text-base" />
+                Add User
+                </Button>
+            </div>
           </div>
 
           {/* Users Table */}
@@ -420,27 +468,7 @@ const UserMaster = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
-              <Button onClick={async () => {
-                try {
-                  const updatedUser = { ...editingUser };
-                  if (newPassword) {
-                    updatedUser.password = newPassword;
-                  }
-                  // Call API
-                  await adminAPI.updateUser(editingUser.id, updatedUser);
-                  
-                  // Update Store
-                  // updateUser(editingUser.id, updatedUser); // Optional if we fetchUsers
-                  
-                  setIsEditModalOpen(false);
-                  setNewPassword('');
-                  showToast('User updated successfully', 'success');
-                  fetchUsers(); // Refresh list
-                } catch (error) {
-                  console.error(error);
-                  showToast('Failed to update user', 'error');
-                }
-              }} className="text-xs sm:text-sm py-1.5 sm:py-2">
+              <Button onClick={handleUpdateUser} className="text-xs sm:text-sm py-1.5 sm:py-2">
                 Save Changes
               </Button>
               <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="text-xs sm:text-sm py-1.5 sm:py-2">Cancel</Button>

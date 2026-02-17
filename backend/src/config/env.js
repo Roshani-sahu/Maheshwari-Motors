@@ -35,10 +35,15 @@ class ENV {
     this.env.RATE_LIMIT_MAX_REQUESTS =
       Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 0;
 
-    this.env.CORS_ORIGIN =
-      process.env.CORS_ORIGIN ?
-        process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
-      : [];
+    const FRONTEND_URL = "https://maheshwari-motors-efuh.vercel.app";
+
+    if (!process.env.CORS_ORIGIN || process.env.CORS_ORIGIN.trim() === "*") {
+      this.env.CORS_ORIGIN = "*";
+    } else {
+      const origins = process.env.CORS_ORIGIN.split(",").map((o) => o.trim());
+      if (!origins.includes(FRONTEND_URL)) origins.push(FRONTEND_URL);
+      this.env.CORS_ORIGIN = origins;
+    }
 
     this.env.DEFAULT_PAGE_SIZE = Number(process.env.DEFAULT_PAGE_SIZE) || 5;
     this.env.MAX_PAGE_SIZE = Number(process.env.MAX_PAGE_SIZE) || 10;

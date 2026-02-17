@@ -2,8 +2,20 @@ import { discountService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
 const discountFieldSchema = {
-  normal: { required: false, type: "number", min: 0, label: "Normal %" },
-  special: { required: false, type: "number", min: 0, label: "Special %" },
+  normal: {
+    required: false,
+    type: "number",
+    min: 0,
+    max: 100,
+    label: "Normal %",
+  },
+  special: {
+    required: false,
+    type: "number",
+    min: 0,
+    max: 100,
+    label: "Special %",
+  },
 };
 
 const discountSchema = {

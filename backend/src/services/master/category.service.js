@@ -1,4 +1,5 @@
 import Category from "../../models/master/category.model.js";
+import Brand from "../../models/master/brand.model.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 
@@ -27,23 +28,41 @@ class CategoryService {
   }
 
   async createCategory(categoryData, userId) {
-    const escapedName = categoryData.name.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      "\\$&",
-    );
+    const { name, description, brand_ids } = categoryData;
+
+    // --- Required field check ---
+    if (!name || typeof name !== "string" || !name.trim()) {
+      throw ApiError.badRequest("Category name is required");
+    }
+
+    // --- Duplicate name check ---
+    const escapedName = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const existingCategory = await Category.findOne({
       name: { $regex: new RegExp(`^${escapedName}$`, "i") },
       user_id: userId,
     });
-
     if (existingCategory) {
-      throw ApiError.badRequest("Category with this name already exists");
+      throw ApiError.conflict("Category with this name already exists");
+    }
+
+    // --- Validate brand_ids reference ---
+    if (brand_ids && brand_ids.length > 0) {
+      const validBrandCount = await Brand.countDocuments({
+        _id: { $in: brand_ids },
+        user_id: userId,
+      });
+      if (validBrandCount !== brand_ids.length) {
+        throw ApiError.badRequest(
+          "One or more selected brands are invalid or do not belong to you",
+        );
+      }
     }
 
     const category = await Category.create({
-      name: categoryData.name,
-      brand_ids: categoryData.brand_ids || [],
       id: await getNextId("Category", userId),
+      name: name.trim(),
+      description,
+      brand_ids: brand_ids || [],
       user_id: userId,
     });
     return category;
@@ -56,9 +75,47 @@ class CategoryService {
     });
     if (!category) throw ApiError.notFound("Category not found");
 
+    const { name, description, brand_ids } = updateData;
+
+    // --- Name validation on rename ---
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        throw ApiError.badRequest("Category name cannot be empty");
+      }
+      const escapedName = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const duplicate = await Category.findOne({
+        name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+        user_id: userId,
+        _id: { $ne: categoryId },
+      });
+      if (duplicate) {
+        throw ApiError.conflict(
+          "Another category with this name already exists",
+        );
+      }
+    }
+
+    // --- Validate brand_ids reference ---
+    if (brand_ids !== undefined && brand_ids.length > 0) {
+      const validBrandCount = await Brand.countDocuments({
+        _id: { $in: brand_ids },
+        user_id: userId,
+      });
+      if (validBrandCount !== brand_ids.length) {
+        throw ApiError.badRequest(
+          "One or more selected brands are invalid or do not belong to you",
+        );
+      }
+    }
+
+    const fields = {};
+    if (name !== undefined) fields.name = name.trim();
+    if (description !== undefined) fields.description = description;
+    if (brand_ids !== undefined) fields.brand_ids = brand_ids;
+
     const updatedCategory = await Category.findByIdAndUpdate(
       categoryId,
-      updateData,
+      fields,
       { new: true },
     );
     return updatedCategory;

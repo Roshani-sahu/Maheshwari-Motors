@@ -1,23 +1,49 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
 import UserMaster from '../UserMaster';
 import { adminAPI } from '../../../services/api';
 import useStore from '../../../store';
 
 // Mock dependencies
-jest.mock('../../../services/api');
-jest.mock('../../../store', () => ({
+vi.mock('../../../services/api');
+vi.mock('../../../store', () => ({
   __esModule: true,
-  default: jest.fn()
+  default: vi.fn()
 }));
-jest.mock('react-router-dom', () => ({
-  useNavigate: () => jest.fn()
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn()
 }));
-jest.mock('../../../components/common', () => ({
-  DataTable: ({ data }) => <div data-testid="user-table">{data.length} users</div>,
+vi.mock('../../../components/common', () => ({
+  DataTable: ({ data, actions }) => (
+    <div data-testid="user-table">
+      {data.map((user, idx) => (
+        <div key={user.id || idx} data-testid="user-row">
+          <span>{user.username}</span>
+          {actions && actions.map((action, actionIdx) => {
+             // Heuristic to identify delete button based on label or className (red)
+             const isDelete = action.className?.includes('red');
+             return (
+               <button 
+                 key={actionIdx} 
+                 onClick={() => action.onClick(user)}
+                 aria-label={isDelete ? "delete-btn" : "action-btn"}
+               >
+                 {isDelete ? "Delete" : "Edit"}
+               </button>
+             );
+          })}
+        </div>
+      ))}
+    </div>
+  ),
   Modal: ({ children, isOpen }) => isOpen ? <div>{children}</div> : null,
-  DeleteConfirmDialog: () => null
+  DeleteConfirmDialog: ({ isOpen, onConfirm }) => isOpen ? (
+    <div data-testid="delete-dialog">
+      <button onClick={onConfirm} aria-label="confirm-delete">Confirm Delete</button>
+    </div>
+  ) : null
 }));
-jest.mock('react-icons/fa', () => ({
+vi.mock('react-icons/fa', () => ({
   FaPlus: () => null,
   FaEdit: () => null,
   FaTrash: () => null,
@@ -28,8 +54,8 @@ describe('UserMaster Component', () => {
   beforeEach(() => {
     useStore.mockReturnValue({
       users: [],
-      setUsers: jest.fn(),
-      showToast: jest.fn()
+      setUsers: vi.fn(),
+      showToast: vi.fn()
     });
   });
 
@@ -58,11 +84,11 @@ describe('UserMaster Component', () => {
       return Promise.resolve({ data: { data: { data: [] } } });
     });
 
-    const setUsersMock = jest.fn();
+    const setUsersMock = vi.fn();
     useStore.mockReturnValue({
       users: [],
       setUsers: setUsersMock,
-      showToast: jest.fn()
+      showToast: vi.fn()
     });
 
     render(<UserMaster />);
@@ -74,6 +100,52 @@ describe('UserMaster Component', () => {
         expect.objectContaining({ username: 'User 1' }),
         expect.objectContaining({ username: 'User 2' })
       ]));
+    });
+  });
+
+  test('handles user deletion correctly', async () => {
+    // Setup store with one user
+    const mockUser = { id: 'user-123', username: 'Test User' };
+    const setUsersMock = vi.fn();
+    
+    useStore.mockReturnValue({
+      users: [mockUser],
+      setUsers: setUsersMock,
+      showToast: vi.fn(), 
+      deleteUser: vi.fn() // We mock the store action too
+    });
+
+    // Mock delete API success
+    adminAPI.deleteUser = vi.fn().mockResolvedValue({ data: { success: true } });
+    
+    // We also need to mock getUsers for the refresh call after delete
+    adminAPI.getUsers.mockResolvedValue({ data: { data: { data: [] } } }); // Return empty after delete
+
+    render(<UserMaster />);
+
+    // Check if user row is rendered
+    expect(screen.getByText('Test User')).toBeTruthy();
+
+    // Click Delete button
+    const deleteBtns = screen.getAllByLabelText('delete-btn');
+    expect(deleteBtns.length).toBeGreaterThan(0);
+    deleteBtns[0].click();
+
+    // Check if dialog opens
+    expect(await screen.findByTestId('delete-dialog')).toBeTruthy();
+
+    // Confirm Delete
+    const confirmBtn = screen.getByLabelText('confirm-delete');
+    confirmBtn.click();
+
+    // Verify API call
+    await waitFor(() => {
+       expect(adminAPI.deleteUser).toHaveBeenCalledWith('user-123');
+    });
+    
+    // Verify refresh called (getUsers)
+    await waitFor(() => {
+       expect(adminAPI.getUsers).toHaveBeenCalled(); 
     });
   });
 });

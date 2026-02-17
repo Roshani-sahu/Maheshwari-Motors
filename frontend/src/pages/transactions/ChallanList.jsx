@@ -6,7 +6,7 @@ import useStore from '../../store';
 import { challanAPI, accountAPI, itemAPI, billAPI } from '../../services/api';
 
 const ChallanList = () => {
-  const { showToast } = useStore();
+  const { showToast, selectedFirm } = useStore();
   const [challans, setChallans] = useState([]);
   const [loadedParties, setLoadedParties] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
@@ -14,37 +14,71 @@ const ChallanList = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        console.debug("🔄 Fetching initial data for ChallanList...", { firmId: selectedFirm?.id });
+        
+        // Pass limit to ensure we get all items for the dropdown
+        // Also pass firmId to ensure we get items for the selected firm
+        // Try multiple params to force backend to return all data
         const [pRes, iRes, cRes] = await Promise.all([
-           accountAPI.getAll(),
-           itemAPI.getAll(),
-           challanAPI.getAll()
+           accountAPI.getAll(selectedFirm?.id),
+           itemAPI.getAll({ 
+             limit: 20000, 
+             pageSize: 20000,
+             pagination: false,
+             firmId: selectedFirm?.id 
+           }), 
+           challanAPI.getAll(selectedFirm?.id)
         ]);
         
+        console.debug("✅ Raw API Responses:", { parties: pRes, items: iRes, challans: cRes });
+
+        // Robust data extraction helper
         const getList = (res) => {
-            const val = res.data?.data;
-            return Array.isArray(val) ? val : (val?.data || []);
+            const val = res.data;
+            if (Array.isArray(val)) return val;
+            if (val?.data && Array.isArray(val.data)) return val.data;
+            if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
+            if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs; // Handle mongoose-paginate
+            if (val?.docs && Array.isArray(val.docs)) return val.docs;
+            return [];
         };
 
-        setLoadedParties(getList(pRes).map(p => ({ id: p._id, name: p.name })));
-        setLoadedItems(getList(iRes).map(i => ({ id: i._id, name: i.item_name, amount: i.amount })));
+        const partiesData = getList(pRes).map(p => ({ id: p._id || p.id, name: p.name }));
+        const itemsData = getList(iRes).map(i => ({ 
+            ...i, // Keep all backend fields (e.g. part_no, stock, unit, etc.)
+            id: i._id || i.id, 
+            name: i.item_name || i.name, 
+            amount: i.amount || i.rate || 0 
+        }));
+        
+        // Log to verify item count and structure
+        console.debug(`📦 Loaded ${itemsData.length} items for dropdown. Sample:`, itemsData[0]);
 
-        setChallans(getList(cRes).map(c => ({
-           id: c._id,
-           challanNo: c.challan_no,
+        const challansData = getList(cRes).map(c => ({
+           id: c._id || c.id,
+           challanNo: c.challan_no || c.challanNo,
            date: c.date,
-           partyId: c.party_id?._id,
-           party: c.party_id?.name || 'Unknown',
-           items: c.items?.map(i => i.item_id?.item_name || 'Item') || [],
+           partyId: c.party_id?._id || c.party_id,
+           party: c.party_id?.name || c.party_name || 'Unknown',
+           items: c.items?.map(i => (i.item_id?.item_name || i.item_name || 'Item')) || [],
            amount: c.amount,
            gstType: c.is_gst
-        })));
-      } catch (err) {
-        console.error("Failed to fetch data", err);
-      }
-    };
-    fetchData();
-  }, []);
+        }));
 
+        setLoadedParties(partiesData);
+        setLoadedItems(itemsData);
+        setChallans(challansData);
+
+        console.debug("🧩 State Updated:", { parties: partiesData.length, items: itemsData.length, challans: challansData.length });
+
+    } catch (err) {
+      console.error("Failed to fetch data", err);
+    }
+  };
+    fetchData();
+  }, [selectedFirm?.id]); // ✅ Refetch when selectedFirm changes
+
+  // Filters state
   const [filters, setFilters] = useState({
     dateFrom: '',
     dateTo: '',
@@ -52,10 +86,11 @@ const ChallanList = () => {
     gstType: 'all'
   });
 
-
+  // Modal and Form states
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedChallans, setSelectedChallans] = useState([]);
+  
   const [newChallan, setNewChallan] = useState({
     challanNo: '',
     party: '',
@@ -63,12 +98,13 @@ const ChallanList = () => {
     amount: '',
     gstType: 0,
     date: new Date().toISOString().split('T')[0],
-    itemDetails: {} // Store item-specific details like quantity, rate, etc.
+    itemDetails: {} 
   });
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingChallan, setEditingChallan] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, challan: null });
+  
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [showItemDropdown, setShowItemDropdown] = useState(false);
   const [editItemSearchTerm, setEditItemSearchTerm] = useState('');
@@ -78,6 +114,20 @@ const ChallanList = () => {
   const itemDropdownRef = useRef(null);
   const editItemDropdownRef = useRef(null);
 
+  // Derived state: filteredItems relies on loadedItems, itemSearchTerm, and newChallan
+  const filteredItems = loadedItems.filter(item => {
+    const search = itemSearchTerm.trim().toLowerCase();
+    const notSelected = !newChallan.items.includes(item.id);
+  
+    // Robust search: check name, part_no, and hsn_code
+    const matchesSearch =
+      !search ||
+      (item.name && item.name.toLowerCase().includes(search)) ||
+      (item.part_no && item.part_no.toLowerCase().includes(search)) ||
+      (item.hsn_code && item.hsn_code.toLowerCase().includes(search));
+  
+    return notSelected && matchesSearch;
+  });
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -900,6 +950,78 @@ const ChallanList = () => {
                 </tbody>
               </table>
             </div>
+
+
+            {/* Add Item Section */}
+            <div className="p-4 bg-gray-50 border-t">
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Search & Add Items:</label>
+                <div className="relative" ref={itemDropdownRef}>
+                  <input
+                    type="text"
+                    placeholder="Search items..."
+                    value={itemSearchTerm}
+                    onChange={(e) => {
+                      setItemSearchTerm(e.target.value);
+                      setShowItemDropdown(true);
+                    }}
+                    onFocus={() => setShowItemDropdown(true)}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  />
+                  {showItemDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-64 overflow-y-auto">
+                      {filteredItems.map(item => (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                                toggleItemSelection(item.id);
+                                setItemSearchTerm('');
+                                setShowItemDropdown(false);
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
+                          >
+                            <div className="flex justify-between items-center">
+                              <span className="truncate">
+                                {item.name} 
+                                {item.part_no && <span className="text-gray-400 text-xs ml-1">({item.part_no})</span>}
+                              </span>
+                              <span className="text-gray-500 text-xs ml-2">₹{item.amount}</span>
+                            </div>
+                          </button>
+                        ))
+                      }
+                      {filteredItems.length === 0 && (
+                        <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Selected Items Preview */}
+              {newChallan.items.length > 0 && (
+                <div className="mt-3">
+                  <span className="text-sm font-medium text-gray-700">Selected Items:</span>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {newChallan.items.map(itemId => {
+                      const item = loadedItems.find(i => i.id === itemId);
+                      return (
+                        <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
+                          {item?.name}
+                          <button
+                            onClick={() => toggleItemSelection(itemId)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <FaTimes size={10} />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* Selected Items Preview */}
@@ -1189,7 +1311,6 @@ const ChallanList = () => {
                             !editingChallan.items.includes(item.id) &&
                             item.name.toLowerCase().includes(editItemSearchTerm.toLowerCase())
                           )
-                          .slice(0, 20)
                           .map(item => (
                             <button
                               key={item.id}
@@ -1213,17 +1334,7 @@ const ChallanList = () => {
                         ).length === 0 && (
                           <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
                         )}
-                        {loadedItems.filter(item => 
-                          !editingChallan.items.includes(item.id) &&
-                          item.name.toLowerCase().includes(editItemSearchTerm.toLowerCase())
-                        ).length > 20 && (
-                          <div className="px-3 py-2 text-blue-600 text-sm font-medium border-t bg-blue-50">
-                            Showing 20 of {loadedItems.filter(item => 
-                              !editingChallan.items.includes(item.id) &&
-                              item.name.toLowerCase().includes(editItemSearchTerm.toLowerCase())
-                            ).length} items. Type to filter more.
-                          </div>
-                        )}
+
                       </div>
                     )}
                   </div>
