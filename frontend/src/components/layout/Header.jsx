@@ -25,13 +25,11 @@ const Header = ({ onMenuClick }) => {
   };
   
   const getFirmName = () => {
-    if (!user) return 'Select Company';
-    console.log('User data:', user);
-    console.log('Firm type:', user.current_firm_type);
+    if (!user) return '';
     if (user.current_firm_type === 'GST') {
-      return user.gst_firm?.name || 'Company';
+      return user.gst_firm?.name || 'GST Company';
     }
-    return user.nongst_firm?.name || 'Company';
+    return user.nongst_firm?.name || 'Non-GST Company';
   };
   // const [showDatePicker, setShowDatePicker] = useState(false);
   const navigate = useNavigate();
@@ -88,11 +86,12 @@ const Header = ({ onMenuClick }) => {
         </button>
 
         {/* Company Name Display */}
-        <div className="flex items-center gap-2 px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50">
-                          <FaBuilding className="text-neutral-500" />
-
-          <span className="text-sm font-medium text-gray-600">{getFirmName()}</span>
-        </div>
+        {/* {user && (
+          <div className="flex items-center gap-2 px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50">
+            <FaBuilding className="text-neutral-500" />
+            <span className="text-sm font-medium text-gray-600">{getFirmName()}</span>
+          </div>
+        )} */}
 
        
 
