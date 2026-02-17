@@ -1206,10 +1206,10 @@ const ChallanList = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title="EDIT CHALLAN"
-        size="6xl"
+        size="2xl"
       >
         {editingChallan && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Header Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg">
               <div>
@@ -1261,16 +1261,15 @@ const ChallanList = () => {
               </div>
             </div>
 
-            {/* Items Section */}
-            <div className="border rounded-lg overflow-hidden">
+            {/* Items Table Section */}
+            <div className="border rounded-lg">
               <div className="bg-gray-100 px-4 py-2">
                 <h3 className="font-medium text-gray-900">Rate Information - Add / Less</h3>
               </div>
               
-              {/* Items Table */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-80 overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 sticky top-0">
                     <tr>
                       <th className="px-2 py-2 text-left border-r">SNo</th>
                       <th className="px-2 py-2 text-left border-r">ItemName</th>
@@ -1293,7 +1292,7 @@ const ChallanList = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {editingChallan.items.map((itemId, index) => {
+                    {editingChallan.items && editingChallan.items.map((itemId, index) => {
                       const item = loadedItems.find(i => i.id === itemId);
                       const details = editingChallan.itemDetails[itemId] || {};
                       const calc = calculateEditItemAmount(itemId);
@@ -1382,6 +1381,13 @@ const ChallanList = () => {
                         </tr>
                       );
                     })}
+                    {(!editingChallan.items || editingChallan.items.length === 0) && (
+                      <tr>
+                        <td colSpan={editingChallan.gstType === 1 ? 14 : 12} className="px-4 py-8 text-center text-gray-500">
+                          No items selected. Use the search above to add items.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1403,70 +1409,89 @@ const ChallanList = () => {
                       className="w-full px-3 py-2 border rounded-md text-sm"
                     />
                     {showEditItemDropdown && (
-                      <div className="fixed z-[9999] bg-white border rounded-md shadow-xl max-h-80 overflow-y-auto" 
-                           style={{
-                             top: editItemDropdownRef.current?.getBoundingClientRect().bottom + window.scrollY + 4 || 0,
-                             left: editItemDropdownRef.current?.getBoundingClientRect().left + window.scrollX || 0,
-                             width: editItemDropdownRef.current?.getBoundingClientRect().width || 300
-                           }}>
-                        {loadedItems
-                          .filter(item => 
-                            !editingChallan.items.includes(item.id) &&
-                            item.name.toLowerCase().includes(editItemSearchTerm.toLowerCase())
-                          )
-                          .map(item => (
+                      <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg">
+                        <div className="max-h-64 overflow-y-auto">
+                          <div className="px-3 py-2 bg-gray-100 text-xs text-gray-600 sticky top-0 flex items-center justify-between">
                             <button
-                              key={item.id}
-                              onClick={() => {
-                                toggleItemSelection(item.id, true);
-                                setEditItemSearchTerm('');
-                                setShowEditItemDropdown(false);
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                loadItemsPage(itemsPage - 1);
                               }}
-                              className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
+                              disabled={itemsPage === 1 || isLoadingItems}
+                              className="px-2 py-0.5 bg-white border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200"
                             >
-                              <div className="flex justify-between items-center">
-                                <span className="truncate">{item.name}</span>
-                                <span className="text-gray-500 text-xs ml-2">₹{item.amount}</span>
-                              </div>
+                              ←
                             </button>
-                          ))
-                        }
-                        {loadedItems.filter(item => 
-                          !editingChallan.items.includes(item.id) &&
-                          item.name.toLowerCase().includes(editItemSearchTerm.toLowerCase())
-                        ).length === 0 && (
-                          <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
-                        )}
-
+                            <span>Page {itemsPage} of {totalItemsPages}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                loadItemsPage(itemsPage + 1);
+                              }}
+                              disabled={itemsPage === totalItemsPages || isLoadingItems}
+                              className="px-2 py-0.5 bg-white border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200"
+                            >
+                              →
+                            </button>
+                          </div>
+                          {loadedItems
+                            .filter(item => !editingChallan.items.includes(item.id))
+                            .map(item => (
+                              <button
+                                key={item.id}
+                                onClick={() => {
+                                  toggleItemSelection(item.id, true);
+                                  setEditItemSearchTerm('');
+                                  setShowEditItemDropdown(false);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="truncate">
+                                    {item.name}
+                                    {item.part_no && <span className="text-gray-400 text-xs ml-1">({item.part_no})</span>}
+                                  </span>
+                                  <span className="text-gray-500 text-xs ml-2">₹{item.amount}</span>
+                                </div>
+                              </button>
+                            ))
+                          }
+                          {loadedItems.filter(item => !editingChallan.items.includes(item.id)).length === 0 && !isLoadingItems && (
+                            <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                          )}
+                          {isLoadingItems && (
+                            <div className="px-3 py-2 text-gray-500 text-sm text-center">Loading...</div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
-                
-                {/* Selected Items Preview */}
-                {editingChallan.items.length > 0 && (
-                  <div className="mt-3">
-                    <span className="text-sm font-medium text-gray-700">Selected Items:</span>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {editingChallan.items.map(itemId => {
-                        const item = loadedItems.find(i => i.id === itemId);
-                        return (
-                          <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
-                            {item?.name}
-                            <button
-                              onClick={() => toggleItemSelection(itemId, true)}
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              <FaTimes size={10} />
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* Selected Items Preview */}
+            {editingChallan.items && editingChallan.items.length > 0 && (
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <span className="text-sm font-medium text-gray-700">Selected Items ({editingChallan.items.length}):</span>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {editingChallan.items.map(itemId => {
+                    const item = loadedItems.find(i => i.id === itemId);
+                    return (
+                      <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
+                        {item?.name}
+                        <button
+                          onClick={() => toggleItemSelection(itemId, true)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <FaTimes size={10} />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Totals Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1501,6 +1526,12 @@ const ChallanList = () => {
                 }}
               >
                 Cancel
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-red-50 text-red-600 hover:bg-red-100"
+              >
+                Delete
               </Button>
             </div>
           </div>
