@@ -7,9 +7,9 @@ import {
   FaUser,
   FaCog,
   FaSignOutAlt,
+  FaBuilding
 } from "react-icons/fa";
 import useStore from "../../store";
-import CompanySelector from "../CompanySelector";
 
 const Header = ({ onMenuClick }) => {
   const { user } = useStore();
@@ -18,12 +18,20 @@ const Header = ({ onMenuClick }) => {
   // Determine email based on user type
   const getUserEmail = () => {
     if (!user) return 'user@example.com';
-    return user.firm_data?.email || user.email || 'user@example.com';
+    if (user.current_firm_type === 'GST') {
+      return user.gst_firm?.email || user.email || 'user@example.com';
+    }
+    return user.nongst_firm?.email || user.email || 'user@example.com';
   };
   
   const getFirmName = () => {
     if (!user) return 'Select Company';
-    return user.firm_data?.name || 'Company';
+    console.log('User data:', user);
+    console.log('Firm type:', user.current_firm_type);
+    if (user.current_firm_type === 'GST') {
+      return user.gst_firm?.name || 'Company';
+    }
+    return user.nongst_firm?.name || 'Company';
   };
   // const [showDatePicker, setShowDatePicker] = useState(false);
   const navigate = useNavigate();
@@ -80,9 +88,13 @@ const Header = ({ onMenuClick }) => {
         </button>
 
         {/* Company Name Display */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-md border border-blue-200">
-          <span className="text-sm font-medium text-blue-900">{getFirmName()}</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50">
+                          <FaBuilding className="text-neutral-500" />
+
+          <span className="text-sm font-medium text-gray-600">{getFirmName()}</span>
         </div>
+
+       
 
         {/* User avatar - moved to top right on mobile */}
         <div className="sm:hidden relative" ref={userMenuRef}>
@@ -192,6 +204,8 @@ const Header = ({ onMenuClick }) => {
                   <p className="text-xs font-medium text-neutral-800">{user?.name || 'User'}</p>
                   <p className="text-xs text-neutral-500">{getUserEmail()}</p>
                 </div>
+
+
                 {/* <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50">
                   <FaCog className="text-neutral-500" />
                   Settings

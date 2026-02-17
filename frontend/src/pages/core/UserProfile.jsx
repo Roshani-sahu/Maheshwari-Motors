@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaEdit, FaSave, FaTimes, FaHistory, FaCalendar, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
-import { Button, Input } from '../../components/ui';
+import { FaUser, FaCalendar, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import useStore from '../../store';
-import { authAPI } from '../../services/api';
+import { authAPI, reportAPI, challanAPI, billAPI, itemAPI } from '../../services/api';
 
 const UserProfile = () => {
   const { user, setUser, showToast } = useStore();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ challans: 0, bills: 0, items: 0 });
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -26,13 +26,20 @@ const UserProfile = () => {
         const userData = res.data.data;
         console.log('Profile Data:', userData);
         
+        const firmData = userData.current_firm_type === 'GST' 
+          ? { ...userData.gst_firm, firm_type: 'GST' }
+          : { ...userData.nongst_firm, firm_type: 'NON_GST' };
+        
+        console.log('Firm Data:', firmData);
+        console.log('Current firm type:', userData.current_firm_type);
+        
         setProfileData({
           name: userData.name || '',
           email: userData.email || '',
           phone: userData.phone || '',
           type: userData.type || '',
-          role: userData.role || '',
-          firm_data: userData.firm_data || null,
+          role: userData.current_role || '',
+          firm_data: firmData,
           is_active: userData.is_active || false,
           createdAt: userData.createdAt || ''
         });
@@ -42,7 +49,26 @@ const UserProfile = () => {
         setLoading(false);
       }
     };
+
+    const fetchStats = async () => {
+      try {
+        const [challansRes, billsRes, itemsRes] = await Promise.all([
+          challanAPI.getAll(),
+          billAPI.getAll(),
+          itemAPI.getAll()
+        ]);
+        setStats({
+          challans: challansRes.data?.data?.length || 0,
+          bills: billsRes.data?.data?.length || 0,
+          items: itemsRes.data?.data?.length || 0
+        });
+      } catch (err) {
+        console.error('Failed to fetch stats', err);
+      }
+    };
+
     fetchProfile();
+    fetchStats();
   }, []);
 
   const handleSave = async () => {
@@ -238,19 +264,15 @@ const UserProfile = () => {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Total Challans</span>
-                <span className="font-semibold">24</span>
+                <span className="font-semibold">{stats.challans}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Total Bills</span>
-                <span className="font-semibold">18</span>
+                <span className="font-semibold">{stats.bills}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Reports Generated</span>
-                <span className="font-semibold">12</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Items Added</span>
-                <span className="font-semibold">45</span>
+                <span className="text-gray-600">Total Items</span>
+                <span className="font-semibold">{stats.items}</span>
               </div>
             </div>
           </div>
