@@ -28,13 +28,8 @@ api.interceptors.request.use((config) => {
     console.warn('No auth token found for request:', config.url);
   }
 
-  // 🛡️ SECURITY: Prevent automatic DELETE requests on startup (within 2 seconds)
+  // 🛡️ Monitor deletion (Safe now that frontend is fixed)
   if (config.method === 'delete') {
-    const uptime = performance.now();
-    if (uptime < 2000) {
-       console.error(`🚨 BLOCKED AUTOMATIC DELETE REQUEST: ${config.url}`);
-       return Promise.reject(new Error('Safety Block: DELETE request denied during startup.'));
-    }
     console.log(`🗑️ DELETE Request Initiated: ${config.url}`);
   }
 

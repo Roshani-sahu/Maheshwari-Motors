@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaTrash, FaSignOutAlt } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { FaPlus, FaEdit, FaTrash, FaSignOutAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { adminAPI } from '../../services/api';
+import { adminAPI, authAPI } from '../../services/api';
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
@@ -16,7 +16,7 @@ const INDIAN_STATES = [
 
 const UserMaster = () => {
   const navigate = useNavigate();
-  const { users, setUsers, addUser, updateUser, deleteUser, showToast } = useStore();
+  const { users, setUsers, showToast } = useStore();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -46,7 +46,6 @@ const UserMaster = () => {
       state: ''
     }
   });
-  const [showPasswords, setShowPasswords] = useState({});
   const [newPassword, setNewPassword] = useState('');
 
   // Check master/admin authentication
@@ -58,7 +57,7 @@ const UserMaster = () => {
     }
   }, [navigate]);
 
-  const fetchUsers = async (signal) => {
+  const fetchUsers = useCallback(async (signal) => {
     try {
       let allUsers = [];
       let page = 1;
@@ -98,17 +97,17 @@ const UserMaster = () => {
           showToast("Failed to fetch users", "error");
        }
     }
-  };
+  }, [setUsers, showToast]);
 
   useEffect(() => {
      const controller = new AbortController();
      fetchUsers(controller.signal);
      return () => controller.abort();
-  }, []);
+  }, [fetchUsers]);
 
   const handleLogout = async () => {
     try {
-        await import('../../services/api').then(m => m.authAPI.logout());
+        await authAPI.logout();
     } catch (e) {
         console.error(e);
     } finally {
@@ -118,14 +117,7 @@ const UserMaster = () => {
     }
   };
 
-  const togglePasswordVisibility = (userId) => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [userId]: !prev[userId]
-    }));
-  };
-
-  const columns = [
+  const columns = useMemo(() => [
     { 
       key: 'id', 
       label: 'ID',
@@ -141,10 +133,9 @@ const UserMaster = () => {
       label: 'Email',
       render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
     },
-    // Removed Password column as we can't retrieve it back
-  ];
+  ], []);
 
-  const actions = [
+  const actions = useMemo(() => [
     {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (user) => {
@@ -162,7 +153,7 @@ const UserMaster = () => {
       },
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
-  ];
+  ], []);
 
   const handleAddUser = async () => {
     try {
@@ -186,19 +177,42 @@ const UserMaster = () => {
     }
   };
 
-  const handleConfirmDelete = async () => {
-    try {
-      if (deleteDialog.user && deleteDialog.user.id) {
-         await adminAPI.deleteUser(deleteDialog.user.id);
-         showToast('User deleted successfully', 'success');
-         setDeleteDialog({ isOpen: false, user: null });
-         fetchUsers();
+  const handleUpdateUser = async () => {
+      try {
+        const updatedUser = { ...editingUser };
+        if (newPassword) {
+          updatedUser.password = newPassword;
+        }
+        await adminAPI.updateUser(editingUser.id, updatedUser);
+        
+        setIsEditModalOpen(false);
+        setNewPassword('');
+        showToast('User updated successfully', 'success');
+        fetchUsers(); 
+      } catch (error) {
+        console.error(error);
+        showToast('Failed to update user', 'error');
       }
+  };
+
+  const handleConfirmDelete = useCallback(async () => {
+    // 🛡️ Safety Block: Ensure we have a valid intention to delete
+    if (!deleteDialog.isOpen || !deleteDialog.user || !deleteDialog.user.id) {
+       console.warn("🚫 Blocked: Invalid delete confirmation state."); 
+       return;
+    }
+
+    try {
+       console.log(`🗑️ Deleting user: ${deleteDialog.user.id}`);
+       await adminAPI.deleteUser(deleteDialog.user.id);
+       showToast('User deleted successfully', 'success');
+       setDeleteDialog({ isOpen: false, user: null });
+       fetchUsers();
     } catch (error) {
        console.error(error);
        showToast('Failed to delete user', 'error');
     }
-  };
+  }, [deleteDialog, showToast, fetchUsers]);
 
   return (
     <div className="min-h-screen pt-10 bg-gray-50 p-4">
@@ -418,27 +432,7 @@ const UserMaster = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
-              <Button onClick={async () => {
-                try {
-                  const updatedUser = { ...editingUser };
-                  if (newPassword) {
-                    updatedUser.password = newPassword;
-                  }
-                  // Call API
-                  await adminAPI.updateUser(editingUser.id, updatedUser);
-                  
-                  // Update Store
-                  // updateUser(editingUser.id, updatedUser); // Optional if we fetchUsers
-                  
-                  setIsEditModalOpen(false);
-                  setNewPassword('');
-                  showToast('User updated successfully', 'success');
-                  fetchUsers(); // Refresh list
-                } catch (error) {
-                  console.error(error);
-                  showToast('Failed to update user', 'error');
-                }
-              }} className="text-xs sm:text-sm py-1.5 sm:py-2">
+              <Button onClick={handleUpdateUser} className="text-xs sm:text-sm py-1.5 sm:py-2">
                 Save Changes
               </Button>
               <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="text-xs sm:text-sm py-1.5 sm:py-2">Cancel</Button>
