@@ -16,43 +16,36 @@ const ChallanList = () => {
       try {
         console.debug("🔄 Fetching initial data for ChallanList...", { firmId: selectedFirm?.id });
         
-        // Pass limit to ensure we get all items for the dropdown
-        // Also pass firmId to ensure we get items for the selected firm
-        // Try multiple params to force backend to return all data
         const [pRes, iRes, cRes] = await Promise.all([
            accountAPI.getAll(selectedFirm?.id),
-           itemAPI.getAll({ 
-             limit: 20000, 
-             pageSize: 20000,
-             pagination: false,
-             firmId: selectedFirm?.id 
-           }), 
+           itemAPI.getAll({ page: 1, limit: 50, search: '' }), 
            challanAPI.getAll(selectedFirm?.id)
         ]);
         
         console.debug("✅ Raw API Responses:", { parties: pRes, items: iRes, challans: cRes });
 
-        // Robust data extraction helper
         const getList = (res) => {
             const val = res.data;
             if (Array.isArray(val)) return val;
             if (val?.data && Array.isArray(val.data)) return val.data;
             if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
-            if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs; // Handle mongoose-paginate
+            if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
             if (val?.docs && Array.isArray(val.docs)) return val.docs;
             return [];
         };
 
         const partiesData = getList(pRes).map(p => ({ id: p._id || p.id, name: p.name }));
         const itemsData = getList(iRes).map(i => ({ 
-            ...i, // Keep all backend fields (e.g. part_no, stock, unit, etc.)
+            ...i,
             id: i._id || i.id, 
             name: i.item_name || i.name, 
             amount: i.amount || i.rate || 0 
         }));
         
-        // Log to verify item count and structure
         console.debug(`📦 Loaded ${itemsData.length} items for dropdown. Sample:`, itemsData[0]);
+        
+        const itemsResponse = iRes.data?.data || iRes.data;
+        setTotalItemsPages(itemsResponse?.totalPages || 1);
 
         const challansData = getList(cRes).map(c => ({
            id: c._id || c.id,
@@ -68,6 +61,7 @@ const ChallanList = () => {
         setLoadedParties(partiesData);
         setLoadedItems(itemsData);
         setChallans(challansData);
+        setItemsPage(1);
 
         console.debug("🧩 State Updated:", { parties: partiesData.length, items: itemsData.length, challans: challansData.length });
 
@@ -76,7 +70,7 @@ const ChallanList = () => {
     }
   };
     fetchData();
-  }, [selectedFirm?.id]); // ✅ Refetch when selectedFirm changes
+  }, [selectedFirm?.id]);
 
   // Filters state
   const [filters, setFilters] = useState({
@@ -110,24 +104,105 @@ const ChallanList = () => {
   const [editItemSearchTerm, setEditItemSearchTerm] = useState('');
   const [showEditItemDropdown, setShowEditItemDropdown] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [itemsPage, setItemsPage] = useState(1);
+  const [totalItemsPages, setTotalItemsPages] = useState(1);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
   
   const itemDropdownRef = useRef(null);
   const editItemDropdownRef = useRef(null);
 
-  // Derived state: filteredItems relies on loadedItems, itemSearchTerm, and newChallan
-  const filteredItems = loadedItems.filter(item => {
-    const search = itemSearchTerm.trim().toLowerCase();
-    const notSelected = !newChallan.items.includes(item.id);
-  
-    // Robust search: check name, part_no, and hsn_code
-    const matchesSearch =
-      !search ||
-      (item.name && item.name.toLowerCase().includes(search)) ||
-      (item.part_no && item.part_no.toLowerCase().includes(search)) ||
-      (item.hsn_code && item.hsn_code.toLowerCase().includes(search));
-  
-    return notSelected && matchesSearch;
+  // Derived state: filteredItems - just exclude already selected items
+  const filteredItems = loadedItems.filter(item => !newChallan.items.includes(item.id));
+
+  // Debug log
+  console.log('🔍 Dropdown Debug:', { 
+    totalLoadedItems: loadedItems.length, 
+    filteredItemsCount: filteredItems.length,
+    searchTerm: itemSearchTerm,
+    selectedItems: newChallan.items.length,
+    sampleItems: loadedItems.slice(0, 3).map(i => ({ id: i.id, name: i.name }))
   });
+
+  // Load specific page
+  const loadItemsPage = async (page) => {
+    console.log('Loading page:', page, 'with search:', itemSearchTerm);
+    setIsLoadingItems(true);
+    try {
+      const response = await itemAPI.getAll({ page, limit: 50, search: itemSearchTerm });
+      console.log('API Response:', response.data);
+      
+      const getList = (res) => {
+        const val = res.data;
+        if (Array.isArray(val)) return val;
+        if (val?.data && Array.isArray(val.data)) return val.data;
+        if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
+        if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
+        if (val?.docs && Array.isArray(val.docs)) return val.docs;
+        return [];
+      };
+      
+      const items = getList(response).map(i => ({
+        ...i,
+        id: i._id || i.id,
+        name: i.item_name || i.name,
+        amount: i.amount || i.rate || 0
+      }));
+      
+      console.log('Loaded items:', items.length);
+      setLoadedItems(items);
+      setItemsPage(page);
+      
+      const itemsResponse = response.data?.data || response.data;
+      setTotalItemsPages(itemsResponse?.totalPages || Math.ceil(itemsResponse?.total / 50) || 1);
+      console.log('Total pages:', itemsResponse?.totalPages, 'Total items:', itemsResponse?.total);
+    } catch (err) {
+      console.error('Failed to load items page:', err);
+    } finally {
+      setIsLoadingItems(false);
+    }
+  };
+
+  // Search items with debounce
+  useEffect(() => {
+    const searchItems = async () => {
+      setIsLoadingItems(true);
+      try {
+        const response = await itemAPI.getAll({ page: 1, limit: 50, search: itemSearchTerm });
+        
+        const getList = (res) => {
+          const val = res.data;
+          if (Array.isArray(val)) return val;
+          if (val?.data && Array.isArray(val.data)) return val.data;
+          if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
+          if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
+          if (val?.docs && Array.isArray(val.docs)) return val.docs;
+          return [];
+        };
+        
+        const searchResults = getList(response).map(i => ({
+          ...i,
+          id: i._id || i.id,
+          name: i.item_name || i.name,
+          amount: i.amount || i.rate || 0
+        }));
+        
+        setLoadedItems(searchResults);
+        setItemsPage(1);
+        
+        const itemsResponse = response.data?.data || response.data;
+        setTotalItemsPages(itemsResponse?.totalPages || Math.ceil(itemsResponse?.total / 50) || 1);
+      } catch (err) {
+        console.error('Failed to search items:', err);
+      } finally {
+        setIsLoadingItems(false);
+      }
+    };
+    
+    if (showItemDropdown) {
+      const timer = setTimeout(searchItems, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [itemSearchTerm, showItemDropdown]);
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -767,7 +842,7 @@ const ChallanList = () => {
           </div>
 
           {/* Search & Add Items Section */}
-          <div className="border rounded-lg ">
+          {/* <div className="border rounded-lg ">
             <div className="bg-gray-100 px-4 py-2">
               <h3 className="font-medium text-gray-900">Search & Add Items</h3>
             </div>
@@ -818,7 +893,7 @@ const ChallanList = () => {
                 )}
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Items Table Section */}
           <div className="border rounded-lg">
@@ -969,8 +1044,32 @@ const ChallanList = () => {
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   />
                   {showItemDropdown && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-64 overflow-y-auto">
-                      {filteredItems.map(item => (
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg">
+                      <div className="max-h-64 overflow-y-auto">
+                        <div className="px-3 py-2 bg-gray-100 text-xs text-gray-600 sticky top-0 flex items-center justify-between">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              loadItemsPage(itemsPage - 1);
+                            }}
+                            disabled={itemsPage === 1 || isLoadingItems}
+                            className="px-2 py-0.5 bg-white border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200"
+                          >
+                            ←
+                          </button>
+                          <span>Page {itemsPage} of {totalItemsPages}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              loadItemsPage(itemsPage + 1);
+                            }}
+                            disabled={itemsPage === totalItemsPages || isLoadingItems}
+                            className="px-2 py-0.5 bg-white border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200"
+                          >
+                            →
+                          </button>
+                        </div>
+                        {filteredItems.map(item => (
                           <button
                             key={item.id}
                             onClick={() => {
@@ -990,16 +1089,20 @@ const ChallanList = () => {
                           </button>
                         ))
                       }
-                      {filteredItems.length === 0 && (
-                        <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
-                      )}
+                        {filteredItems.length === 0 && !isLoadingItems && (
+                          <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                        )}
+                        {isLoadingItems && (
+                          <div className="px-3 py-2 text-gray-500 text-sm text-center">Loading...</div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
               
               {/* Selected Items Preview */}
-              {newChallan.items.length > 0 && (
+              {/* {newChallan.items.length > 0 && (
                 <div className="mt-3">
                   <span className="text-sm font-medium text-gray-700">Selected Items:</span>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -1019,7 +1122,7 @@ const ChallanList = () => {
                     })}
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
 
           </div>
