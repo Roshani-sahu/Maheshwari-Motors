@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaSignOutAlt, FaSync } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSignOutAlt, FaSync, FaEye } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
@@ -22,7 +22,10 @@ const UserMaster = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [editingForm, setEditingForm] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, user: null });
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingUser, setViewingUser] = useState(null);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -149,9 +152,21 @@ const UserMaster = () => {
 
   const actions = useMemo(() => [
     {
+      label: <FaEye size={10} className="sm:size-3 md:size-4" />,
+      onClick: (user) => {
+        setViewingUser(user);
+        setIsViewModalOpen(true);
+      },
+      className: 'bg-gray-600 text-white hover:bg-gray-700 p-1 sm:p-1.5 md:p-2 text-xs'
+    },
+    {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (user) => {
         setEditingUser(user);
+        // initialize editing form from original payload if available
+        const base = user?.original || {};
+        setEditingForm({ ...base, id: user.id });
+        setNewPassword('');
         setIsEditModalOpen(true);
       },
       className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
@@ -191,16 +206,17 @@ const UserMaster = () => {
 
   const handleUpdateUser = async () => {
       try {
-        const updatedUser = { ...editingUser };
-        if (newPassword) {
-          updatedUser.password = newPassword;
-        }
-        await adminAPI.updateUser(editingUser.id, updatedUser);
-        
+        if (!editingForm) return;
+        const payload = { ...editingForm };
+        if (newPassword) payload.password = newPassword;
+        await adminAPI.updateUser(editingForm.id || editingForm._id, payload);
+
         setIsEditModalOpen(false);
         setNewPassword('');
+        setEditingForm(null);
+        setEditingUser(null);
         showToast('User updated successfully', 'success');
-        fetchUsers(); 
+        fetchUsers();
       } catch (error) {
         console.error(error);
         showToast('Failed to update user', 'error');
@@ -432,46 +448,230 @@ const UserMaster = () => {
         </div>
       </Modal>
 
-      {/* Edit User Modal */}
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User" size="sm">
-        {editingUser && (
-          <div className="space-y-3 sm:space-y-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Username</label>
-              <Input 
-                value={editingUser.username} 
-                disabled 
-                className="bg-gray-50 text-xs sm:text-sm py-1.5 sm:py-2"
-              />
+      {/* View User Modal */}
+      <Modal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} title="View User" size="lg">
+        {viewingUser && (
+          <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-6">
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">1. User Personal Details</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Full Name</label>
+                  <Input value={viewingUser.original?.name || viewingUser.username} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Phone</label>
+                  <Input value={viewingUser.original?.phone || ''} disabled className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Email</label>
+                  <Input value={viewingUser.original?.email || viewingUser.email} disabled className="mt-1" />
+                </div>
+              </div>
             </div>
-            
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
-              <Input
-                type="email"
-                value={editingUser.email}
-                onChange={(value) => setEditingUser(prev => ({ ...prev, email: value }))}
-                placeholder="Enter email"
-                className="text-xs sm:text-sm py-1.5 sm:py-2"
-              />
+
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <h3 className="text-sm font-semibold text-blue-900 mb-3 uppercase tracking-wider">2. GST Firm Configuration</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Login Username</label>
+                  <Input value={viewingUser.original?.gst_firm?.username || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Display Name</label>
+                  <Input value={viewingUser.original?.gst_firm?.name || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Phone</label>
+                  <Input value={viewingUser.original?.gst_firm?.phone || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Email</label>
+                  <Input value={viewingUser.original?.gst_firm?.email || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">City</label>
+                  <Input value={viewingUser.original?.gst_firm?.city || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">State</label>
+                  <Input value={viewingUser.original?.gst_firm?.state || ''} disabled className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Address</label>
+                  <Input value={viewingUser.original?.gst_firm?.address || ''} disabled className="mt-1" />
+                </div>
+              </div>
             </div>
-            
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Reset Password</label>
-              <Input
-                type="password"
-                value={newPassword}
-                onChange={(value) => setNewPassword(value)}
-                placeholder="Enter new password"
-                className="text-xs sm:text-sm py-1.5 sm:py-2"
-              />
+
+            <div className="bg-orange-50 p-4 rounded-lg border border-orange-100">
+              <h3 className="text-sm font-semibold text-orange-900 mb-3 uppercase tracking-wider">3. Non-GST Firm Configuration</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Login Username</label>
+                  <Input value={viewingUser.original?.nongst_firm?.username || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Display Name</label>
+                  <Input value={viewingUser.original?.nongst_firm?.name || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Phone</label>
+                  <Input value={viewingUser.original?.nongst_firm?.phone || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Email</label>
+                  <Input value={viewingUser.original?.nongst_firm?.email || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">City</label>
+                  <Input value={viewingUser.original?.nongst_firm?.city || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">State</label>
+                  <Input value={viewingUser.original?.nongst_firm?.state || ''} disabled className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Address</label>
+                  <Input value={viewingUser.original?.nongst_firm?.address || ''} disabled className="mt-1" />
+                </div>
+              </div>
             </div>
-            
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
-              <Button onClick={handleUpdateUser} className="text-xs sm:text-sm py-1.5 sm:py-2">
-                Save Changes
-              </Button>
-              <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="text-xs sm:text-sm py-1.5 sm:py-2">Cancel</Button>
+
+            <div className="flex justify-end pt-4 border-t sticky bottom-0 bg-white">
+              <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit User Modal (full editable form) */}
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User" size="lg">
+        {editingForm && (
+          <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-6">
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">1. User Personal Details</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Full Name</label>
+                  <Input value={editingForm.name || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, name: v }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Phone</label>
+                  <Input value={editingForm.phone || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, phone: v }))} className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Email</label>
+                  <Input type="email" value={editingForm.email || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, email: v }))} className="mt-1" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <h3 className="text-sm font-semibold text-blue-900 mb-3 uppercase tracking-wider">2. GST Firm Configuration</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Login Username</label>
+                  <Input value={editingForm.gst_firm?.username || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), username: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Login Password</label>
+                  <Input type="password" value={editingForm.gst_firm?.password || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), password: v } }))} className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Display Name</label>
+                  <Input value={editingForm.gst_firm?.name || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), name: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Phone</label>
+                  <Input value={editingForm.gst_firm?.phone || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), phone: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Email</label>
+                  <Input type="email" value={editingForm.gst_firm?.email || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), email: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">City</label>
+                  <Input value={editingForm.gst_firm?.city || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), city: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">State</label>
+                  <select 
+                    value={editingForm.gst_firm?.state || ''} 
+                    onChange={(e) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), state: e.target.value } }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm py-2 px-3 border"
+                  >
+                    <option value="">Select State</option>
+                    {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Address</label>
+                  <Input value={editingForm.gst_firm?.address || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), address: v } }))} className="mt-1" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-orange-50 p-4 rounded-lg border border-orange-100">
+              <h3 className="text-sm font-semibold text-orange-900 mb-3 uppercase tracking-wider">3. Non-GST Firm Configuration</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Login Username</label>
+                  <Input value={editingForm.nongst_firm?.username || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), username: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Login Password</label>
+                  <Input type="password" value={editingForm.nongst_firm?.password || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), password: v } }))} className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Display Name</label>
+                  <Input value={editingForm.nongst_firm?.name || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), name: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Phone</label>
+                  <Input value={editingForm.nongst_firm?.phone || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), phone: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Firm Email</label>
+                  <Input type="email" value={editingForm.nongst_firm?.email || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), email: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">City</label>
+                  <Input value={editingForm.nongst_firm?.city || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), city: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">State</label>
+                  <select 
+                    value={editingForm.nongst_firm?.state || ''} 
+                    onChange={(e) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), state: e.target.value } }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm py-2 px-3 border"
+                  >
+                    <option value="">Select State</option>
+                    {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Address</label>
+                  <Input value={editingForm.nongst_firm?.address || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), address: v } }))} className="mt-1" />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Reset Password (global)</label>
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(value) => setNewPassword(value)}
+                  placeholder="Enter new password"
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button onClick={handleUpdateUser} className="text-xs sm:text-sm py-1.5 sm:py-2">Save Changes</Button>
+                <Button variant="outline" onClick={() => { setIsEditModalOpen(false); setEditingForm(null); }} className="text-xs sm:text-sm py-1.5 sm:py-2">Cancel</Button>
+              </div>
             </div>
           </div>
         )}
