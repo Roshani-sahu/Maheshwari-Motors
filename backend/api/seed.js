@@ -34,9 +34,10 @@ async function seed() {
     console.log("✅ Connected to MongoDB");
 
     // ─── 0. CLEAN UP ───
+    // 🛡️ MODIFIED: Exclude User and Session from auto-wipe to preserve data
     const models = [
-      User,
-      Session,
+      // User, 
+      // Session,
       Item,
       StockAlert,
       Challan,
@@ -52,7 +53,7 @@ async function seed() {
       Counter,
     ];
     for (const M of models) await M.deleteMany({});
-    console.log("🗑️  Cleared all collections");
+    console.log("🗑️  Cleared non-user collections");
 
     // Drop stale indexes
     try {
@@ -78,42 +79,48 @@ async function seed() {
     const adminPw = await bcrypt.hash("Admin@1234", SALT);
     const staffPw = await bcrypt.hash("Staff@1234", SALT);
 
-    const mainUser = await User.create({
-      type: "main",
-      name: "Ramesh Maheshwari",
-      email: "ramesh@maheshwarimotors.com",
-      phone: "9876543210",
-      gst_firm: {
-        username: "gst_ramesh",
-        password: pw,
-        name: "Maheshwari Motors GST",
+    let mainUser = await User.findOne({ email: "ramesh@maheshwarimotors.com" });
+    if (!mainUser) {
+        mainUser = await User.create({
+        type: "main",
+        name: "Ramesh Maheshwari",
+        email: "ramesh@maheshwarimotors.com",
         phone: "9876543210",
-        email: "gst@maheshwarimotors.com",
-        address: "123 Industrial Area",
-        godown_address: "456 Warehouse Lane",
-        city: "Indore",
-        state: "Madhya Pradesh",
-        GSTIN: "23AABCU9603R1ZM",
-        CIN: "U29100MP2020PTC012345",
-        reg_number: "MP-IND-2020-0001",
-        bank_name: "State Bank of India",
-        bank_branch: "Indore Main",
-        ifsc_code: "SBIN0001234",
-        account_number: "12345678901234",
-      },
-      nongst_firm: {
-        username: "nongst_ramesh",
-        password: pw,
-        name: "Maheshwari Motors Non-GST",
-        phone: "9876543211",
-        email: "nongst@maheshwarimotors.com",
-        address: "789 Market Road",
-        city: "Indore",
-        state: "Madhya Pradesh",
-      },
-      admin: { username: "admin_ramesh", password: adminPw },
-      is_active: true,
-    });
+        gst_firm: {
+            username: "gst_ramesh",
+            password: pw,
+            name: "Maheshwari Motors GST",
+            phone: "9876543210",
+            email: "gst@maheshwarimotors.com",
+            address: "123 Industrial Area",
+            godown_address: "456 Warehouse Lane",
+            city: "Indore",
+            state: "Madhya Pradesh",
+            GSTIN: "23AABCU9603R1ZM",
+            CIN: "U29100MP2020PTC012345",
+            reg_number: "MP-IND-2020-0001",
+            bank_name: "State Bank of India",
+            bank_branch: "Indore Main",
+            ifsc_code: "SBIN0001234",
+            account_number: "12345678901234",
+        },
+        nongst_firm: {
+            username: "nongst_ramesh",
+            password: pw,
+            name: "Maheshwari Motors Non-GST",
+            phone: "9876543211",
+            email: "nongst@maheshwarimotors.com",
+            address: "789 Market Road",
+            city: "Indore",
+            state: "Madhya Pradesh",
+        },
+        admin: { username: "admin_ramesh", password: adminPw },
+        is_active: true,
+        });
+        console.log("✅ Main User created");
+    } else {
+        console.log("ℹ️ Main User already exists, skipping creation");
+    }
 
     const secondaryUsers = [];
     const staffData = [
@@ -152,36 +159,40 @@ async function seed() {
     ];
 
     for (const s of staffData) {
-      const u = await User.create({
-        type: "secondary",
-        name: s.name,
-        email: s.email,
-        phone: s.phone,
-        gst_firm: {
-          username: s.gstUser,
-          password: staffPw,
-          name: `${s.name} GST`,
-          phone: s.phone,
-          email: `${s.gstUser}@staff.com`,
-          address: "Staff Office",
-          city: s.city,
-          state: "Madhya Pradesh",
-        },
-        nongst_firm: {
-          username: s.nongstUser,
-          password: staffPw,
-          name: `${s.name} Non-GST`,
-          phone: s.phone,
-          email: `${s.nongstUser}@staff.com`,
-          address: "Staff Office",
-          city: s.city,
-          state: "Madhya Pradesh",
-        },
-        is_active: true,
-      });
+      let u = await User.findOne({ email: s.email });
+      if (!u) {
+          u = await User.create({
+            type: "secondary",
+            name: s.name,
+            email: s.email,
+            phone: s.phone,
+            gst_firm: {
+            username: s.gstUser,
+            password: staffPw,
+            name: `${s.name} GST`,
+            phone: s.phone,
+            email: `${s.gstUser}@staff.com`,
+            address: "Staff Office",
+            city: s.city,
+            state: "Madhya Pradesh",
+            },
+            nongst_firm: {
+            username: s.nongstUser,
+            password: staffPw,
+            name: `${s.name} Non-GST`,
+            phone: s.phone,
+            email: `${s.nongstUser}@staff.com`,
+            address: "Staff Office",
+            city: s.city,
+            state: "Madhya Pradesh",
+            },
+            is_active: true,
+        });
+        console.log(`✅ Secondary User ${s.name} created`);
+      }
       secondaryUsers.push(u);
     }
-    console.log("✅ Users created:", 1 + secondaryUsers.length);
+    console.log("✅ Users checked/created:", 1 + secondaryUsers.length);
 
     const userId = mainUser._id;
 
@@ -189,39 +200,47 @@ async function seed() {
     //  2. SESSIONS — 3
     // ─────────────────────────────────────────────────────────
     const sessions = [];
-    sessions.push(
-      await Session.create({
-        user_id: userId,
-        role: "admin",
-        token: mainUser.generateAdminToken(),
-        device_name: "Chrome Desktop",
-        device_type: "web",
-        ip_address: "192.168.1.10",
-      }),
-    );
-    sessions.push(
-      await Session.create({
-        user_id: userId,
-        role: "firm",
-        firm_type: "GST",
-        token: mainUser.generateFirmToken("GST"),
-        device_name: "Shop PC",
-        device_type: "desktop",
-        ip_address: "192.168.1.20",
-      }),
-    );
-    sessions.push(
-      await Session.create({
-        user_id: secondaryUsers[0]._id,
-        role: "firm",
-        firm_type: "GST",
-        token: secondaryUsers[0].generateFirmToken("GST"),
-        device_name: "Staff Mobile",
-        device_type: "android",
-        ip_address: "10.0.0.5",
-      }),
-    );
-    console.log("✅ Sessions created:", sessions.length);
+    const existingSessions = await Session.find({ user_id: userId });
+    if (existingSessions.length === 0) {
+        sessions.push(
+        await Session.create({
+            user_id: userId,
+            role: "admin",
+            token: mainUser.generateAdminToken(),
+            device_name: "Chrome Desktop",
+            device_type: "web",
+            ip_address: "192.168.1.10",
+        }),
+        );
+        sessions.push(
+        await Session.create({
+            user_id: userId,
+            role: "firm",
+            firm_type: "GST",
+            token: mainUser.generateFirmToken("GST"),
+            device_name: "Shop PC",
+            device_type: "desktop",
+            ip_address: "192.168.1.20",
+        }),
+        );
+        // Only if secondary user exists
+        if (secondaryUsers.length > 0) {
+            sessions.push(
+            await Session.create({
+                user_id: secondaryUsers[0]._id,
+                role: "firm",
+                firm_type: "GST",
+                token: secondaryUsers[0].generateFirmToken("GST"),
+                device_name: "Staff Mobile",
+                device_type: "android",
+                ip_address: "10.0.0.5",
+            }),
+            );
+        }
+        console.log("✅ Sessions created:", sessions.length);
+    } else {
+        console.log("ℹ️ Sessions already exist, skipping creation");
+    }
 
     // ─────────────────────────────────────────────────────────
     //  3. CATEGORIES — 10
@@ -379,7 +398,7 @@ async function seed() {
         id: i + 1,
         name: s.name,
         phone: s.phone,
-        email: `${s.name.toLowerCase().replace(/\\s+/g, ".")}@suppliers.com`,
+        email: `${s.name.toLowerCase().replace(/\s+/g, ".")}@suppliers.com`,
         address: `${randBetween(10, 200)} Industrial Area`,
         city: s.city,
         state: s.state,
@@ -414,7 +433,7 @@ async function seed() {
         id: i + 1,
         name: p.name,
         phone: `9${randBetween(100000000, 999999999)}`,
-        email: `${p.name.toLowerCase().replace(/\\s+/g, ".")}@customer.com`,
+        email: `${p.name.toLowerCase().replace(/\s+/g, ".")}@customer.com`,
         address: `${randBetween(1, 500)} ${pick(["MG Road", "Station Road", "Gandhi Nagar", "Nehru Nagar", "Vijay Nagar"])}`,
         city: p.city,
         state: "Madhya Pradesh",
