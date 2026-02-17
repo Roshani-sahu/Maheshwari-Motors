@@ -9,6 +9,12 @@ const categorySchema = {
     max: 100,
     label: "Category name",
   },
+  description: {
+    required: false,
+    type: "string",
+    max: 500,
+    label: "Description",
+  },
   brands: {
     required: false,
     type: "array",
@@ -37,7 +43,11 @@ export const getCategoryById = asyncHandler(async (req, res) => {
 export const createCategory = asyncHandler(async (req, res) => {
   const data = validate(req.body, categorySchema);
   const category = await categoryService.createCategory(
-    { name: data.category_name, brand_ids: data.brands },
+    {
+      name: data.category_name,
+      description: data.description,
+      brand_ids: data.brands,
+    },
     req.user._id,
   );
   res
@@ -48,8 +58,9 @@ export const createCategory = asyncHandler(async (req, res) => {
 export const updateCategory = asyncHandler(async (req, res) => {
   const data = validate(req.body, categorySchema, { allowPartial: true });
   const updateData = {};
-  if (data.category_name) updateData.name = data.category_name;
-  if (data.brands) updateData.brand_ids = data.brands;
+  if (data.category_name !== undefined) updateData.name = data.category_name;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.brands !== undefined) updateData.brand_ids = data.brands;
   const category = await categoryService.updateCategory(
     req.params.categoryId,
     req.user._id,

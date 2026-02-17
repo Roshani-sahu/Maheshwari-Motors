@@ -51,6 +51,11 @@ export const registerMainUser = asyncHandler(async (req, res) => {
 });
 
 export const login = asyncHandler(async (req, res) => {
+  console.log("[LOGIN] Origin:", req.headers.origin);
+  console.log("[LOGIN] Payload:", {
+    ...req.body,
+    password: req.body.password ? "***" : undefined,
+  });
   const { username, password, device_name, device_type } = validate(
     req.body,
     loginSchema,

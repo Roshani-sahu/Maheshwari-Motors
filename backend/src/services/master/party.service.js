@@ -28,9 +28,32 @@ class PartyService {
   }
 
   async createParty(partyData, userId) {
+    const { name, phone, email, address, city, state, gstin } = partyData;
+
+    // --- Required field check ---
+    if (!name || typeof name !== "string" || !name.trim()) {
+      throw ApiError.badRequest("Party name is required");
+    }
+
+    // --- Duplicate name check ---
+    const escapedName = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const duplicate = await Party.findOne({
+      name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+      user_id: userId,
+    });
+    if (duplicate) {
+      throw ApiError.conflict("Party with this name already exists");
+    }
+
     const party = await Party.create({
-      ...partyData,
       id: await getNextId("Party", userId),
+      name: name.trim(),
+      phone,
+      email,
+      address,
+      city,
+      state,
+      gstin,
       user_id: userId,
     });
     return party;
@@ -40,8 +63,34 @@ class PartyService {
     const party = await Party.findOne({ _id: partyId, user_id: userId });
     if (!party) throw ApiError.notFound("Party not found");
 
-    delete updateData.balance;
-    const updatedParty = await Party.findByIdAndUpdate(partyId, updateData, {
+    const { name, phone, email, address, city, state, gstin } = updateData;
+
+    // --- Name validation on rename ---
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        throw ApiError.badRequest("Party name cannot be empty");
+      }
+      const escapedName = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const duplicate = await Party.findOne({
+        name: { $regex: new RegExp(`^${escapedName}$`, "i") },
+        user_id: userId,
+        _id: { $ne: partyId },
+      });
+      if (duplicate) {
+        throw ApiError.conflict("Another party with this name already exists");
+      }
+    }
+
+    const fields = {};
+    if (name !== undefined) fields.name = name.trim();
+    if (phone !== undefined) fields.phone = phone;
+    if (email !== undefined) fields.email = email;
+    if (address !== undefined) fields.address = address;
+    if (city !== undefined) fields.city = city;
+    if (state !== undefined) fields.state = state;
+    if (gstin !== undefined) fields.gstin = gstin;
+
+    const updatedParty = await Party.findByIdAndUpdate(partyId, fields, {
       new: true,
     });
     return updatedParty;
@@ -91,6 +140,13 @@ class PartyService {
   async updateBalance(partyId, userId, amount, operation = "add") {
     const party = await Party.findOne({ _id: partyId, user_id: userId });
     if (!party) throw ApiError.notFound("Party not found");
+
+    if (typeof amount !== "number" || isNaN(amount) || amount < 0) {
+      throw ApiError.badRequest("Amount must be a non-negative number");
+    }
+    if (!["add", "subtract"].includes(operation)) {
+      throw ApiError.badRequest("Operation must be 'add' or 'subtract'");
+    }
 
     const adjustedAmount = operation === "subtract" ? -amount : amount;
     const updatedParty = await Party.findByIdAndUpdate(

@@ -61,19 +61,58 @@ class DiscountService {
   }
 
   async upsertDiscount(data, userId) {
-    const brand = await Brand.findOne({ _id: data.brand_id, user_id: userId });
-    if (!brand) throw ApiError.notFound("Brand not found");
+    const { brand_id, discount1, discount2 } = data;
+
+    // --- Required field check ---
+    if (!brand_id) {
+      throw ApiError.badRequest("Brand ID is required for discount");
+    }
+
+    const brand = await Brand.findOne({ _id: brand_id, user_id: userId });
+    if (!brand)
+      throw ApiError.badRequest(
+        "Brand not found. Please select a valid brand.",
+      );
+
+    // --- Validate discount percentages ---
+    const validateDiscountField = (field, label) => {
+      if (!field) return;
+      if (field.normal !== undefined) {
+        if (
+          typeof field.normal !== "number" ||
+          field.normal < 0 ||
+          field.normal > 100
+        ) {
+          throw ApiError.badRequest(
+            `${label} normal % must be between 0 and 100`,
+          );
+        }
+      }
+      if (field.special !== undefined) {
+        if (
+          typeof field.special !== "number" ||
+          field.special < 0 ||
+          field.special > 100
+        ) {
+          throw ApiError.badRequest(
+            `${label} special % must be between 0 and 100`,
+          );
+        }
+      }
+    };
+    validateDiscountField(discount1, "Discount 1");
+    validateDiscountField(discount2, "Discount 2");
 
     // Check if discount already exists (update) or is new (insert)
     const existing = await Discount.findOne({
-      brand_id: data.brand_id,
+      brand_id,
       user_id: userId,
     });
 
     const updatePayload = {
-      brand_id: data.brand_id,
-      discount1: data.discount1 || { normal: 0, special: 0 },
-      discount2: data.discount2 || { normal: 0, special: 0 },
+      brand_id,
+      discount1: discount1 || { normal: 0, special: 0 },
+      discount2: discount2 || { normal: 0, special: 0 },
       user_id: userId,
     };
 
@@ -82,7 +121,7 @@ class DiscountService {
     }
 
     const discount = await Discount.findOneAndUpdate(
-      { brand_id: data.brand_id, user_id: userId },
+      { brand_id, user_id: userId },
       updatePayload,
       { new: true, upsert: true },
     ).populate("brand_id", "name");

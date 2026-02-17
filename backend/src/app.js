@@ -9,19 +9,19 @@ const createApp = () => {
 
   app.set("trust proxy", 1);
 
+  console.log("[CORS] CORS_ORIGIN =", env.CORS_ORIGIN);
+
+  const corsOrigin =
+    env.CORS_ORIGIN === "*" ?
+      (origin, cb) => {
+        console.log("[CORS] Incoming origin:", origin); 
+        cb(null, origin || "*");
+      }
+    : env.CORS_ORIGIN;
+
   app.use(
     cors({
-      origin: (origin, callback) => {
-        const allowedOrigins = env.CORS_ORIGIN;
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        if (allowedOrigins.length === 0 || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
+      origin: corsOrigin,
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
