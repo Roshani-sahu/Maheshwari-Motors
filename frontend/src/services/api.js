@@ -27,6 +27,17 @@ api.interceptors.request.use((config) => {
   } else if (!config.url.includes('/auth/login')) {
     console.warn('No auth token found for request:', config.url);
   }
+
+  // 🛡️ SECURITY: Prevent automatic DELETE requests on startup (within 2 seconds)
+  if (config.method === 'delete') {
+    const uptime = performance.now();
+    if (uptime < 2000) {
+       console.error(`🚨 BLOCKED AUTOMATIC DELETE REQUEST: ${config.url}`);
+       return Promise.reject(new Error('Safety Block: DELETE request denied during startup.'));
+    }
+    console.log(`🗑️ DELETE Request Initiated: ${config.url}`);
+  }
+
   return config;
 });
 
@@ -127,7 +138,7 @@ export const accountAPI = {
   getAll: (firmId) => api.get(`/parties?firmId=${firmId}`),
   create: (data) => api.post('/parties', data),
   update: (id, data) => api.put(`/parties/${id}`, data),
-  // delete: (id) => api.// delete(`/parties/${id}`),
+  delete: (id) => api.delete(`/parties/${id}`),
   getDue: (days) => api.get(`/parties/due?days=${days || 30}`),
   getOverpaid: () => api.get('/parties/overpaid'),
   getBalance: (id) => api.get(`/parties/${id}/balance`),
@@ -136,9 +147,18 @@ export const accountAPI = {
 export const itemAPI = {
   getAll: (options) => {
     if (typeof options === 'object') {
-       return api.get('/items', { params: options });
+       const { signal, ...rest } = options || {};
+       // Clean up undefined params
+       const params = new URLSearchParams();
+       Object.entries(rest).forEach(([key, value]) => {
+           if (value !== undefined && value !== null && value !== 'undefined') {
+               params.append(key, value);
+           }
+       });
+       return api.get('/items', { params, signal });
     }
-    return api.get(`/items?firmId=${options}`);
+    // Backward compatibility for string argument
+    return api.get(options ? `/items?firmId=${options}` : '/items');
   },
   getById: (id) => api.get(`/items/${id}`),
   create: (data) => {
@@ -157,14 +177,14 @@ export const itemAPI = {
     }
     return api.put(`/items/${id}`, data);
   },
-  // delete: (id) => api.// delete(`/items/${id}`),
+  delete: (id) => api.delete(`/items/${id}`),
   getLowStock: () => api.get('/items/low-stock'),
   updateStock: (id, quantity) => api.patch(`/items/${id}/stock`, { quantity }),
   checkStock: (itemId, qty) => Promise.resolve({ data: { available: true } }), 
 };
 
 export const challanAPI = {
-  getAll: (firmId) => api.get(`/challans?firmId=${firmId}`), 
+  getAll: (firmId) => api.get(firmId ? `/challans?firmId=${firmId}` : '/challans'), 
   getNextNumber: (firmId) => Promise.resolve({ data: { nextNumber: 'Auto' } }), 
   create: (data) => api.post('/challans', data),
   update: (id, data) => api.put(`/challans/${id}`, data),
@@ -173,7 +193,7 @@ export const challanAPI = {
 };
 
 export const billAPI = {
-  getAll: (firmId) => api.get(`/bills?firmId=${firmId}`),
+  getAll: (firmId) => api.get(firmId ? `/bills?firmId=${firmId}` : '/bills'),
   create: (data) => api.post('/bills', data), // Accepts { party_id, challan_ids, ... }
   // Update not supported
   // delete: (id) => api.// delete(`/bills/${id}`),
@@ -182,7 +202,7 @@ export const billAPI = {
 };
 
 export const transactionAPI = {
-  getAll: (firmId) => api.get(`/transactions?firmId=${firmId}`),
+  getAll: (firmId) => api.get(firmId ? `/transactions?firmId=${firmId}` : '/transactions'),
   createSale: (data) => api.post('/transactions/sale', data),
   createPurchase: (data) => api.post('/transactions/purchase', data),
   getSummary: () => api.get('/transactions/summary'),
@@ -217,20 +237,28 @@ export const reportAPI = {
 export default api;
 
 export const categoryAPI = {
-  getAll: (params) => api.get('/categories', { params }).catch(err => {
-    console.error('Category API error:', err.response?.data || err.message);
-    return { data: [] };
-  }),
+  getAll: (params) => {
+    const { signal, ...rest } = params || {};
+    return api.get('/categories', { params: rest, signal }).catch(err => {
+      if (api.isCancel(err)) throw err;
+      console.error('Category API error:', err.response?.data || err.message);
+      return { data: [] };
+    });
+  },
   create: (data) => api.post('/categories', data),
   update: (id, data) => api.put(`/categories/${id}`, data),
   delete: (id) => api.delete(`/categories/${id}`),
 };
 
 export const supplierAPI = {
-  getAll: (params) => api.get('/suppliers', { params }).catch(err => {
-    console.error('Supplier API error:', err.response?.data || err.message);
-    return { data: [] };
-  }),
+  getAll: (params) => {
+    const { signal, ...rest } = params || {};
+    return api.get('/suppliers', { params: rest, signal }).catch(err => {
+      if (api.isCancel(err)) throw err;
+      console.error('Supplier API error:', err.response?.data || err.message);
+      return { data: [] };
+    });
+  },
   create: (data) => api.post('/suppliers', data),
   update: (id, data) => api.put(`/suppliers/${id}`, data),
   delete: (id) => api.delete(`/suppliers/${id}`),
@@ -252,17 +280,25 @@ export const hsnAPI = {
 };
 
 export const adminAPI = {
-  getUsers: (params) => api.get('/admin/users', { params }),
+  getUsers: (params) => {
+    const { signal, ...rest } = params || {};
+    return api.get('/admin/users', { params: rest, signal });
+  },
   createUser: (data) => api.post('/admin/users', data),
   getUser: (id) => api.get(`/admin/users/${id}`),
   updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
 };
 
 export const brandAPI = {
-  getAll: (params) => api.get('/brands', { params }).catch(err => {
-    console.error('Brand API error:', err.response?.data || err.message);
-    return { data: [] };
-  }),
+  getAll: (params) => {
+    const { signal, ...rest } = params || {};
+    return api.get('/brands', { params: rest, signal }).catch(err => {
+      if (api.isCancel(err)) throw err;
+      console.error('Brand API error:', err.response?.data || err.message);
+      return { data: [] };
+    });
+  },
   create: (data) => api.post('/brands', data),
   update: (id, data) => api.put(`/brands/${id}`, data),
   delete: (id) => api.delete(`/brands/${id}`),

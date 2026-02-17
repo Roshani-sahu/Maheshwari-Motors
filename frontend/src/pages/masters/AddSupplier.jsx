@@ -15,12 +15,14 @@ const AddSupplier = () => {
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, supplier: null });
 
   useEffect(() => {
-    fetchSuppliers();
+    const controller = new AbortController();
+    fetchSuppliers(controller.signal);
+    return () => controller.abort();
   }, []);
 
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = async (signal) => {
       try {
-        const response = await supplierAPI.getAll();
+        const response = await supplierAPI.getAll({ signal });
         const val = response.data?.data;
         const list = Array.isArray(val) ? val : (val?.data || []);
         setSuppliers(list.map(s => ({
@@ -34,7 +36,10 @@ const AddSupplier = () => {
             gstin: s.gstin || ''
         })));
       } catch (error) {
-        console.error(error);
+        if (error.name !== 'CanceledError' && !error.message?.includes('canceled')) {
+           console.error(error); 
+           // showToast('Failed to fetch suppliers', 'error'); // Optional: don't spam toasts on mount
+        }
       }
   };
 

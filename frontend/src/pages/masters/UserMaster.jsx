@@ -58,14 +58,14 @@ const UserMaster = () => {
     }
   }, [navigate]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (signal) => {
     try {
       let allUsers = [];
       let page = 1;
       let hasMore = true;
 
       while(hasMore) {
-          const response = await adminAPI.getUsers({ page, limit: 100 });
+          const response = await adminAPI.getUsers({ page, limit: 100, signal });
           const paginationData = response.data.data;
           
           let pageData = [];
@@ -93,13 +93,17 @@ const UserMaster = () => {
       }));
       setUsers(mappedUsers);
     } catch (error) {
-       console.error("Failed to fetch users", error);
-       showToast("Failed to fetch users", "error");
+       if (error.name !== 'CanceledError' && !error.message?.includes('canceled')) {
+          console.error("Failed to fetch users", error);
+          showToast("Failed to fetch users", "error");
+       }
     }
   };
 
   useEffect(() => {
-     fetchUsers();
+     const controller = new AbortController();
+     fetchUsers(controller.signal);
+     return () => controller.abort();
   }, []);
 
   const handleLogout = async () => {
@@ -141,29 +145,23 @@ const UserMaster = () => {
   ];
 
   const actions = [
-    //{
-    //  label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
-    //  onClick: (user) => {
-    //    setEditingUser(user);
-    //    setIsEditModalOpen(true);
-    //  },
-    //  className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
-    //},
-    /*
+    {
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
+      onClick: (user) => {
+        setEditingUser(user);
+        setIsEditModalOpen(true);
+      },
+      className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
+    },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
       onClick: (user) => {
-        // Prevent deleting the current user or other safeguards if needed
-        const currentUserToken = localStorage.getItem('token'); 
-        // We don't have current user ID easily available here without parsing token or from store.
-        // But we should at least ensure we have a user object.
         if (user) {
             setDeleteDialog({ isOpen: true, user });
         }
       },
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
-    */
   ];
 
   const handleAddUser = async () => {

@@ -3,79 +3,101 @@ import { FaFilter, FaHistory, FaFileInvoiceDollar, FaReceipt, FaMoneyBillWave, F
 import { DataTable, Modal } from '../../components/common';
 import { Select, Input, Button } from '../../components/ui';
 import useStore from '../../store';
-
+import { transactionAPI } from '../../services/api';
 const TransactionHistory = () => {
-  const { transactions: storeTransactions } = useStore();
-  const [transactions, setTransactions] = useState([
-    {
-      id: 1,
-      transactionId: 'TXN001',
-      type: 'Challan',
-      firm: 'Maa Auto',
-      amount: 25000,
-      date: '2024-01-15',
-      party: 'ABC Motors',
-      gstType: 1
-    },
-    {
-      id: 2,
-      transactionId: 'TXN002',
-      type: 'Bill',
-      firm: 'Motors Division',
-      amount: 18500,
-      date: '2024-01-15',
-      party: 'XYZ Parts',
-      gstType: 0
-    },
-    {
-      id: 3,
-      transactionId: 'TXN003',
-      type: 'Prepaid',
-      firm: 'Maa Auto',
-      amount: 15000,
-      date: '2024-01-14',
-      party: 'PQR Auto',
-      gstType: 1
-    },
-  
-    {
-      id: 5,
-      transactionId: 'TXN005',
-      type: 'Due',
-      firm: 'Motors Division',
-      amount: 28000,
-      date: '2024-01-13',
-      party: 'RST Motors',
-      gstType: 1
-    }
-  ]);
+  const { transactions: storeTransactions, setTransactions: setStoreTransactions, selectedFirm } = useStore();
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('TransactionHistory - Store transactions updated:', storeTransactions);
-    setTransactions(prev => {
-      const newTransactions = storeTransactions.filter(st => !prev.some(t => t.id === st.id));
-      console.log('TransactionHistory - New transactions to add:', newTransactions);
-      
-      // Only prepend new transactions that are not "Deleted" status
-      const nonDeletedNewTransactions = newTransactions.filter(txn => txn.status !== 'Deleted');
-      
-      // For deleted transactions, update existing ones instead of adding to top
-      const deletedTransactions = newTransactions.filter(txn => txn.status === 'Deleted');
-      let updatedTransactions = [...prev];
-      
-      deletedTransactions.forEach(deletedTxn => {
-        const existingIndex = updatedTransactions.findIndex(t => t.reference === deletedTxn.reference && t.status !== 'Deleted');
-        if (existingIndex !== -1) {
-          updatedTransactions[existingIndex] = deletedTxn; // Update status in place
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        console.debug("🔄 Fetching transactions. Selected Firm:", selectedFirm?.id || 'None');
+        
+        const response = await transactionAPI.getAll(selectedFirm?.id); 
+        console.debug("✅ Transaction API Response:", response);
+
+        // Handle various response structures (Access data safely)
+        let apiTransactions = [];
+        const resData = response.data;
+
+        if (Array.isArray(resData)) {
+          // Direct array: [ ... ]
+          apiTransactions = resData;
+        } else if (resData?.data && Array.isArray(resData.data)) {
+           // Standard: { data: [ ... ] }
+           apiTransactions = resData.data;
+        } else if (resData?.data?.data && Array.isArray(resData.data.data)) {
+           // Double nested/Paginated: { data: { data: [ ... ] } }
+           apiTransactions = resData.data.data;
+        } else if (resData?.data?.docs && Array.isArray(resData.data.docs)) {
+           // Mongoose Paginated: { data: { docs: [ ... ] } }
+           apiTransactions = resData.data.docs;
         } else {
-          updatedTransactions.push(deletedTxn); // Add if no existing found
+           console.warn("⚠️ Unexpected API response structure:", resData);
         }
-      });
-      
-      // Prepend only non-deleted new transactions to top
-      return nonDeletedNewTransactions.length > 0 ? [...nonDeletedNewTransactions, ...updatedTransactions] : updatedTransactions;
-    });
-  }, [storeTransactions]);
+        
+        console.debug("📦 Extracted Transactions:", apiTransactions);
+
+        // Transform API data to match component structure
+        const formattedTransactions = apiTransactions.map(txn => {
+          const firmName = txn.firm_id?.name || txn.firm_name || 'Unknown Firm';
+          const partyName = txn.party_id?.name || txn.party_name || 'Unknown Party';
+          
+          // Derive and normalize type
+          let type = txn.type;
+          if (!type) {
+             if (txn.challan_no) type = 'Challan';
+             else if (txn.invoice_no) type = 'Bill';
+             else type = 'Unknown';
+          }
+
+          // Case-insensitive normalization
+          const lowerType = String(type).toLowerCase();
+          if (lowerType === 'challan') type = 'Challan';
+          else if (lowerType === 'bill' || lowerType === 'invoice' || lowerType === 'sale') type = 'Bill';
+          else if (lowerType === 'prepaid' || lowerType === 'receipt' || lowerType === 'payment') type = 'Prepaid';
+          else if (lowerType === 'due') type = 'Due';
+          else type = type.charAt(0).toUpperCase() + type.slice(1); // Capitalize others
+
+          return {
+            id: txn._id || txn.id, // Handle both _id and id
+            transactionId: txn.invoice_no || txn.challan_no || txn.transaction_id || `TXN-${(txn._id || txn.id || '').slice(-6)}`,
+            type: type, 
+            firm: firmName,
+            amount: txn.amount || 0,
+            date: txn.date,
+            party: partyName,
+            gstType: txn.is_gst !== undefined ? txn.is_gst : 1,
+            status: txn.status || 'Completed',
+            // Keep original references just in case needed
+            reference: txn.invoice_no || txn.challan_no
+          };
+        });
+
+        // Debug types found to help with breakdown issues
+        const foundTypes = [...new Set(formattedTransactions.map(t => t.type))];
+        console.debug("📊 Transaction Types Found:", foundTypes);
+
+        // Filter out any invalid items (must have an ID)
+        const validTransactions = formattedTransactions.filter(t => t.id);
+        
+        if (validTransactions.length === 0 && apiTransactions.length > 0) {
+             console.warn("⚠️ Transactions found but filtered out due to missing IDs. Check mapping.");
+        }
+
+        setTransactions(validTransactions);
+        setStoreTransactions(validTransactions); 
+      } catch (error) {
+        console.error("❌ Failed to fetch transactions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [setStoreTransactions, selectedFirm]);
 
   const [filters, setFilters] = useState({
     dateFrom: '',
@@ -221,14 +243,15 @@ const TransactionHistory = () => {
     }
   ];
 
-  // const handleEditTransaction = () => {
-  //   setTransactions(prev => prev.map(t => 
-  //     t.id === editingTransaction.id ? {...editingTransaction, amount: parseFloat(editingTransaction.amount)} : t
-  //   ));
-  //   setIsEditModalOpen(false);
-  //   setEditingTransaction(null);
-  //   alert('Transaction updated successfully!');
-  // };
+  const handleEditTransaction = () => {
+    setTransactions(prev => prev.map(t => 
+      t.id === editingTransaction.id ? {...editingTransaction, amount: parseFloat(editingTransaction.amount)} : t
+    ));
+    setIsEditModalOpen(false);
+    setEditingTransaction(null);
+    // Alert or toast could go here
+    console.log('Transaction updated locally'); 
+  };
 
   // Deduplicate transactions: keep only the latest status per reference (bill/challan)
   // so if a bill is generated then deleted, show only the Deleted one
