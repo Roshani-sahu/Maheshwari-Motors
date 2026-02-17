@@ -8,7 +8,7 @@ import {
   FaCog,
   FaSignOutAlt,
 } from "react-icons/fa";
-import CompanySelector from "./CompanySelector";
+import CompanySelector from "../CompanySelector";
 
 const Header = ({ onMenuClick }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -45,7 +45,7 @@ const Header = ({ onMenuClick }) => {
   const handleLogout = async () => {
     try {
       // Call the API to invalidate the session on the server
-      await import('../services/api').then(m => m.authAPI.logout());
+      await import('../../services/api').then(m => m.authAPI.logout());
     } catch (error) {
       console.error("Logout API failed", error);
     } finally {
@@ -176,10 +176,10 @@ const Header = ({ onMenuClick }) => {
                   <p className="text-xs font-medium text-neutral-800">Admin User</p>
                   <p className="text-xs text-neutral-500">admin@maheshwarimotors.com</p>
                 </div>
-                <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50">
+                {/* <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50">
                   <FaCog className="text-neutral-500" />
                   Settings
-                </Link>
+                </Link> */}
                 <Link to="/user-profile" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50">
                   <FaUser className="text-neutral-500" />
                   User Profile

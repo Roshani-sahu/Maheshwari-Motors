@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FaUser, FaEdit, FaSave, FaTimes, FaHistory, FaCalendar, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
-import { Button, Input } from '../components/ui';
-import useStore from '../store';
-import { authAPI } from '../services/api';
+import { Button, Input } from '../../components/ui';
+import useStore from '../../store';
+import { authAPI } from '../../services/api';
 
 const UserProfile = () => {
   const { user, setUser, showToast } = useStore();

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FaChartBar, FaChartLine, FaChartPie, FaTrophy,  FaArrowUp, FaDownload } from 'react-icons/fa';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { exportToPDF } from '../utils/pdfExport';
+import { exportToPDF } from '../../utils/pdfExport';
 
 const Reports = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('year');

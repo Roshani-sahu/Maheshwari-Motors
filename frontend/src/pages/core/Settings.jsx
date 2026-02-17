@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaUser, FaCog, FaSignOutAlt, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input } from '../components/ui';
-import useStore from '../store';
-import { authAPI } from '../services/api';
+import { Button, Input } from '../../components/ui';
+import useStore from '../../store';
+import { authAPI } from '../../services/api';
 
 const Settings = () => {
   const navigate = useNavigate();

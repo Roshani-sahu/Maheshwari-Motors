@@ -9,9 +9,9 @@ import {
   // FaToggleOn,
   // FaToggleOff
 } from 'react-icons/fa';
-import useStore from '../store';
-import { StatsCard, Toggle } from '../components/common';
-import { formatCurrency, formatDate } from '../utils';
+import useStore from '../../store';
+import { StatsCard, Toggle } from '../../components/common';
+import { formatCurrency, formatDate } from '../../utils';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -53,7 +53,7 @@ const Dashboard = () => {
         let currentFirmId = selectedFirm?.id;
         
         // Fallback for firm selection
-        const api = await import('../services/api'); // Dynamic import to avoid circular dep issues if any
+        const api = await import('../../services/api'); // Dynamic import to avoid circular dep issues if any
         if (!currentFirmId) {
              const firmRes = await api.firmAPI.getAll();
              if (firmRes.data && firmRes.data.length > 0) {
