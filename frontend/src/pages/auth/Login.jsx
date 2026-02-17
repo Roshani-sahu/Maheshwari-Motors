@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { FaLayerGroup, FaCircleExclamation, FaEye, FaEyeSlash } from "react-icons/fa6";
 import { Link, useNavigate } from "react-router-dom";
-import useStore from '../store';
-import { authAPI } from '../services/api';
+import useStore from '../../store';
+import { authAPI } from '../../services/api';
 
 const Login = () => {
   const navigate = useNavigate();

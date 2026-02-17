@@ -2,42 +2,46 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import useStore from "./store";
 
-import Layout from "./components/Layout";
+import Layout from "./components/layout/Layout";
 
 // Global Components
 import { Toast, ConfirmDialog, LoadingOverlay } from "./components/GlobalComponents";
 
-// Main Pages
-import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-// import CompanySelection from "./pages/CompanySelection";
-import Reports from "./pages/Reports";
-import AddItem from "./pages/AddItem";
-import Settings from "./pages/Settings";
-import UserProfile from "./pages/UserProfile";
+// Auth Pages
+import Login from "./pages/auth/Login";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+
+// Core Pages
+import Dashboard from "./pages/core/Dashboard";
+import Settings from "./pages/core/Settings";
+import UserProfile from "./pages/core/UserProfile";
+import HelpSupportPage from "./pages/core/HelpSupportPage";
 
 // Master Pages
 import FirmMaster from "./pages/masters/FirmMaster";
-import StockAlertMaster from "./pages/masters/StockAlertMaster";
-import ItemMaster from "./pages/masters/ItemMaster";
-import ItemView from "./pages/masters/ItemView";
-import CategoryMaster from "./pages/masters/CategoryMaster";
-import ViewCategory from "./pages/masters/ViewCategory";
-import AddSupplier from "./pages/masters/AddSupplier";
-import ViewAllSupplier from "./pages/masters/ViewAllSupplier";
 import UserMaster from "./pages/masters/UserMaster";
 import AccountMaster from "./pages/masters/AccountMaster";
-import PartyMaster from "./pages/PartyMaster";
+import PartyMaster from "./pages/masters/PartyMaster";
 import BrandMaster from "./pages/masters/BrandMaster";
 import DiscountMaster from "./pages/masters/DiscountMaster";
+
+// Inventory Pages
+import ItemMaster from "./pages/inventory/ItemMaster";
+import ItemView from "./pages/inventory/ItemView";
+import AddItem from "./pages/inventory/AddItem";
+import StockAlertMaster from "./pages/inventory/StockAlertMaster";
+import CategoryMaster from "./pages/inventory/CategoryMaster";
+import ViewCategory from "./pages/inventory/ViewCategory";
+import AddSupplier from "./pages/inventory/AddSupplier";
+import ViewAllSupplier from "./pages/inventory/ViewAllSupplier";
 
 // Transaction Pages
 import ChallanList from "./pages/transactions/ChallanList";
 import BillList from "./pages/transactions/BillList";
 import TransactionHistory from "./pages/transactions/TransactionHistory";
 
-//Reports
+// Report Pages
+import Reports from "./pages/reports/Reports";
 import GSTReport from "./pages/reports/GSTReport";
 import PurchaseReport from "./pages/reports/PurchaseReport";
 import SalesReport from "./pages/reports/SalesReport";
@@ -47,8 +51,6 @@ import PurchaseReturnReport from "./pages/reports/PurchaseReturnReport";
 // Setup Pages
 import BackupRestore from "./pages/setup/BackupRestore";
 import FinancialYearClose from "./pages/setup/FinancialYearClose";
-
-import HelpSupportPage from "./pages/HelpSupportPage";  
 
 // Components
 import FirmSetup from "./components/FirmSetup";

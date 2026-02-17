@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
-import { DataTable, Modal, DeleteConfirmDialog } from '../components/common';
-import { Button } from '../components/ui';
+import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
+import { Button } from '../../components/ui';
 
-import useStore from '../store';
-import { accountAPI } from '../services/api';
+import useStore from '../../store';
+import { accountAPI } from '../../services/api';
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 

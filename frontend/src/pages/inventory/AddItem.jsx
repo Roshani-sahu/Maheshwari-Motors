@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaSave } from 'react-icons/fa';
-import { Button, Input } from '../components/ui';
-import useStore from '../store';
-import { itemAPI, categoryAPI, brandAPI, supplierAPI } from '../services/api';
+import { Button, Input } from '../../components/ui';
+import useStore from '../../store';
+import { itemAPI, categoryAPI, brandAPI, supplierAPI } from '../../services/api';
 
 const AddItem = () => {
   const navigate = useNavigate();
