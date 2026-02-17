@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import useStore from "./store";
 
 import Layout from "./components/layout/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Global Components
 import { Toast, ConfirmDialog, LoadingOverlay } from "./components/GlobalComponents";
@@ -96,7 +97,7 @@ const App = () => {
         <Route path="/masters/user-master" element={<UserMaster />} />
 
         {/* ERP Layout */}
-        <Route element={<Layout />}>
+        <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           {/* 1. Dashboard */}
           <Route path="/dashboard" element={<Dashboard />} />
           
