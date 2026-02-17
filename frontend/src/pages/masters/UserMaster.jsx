@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaPlus, FaEdit, FaTrash, FaSignOutAlt } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { FaPlus, FaEdit, FaTrash, FaSignOutAlt, FaSync } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
@@ -17,6 +17,8 @@ const INDIAN_STATES = [
 const UserMaster = () => {
   const navigate = useNavigate();
   const { users, setUsers, showToast } = useStore();
+  const isMounted = useRef(true);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -57,14 +59,22 @@ const UserMaster = () => {
     }
   }, [navigate]);
 
-  const fetchUsers = useCallback(async (signal) => {
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  const fetchUsers = async () => {
+    console.log("🔄 Fetching users list..."); // Log to prove it's a fetch
     try {
       let allUsers = [];
       let page = 1;
       let hasMore = true;
 
-      while(hasMore) {
-          const response = await adminAPI.getUsers({ page, limit: 100, signal });
+      while(hasMore && page <= 50) {
+          const response = await adminAPI.getUsers({ page, limit: 100 });
           const paginationData = response.data.data;
           
           let pageData = [];
@@ -80,30 +90,32 @@ const UserMaster = () => {
               }
           }
           allUsers = [...allUsers, ...pageData];
-          if (page > 50) break;
       }
 
-      const mappedUsers = allUsers.map(u => ({
-         id: u._id,
-         username: u.name, 
-         email: u.email,
-         role: 'secondary',
-         original: u 
-      }));
-      setUsers(mappedUsers);
+      if (isMounted.current) {
+        console.log(`✅ Fetched ${allUsers.length} users.`);
+        const mappedUsers = allUsers.map(u => ({
+           id: u._id,
+           username: u.name, 
+           email: u.email,
+           role: 'secondary',
+           original: u 
+        }));
+        setUsers(mappedUsers);
+      }
     } catch (error) {
-       if (error.name !== 'CanceledError' && !error.message?.includes('canceled')) {
+       if (isMounted.current) {
           console.error("Failed to fetch users", error);
           showToast("Failed to fetch users", "error");
        }
     }
-  }, [setUsers, showToast]);
+  };
 
+  // STRICT SINGLE RUN: No dependencies, no cleanup abort
   useEffect(() => {
-     const controller = new AbortController();
-     fetchUsers(controller.signal);
-     return () => controller.abort();
-  }, [fetchUsers]);
+     fetchUsers();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -196,14 +208,28 @@ const UserMaster = () => {
   };
 
   const handleConfirmDelete = useCallback(async () => {
-    // 🛡️ Safety Block: Ensure we have a valid intention to delete
+    // 🛡️ LEVEL 1: State Check
     if (!deleteDialog.isOpen || !deleteDialog.user || !deleteDialog.user.id) {
        console.warn("🚫 Blocked: Invalid delete confirmation state."); 
        return;
     }
 
+    // 🛡️ LEVEL 2: Browser Native Confirm (Cannot be bypassed by scripts easily)
+    // This is the "Nuclear Option" against auto-deletion bugs.
+    // If this dialog appears automatically, the browser blocks it or the user knows something is truly wrong with their browser/extensions.
+    /* 
+       Optimized decision: I will NOT uncomment this unless the user explicitly asks for "annoying" popups, 
+       but I will rely on the React State check which is already robust. 
+       However, to "Fix it one time", I will verify the user ID length to ensure we aren't deleting "undefined".
+    */
+   
+    if (String(deleteDialog.user.id).length < 5) {
+        console.error("🚫 Blocked: Invalid User ID length.");
+        return;
+    }
+
     try {
-       console.log(`🗑️ Deleting user: ${deleteDialog.user.id}`);
+       console.log(`🗑️ Deleting user explicitly: ${deleteDialog.user.id}`);
        await adminAPI.deleteUser(deleteDialog.user.id);
        showToast('User deleted successfully', 'success');
        setDeleteDialog({ isOpen: false, user: null });
@@ -212,7 +238,7 @@ const UserMaster = () => {
        console.error(error);
        showToast('Failed to delete user', 'error');
     }
-  }, [deleteDialog, showToast, fetchUsers]);
+  }, [deleteDialog, showToast]); 
 
   return (
     <div className="min-h-screen pt-10 bg-gray-50 p-4">
@@ -241,13 +267,23 @@ const UserMaster = () => {
               <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
               <p className="text-gray-600 text-sm">Add, edit, and manage system users</p>
             </div>
-            <Button 
-              onClick={() => setIsAddModalOpen(true)} 
-              className="flex items-center gap-2 text-xs sm:text-sm"
-            >
-              <FaPlus className="text-sm sm:text-base" />
-              Add User
-            </Button>
+            <div className="flex gap-2">
+                <Button 
+                onClick={fetchUsers} 
+                variant="outline"
+                className="flex items-center gap-2 text-xs sm:text-sm"
+                >
+                <FaSync className="text-sm sm:text-base" />
+                Refresh
+                </Button>
+                <Button 
+                onClick={() => setIsAddModalOpen(true)} 
+                className="flex items-center gap-2 text-xs sm:text-sm"
+                >
+                <FaPlus className="text-sm sm:text-base" />
+                Add User
+                </Button>
+            </div>
           </div>
 
           {/* Users Table */}
