@@ -100,28 +100,7 @@ class PartyService {
     const party = await Party.findOne({ _id: partyId, user_id: userId });
     if (!party) throw ApiError.notFound("Party not found");
 
-    const activeChallanCount = await Challan.countDocuments({
-      party_id: partyId,
-      user_id: userId,
-      converted_to_bill: false,
-    });
-    if (activeChallanCount > 0) {
-      throw ApiError.badRequest(
-        `Cannot delete party with ${activeChallanCount} active challan(s). Delete or bill them first.`,
-      );
-    }
-
-    const unpaidBillCount = await Bill.countDocuments({
-      party_id: partyId,
-      user_id: userId,
-      payment_status: "due",
-    });
-    if (unpaidBillCount > 0) {
-      throw ApiError.badRequest(
-        `Cannot delete party with ${unpaidBillCount} unpaid bill(s). Settle them first.`,
-      );
-    }
-
+    // Hard delete party and all linked records, including old/legacy data.
     await Promise.all([
       Transaction.deleteMany({ party_id: partyId, user_id: userId }),
       Bill.deleteMany({ party_id: partyId, user_id: userId }),

@@ -191,7 +191,11 @@ const PartyMaster = () => {
        setDeleteDialog({ isOpen: false, party: null });
     } catch (error) {
        console.error(error);
-       showToast('Failed to delete party', 'error');
+       const msg = error.response?.data?.message || 'Failed to delete party';
+       const details = Array.isArray(error.response?.data?.errors)
+         ? error.response.data.errors.join(', ')
+         : '';
+       showToast(details ? `${msg}: ${details}` : msg, 'error');
     }
   };
 

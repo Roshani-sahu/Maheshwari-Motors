@@ -63,10 +63,10 @@ const ItemMaster = () => {
           id: item._id,
           itemName: item.item_name,
           amount: item.sale_rate || item.amount || 0,
-          threshold: item.threshold || 0,
+          threshold: Number(item.threshold) || 0,
           stockCount: Number(item.stock) || Number(item.current_stock) || Number(item.opening_stock) || Number(item.physical_stock) || Number(item.quantity) || (Number(item.gst_stock || 0) + Number(item.nongst_stock || 0)) || 0,
           itemMedia: item.image,
-          status: ((Number(item.stock) || 0) <= (Number(item.threshold) || 0)) ? 'LOW' : 'OK',
+          status: ((Number(item.stock) || 0) < (Number(item.threshold) || 0)) ? 'LOW' : 'OK',
           type: item.is_gst,
           categoryId: item.category_id || item.category_ids?.[0]
         }));
@@ -201,10 +201,10 @@ const ItemMaster = () => {
             id: item._id,
             itemName: item.item_name,
             amount: item.sale_rate || item.amount || 0,
-            threshold: item.threshold || 0,
-            stockCount: item.stock || item.physical_stock || (item.gst_stock + item.nongst_stock) || 0,
+            threshold: Number(item.threshold) || 0,
+            stockCount: Number(item.stock) || Number(item.physical_stock) || (Number(item.gst_stock || 0) + Number(item.nongst_stock || 0)) || 0,
             itemMedia: item.image,
-            status: ((item.stock || item.physical_stock || 0) <= (item.threshold || 0)) ? 'LOW' : 'OK',
+            status: ((Number(item.stock) || Number(item.physical_stock) || 0) < (Number(item.threshold) || 0)) ? 'LOW' : 'OK',
             type: item.is_gst,
             categoryId: item.category_id || item.category_ids?.[0]
         }));

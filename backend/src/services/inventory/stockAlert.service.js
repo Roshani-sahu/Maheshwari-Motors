@@ -1,4 +1,5 @@
 import StockAlert from "../../models/inventory/stockAlert.model.js";
+import Item from "../../models/master/item.model.js";
 import { Pagination } from "../../utils/index.js";
 
 class StockAlertService {
@@ -18,25 +19,28 @@ class StockAlertService {
   }
 
   async getUnresolvedCount(userId) {
-    return StockAlert.countDocuments({ user_id: userId, is_resolved: false });
+    return Item.countDocuments({
+      user_id: userId,
+      $expr: { $lt: ["$stock", "$threshold"] },
+    });
   }
 
   async getLowStockItems(userId) {
-    const alerts = await StockAlert.find({
+    const items = await Item.find({
       user_id: userId,
-      is_resolved: false,
-    }).populate("item_id", "item_name stock threshold image");
+      $expr: { $lt: ["$stock", "$threshold"] },
+    })
+      .select("item_name stock threshold image")
+      .sort({ stock: 1 })
+      .lean();
 
-    return alerts
-      .filter((alert) => alert.item_id != null)
-      .map((alert) => ({
-        _id: alert.item_id._id,
-        item_name: alert.item_id.item_name,
-        stock: alert.item_id.stock,
-        threshold: alert.item_id.threshold,
-        image: alert.item_id.image,
-        alert_created_at: alert.createdAt,
-      }));
+    return items.map((item) => ({
+      _id: item._id,
+      item_name: item.item_name,
+      stock: item.stock,
+      threshold: item.threshold,
+      image: item.image,
+    }));
   }
 
   async resolveAlert(alertId, userId) {

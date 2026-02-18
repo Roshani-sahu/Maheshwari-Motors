@@ -8,6 +8,39 @@ import { getNextId } from "../../helpers/counter.js";
 import s3Service from "../common/s3.service.js";
 
 class ItemService {
+  async syncStockAlert(item, userId) {
+    if (item.stock < item.threshold) {
+      const existingAlert = await StockAlert.findOne({
+        item_id: item._id,
+        user_id: userId,
+        is_resolved: false,
+      });
+
+      if (existingAlert) {
+        await StockAlert.updateOne(
+          { _id: existingAlert._id },
+          { stock_count: item.stock, threshold: item.threshold },
+        );
+        return;
+      }
+
+      const nextId = await getNextId("StockAlert", userId);
+      await StockAlert.create({
+        id: nextId,
+        item_id: item._id,
+        stock_count: item.stock,
+        threshold: item.threshold,
+        user_id: userId,
+      });
+      return;
+    }
+
+    await StockAlert.updateMany(
+      { item_id: item._id, user_id: userId, is_resolved: false },
+      { is_resolved: true },
+    );
+  }
+
   async getItems(userId, query) {
     const filter = { user_id: userId };
     if (query.search) {
@@ -173,6 +206,8 @@ class ItemService {
       });
     }
 
+    await this.syncStockAlert(item, userId);
+
     return item;
   }
 
@@ -319,6 +354,9 @@ class ItemService {
     const updatedItem = await Item.findByIdAndUpdate(itemId, fields, {
       new: true,
     });
+
+    await this.syncStockAlert(updatedItem, userId);
+
     return updatedItem;
   }
 
@@ -357,6 +395,7 @@ class ItemService {
     }
 
     await item.save();
+    await this.syncStockAlert(item, userId);
     return item;
   }
 
