@@ -17,41 +17,35 @@ const ChallanList = () => {
         console.debug("🔄 Fetching initial data for ChallanList...", { firmId: selectedFirm?.id });
         
         const [pRes, iRes, cRes] = await Promise.all([
-           api.get('/parties', { params: { firmId: selectedFirm?.id } }),
-           api.get('/items', { 
-             params: { 
-               limit: 20000, 
-               pageSize: 20000,
-               pagination: false,
-               firmId: selectedFirm?.id 
-             }
-           }), 
-           api.get('/challans', { params: { firmId: selectedFirm?.id } })
+           accountAPI.getAll(selectedFirm?.id),
+           itemAPI.getAll({ page: 1, limit: 50, search: '' }), 
+           challanAPI.getAll(selectedFirm?.id)
         ]);
         
         console.debug("✅ Raw API Responses:", { parties: pRes, items: iRes, challans: cRes });
 
-        // Robust data extraction helper
         const getList = (res) => {
             const val = res.data;
             if (Array.isArray(val)) return val;
             if (val?.data && Array.isArray(val.data)) return val.data;
             if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
-            if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs; // Handle mongoose-paginate
+            if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
             if (val?.docs && Array.isArray(val.docs)) return val.docs;
             return [];
         };
 
         const partiesData = getList(pRes).map(p => ({ id: p._id || p.id, name: p.name }));
         const itemsData = getList(iRes).map(i => ({ 
-            ...i, // Keep all backend fields (e.g. part_no, stock, unit, etc.)
+            ...i,
             id: i._id || i.id, 
             name: i.item_name || i.name, 
             amount: i.amount || i.rate || 0 
         }));
         
-        // Log to verify item count and structure
         console.debug(`📦 Loaded ${itemsData.length} items for dropdown. Sample:`, itemsData[0]);
+        
+        const itemsResponse = iRes.data?.data || iRes.data;
+        setTotalItemsPages(itemsResponse?.totalPages || 1);
 
         const challansData = getList(cRes).map(c => ({
            id: c._id || c.id,
@@ -67,6 +61,7 @@ const ChallanList = () => {
         setLoadedParties(partiesData);
         setLoadedItems(itemsData);
         setChallans(challansData);
+        setItemsPage(1);
 
         console.debug("🧩 State Updated:", { parties: partiesData.length, items: itemsData.length, challans: challansData.length });
 
@@ -75,7 +70,7 @@ const ChallanList = () => {
     }
   };
     fetchData();
-  }, [selectedFirm?.id]); // ✅ Refetch when selectedFirm changes
+  }, [selectedFirm?.id]);
 
   // Filters state
   const [filters, setFilters] = useState({
@@ -109,24 +104,105 @@ const ChallanList = () => {
   const [editItemSearchTerm, setEditItemSearchTerm] = useState('');
   const [showEditItemDropdown, setShowEditItemDropdown] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [itemsPage, setItemsPage] = useState(1);
+  const [totalItemsPages, setTotalItemsPages] = useState(1);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
   
   const itemDropdownRef = useRef(null);
   const editItemDropdownRef = useRef(null);
 
-  // Derived state: filteredItems relies on loadedItems, itemSearchTerm, and newChallan
-  const filteredItems = loadedItems.filter(item => {
-    const search = itemSearchTerm.trim().toLowerCase();
-    const notSelected = !newChallan.items.includes(item.id);
-  
-    // Robust search: check name, part_no, and hsn_code
-    const matchesSearch =
-      !search ||
-      (item.name && item.name.toLowerCase().includes(search)) ||
-      (item.part_no && item.part_no.toLowerCase().includes(search)) ||
-      (item.hsn_code && item.hsn_code.toLowerCase().includes(search));
-  
-    return notSelected && matchesSearch;
+  // Derived state: filteredItems - just exclude already selected items
+  const filteredItems = loadedItems.filter(item => !newChallan.items.includes(item.id));
+
+  // Debug log
+  console.log('🔍 Dropdown Debug:', { 
+    totalLoadedItems: loadedItems.length, 
+    filteredItemsCount: filteredItems.length,
+    searchTerm: itemSearchTerm,
+    selectedItems: newChallan.items.length,
+    sampleItems: loadedItems.slice(0, 3).map(i => ({ id: i.id, name: i.name }))
   });
+
+  // Load specific page
+  const loadItemsPage = async (page) => {
+    console.log('Loading page:', page, 'with search:', itemSearchTerm);
+    setIsLoadingItems(true);
+    try {
+      const response = await itemAPI.getAll({ page, limit: 50, search: itemSearchTerm });
+      console.log('API Response:', response.data);
+      
+      const getList = (res) => {
+        const val = res.data;
+        if (Array.isArray(val)) return val;
+        if (val?.data && Array.isArray(val.data)) return val.data;
+        if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
+        if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
+        if (val?.docs && Array.isArray(val.docs)) return val.docs;
+        return [];
+      };
+      
+      const items = getList(response).map(i => ({
+        ...i,
+        id: i._id || i.id,
+        name: i.item_name || i.name,
+        amount: i.amount || i.rate || 0
+      }));
+      
+      console.log('Loaded items:', items.length);
+      setLoadedItems(items);
+      setItemsPage(page);
+      
+      const itemsResponse = response.data?.data || response.data;
+      setTotalItemsPages(itemsResponse?.totalPages || Math.ceil(itemsResponse?.total / 50) || 1);
+      console.log('Total pages:', itemsResponse?.totalPages, 'Total items:', itemsResponse?.total);
+    } catch (err) {
+      console.error('Failed to load items page:', err);
+    } finally {
+      setIsLoadingItems(false);
+    }
+  };
+
+  // Search items with debounce
+  useEffect(() => {
+    const searchItems = async () => {
+      setIsLoadingItems(true);
+      try {
+        const response = await itemAPI.getAll({ page: 1, limit: 50, search: itemSearchTerm });
+        
+        const getList = (res) => {
+          const val = res.data;
+          if (Array.isArray(val)) return val;
+          if (val?.data && Array.isArray(val.data)) return val.data;
+          if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
+          if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
+          if (val?.docs && Array.isArray(val.docs)) return val.docs;
+          return [];
+        };
+        
+        const searchResults = getList(response).map(i => ({
+          ...i,
+          id: i._id || i.id,
+          name: i.item_name || i.name,
+          amount: i.amount || i.rate || 0
+        }));
+        
+        setLoadedItems(searchResults);
+        setItemsPage(1);
+        
+        const itemsResponse = response.data?.data || response.data;
+        setTotalItemsPages(itemsResponse?.totalPages || Math.ceil(itemsResponse?.total / 50) || 1);
+      } catch (err) {
+        console.error('Failed to search items:', err);
+      } finally {
+        setIsLoadingItems(false);
+      }
+    };
+    
+    if (showItemDropdown) {
+      const timer = setTimeout(searchItems, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [itemSearchTerm, showItemDropdown]);
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -766,7 +842,7 @@ const ChallanList = () => {
           </div>
 
           {/* Search & Add Items Section */}
-          <div className="border rounded-lg ">
+          {/* <div className="border rounded-lg ">
             <div className="bg-gray-100 px-4 py-2">
               <h3 className="font-medium text-gray-900">Search & Add Items</h3>
             </div>
@@ -817,7 +893,7 @@ const ChallanList = () => {
                 )}
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Items Table Section */}
           <div className="border rounded-lg">
@@ -968,8 +1044,32 @@ const ChallanList = () => {
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   />
                   {showItemDropdown && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-64 overflow-y-auto">
-                      {filteredItems.map(item => (
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg">
+                      <div className="max-h-64 overflow-y-auto">
+                        <div className="px-3 py-2 bg-gray-100 text-xs text-gray-600 sticky top-0 flex items-center justify-between">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              loadItemsPage(itemsPage - 1);
+                            }}
+                            disabled={itemsPage === 1 || isLoadingItems}
+                            className=""
+                          >
+                            
+                          </button>
+                          <span>Page {itemsPage} of {totalItemsPages}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              loadItemsPage(itemsPage + 1);
+                            }}
+                            disabled={itemsPage === totalItemsPages || isLoadingItems}
+                            className=""
+                          >
+                            
+                          </button>
+                        </div>
+                        {filteredItems.map(item => (
                           <button
                             key={item.id}
                             onClick={() => {
@@ -989,16 +1089,20 @@ const ChallanList = () => {
                           </button>
                         ))
                       }
-                      {filteredItems.length === 0 && (
-                        <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
-                      )}
+                        {filteredItems.length === 0 && !isLoadingItems && (
+                          <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                        )}
+                        {isLoadingItems && (
+                          <div className="px-3 py-2 text-gray-500 text-sm text-center">Loading...</div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
               
               {/* Selected Items Preview */}
-              {newChallan.items.length > 0 && (
+              {/* {newChallan.items.length > 0 && (
                 <div className="mt-3">
                   <span className="text-sm font-medium text-gray-700">Selected Items:</span>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -1018,7 +1122,7 @@ const ChallanList = () => {
                     })}
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
 
           </div>
@@ -1102,10 +1206,10 @@ const ChallanList = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title="EDIT CHALLAN"
-        size="6xl"
+        size="2xl"
       >
         {editingChallan && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Header Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 rounded-lg">
               <div>
@@ -1157,16 +1261,15 @@ const ChallanList = () => {
               </div>
             </div>
 
-            {/* Items Section */}
-            <div className="border rounded-lg overflow-hidden">
+            {/* Items Table Section */}
+            <div className="border rounded-lg">
               <div className="bg-gray-100 px-4 py-2">
                 <h3 className="font-medium text-gray-900">Rate Information - Add / Less</h3>
               </div>
               
-              {/* Items Table */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-80 overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 sticky top-0">
                     <tr>
                       <th className="px-2 py-2 text-left border-r">SNo</th>
                       <th className="px-2 py-2 text-left border-r">ItemName</th>
@@ -1189,7 +1292,7 @@ const ChallanList = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {editingChallan.items.map((itemId, index) => {
+                    {editingChallan.items && editingChallan.items.map((itemId, index) => {
                       const item = loadedItems.find(i => i.id === itemId);
                       const details = editingChallan.itemDetails[itemId] || {};
                       const calc = calculateEditItemAmount(itemId);
@@ -1278,6 +1381,13 @@ const ChallanList = () => {
                         </tr>
                       );
                     })}
+                    {(!editingChallan.items || editingChallan.items.length === 0) && (
+                      <tr>
+                        <td colSpan={editingChallan.gstType === 1 ? 14 : 12} className="px-4 py-8 text-center text-gray-500">
+                          No items selected. Use the search above to add items.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1299,70 +1409,89 @@ const ChallanList = () => {
                       className="w-full px-3 py-2 border rounded-md text-sm"
                     />
                     {showEditItemDropdown && (
-                      <div className="fixed z-[9999] bg-white border rounded-md shadow-xl max-h-80 overflow-y-auto" 
-                           style={{
-                             top: editItemDropdownRef.current?.getBoundingClientRect().bottom + window.scrollY + 4 || 0,
-                             left: editItemDropdownRef.current?.getBoundingClientRect().left + window.scrollX || 0,
-                             width: editItemDropdownRef.current?.getBoundingClientRect().width || 300
-                           }}>
-                        {loadedItems
-                          .filter(item => 
-                            !editingChallan.items.includes(item.id) &&
-                            item.name.toLowerCase().includes(editItemSearchTerm.toLowerCase())
-                          )
-                          .map(item => (
+                      <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg">
+                        <div className="max-h-64 overflow-y-auto">
+                          <div className="px-3 py-2 bg-gray-100 text-xs text-gray-600 sticky top-0 flex items-center justify-between">
                             <button
-                              key={item.id}
-                              onClick={() => {
-                                toggleItemSelection(item.id, true);
-                                setEditItemSearchTerm('');
-                                setShowEditItemDropdown(false);
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                loadItemsPage(itemsPage - 1);
                               }}
-                              className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
+                              disabled={itemsPage === 1 || isLoadingItems}
+                              className=""
                             >
-                              <div className="flex justify-between items-center">
-                                <span className="truncate">{item.name}</span>
-                                <span className="text-gray-500 text-xs ml-2">₹{item.amount}</span>
-                              </div>
+                              
                             </button>
-                          ))
-                        }
-                        {loadedItems.filter(item => 
-                          !editingChallan.items.includes(item.id) &&
-                          item.name.toLowerCase().includes(editItemSearchTerm.toLowerCase())
-                        ).length === 0 && (
-                          <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
-                        )}
-
+                            <span>Page {itemsPage} of {totalItemsPages}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                loadItemsPage(itemsPage + 1);
+                              }}
+                              disabled={itemsPage === totalItemsPages || isLoadingItems}
+                              className=""
+                            >
+                              
+                            </button>
+                          </div>
+                          {loadedItems
+                            .filter(item => !editingChallan.items.includes(item.id))
+                            .map(item => (
+                              <button
+                                key={item.id}
+                                onClick={() => {
+                                  toggleItemSelection(item.id, true);
+                                  setEditItemSearchTerm('');
+                                  setShowEditItemDropdown(false);
+                                }}
+                                className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="truncate">
+                                    {item.name}
+                                    {item.part_no && <span className="text-gray-400 text-xs ml-1">({item.part_no})</span>}
+                                  </span>
+                                  <span className="text-gray-500 text-xs ml-2">₹{item.amount}</span>
+                                </div>
+                              </button>
+                            ))
+                          }
+                          {loadedItems.filter(item => !editingChallan.items.includes(item.id)).length === 0 && !isLoadingItems && (
+                            <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                          )}
+                          {isLoadingItems && (
+                            <div className="px-3 py-2 text-gray-500 text-sm text-center">Loading...</div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
-                
-                {/* Selected Items Preview */}
-                {editingChallan.items.length > 0 && (
-                  <div className="mt-3">
-                    <span className="text-sm font-medium text-gray-700">Selected Items:</span>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {editingChallan.items.map(itemId => {
-                        const item = loadedItems.find(i => i.id === itemId);
-                        return (
-                          <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
-                            {item?.name}
-                            <button
-                              onClick={() => toggleItemSelection(itemId, true)}
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              <FaTimes size={10} />
-                            </button>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* Selected Items Preview */}
+            {editingChallan.items && editingChallan.items.length > 0 && (
+              <div className="border rounded-lg p-4 bg-gray-50">
+                <span className="text-sm font-medium text-gray-700">Selected Items ({editingChallan.items.length}):</span>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {editingChallan.items.map(itemId => {
+                    const item = loadedItems.find(i => i.id === itemId);
+                    return (
+                      <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
+                        {item?.name}
+                        <button
+                          onClick={() => toggleItemSelection(itemId, true)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <FaTimes size={10} />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Totals Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1397,6 +1526,12 @@ const ChallanList = () => {
                 }}
               >
                 Cancel
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-red-50 text-red-600 hover:bg-red-100"
+              >
+                Delete
               </Button>
             </div>
           </div>
