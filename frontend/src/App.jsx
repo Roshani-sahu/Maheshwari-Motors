@@ -65,13 +65,9 @@ const App = () => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          const { data } = await import('./services/api').then(m => m.authAPI.getProfile());
-          // Backend returns { data: userObject } inside the response
-          // getProfile returns response.data.data from the backend based on my previous analysis
-          // Wait, authAPI.getProfile in api.js calls api.get('/auth/me').
-          // Backend controller returns `new ApiResponse(200, profile, ...)`
-          // So axios response.data is the ApiResponse object. response.data.data is the profile.
-          setUser(data.data);
+          const { default: api } = await import('./services/axiosInstance');
+          const response = await api.get('/auth/me');
+          setUser(response.data.data);
         } catch (error) {
           console.error("Auth initialization failed", error);
           logout();

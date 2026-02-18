@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaSave } from 'react-icons/fa';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { itemAPI, categoryAPI, brandAPI, supplierAPI } from '../../services/api';
+import api from '../../services/axiosInstance';
 
 const AddItem = () => {
   const navigate = useNavigate();
@@ -36,9 +36,9 @@ const AddItem = () => {
     const fetchData = async () => {
         try {
             const [catRes, brandRes, supplierRes] = await Promise.all([
-                categoryAPI.getAll(),
-                brandAPI.getAll(),
-                supplierAPI.getAll()
+                api.get('/categories'),
+                api.get('/brands'),
+                api.get('/suppliers')
             ]);
             
             const getList = (res) => {
@@ -52,11 +52,7 @@ const AddItem = () => {
             
             setCategories(cats);
             setAllBrands(brds); // Store all brands
-            setBrands(brds); // Initially show all brands or empty? User said "after i select cat brand ... will show", likely means filter.
-                             // But usually better to show all if no category selected, or none. 
-                             // Let's default to showing none or all? 
-                             // If I look at the requested flow: "after i select cat brand of the cat will show there"
-                             // I'll show all initially, and filter if a category is picked.
+            setBrands(brds); 
             setSuppliers(sups);
         } catch (error) {
             console.error("Failed to fetch data", error);
@@ -140,7 +136,9 @@ const AddItem = () => {
             
             payload.append('image', formData.image);
             
-            await itemAPI.create(payload);
+            await api.post('/items', payload, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
         } else {
             const payload = {
                 item_name: formData.name,
@@ -158,7 +156,7 @@ const AddItem = () => {
                 brand_id: formData.brand || undefined,
                 supplier_id: formData.supplier || undefined
             };
-            await itemAPI.create(payload);
+            await api.post('/items', payload);
         }
 
         showToast('Item added successfully', 'success');

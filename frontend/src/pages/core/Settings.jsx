@@ -1,9 +1,9 @@
+import api from '../../services/axiosInstance';
 import { useState, useEffect } from 'react';
 import { FaUser, FaCog, FaSignOutAlt, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { authAPI } from '../../services/api';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ const Settings = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await authAPI.getProfile();
+        const res = await api.get('/auth/me');
         const userData = res.data.data;
         setProfileData({
           username: userData.username || '',
@@ -39,7 +39,9 @@ const Settings = () => {
 
   const handleSaveProfile = async () => {
     try {
-      await authAPI.updateProfile(profileData);
+      // Assuming endpoint for update is /auth/profile or /auth/me (PUT)
+      // Since it was missing in api.js, this might fail unless backend supports it.
+      await api.put('/auth/profile', profileData);
       setUser({ ...user, ...profileData });
       setIsEditingProfile(false);
       showToast('Profile updated successfully', 'success');

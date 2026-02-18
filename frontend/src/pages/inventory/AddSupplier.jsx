@@ -3,7 +3,7 @@ import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { supplierAPI } from '../../services/api';
+import api from '../../services/axiosInstance';// 
 
 const AddSupplier = () => {
   const { showToast } = useStore();
@@ -22,7 +22,7 @@ const AddSupplier = () => {
 
   const fetchSuppliers = async (signal) => {
       try {
-        const response = await supplierAPI.getAll({ signal });
+        const response = await api.get('/suppliers', { signal });
         const val = response.data?.data;
         const list = Array.isArray(val) ? val : (val?.data || []);
         setSuppliers(list.map(s => ({
@@ -82,7 +82,7 @@ const AddSupplier = () => {
 
   const handleAdd = async () => {
       try {
-          await supplierAPI.create({
+          await api.post('/suppliers', {
               name: formData.name,
               phone: formData.contact,
               email: formData.email,
@@ -102,7 +102,7 @@ const AddSupplier = () => {
 
   const handleEdit = async () => {
        try {
-          await supplierAPI.update(editingSupplier.id, {
+          await api.put(`/suppliers/${editingSupplier.id}`, {
               name: formData.name,
               phone: formData.contact,
               email: formData.email,
@@ -123,7 +123,7 @@ const AddSupplier = () => {
 
   const handleDelete = async () => {
        try {
-           await supplierAPI.delete(deleteDialog.supplier.id);
+           await api.delete(`/suppliers/${deleteDialog.supplier.id}`);
            showToast('Supplier deleted successfully', 'success');
            setDeleteDialog({ isOpen: false, supplier: null });
            fetchSuppliers();

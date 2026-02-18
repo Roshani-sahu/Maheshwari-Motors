@@ -64,7 +64,7 @@ const Header = ({ onMenuClick }) => {
   const handleLogout = async () => {
     try {
       // Call the API to invalidate the session on the server
-      await import('../../services/api').then(m => m.authAPI.logout());
+      await (await import('../../services/axiosInstance')).default.post('/auth/logout');
     } catch (error) {
       console.error("Logout API failed", error);
     } finally {

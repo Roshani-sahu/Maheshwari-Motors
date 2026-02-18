@@ -53,26 +53,31 @@ const Dashboard = () => {
         let currentFirmId = selectedFirm?.id;
         
         // Fallback for firm selection
-        const api = await import('../../services/api'); // Dynamic import to avoid circular dep issues if any
+        const api = (await import('../../services/axiosInstance')).default;
+        
         if (!currentFirmId) {
-             const firmRes = await api.firmAPI.getAll();
-             if (firmRes.data && firmRes.data.length > 0) {
-                 const defaultFirm = firmRes.data[0];
+             const response = await api.get('/auth/me');
+             const userProfile = response.data?.data;
+             // Construct firms from profile
+             const firms = [];
+             if (userProfile?.gst_firm) firms.push({ ...userProfile.gst_firm, id: 'gst', type: 'GST' });
+             if (userProfile?.nongst_firm) firms.push({ ...userProfile.nongst_firm, id: 'nongst', type: 'NON_GST' });
+
+             if (firms.length > 0) {
+                 const defaultFirm = firms[0];
                  setFirm(defaultFirm);
                  currentFirmId = defaultFirm.id;
              }
         }
         
         // Determine is GST mode
-        // selectedFirm.type is 'GST' or 'NON_GST' usually, or id='gst'/'nongst'
-        // Let's check both
         const isGst = (selectedFirm?.type === 'GST' || selectedFirm?.id === 'gst' || currentFirmId === 'gst');
 
         // Fetch General Dashboard Data (Big Object), Items (for stock), and Alert Count
         const [dashboardRes, itemRes, alertCountRes] = await Promise.all([
-             api.reportAPI.getDashboard(),
-             api.itemAPI.getAll(currentFirmId),
-             api.reportAPI.getAlertCount()
+             api.get('/dashboard'),
+             api.get('/items', { params: { firmId: currentFirmId } }),
+             api.get('/stock-alerts/count')
         ]);
         
         const data = dashboardRes.data?.data || {};

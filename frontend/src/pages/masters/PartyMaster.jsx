@@ -4,7 +4,8 @@ import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 
 import useStore from '../../store';
-import { accountAPI } from '../../services/api';
+
+import api from '../../services/axiosInstance';
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
@@ -36,7 +37,7 @@ const PartyMaster = () => {
   useEffect(() => {
     const fetchParties = async () => {
       try {
-        const response = await accountAPI.getAll();
+        const response = await api.get('/parties');
         console.log("Parties response:", response);
         const backendParties = (response.data?.data?.data || []).map(p => ({
           id: p._id,
@@ -147,15 +148,15 @@ const PartyMaster = () => {
 
     try {
       if (isEditModalOpen) {
-        await accountAPI.update(selectedParty.id, payload);
+        await api.put(`/parties/${selectedParty.id}`, payload);
         showToast('Party updated successfully', 'success');
       } else {
-        await accountAPI.create(payload);
+        await api.post('/parties', payload);
         showToast('Party created successfully', 'success');
       }
       
       // Refresh list
-      const response = await accountAPI.getAll();
+      const response = await api.get('/parties');
       const backendParties = (response.data?.data?.data || []).map(p => ({
         id: p._id,
         name: p.name,
@@ -185,7 +186,7 @@ const PartyMaster = () => {
   const handleDelete = async () => {
     if (!deleteDialog.party) return;
     try {
-       await accountAPI.delete(deleteDialog.party.id);
+       await api.delete(`/parties/${deleteDialog.party.id}`);
        showToast('Party deleted successfully', 'success');
        setParties(parties.filter(p => p.id !== deleteDialog.party.id));
        setDeleteDialog({ isOpen: false, party: null });

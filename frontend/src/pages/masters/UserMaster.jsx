@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { adminAPI, authAPI } from '../../services/api';
+
+import api from '../../services/axiosInstance';
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
@@ -77,7 +78,7 @@ const UserMaster = () => {
       let hasMore = true;
 
       while(hasMore && page <= 50) {
-          const response = await adminAPI.getUsers({ page, limit: 100 });
+          const response = await api.get('/admin/users', { params: { page, limit: 100 } });
           const paginationData = response.data.data;
           
           let pageData = [];
@@ -122,7 +123,7 @@ const UserMaster = () => {
 
   const handleLogout = async () => {
     try {
-        await authAPI.logout();
+        await api.post('/auth/logout');
     } catch (e) {
         console.error(e);
     } finally {
@@ -189,7 +190,7 @@ const UserMaster = () => {
             return;
         }
 
-        await adminAPI.createUser(newUser);
+        await api.post('/admin/users', newUser);
         showToast('User added successfully', 'success');
         setIsAddModalOpen(false);
         setNewUser({
@@ -206,11 +207,12 @@ const UserMaster = () => {
 
   const handleUpdateUser = async () => {
       try {
-        if (!editingForm) return;
-        const payload = { ...editingForm };
-        if (newPassword) payload.password = newPassword;
-        await adminAPI.updateUser(editingForm.id || editingForm._id, payload);
-
+        const updatedUser = { ...editingUser };
+        if (newPassword) {
+          updatedUser.password = newPassword;
+        }
+        await api.put(`/admin/users/${editingUser.id}`, updatedUser);
+        
         setIsEditModalOpen(false);
         setNewPassword('');
         setEditingForm(null);
@@ -246,7 +248,7 @@ const UserMaster = () => {
 
     try {
        console.log(`🗑️ Deleting user explicitly: ${deleteDialog.user.id}`);
-       await adminAPI.deleteUser(deleteDialog.user.id);
+       await api.delete(`/admin/users/${deleteDialog.user.id}`);
        showToast('User deleted successfully', 'success');
        setDeleteDialog({ isOpen: false, user: null });
        fetchUsers();

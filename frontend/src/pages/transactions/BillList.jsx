@@ -3,7 +3,7 @@ import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink, FaEdit, FaTrash, FaDownlo
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
-import { billAPI } from '../../services/api';
+import api from '../../services/axiosInstance';// 
 
 const BillList = () => {
   const { showToast } = useStore();
@@ -12,7 +12,7 @@ const BillList = () => {
   useEffect(() => {
     const fetchBills = async () => {
       try {
-        const response = await billAPI.getAll();
+        const response = await api.get('/bills');
         const getList = (res) => {
             const val = res.data?.data;
             return Array.isArray(val) ? val : (val?.data || []);
@@ -303,7 +303,7 @@ const BillList = () => {
         onClose={() => setDeleteDialog({ isOpen: false, bill: null })}
         onConfirm={async () => {
            try {
-              await billAPI.delete(deleteDialog.bill.id);
+              await api.delete(`/bills/${deleteDialog.bill.id}`);
               showToast('Bill deleted successfully', 'success');
               setBills(prev => prev.filter(b => b.id !== deleteDialog.bill.id));
               setDeleteDialog({ isOpen: false, bill: null });
