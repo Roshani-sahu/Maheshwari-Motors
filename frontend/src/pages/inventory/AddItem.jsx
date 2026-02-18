@@ -376,9 +376,9 @@ const AddItem = () => {
 
             {/* Toggle Switch */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              {/* <label className="block text-sm font-medium text-gray-700 mb-3">
                 GST Type *
-              </label>
+              </label> */}
 
               <div
                 onClick={() =>

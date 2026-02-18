@@ -19,6 +19,7 @@ const PartyMaster = () => {
   const { showToast } = useStore(); // Added hook usage
   const [parties, setParties] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, party: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -27,12 +28,23 @@ const PartyMaster = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    mobile: '',
     email: '',
     address: '',
     city: '',
     state: '',
     gstNo: '',
-    category: ''
+    category: '',
+    type: 0,
+    cin: '',
+    reg_number: '',
+    bank_name: '',
+    bank_branch: '',
+    ifsc_code: '',
+    account_number: '',
+    transport_charge: '',
+    area: '',
+    agent: ''
   });
 
   // Fetch parties from backend
@@ -45,12 +57,22 @@ const PartyMaster = () => {
           id: p._id,
           name: p.name,
           phone: p.phone || '',
+          mobile: p.mobile || '',
           email: p.email || '',
           address: p.address || '',
           city: p.city || '',
           state: p.state || '',
           gstNo: p.gstin || '',
-          category: p.category_id || ''
+          category: p.category_id || '',
+          type: p.type || 0,
+          cin: p.cin || '',
+          reg_number: p.reg_number || '',
+          bank_name: p.bank_name || '',
+          bank_branch: p.bank_branch || '',
+          ifsc_code: p.ifsc_code || '',
+          account_number: p.account_number || '',
+          transport_charge: p.transport_charge || '',
+          agent: p.agent_id || ''
         }));
         setParties(backendParties);
       } catch (error) {
@@ -66,14 +88,25 @@ const PartyMaster = () => {
     const fetchCategories = async () => {
       try {
         const response = await api.get('/categories');
-        console.log("Categories response:", response);
         setCategories(response.data?.data?.data || []);
-        console.log("Fetched categories:", response.data?.data?.data || []);
       } catch (error) {
         console.error("Failed to fetch categories", error);
       }
     };
     fetchCategories();
+  }, []);
+
+  // Fetch agents
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const response = await api.get('/agents');
+        setAgents(response.data?.data?.data || []);
+      } catch (error) {
+        console.error("Failed to fetch agents", error);
+      }
+    };
+    fetchAgents();
   }, []);
 
   const columns = [
@@ -157,12 +190,23 @@ const PartyMaster = () => {
     const payload = {
        name: formData.name,
        phone: cleanPhone || undefined,
+       mobile: formData.mobile || undefined,
        email: formData.email || undefined,
        address: formData.address || undefined,
        city: formData.city || undefined,
        state: formData.state || undefined,
        gstin: formData.gstNo ? formData.gstNo.toUpperCase() : undefined,
-       category_id: formData.category || undefined
+       category_id: formData.category || undefined,
+       type: formData.type || 0,
+       cin: formData.cin || undefined,
+       reg_number: formData.reg_number || undefined,
+       bank_name: formData.bank_name || undefined,
+       bank_branch: formData.bank_branch || undefined,
+       ifsc_code: formData.ifsc_code || undefined,
+       account_number: formData.account_number || undefined,
+       transport_charge: formData.transport_charge || undefined,
+       area: formData.area || undefined,
+       agent_id: formData.agent || undefined
     };
 
     try {
@@ -180,18 +224,29 @@ const PartyMaster = () => {
         id: p._id,
         name: p.name,
         phone: p.phone || '',
+        mobile: p.mobile || '',
         email: p.email || '',
         address: p.address || '',
         city: p.city || '',
         state: p.state || '',
         gstNo: p.gstin || '',
-        category: p.category_id || ''
+        category: p.category_id || '',
+        type: p.type || 0,
+        cin: p.cin || '',
+        reg_number: p.reg_number || '',
+        bank_name: p.bank_name || '',
+        bank_branch: p.bank_branch || '',
+        ifsc_code: p.ifsc_code || '',
+        account_number: p.account_number || '',
+        transport_charge: p.transport_charge || '',
+        area: p.area || '',
+        agent: p.agent_id || ''
       }));
       setParties(backendParties);
       
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
-      setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '', category: '' });
+      setFormData({ name: '', phone: '', mobile: '', email: '', address: '', city: '', state: '', gstNo: '', category: '', type: 0, cin: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '', transport_charge: '', area: '', agent: '' });
       setSelectedParty(null);
     } catch (error) {
       console.error("Party submit error:", error);
@@ -221,7 +276,7 @@ const PartyMaster = () => {
   };
 
   const openAddModal = () => {
-    setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '', category: '' });
+    setFormData({ name: '', phone: '', mobile: '', email: '', address: '', city: '', state: '', gstNo: '', category: '', type: 0, cin: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '', transport_charge: '', area: '', agent: '' });
     setIsAddModalOpen(true);
   };
 
@@ -290,12 +345,52 @@ const PartyMaster = () => {
                 <p className="text-sm text-gray-900">{selectedParty.phone}</p>
               </div>
               <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Mobile</label>
+                <p className="text-sm text-gray-900">{selectedParty.mobile || 'N/A'}</p>
+              </div>
+              <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
                 <p className="text-sm text-gray-900">{selectedParty.email}</p>
               </div>
               <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type</label>
+                <p className="text-sm text-gray-900">{selectedParty.type || 'customer'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Area</label>
+                <p className="text-sm text-gray-900">{selectedParty.area || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
+                <p className="text-sm text-gray-900">{selectedParty.transport_charge || 'N/A'}</p>
+              </div>
+              <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST Number</label>
                 <p className="text-sm text-gray-900">{selectedParty.gstNo || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">CIN</label>
+                <p className="text-sm text-gray-900">{selectedParty.cin || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Reg Number</label>
+                <p className="text-sm text-gray-900">{selectedParty.reg_number || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                <p className="text-sm text-gray-900">{selectedParty.bank_name || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Branch</label>
+                <p className="text-sm text-gray-900">{selectedParty.bank_branch || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+                <p className="text-sm text-gray-900">{selectedParty.ifsc_code || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                <p className="text-sm text-gray-900">{selectedParty.account_number || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label>
@@ -333,119 +428,136 @@ const PartyMaster = () => {
         title={isEditModalOpen ? 'Edit Party' : 'Add New Party'} 
         size="md"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Party Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter party name"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Party Name</label>
+            <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter party name" />
           </div>
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="+91 98765 43210"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="contact@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address
-            </label>
-            <textarea
-              name="address"
-              value={formData.address}
-              onChange={handleInputChange}
-              required
-              rows="2"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter complete address"
-            />
+            {/* <label className="block text-sm font-medium text-gray-700 mb-1">Type</label> */}
+            <div className="flex items-center gap-3">
+              {/* <span className="text-xs sm:text-sm text-gray-700">Type 0</span> */}
+              <div
+                onClick={() => setFormData(prev => ({ ...prev, type: prev.type === 0 ? 1 : 0 }))}
+                className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
+                  formData.type === 1
+                    ? 'bg-green-500'
+                    : 'bg-gray-300'
+                }`}
+              >
+                <div
+                  className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
+                    formData.type === 1
+                      ? 'translate-x-7'
+                      : 'translate-x-0'
+                  }`}
+                />
+              </div>
+              {/* <span className="text-xs sm:text-sm text-gray-700">Type 1</span> */}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                <input 
-                  type="text"
-                  name="city" 
-                  value={formData.city} 
-                  onChange={handleInputChange} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="City"
-                />
-             </div>
-             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                <select 
-                  name="state" 
-                  value={formData.state} 
-                  onChange={handleInputChange} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                   <option value="">Select State</option>
-                   {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Phone" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+              <input type="tel" name="mobile" value={formData.mobile} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Mobile" />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              GST Number
-            </label>
-            <input
-              type="text"
-              name="gstNo"
-              value={formData.gstNo}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="27ABCDE1234F1Z5"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <input type="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="contact@example.com" />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+            <textarea name="address" value={formData.address} onChange={handleInputChange} required rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter complete address" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <input type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="City" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <select name="state" value={formData.state} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Select State</option>
+                {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
+              <input type="text" name="area" value={formData.area} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Area" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
+              <input type="number" name="transport_charge" value={formData.transport_charge} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0" />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
+            <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
+            <input type="text" name="gstNo" value={formData.gstNo} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="27ABCDE1234F1Z5" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">CIN</label>
+              <input type="text" name="cin" value={formData.cin} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="CIN" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Reg Number</label>
+              <input type="text" name="reg_number" value={formData.reg_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Registration Number" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">Select Category</option>
-              {categories.map(cat => (
-                <option className='text-black' key={cat._id} value={cat._id}>{cat.name}</option>
-              ))}
+              {categories.map(cat => <option className='text-black' key={cat._id} value={cat._id}>{cat.name}</option>)}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
+            <select name="agent" value={formData.agent} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">Select Agent</option>
+              {agents.map(agent => <option key={agent._id} value={agent._id}>{agent.name}</option>)}
+            </select>
+          </div>
+
+          <div className="border-t pt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Bank Details</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                <input type="text" name="bank_name" value={formData.bank_name} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Bank Name" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bank Branch</label>
+                <input type="text" name="bank_branch" value={formData.bank_branch} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Branch" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+                  <input type="text" name="ifsc_code" value={formData.ifsc_code} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="IFSC Code" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                  <input type="text" name="account_number" value={formData.account_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Account Number" />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

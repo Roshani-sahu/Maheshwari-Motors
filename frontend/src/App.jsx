@@ -25,6 +25,9 @@ import AccountMaster from "./pages/masters/AccountMaster";
 import PartyMaster from "./pages/masters/PartyMaster";
 import BrandMaster from "./pages/masters/BrandMaster";
 import DiscountMaster from "./pages/masters/DiscountMaster";
+import AgentMaster from "./pages/masters/AgentMaster";
+import TransportMaster from "./pages/masters/TransportMaster";
+import HsnMaster from "./pages/masters/HsnMaster";
 
 // Inventory Pages
 import ItemMaster from "./pages/inventory/ItemMaster";
@@ -120,6 +123,9 @@ const App = () => {
           <Route path="/masters/party-master" element={<PartyMaster />} />
           <Route path="/masters/brand-master" element={<BrandMaster />} />
           <Route path="/masters/discount-master" element={<DiscountMaster />} />
+          <Route path="/masters/agent-master" element={<AgentMaster />} />
+          <Route path="/masters/transport-master" element={<TransportMaster />} />
+          <Route path="/masters/hsn-master" element={<HsnMaster />} />
 
           {/* 3. Transactions */}
           <Route path="/transactions/challan-list" element={<ChallanList />} />

@@ -148,6 +148,51 @@ const Sidebar = ({ onClose }) => {
               Discount Master
             </NavLink>
             
+            <NavLink
+              to="/masters/agent-master"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaUsers className="w-4 h-4" />
+              Agent Master
+            </NavLink>
+            
+            <NavLink
+              to="/masters/transport-master"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaUsers className="w-4 h-4" />
+              Transport Master
+            </NavLink>
+            
+            <NavLink
+              to="/masters/hsn-master"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaTags className="w-4 h-4" />
+              HSN Master
+            </NavLink>
+            
 
               <NavLink
               to="/inventory/stock-alert-master"

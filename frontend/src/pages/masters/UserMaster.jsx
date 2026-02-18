@@ -38,8 +38,16 @@ const UserMaster = () => {
       phone: '',
       email: '',
       address: '',
+      godown_address: '',
       city: '',
-      state: ''
+      state: '',
+      GSTIN: '',
+      CIN: '',
+      reg_number: '',
+      bank_name: '',
+      bank_branch: '',
+      ifsc_code: '',
+      account_number: ''
     },
     nongst_firm: {
       username: '',
@@ -48,8 +56,16 @@ const UserMaster = () => {
       phone: '',
       email: '',
       address: '',
+      godown_address: '',
       city: '',
-      state: ''
+      state: '',
+      GSTIN: '',
+      CIN: '',
+      reg_number: '',
+      bank_name: '',
+      bank_branch: '',
+      ifsc_code: '',
+      account_number: ''
     }
   });
   const [newPassword, setNewPassword] = useState('');
@@ -195,8 +211,8 @@ const UserMaster = () => {
         setIsAddModalOpen(false);
         setNewUser({
            name: '', email: '', phone: '',
-           gst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', city: '', state: '' },
-           nongst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', city: '', state: '' }
+           gst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' },
+           nongst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }
         });
         fetchUsers(); 
     } catch (error) {
@@ -390,6 +406,38 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Address</label>
                   <Input value={newUser.gst_firm.address} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, address: v}})} placeholder="Full Address" className="mt-1" />
                </div>
+               <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Godown Address</label>
+                  <Input value={newUser.gst_firm.godown_address} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, godown_address: v}})} placeholder="Godown Address" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">GSTIN</label>
+                  <Input value={newUser.gst_firm.GSTIN} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, GSTIN: v}})} placeholder="GSTIN" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">CIN</label>
+                  <Input value={newUser.gst_firm.CIN} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, CIN: v}})} placeholder="CIN" className="mt-1" />
+               </div>
+               <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Registration Number</label>
+                  <Input value={newUser.gst_firm.reg_number} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, reg_number: v}})} placeholder="Registration Number" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
+                  <Input value={newUser.gst_firm.bank_name} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, bank_name: v}})} placeholder="Bank Name" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
+                  <Input value={newUser.gst_firm.bank_branch} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, bank_branch: v}})} placeholder="Bank Branch" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
+                  <Input value={newUser.gst_firm.ifsc_code} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, ifsc_code: v}})} placeholder="IFSC Code" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">Account Number</label>
+                  <Input value={newUser.gst_firm.account_number} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, account_number: v}})} placeholder="Account Number" className="mt-1" />
+               </div>
             </div>
           </div>
 
@@ -439,6 +487,38 @@ const UserMaster = () => {
                <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700">Address</label>
                   <Input value={newUser.nongst_firm.address} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, address: v}})} placeholder="Full Address" className="mt-1" />
+               </div>
+               <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Godown Address</label>
+                  <Input value={newUser.nongst_firm.godown_address} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, godown_address: v}})} placeholder="Godown Address" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">GSTIN</label>
+                  <Input value={newUser.nongst_firm.GSTIN} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, GSTIN: v}})} placeholder="GSTIN" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">CIN</label>
+                  <Input value={newUser.nongst_firm.CIN} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, CIN: v}})} placeholder="CIN" className="mt-1" />
+               </div>
+               <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Registration Number</label>
+                  <Input value={newUser.nongst_firm.reg_number} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, reg_number: v}})} placeholder="Registration Number" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
+                  <Input value={newUser.nongst_firm.bank_name} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, bank_name: v}})} placeholder="Bank Name" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
+                  <Input value={newUser.nongst_firm.bank_branch} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, bank_branch: v}})} placeholder="Bank Branch" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
+                  <Input value={newUser.nongst_firm.ifsc_code} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, ifsc_code: v}})} placeholder="IFSC Code" className="mt-1" />
+               </div>
+               <div>
+                  <label className="text-xs font-medium text-gray-700">Account Number</label>
+                  <Input value={newUser.nongst_firm.account_number} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, account_number: v}})} placeholder="Account Number" className="mt-1" />
                </div>
             </div>
           </div>
@@ -503,6 +583,38 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Address</label>
                   <Input value={viewingUser.original?.gst_firm?.address || ''} disabled className="mt-1" />
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Godown Address</label>
+                  <Input value={viewingUser.original?.gst_firm?.godown_address || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">GSTIN</label>
+                  <Input value={viewingUser.original?.gst_firm?.GSTIN || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">CIN</label>
+                  <Input value={viewingUser.original?.gst_firm?.CIN || ''} disabled className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Registration Number</label>
+                  <Input value={viewingUser.original?.gst_firm?.reg_number || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
+                  <Input value={viewingUser.original?.gst_firm?.bank_name || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
+                  <Input value={viewingUser.original?.gst_firm?.bank_branch || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
+                  <Input value={viewingUser.original?.gst_firm?.ifsc_code || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Account Number</label>
+                  <Input value={viewingUser.original?.gst_firm?.account_number || ''} disabled className="mt-1" />
+                </div>
               </div>
             </div>
 
@@ -536,6 +648,38 @@ const UserMaster = () => {
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700">Address</label>
                   <Input value={viewingUser.original?.nongst_firm?.address || ''} disabled className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Godown Address</label>
+                  <Input value={viewingUser.original?.nongst_firm?.godown_address || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">GSTIN</label>
+                  <Input value={viewingUser.original?.nongst_firm?.GSTIN || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">CIN</label>
+                  <Input value={viewingUser.original?.nongst_firm?.CIN || ''} disabled className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Registration Number</label>
+                  <Input value={viewingUser.original?.nongst_firm?.reg_number || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
+                  <Input value={viewingUser.original?.nongst_firm?.bank_name || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
+                  <Input value={viewingUser.original?.nongst_firm?.bank_branch || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
+                  <Input value={viewingUser.original?.nongst_firm?.ifsc_code || ''} disabled className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Account Number</label>
+                  <Input value={viewingUser.original?.nongst_firm?.account_number || ''} disabled className="mt-1" />
                 </div>
               </div>
             </div>
@@ -611,6 +755,38 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Address</label>
                   <Input value={editingForm.gst_firm?.address || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), address: v } }))} className="mt-1" />
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Godown Address</label>
+                  <Input value={editingForm.gst_firm?.godown_address || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), godown_address: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">GSTIN</label>
+                  <Input value={editingForm.gst_firm?.GSTIN || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), GSTIN: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">CIN</label>
+                  <Input value={editingForm.gst_firm?.CIN || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), CIN: v } }))} className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Registration Number</label>
+                  <Input value={editingForm.gst_firm?.reg_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), reg_number: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
+                  <Input value={editingForm.gst_firm?.bank_name || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_name: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
+                  <Input value={editingForm.gst_firm?.bank_branch || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_branch: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
+                  <Input value={editingForm.gst_firm?.ifsc_code || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), ifsc_code: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Account Number</label>
+                  <Input value={editingForm.gst_firm?.account_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), account_number: v } }))} className="mt-1" />
+                </div>
               </div>
             </div>
 
@@ -655,6 +831,38 @@ const UserMaster = () => {
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700">Address</label>
                   <Input value={editingForm.nongst_firm?.address || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), address: v } }))} className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Godown Address</label>
+                  <Input value={editingForm.nongst_firm?.godown_address || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), godown_address: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">GSTIN</label>
+                  <Input value={editingForm.nongst_firm?.GSTIN || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), GSTIN: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">CIN</label>
+                  <Input value={editingForm.nongst_firm?.CIN || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), CIN: v } }))} className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Registration Number</label>
+                  <Input value={editingForm.nongst_firm?.reg_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), reg_number: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
+                  <Input value={editingForm.nongst_firm?.bank_name || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_name: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
+                  <Input value={editingForm.nongst_firm?.bank_branch || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_branch: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
+                  <Input value={editingForm.nongst_firm?.ifsc_code || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), ifsc_code: v } }))} className="mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700">Account Number</label>
+                  <Input value={editingForm.nongst_firm?.account_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), account_number: v } }))} className="mt-1" />
                 </div>
               </div>
             </div>
