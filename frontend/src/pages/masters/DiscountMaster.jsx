@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaSave } from 'react-icons/fa';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
-import { categoryAPI, brandAPI, discountAPI } from '../../services/api';
+import api from '../../services/axiosInstance';// 
 
 const DiscountMaster = () => {
   const { showToast } = useStore();
@@ -17,9 +17,9 @@ const DiscountMaster = () => {
   const fetchData = async () => {
     try {
       const [catRes, brandRes, discountRes] = await Promise.all([
-        categoryAPI.getAll(),
-        brandAPI.getAll(),
-        discountAPI.getAll()
+        api.get('/categories'),
+        api.get('/brands'),
+        api.get('/discounts')
       ]);
 
       const catList = Array.isArray(catRes.data?.data) ? catRes.data.data : (catRes.data?.data?.data || []);
@@ -82,7 +82,7 @@ const DiscountMaster = () => {
     try {
         const promises = Object.keys(discounts).map(brandId => {
             const d = discounts[brandId];
-            return discountAPI.upsert({
+            return api.post('/discounts', {
                 brand_id: brandId,
                 discount1: d.discount1,
                 discount2: d.discount2

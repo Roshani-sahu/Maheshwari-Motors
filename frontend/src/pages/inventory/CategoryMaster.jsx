@@ -3,7 +3,7 @@ import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { categoryAPI, brandAPI } from '../../services/api';
+import api from '../../services/axiosInstance';
 
 const CategoryMaster = () => {
   const { showToast } = useStore();
@@ -24,12 +24,12 @@ const CategoryMaster = () => {
   const fetchData = async () => {
     try {
       // Helper function to fetch all pages from an API endpoint
-      const fetchAllPages = async (apiCall) => {
+      const fetchAllPages = async (endpoint) => {
           let allDocs = [];
           let page = 1;
           let hasMore = true;
           while(hasMore) {
-              const res = await apiCall({ page, limit: 100 });
+              const res = await api.get(endpoint, { params: { page, limit: 100 } });
               let pageData = [];
               const payload = res.data?.data;
 
@@ -51,8 +51,8 @@ const CategoryMaster = () => {
       };
 
       const [catList, brandList] = await Promise.all([
-        fetchAllPages(categoryAPI.getAll),
-        fetchAllPages(brandAPI.getAll)
+        fetchAllPages('/categories'),
+        fetchAllPages('/brands')
       ]);
 
       setCategories(catList.map(c => ({ 
@@ -101,7 +101,7 @@ const CategoryMaster = () => {
 
   const handleAddCategory = async () => {
     try {
-        await categoryAPI.create({ 
+        await api.post('/categories', { 
             category_name: newCategoryName,
             brands: selectedBrands.map(b => b.id)
         });
@@ -117,7 +117,7 @@ const CategoryMaster = () => {
 
   const handleEditCategory = async () => {
     try {
-        await categoryAPI.update(editingCategory.id, { 
+        await api.put(`/categories/${editingCategory.id}`, { 
             category_name: newCategoryName,
             brands: selectedBrands.map(b => b.id)
         });
@@ -134,7 +134,7 @@ const CategoryMaster = () => {
 
   const handleDeleteCategory = async () => {
       try {
-          await categoryAPI.delete(deleteDialog.category.id);
+          await api.delete(`/categories/${deleteDialog.category.id}`);
           showToast('Category deleted successfully', 'success');
           setDeleteDialog({ isOpen: false, category: null });
           fetchData();

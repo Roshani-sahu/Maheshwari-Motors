@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '../../components/common';
-import { supplierAPI } from '../../services/api';
+import api from '../../services/axiosInstance';
 
 const ViewAllSupplier = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -8,7 +8,7 @@ const ViewAllSupplier = () => {
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const response = await supplierAPI.getAll();
+        const response = await api.get('/suppliers');
         const val = response.data?.data;
         const list = Array.isArray(val) ? val : (val?.data || []);
         setSuppliers(list.map(s => ({

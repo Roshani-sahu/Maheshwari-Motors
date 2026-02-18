@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '../../components/common';
-import { categoryAPI } from '../../services/api';
+import api from '../../services/axiosInstance';
 
 const ViewCategory = () => {
   const [categories, setCategories] = useState([]);
@@ -8,7 +8,7 @@ const ViewCategory = () => {
   useEffect(() => {
     const fetchCats = async () => {
         try {
-            const res = await categoryAPI.getAll();
+            const res = await api.get('/categories');
             const list = res.data?.data;
             const final = Array.isArray(list) ? list : (list?.data || []);
             setCategories(final.map(c => ({ id: c._id, name: c.name })));

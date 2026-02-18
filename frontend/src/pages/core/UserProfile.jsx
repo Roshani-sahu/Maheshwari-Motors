@@ -1,8 +1,8 @@
+import api from '../../services/axiosInstance';
 import React, { useState, useEffect } from 'react';
 import { FaUser, FaEdit, FaSave, FaTimes, FaHistory, FaCalendar, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { authAPI } from '../../services/api';
 
 const UserProfile = () => {
   const { user, setUser, showToast } = useStore();
@@ -19,7 +19,7 @@ const UserProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await authAPI.getProfile();
+        const res = await api.get('/auth/me');
         const userData = res.data.data;
         setProfileData({
           username: userData.username || '',
@@ -38,7 +38,8 @@ const UserProfile = () => {
 
   const handleSave = async () => {
     try {
-      await authAPI.updateProfile(profileData);
+      // Assuming endpoint for update
+      await api.put('/auth/profile', profileData);
       setUser({ ...user, ...profileData });
       setIsEditing(false);
       showToast('Profile updated successfully', 'success');

@@ -4,7 +4,7 @@ import { FaPlus, FaEdit, FaImage, FaTrash, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { itemAPI, categoryAPI } from '../../services/api';
+import api from '../../services/axiosInstance';
 
 const ItemMaster = () => {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ const ItemMaster = () => {
   useEffect(() => {
       const fetchCategories = async () => {
           try {
-              const res = await categoryAPI.getAll();
+              const res = await api.get('/categories');
               const val = res.data?.data;
               const list = Array.isArray(val) ? val : (val?.data || []);
               setCategories(list.map(c => ({ id: c._id, name: c.name })));
@@ -38,7 +38,7 @@ const ItemMaster = () => {
         
         while(hasMore) {
             // Request large limit, backend will cap it to MAX_PAGE_SIZE (10)
-            const response = await itemAPI.getAll({ page, limit: 100 });
+            const response = await api.get('/items', { params: { page, limit: 100 } });
             const payload = response.data?.data;
             let pageData = [];
             
@@ -186,7 +186,9 @@ const ItemMaster = () => {
           formData.append('image', editImageFile);
         }
 
-        await itemAPI.update(editingItem.id, formData);
+        await api.put(`/items/${editingItem.id}`, formData, {
+          headers: editImageFile ? { 'Content-Type': 'multipart/form-data' } : {}
+        });
         
         showToast('Item updated successfully', 'success');
         setIsEditModalOpen(false);
@@ -194,7 +196,7 @@ const ItemMaster = () => {
         setEditImageFile(null);
         
         // Refresh
-        const response = await itemAPI.getAll();
+        const response = await api.get('/items');
         const val = response.data?.data;
         const rawList = Array.isArray(val) ? val : (val?.data || []);
         const backendItems = rawList.map(item => ({
@@ -426,7 +428,7 @@ const ItemMaster = () => {
         onClose={() => setDeleteDialog({ isOpen: false, item: null })}
         onConfirm={async () => {
           try {
-             await itemAPI.delete(deleteDialog.item.id);
+             await api.delete(`/items/${deleteDialog.item.id}`);
              showToast('Item deleted successfully', 'success');
              deleteItem(deleteDialog.item.id);
              setDeleteDialog({ isOpen: false, item: null });
