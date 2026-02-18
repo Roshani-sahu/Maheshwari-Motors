@@ -18,6 +18,7 @@ const INDIAN_STATES = [
 const PartyMaster = () => {
   const { showToast } = useStore(); // Added hook usage
   const [parties, setParties] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, party: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -30,7 +31,8 @@ const PartyMaster = () => {
     address: '',
     city: '',
     state: '',
-    gstNo: ''
+    gstNo: '',
+    category: ''
   });
 
   // Fetch parties from backend
@@ -47,7 +49,8 @@ const PartyMaster = () => {
           address: p.address || '',
           city: p.city || '',
           state: p.state || '',
-          gstNo: p.gstin || ''
+          gstNo: p.gstin || '',
+          category: p.category_id || ''
         }));
         setParties(backendParties);
       } catch (error) {
@@ -57,6 +60,21 @@ const PartyMaster = () => {
     };
     fetchParties();
   }, [showToast]);
+
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get('/categories');
+        console.log("Categories response:", response);
+        setCategories(response.data?.data?.data || []);
+        console.log("Fetched categories:", response.data?.data?.data || []);
+      } catch (error) {
+        console.error("Failed to fetch categories", error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const columns = [
     {
@@ -143,7 +161,8 @@ const PartyMaster = () => {
        address: formData.address || undefined,
        city: formData.city || undefined,
        state: formData.state || undefined,
-       gstin: formData.gstNo ? formData.gstNo.toUpperCase() : undefined
+       gstin: formData.gstNo ? formData.gstNo.toUpperCase() : undefined,
+       category_id: formData.category || undefined
     };
 
     try {
@@ -165,13 +184,14 @@ const PartyMaster = () => {
         address: p.address || '',
         city: p.city || '',
         state: p.state || '',
-        gstNo: p.gstin || ''
+        gstNo: p.gstin || '',
+        category: p.category_id || ''
       }));
       setParties(backendParties);
       
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
-      setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '' });
+      setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '', category: '' });
       setSelectedParty(null);
     } catch (error) {
       console.error("Party submit error:", error);
@@ -201,7 +221,7 @@ const PartyMaster = () => {
   };
 
   const openAddModal = () => {
-    setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '' });
+    setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '', category: '' });
     setIsAddModalOpen(true);
   };
 
@@ -277,6 +297,10 @@ const PartyMaster = () => {
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST Number</label>
                 <p className="text-sm text-gray-900">{selectedParty.gstNo || 'N/A'}</p>
               </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label>
+                <p className="text-sm text-gray-900">{categories.find(c => c._id === selectedParty.category)?.name || 'N/A'}</p>
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Address</label>
@@ -304,7 +328,7 @@ const PartyMaster = () => {
           setIsAddModalOpen(false);
           setIsEditModalOpen(false);
           setSelectedParty(null);
-          setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '' });
+          setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '', category: '' });
         }} 
         title={isEditModalOpen ? 'Edit Party' : 'Add New Party'} 
         size="md"
@@ -407,6 +431,23 @@ const PartyMaster = () => {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category
+            </label>
+            <select
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select Category</option>
+              {categories.map(cat => (
+                <option className='text-black' key={cat._id} value={cat._id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex gap-3 pt-4">
             <Button
               type="button"
@@ -415,7 +456,7 @@ const PartyMaster = () => {
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
                 setSelectedParty(null);
-                setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '' });
+                setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '', category: '' });
               }}
             >
               Cancel
