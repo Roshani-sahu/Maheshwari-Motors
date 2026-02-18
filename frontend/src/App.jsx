@@ -58,25 +58,31 @@ import FirmSetup from "./components/FirmSetup";
 
 const App = () => {
   const { toast, confirmDialog, loading, setUser, logout } = useStore();
-  
-  // Initialize Auth
+
+  // Initialize Auth on component mount
   React.useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
+          console.log('🔄 Initializing authentication...');
           const { default: api } = await import('./services/axiosInstance');
           const response = await api.get('/auth/me');
+          console.log('✅ Auth initialization successful:', response.data.data);
           setUser(response.data.data);
         } catch (error) {
-          console.error("Auth initialization failed", error);
+          console.error('❌ Auth initialization failed:', {
+            status: error.response?.status,
+            message: error.message,
+            data: error.response?.data
+          });
           logout();
           localStorage.removeItem('token');
         }
       }
     };
     initAuth();
-  }, [setUser, logout]);
+  }, []);
 
   return (
     <BrowserRouter>
@@ -89,14 +95,15 @@ const App = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         {/* <Route path="/company-selection" element={<CompanySelection />} /> */}
 
-        {/* Master Routes (No Layout) */}
-        <Route path="/masters/user-master" element={<UserMaster />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/masters/user-master" element={<UserMaster />} />
+        </Route>
 
         {/* ERP Layout */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           {/* 1. Dashboard */}
           <Route path="/dashboard" element={<Dashboard />} />
-          
+
           {/* 2. Masters */}
           <Route path="/masters/firm-master" element={<FirmMaster />} />
           <Route path="/masters/firm-master/add" element={<FirmSetup />} />
@@ -113,12 +120,12 @@ const App = () => {
           <Route path="/masters/party-master" element={<PartyMaster />} />
           <Route path="/masters/brand-master" element={<BrandMaster />} />
           <Route path="/masters/discount-master" element={<DiscountMaster />} />
-          
+
           {/* 3. Transactions */}
           <Route path="/transactions/challan-list" element={<ChallanList />} />
           <Route path="/transactions/bill-list" element={<BillList />} />
           <Route path="/transactions/transaction-history" element={<TransactionHistory />} />
-          
+
           {/* 4. Reports */}
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/purchase-report" element={<PurchaseReport />} />
@@ -126,15 +133,15 @@ const App = () => {
           <Route path="/reports/sales-report" element={<SalesReport />} />
           <Route path="/reports/sales-return-report" element={<SalesReturnReport />} />
           <Route path="/reports/purchase-return-report" element={<PurchaseReturnReport />} />
-          
+
           {/* 5. Setup & Tools */}
           <Route path="/setup/backup-restore" element={<BackupRestore />} />
           <Route path="/setup/financial-year-close" element={<FinancialYearClose />} />
-          
+
           {/* Settings */}
           <Route path="/settings" element={<Settings />} />
           <Route path="/user-profile" element={<UserProfile />} />
-          
+
           {/* Legacy routes - redirect to new structure */}
           <Route path="/firm-setup" element={<Navigate to="/masters/firm-master" replace />} />
           <Route path="/item-master" element={<Navigate to="/inventory/item-master" replace />} />
@@ -146,11 +153,11 @@ const App = () => {
           {/* Help & Support */}
           <Route path="/help-support" element={<HelpSupportPage />} />
         </Route>
-        
+
         {/* Fallback */}
         <Route path="*" element={<div className="p-10">404 – Page Not Found</div>} />
       </Routes>
-      
+
       {/* Global Components */}
       {toast && <Toast />}
       {confirmDialog && <ConfirmDialog />}
