@@ -3,13 +3,27 @@ import { FaFileInvoiceDollar, FaCheck, FaPlus, FaEdit, FaTrash, FaDownload, FaTi
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, } from '../../components/ui';
 import useStore from '../../store';
-import api from '../../services/axiosInstance';// 
+import api from '../../services/axiosInstance';
 
 const ChallanList = () => {
   const { showToast, selectedFirm } = useStore();
   const [challans, setChallans] = useState([]);
   const [loadedParties, setLoadedParties] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
+
+  const accountAPI = {
+    getAll: () => api.get('/parties', { params: { page: 1, limit: 200 } }),
+  };
+
+  const itemAPI = {
+    getAll: ({ page = 1, limit = 50, search = '' } = {}) =>
+      api.get('/items', { params: { page, limit, search } }),
+  };
+
+  const challanAPI = {
+    getAll: (firmId) =>
+      api.get('/challans', { params: { page: 1, limit: 200, ...(firmId ? { firmId } : {}) } }),
+  };
 
   useEffect(() => {
     const fetchData = async () => {
