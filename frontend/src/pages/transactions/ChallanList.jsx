@@ -10,6 +10,7 @@ const ChallanList = () => {
   const [challans, setChallans] = useState([]);
   const [loadedParties, setLoadedParties] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
+  const [loadedDiscounts, setLoadedDiscounts] = useState({});
 
   const accountAPI = {
     getAll: () => api.get('/parties', { params: { page: 1, limit: 200 } }),
@@ -30,11 +31,12 @@ const ChallanList = () => {
       try {
         console.debug("🔄 Fetching initial data for ChallanList...", { firmId: selectedFirm?.id });
         
-        const [pRes, iRes, cRes] = await Promise.all([
-           accountAPI.getAll(selectedFirm?.id),
-           itemAPI.getAll({ page: 1, limit: 50, search: '' }), 
-           challanAPI.getAll(selectedFirm?.id)
-        ]);
+          const [pRes, iRes, cRes, discRes] = await Promise.all([
+            accountAPI.getAll(selectedFirm?.id),
+            itemAPI.getAll({ page: 1, limit: 50, search: '' }), 
+            challanAPI.getAll(selectedFirm?.id),
+            api.get('/discounts')
+          ]);
         
         console.debug("✅ Raw API Responses:", { parties: pRes, items: iRes, challans: cRes });
 
@@ -50,10 +52,10 @@ const ChallanList = () => {
 
         const partiesData = getList(pRes).map(p => ({ id: p._id || p.id, name: p.name }));
         const itemsData = getList(iRes).map(i => ({ 
-            ...i,
-            id: i._id || i.id, 
-            name: i.item_name || i.name, 
-            amount: i.amount || i.rate || 0 
+          ...i,
+          id: i._id || i.id, 
+          name: i.item_name || i.name, 
+          amount: i.amount || i.rate || 0 
         }));
         
         console.debug(`📦 Loaded ${itemsData.length} items for dropdown. Sample:`, itemsData[0]);
@@ -74,6 +76,23 @@ const ChallanList = () => {
 
         setLoadedParties(partiesData);
         setLoadedItems(itemsData);
+        // Build discount map: brandId -> { discount1, discount2 }
+        try {
+          const discountList = Array.isArray(discRes.data?.data) ? discRes.data.data : (discRes.data?.data?.data || []);
+          const discountMap = {};
+          discountList.forEach(d => {
+            if (d.brand_id) {
+              const bId = typeof d.brand_id === 'object' ? d.brand_id._id : d.brand_id;
+              discountMap[bId] = {
+                discount1: d.discount1 || { normal: 0, special: 0 },
+                discount2: d.discount2 || { normal: 0, special: 0 }
+              };
+            }
+          });
+          setLoadedDiscounts(discountMap);
+        } catch (e) {
+          console.warn('Failed to parse discounts', e);
+        }
         setChallans(challansData);
         setItemsPage(1);
 
@@ -108,6 +127,13 @@ const ChallanList = () => {
     date: new Date().toISOString().split('T')[0],
     itemDetails: {} 
   });
+
+  // Default newChallan.gstType from selected firm when firm changes
+  useEffect(() => {
+    if (selectedFirm && typeof selectedFirm.is_gst !== 'undefined') {
+      setNewChallan(prev => ({ ...prev, gstType: selectedFirm.is_gst ? 1 : 0 }));
+    }
+  }, [selectedFirm?.is_gst]);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingChallan, setEditingChallan] = useState(null);
@@ -277,14 +303,17 @@ const ChallanList = () => {
     {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (challan) => {
-        // Pre-fill with existing data and initialize items
+        // Pre-fill with existing data and initialize items (use brand discounts if available)
         const itemDetails = {};
         const itemIds = loadedItems.slice(0, 2).map(item => {
+          const brandId = item.brand_id?._id || item.brand_id || item.brand || item.brandId;
+          const discForBrand = loadedDiscounts[brandId] || {};
+          const useDisc = challan?.gstType === 1 ? (discForBrand.discount1 || {}) : (discForBrand.discount2 || {});
           itemDetails[item.id] = {
             pcs: 1,
             rate: item.amount || 0,
-            disPercent: 0,
-            spDis: 0,
+            disPercent: useDisc?.normal || 0,
+            spDis: useDisc?.special || 0,
             gstPercent: 0
           };
           return item.id;
@@ -517,20 +546,23 @@ const ChallanList = () => {
         const items = prev.items.includes(itemId)
           ? prev.items.filter(i => i !== itemId)
           : [...prev.items, itemId];
-        
-        // Initialize item details when adding
+
+        // Initialize item details when adding (edit flow)
         if (!prev.items.includes(itemId)) {
           const item = loadedItems.find(i => i.id === itemId);
           prev.itemDetails = prev.itemDetails || {};
+          const brandId = item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
+          const discForBrand = loadedDiscounts[brandId] || {};
+          const useDisc = (prev.gstType === 1 ? (discForBrand.discount1 || {}) : (discForBrand.discount2 || {})) || {};
           prev.itemDetails[itemId] = {
             pcs: 1,
             rate: item?.amount || 0,
-            disPercent: 0,
-            spDis: 0,
+            disPercent: useDisc.normal || 0,
+            spDis: useDisc.special || 0,
             gstPercent: 0
           };
         }
-        
+
         return { ...prev, items };
       });
     } else {
@@ -538,19 +570,22 @@ const ChallanList = () => {
         const items = prev.items.includes(itemId)
           ? prev.items.filter(i => i !== itemId)
           : [...prev.items, itemId];
-        
-        // Initialize item details when adding
+
+        // Initialize item details when adding (create flow)
         if (!prev.items.includes(itemId)) {
           const item = loadedItems.find(i => i.id === itemId);
+          const brandId = item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
+          const discForBrand = loadedDiscounts[brandId] || {};
+          const useDisc = (prev.gstType === 1 ? (discForBrand.discount1 || {}) : (discForBrand.discount2 || {})) || {};
           prev.itemDetails[itemId] = {
             pcs: 1,
             rate: item?.amount || 0,
-            disPercent: 0,
-            spDis: 0,
+            disPercent: useDisc.normal || 0,
+            spDis: useDisc.special || 0,
             gstPercent: 0
           };
         }
-        
+
         return { ...prev, items };
       });
     }
