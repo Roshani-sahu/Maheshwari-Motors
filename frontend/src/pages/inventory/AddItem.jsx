@@ -11,6 +11,7 @@ const AddItem = () => {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [hsns, setHsns] = useState([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -18,6 +19,8 @@ const AddItem = () => {
     category: '',
     brand: '',
     supplier: '',
+    hsn_code: '',
+    description: '',
     gst_percent: '',
     sale_rate: '',
     purchase_rate: '',
@@ -35,10 +38,13 @@ const AddItem = () => {
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const [catRes, brandRes, supplierRes] = await Promise.all([
+            const [catRes, brandRes, supplierRes, hsnRes] = await Promise.all([
                 api.get('/categories'),
                 api.get('/brands'),
-                api.get('/suppliers')
+                api.get('/suppliers'),
+                // api.get('/hsns') 
+                  api.get('/categories')
+
             ]);
             
             const getList = (res) => {
@@ -49,11 +55,13 @@ const AddItem = () => {
             const cats = getList(catRes);
             const brds = getList(brandRes);
             const sups = getList(supplierRes);
+            const hsnList = getList(hsnRes).filter(h => h.is_active !== false);
             
             setCategories(cats);
             setAllBrands(brds); // Store all brands
             setBrands(brds); 
             setSuppliers(sups);
+            setHsns(hsnList);
         } catch (error) {
             console.error("Failed to fetch data", error);
             showToast("Failed to load form data", "error");
@@ -93,6 +101,15 @@ const AddItem = () => {
 
   const handleChange = (name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Auto-fill GST % when HSN code is selected
+    if (name === 'hsn_code' && value) {
+      const selectedHsn = hsns.find(h => h._id === value);
+      if (selectedHsn) {
+        setFormData(prev => ({ ...prev, gst_percent: selectedHsn.gst_percentage }));
+      }
+    }
+    
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -133,6 +150,8 @@ const AddItem = () => {
             if (formData.category) payload.append('category_id', formData.category);
             if (formData.brand) payload.append('brand_id', formData.brand);
             if (formData.supplier) payload.append('supplier_id', formData.supplier);
+            if (formData.hsn_code) payload.append('hsn_code', formData.hsn_code);
+            if (formData.description) payload.append('description', formData.description);
             
             payload.append('image', formData.image);
             
@@ -154,7 +173,9 @@ const AddItem = () => {
                 
                 category_id: formData.category || undefined,
                 brand_id: formData.brand || undefined,
-                supplier_id: formData.supplier || undefined
+                supplier_id: formData.supplier || undefined,
+                hsn_code: formData.hsn_code || undefined,
+                description: formData.description || undefined
             };
             await api.post('/items', payload);
         }
@@ -231,7 +252,7 @@ const AddItem = () => {
               <select
                 value={formData.category || ''}
                 onChange={(e) => handleChange('category', e.target.value)}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="">Select Category</option>
                 {categories.map((c) => (
@@ -250,7 +271,7 @@ const AddItem = () => {
               <select
                 value={formData.brand || ''}
                 onChange={(e) => handleChange('brand', e.target.value)}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="">Select Brand</option>
                 {brands.map((b) => (
@@ -269,7 +290,7 @@ const AddItem = () => {
               <select
                 value={formData.supplier || ''}
                 onChange={(e) => handleChange('supplier', e.target.value)}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="">Select Supplier</option>
                 {suppliers.map((s) => (
@@ -278,6 +299,39 @@ const AddItem = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* HSN Code */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                HSN Code
+              </label>
+              <select
+                value={formData.hsn_code || ''}
+                onChange={(e) => handleChange('hsn_code', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">Select HSN Code</option>
+                {hsns.map((h) => (
+                  <option key={h._id} value={h._id}>
+                    {h.hsn_number} - {h.gst_percentage}%
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Description */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => handleChange('description', e.target.value)}
+                placeholder="Enter item description"
+                rows="3"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
             </div>
 
             {/* GST % */}
@@ -292,6 +346,7 @@ const AddItem = () => {
                 value={formData.gst_percent}
                 onChange={(value) => handleChange('gst_percent', value)}
                 placeholder="0"
+                disabled={!!formData.hsn_code}
               />
             </div>
 

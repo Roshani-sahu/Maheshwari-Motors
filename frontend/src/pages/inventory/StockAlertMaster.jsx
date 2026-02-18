@@ -4,20 +4,39 @@ import api from '../../services/axiosInstance';
 
 const StockAlertMaster = () => {
   const [stockAlerts, setStockAlerts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [brandFilter, setBrandFilter] = useState('all');
 
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const response = await api.get('/stock-alerts/items');
-            const val = response.data?.data;
+            const [itemsRes, catRes, brandRes] = await Promise.all([
+                api.get('/stock-alerts/items'),
+                api.get('/categories'),
+                api.get('/brands')
+            ]);
+            
+            const val = itemsRes.data?.data;
             const items = Array.isArray(val) ? val : (val?.data || []);
             setStockAlerts(items.map(i => ({
                 id: i._id,
                 itemName: i.item_name,
                 stockCount: i.stock,
-                threshold: i.threshold || i.low_stock_threshold || 5, // Use threshold first as API returns it
-                status: (Number(i.stock) || 0) <= (Number(i.threshold) || Number(i.low_stock_threshold) || 5) ? 'LOW' : 'OK'
+                threshold: i.threshold || i.low_stock_threshold || 5,
+                status: (Number(i.stock) || 0) <= (Number(i.threshold) || Number(i.low_stock_threshold) || 5) ? 'LOW' : 'OK',
+                categoryId: i.category_id,
+                brandId: i.brand_id
             })));
+            
+            const catData = catRes.data?.data;
+            const catList = Array.isArray(catData) ? catData : (catData?.data || []);
+            setCategories(catList);
+            
+            const brandData = brandRes.data?.data;
+            const brandList = Array.isArray(brandData) ? brandData : (brandData?.data || []);
+            setBrands(brandList);
         } catch (error) {
             console.error("Failed to fetch stock alerts", error);
         }
@@ -54,9 +73,12 @@ const StockAlertMaster = () => {
 
   // Filter to show only LOW stock items by default - CHANGED to false to show all data for debugging
   const [showOnlyLow, setShowOnlyLow] = useState(false);
-  const filteredData = showOnlyLow ? 
-    stockAlerts.filter(item => item.status === 'LOW') : 
-    stockAlerts;
+  const filteredData = stockAlerts.filter(item => {
+    if (showOnlyLow && item.status !== 'LOW') return false;
+    if (categoryFilter !== 'all' && String(item.categoryId) !== String(categoryFilter)) return false;
+    if (brandFilter !== 'all' && String(item.brandId) !== String(brandFilter)) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -66,18 +88,9 @@ const StockAlertMaster = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Stock Alert Master</h1>
           <p className="text-gray-600 text-xs sm:text-sm">Monitor items below threshold levels</p>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-xs sm:text-sm">
-            <input
-              type="checkbox"
-              checked={showOnlyLow}
-              onChange={(e) => setShowOnlyLow(e.target.checked)}
-              className="rounded text-xs sm:text-sm"
-            />
-            Show only LOW stock
-          </label>
-        </div>
       </div>
+
+    
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -90,6 +103,51 @@ const StockAlertMaster = () => {
         <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border-l-2 sm:border-l-4 border-l-blue-500">
           <h3 className="text-xs sm:text-sm font-medium text-blue-800">Total Items</h3>
           <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900">{stockAlerts.length}</p>
+        </div>
+      </div>
+
+        {/* Filters */}
+      <div className="bg-white p-4 rounded-lg border">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Filter by Category:</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="all">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat._id} value={cat._id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Filter by Brand:</label>
+            <select
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="all">All Brands</option>
+              {brands.map(brand => (
+                <option key={brand._id} value={brand._id}>{brand.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showOnlyLow}
+                onChange={(e) => setShowOnlyLow(e.target.checked)}
+                className="rounded"
+              />
+              Show only LOW stock
+            </label>
+          </div>
         </div>
       </div>
 

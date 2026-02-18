@@ -7,17 +7,27 @@ import api from '../../services/axiosInstance';//
 const ItemView = () => {
   const { items, setItems } = useStore();
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [brandFilter, setBrandFilter] = useState('all');
 
   useEffect(() => {
     const fetchData = async () => {
         try {
-            // Fetch Categories
-            const catRes = await api.get('/categories');
+            // Fetch Categories and Brands
+            const [catRes, brandRes] = await Promise.all([
+                api.get('/categories'),
+                api.get('/brands')
+            ]);
+            
             const catList = catRes.data?.data;
             const finalCats = Array.isArray(catList) ? catList : (catList?.data || []);
             setCategories(finalCats.map(c => ({ id: c._id, name: c.name })));
+            
+            const brandList = brandRes.data?.data;
+            const finalBrands = Array.isArray(brandList) ? brandList : (brandList?.data || []);
+            setBrands(finalBrands.map(b => ({ id: b._id, name: b.name })));
 
             // Fetch Items - Loop paging
             let allDocs = [];
@@ -49,7 +59,8 @@ const ItemView = () => {
                 id: item._id,
                 itemName: item.item_name,
                 amount: item.sale_rate || item.amount || 0,
-                categoryId: item.category_id || item.category_ids?.[0], // Handle both singular and array
+                categoryId: item.category_id || item.category_ids?.[0],
+                brandId: item.brand_id,
                 itemMedia: item.image,
             }));
             setItems(backendItems);
@@ -96,6 +107,9 @@ const ItemView = () => {
     if (categoryFilter !== 'all' && String(item.categoryId) !== String(categoryFilter)) {
       return false;
     }
+    if (brandFilter !== 'all' && String(item.brandId) !== String(brandFilter)) {
+      return false;
+    }
     return true;
   });
 
@@ -109,18 +123,34 @@ const ItemView = () => {
       </div>
 
       <div className="bg-white p-4 rounded-lg border mb-6">
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-gray-700">Filter by Category:</label>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All Categories</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Filter by Category:</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="all">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Filter by Brand:</label>
+            <select
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="all">All Brands</option>
+              {brands.map(brand => (
+                <option key={brand.id} value={brand.id}>{brand.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

@@ -15,14 +15,28 @@ const ItemMaster = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, item: null });
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [hsns, setHsns] = useState([]);
   
   useEffect(() => {
       const fetchCategories = async () => {
           try {
-              const res = await api.get('/categories');
-              const val = res.data?.data;
-              const list = Array.isArray(val) ? val : (val?.data || []);
-              setCategories(list.map(c => ({ id: c._id, name: c.name })));
+              const [catRes, brandRes, supplierRes, hsnRes] = await Promise.all([
+                  api.get('/categories'),
+                  api.get('/brands'),
+                  api.get('/suppliers'),
+                  // api.get('/hsns')
+                  api.get('/categories'),
+              ]);
+              const getList = (res) => {
+                  const val = res.data?.data;
+                  return Array.isArray(val) ? val : (val?.data || []);
+              };
+              setCategories(getList(catRes).map(c => ({ id: c._id, name: c.name })));
+              setBrands(getList(brandRes).map(b => ({ id: b._id, name: b.name })));
+              setSuppliers(getList(supplierRes).map(s => ({ id: s._id, name: s.name })));
+              setHsns(getList(hsnRes).filter(h => h.is_active !== false));
           } catch (e) { console.error(e); }
       };
       fetchCategories();
@@ -68,7 +82,15 @@ const ItemMaster = () => {
           itemMedia: item.image,
           status: ((Number(item.stock) || 0) < (Number(item.threshold) || 0)) ? 'LOW' : 'OK',
           type: item.is_gst,
-          categoryId: item.category_id || item.category_ids?.[0]
+          categoryId: item.category_id || item.category_ids?.[0],
+          brandId: item.brand_id,
+          supplierId: item.supplier_id,
+          hsn_code: item.hsn_code,
+          description: item.description,
+          gst_percent: item.gst_percent || 0,
+          purchase_rate: item.purchase_rate || 0,
+          mrp_rate: item.mrp_rate || 0,
+          discount: item.discount || 0
         }));
         setItems(backendItems);
       } catch (err) {
@@ -82,7 +104,7 @@ const ItemMaster = () => {
   const columns = [
     {
       key: 'id',
-      label: 'ID',
+      label: 'Barcode',
       render: (value) => <span className="text-xs sm:text-sm">{value}</span>
     },
     {
@@ -178,9 +200,20 @@ const ItemMaster = () => {
       try {
         const formData = new FormData();
         formData.append('item_name', editingItem.itemName);
-        formData.append('amount', editingItem.amount);
+        formData.append('sale_rate', editingItem.amount);
         formData.append('threshold', editingItem.threshold);
         formData.append('is_gst', editingItem.type);
+        formData.append('stock', editingItem.stockCount);
+        
+        if (editingItem.purchase_rate) formData.append('purchase_rate', editingItem.purchase_rate);
+        if (editingItem.mrp_rate) formData.append('mrp_rate', editingItem.mrp_rate);
+        if (editingItem.discount) formData.append('discount', editingItem.discount);
+        if (editingItem.gst_percent) formData.append('gst_percent', editingItem.gst_percent);
+        if (editingItem.categoryId) formData.append('category_id', editingItem.categoryId);
+        if (editingItem.brandId) formData.append('brand_id', editingItem.brandId);
+        if (editingItem.supplierId) formData.append('supplier_id', editingItem.supplierId);
+        if (editingItem.hsn_code) formData.append('hsn_code', editingItem.hsn_code);
+        if (editingItem.description) formData.append('description', editingItem.description);
         
         if (editImageFile) {
           formData.append('image', editImageFile);
@@ -208,7 +241,15 @@ const ItemMaster = () => {
             itemMedia: item.image,
             status: ((Number(item.stock) || Number(item.physical_stock) || 0) < (Number(item.threshold) || 0)) ? 'LOW' : 'OK',
             type: item.is_gst,
-            categoryId: item.category_id || item.category_ids?.[0]
+            categoryId: item.category_id || item.category_ids?.[0],
+            brandId: item.brand_id,
+            supplierId: item.supplier_id,
+            hsn_code: item.hsn_code,
+            description: item.description,
+            gst_percent: item.gst_percent || 0,
+            purchase_rate: item.purchase_rate || 0,
+            mrp_rate: item.mrp_rate || 0,
+            discount: item.discount || 0
         }));
         setItems(backendItems);
       } catch (error) {
@@ -277,42 +318,163 @@ const ItemMaster = () => {
         </div>
       )}
 
-            {/* Edit Modal */}
+      {/* Edit Modal */}
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title="Edit Item"
-        size="sm"
+        size="lg"
       >
         {editingItem && (
-          <div className="space-y-3 sm:space-y-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                Item Name
-              </label>
-              <Input
-                value={editingItem.itemName}
-                onChange={(value) => setEditingItem(prev => ({
-                  ...prev,
-                  itemName: value
-                }))}
-                className="text-xs sm:text-sm py-1.5 sm:py-2"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
+          <div className="max-h-[70vh] overflow-y-auto space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                  Amount (₹)
+                  Item Name
+                </label>
+                <Input
+                  value={editingItem.itemName}
+                  onChange={(value) => setEditingItem(prev => ({ ...prev, itemName: value }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  Current Stock Count
+                </label>
+                <Input
+                  type="number"
+                  value={editingItem.stockCount}
+                  onChange={(value) => setEditingItem(prev => ({ ...prev, stockCount: parseInt(value) || 0 }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={editingItem.categoryId || ''}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, categoryId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Brand</label>
+                <select
+                  value={editingItem.brandId || ''}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, brandId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                >
+                  <option value="">Select Brand</option>
+                  {brands.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                <select
+                  value={editingItem.supplierId || ''}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, supplierId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                >
+                  <option value="">Select Supplier</option>
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+                <select
+                  value={editingItem.hsn_code || ''}
+                  onChange={(e) => {
+                    const hsnId = e.target.value;
+                    const selectedHsn = hsns.find(h => h._id === hsnId);
+                    setEditingItem(prev => ({ 
+                      ...prev, 
+                      hsn_code: hsnId,
+                      gst_percent: selectedHsn ? selectedHsn.gst_percentage : prev.gst_percent
+                    }));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                >
+                  <option value="">Select HSN Code</option>
+                  {hsns.map(h => (
+                    <option key={h._id} value={h._id}>{h.hsn_number} - {h.gst_percentage}%</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST %</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editingItem.gst_percent || ''}
+                  onChange={(value) => setEditingItem(prev => ({ ...prev, gst_percent: value }))}
+                  disabled={!!editingItem.hsn_code}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  Sale Rate (₹)
                 </label>
                 <Input
                   type="number"
                   step="0.01"
                   value={editingItem.amount}
-                  onChange={(value) => setEditingItem(prev => ({
-                    ...prev,
-                    amount: parseFloat(value) || 0
-                  }))}
+                  onChange={(value) => setEditingItem(prev => ({ ...prev, amount: parseFloat(value) || 0 }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  Purchase Rate (₹)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editingItem.purchase_rate || ''}
+                  onChange={(value) => setEditingItem(prev => ({ ...prev, purchase_rate: parseFloat(value) || 0 }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  MRP Rate (₹)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editingItem.mrp_rate || ''}
+                  onChange={(value) => setEditingItem(prev => ({ ...prev, mrp_rate: parseFloat(value) || 0 }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
+                  Discount (₹)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editingItem.discount || ''}
+                  onChange={(value) => setEditingItem(prev => ({ ...prev, discount: parseFloat(value) || 0 }))}
                   className="text-xs sm:text-sm py-1.5 sm:py-2"
                 />
               </div>
@@ -324,70 +486,37 @@ const ItemMaster = () => {
                 <Input
                   type="number"
                   value={editingItem.threshold}
-                  onChange={(value) => setEditingItem(prev => ({
-                    ...prev,
-                    threshold: parseInt(value) || 0
-                  }))}
+                  onChange={(value) => setEditingItem(prev => ({ ...prev, threshold: parseInt(value) || 0 }))}
                   className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={editingItem.description || ''}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, description: e.target.value }))}
+                  rows="3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST Type</label>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="gstType"
-                    value="1"
-                    checked={editingItem.type === 1}
-                    onChange={(e) => setEditingItem(prev => ({ ...prev, type: parseInt(e.target.value) }))}
-                    className="text-green-600 focus:ring-green-500"
-                  />
-                  <span className="text-xs sm:text-sm text-gray-700">GST (1)</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="gstType"
-                    value="0"
-                    checked={editingItem.type === 0}
-                    onChange={(e) => setEditingItem(prev => ({ ...prev, type: parseInt(e.target.value) }))}
-                    className="text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-xs sm:text-sm text-gray-700">Non-GST (0)</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select
-                value={editingItem.categoryId || ''}
-                onChange={(e) => setEditingItem(prev => ({ ...prev, categoryId: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
+              <div
+                onClick={() => setEditingItem(prev => ({ ...prev, type: prev.type === 0 ? 1 : 0 }))}
+                className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
+                  editingItem.type === 1 ? 'bg-green-500' : 'bg-gray-300'
+                }`}
               >
-                <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                Current Stock Count
-              </label>
-              <Input
-                type="number"
-                value={editingItem.stockCount}
-                onChange={(value) => setEditingItem(prev => ({
-                  ...prev,
-                  stockCount: parseInt(value) || 0
-                }))}
-                className="text-xs sm:text-sm py-1.5 sm:py-2"
-              />
+                <div
+                  className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
+                    editingItem.type === 1 ? 'translate-x-7' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+              <span className="text-xs text-gray-600 mt-1 block">{editingItem.type === 1 ? 'GST (1)' : 'Non-GST (0)'}</span>
             </div>
 
             <div>

@@ -9,12 +9,14 @@ const BrandMaster = () => {
   const { showToast } = useStore();
   const [brands, setBrands] = useState([]);
   const [items, setItems] = useState([]);
+  const [hsns, setHsns] = useState([]);
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
   const [newBrandName, setNewBrandName] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
+  const [selectedHsn, setSelectedHsn] = useState('');
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, brand: null });
 
   useEffect(() => {
@@ -50,10 +52,17 @@ const BrandMaster = () => {
               return allDocs;
           };
 
-          const [brandList, itemList] = await Promise.all([
+          const [brandList, itemList, hsnList] = await Promise.all([
               fetchAllPages('/brands'),
-              fetchAllPages('/items')
+              fetchAllPages('/items'),
+              // api.get('/hsns').then(res => {
+               api.get('/brands').then(res => {
+                  const data = res.data?.data;
+                  return Array.isArray(data) ? data : (data?.data || []);
+              })
           ]);
+
+          setHsns(hsnList.filter(h => h.is_active !== false));
 
           setItems(itemList.map(i => ({ 
               id: i._id, 
@@ -65,8 +74,7 @@ const BrandMaster = () => {
           setBrands(brandList.map(b => ({
               id: b._id,
               name: b.name,
-              // Items might be populated or just IDs. check backend response likely ObjectId.
-              // If populated, use it. If IDs, find in itemList.
+              hsn_code: b.hsn_code,
               items: b.item_ids?.map(itemId => {
                   const item = itemList.find(i => i._id === itemId || i._id === itemId._id);
                   return item ? { id: item._id, itemName: item.item_name } : null;
@@ -83,6 +91,14 @@ const BrandMaster = () => {
     { key: 'id', label: 'Brand ID', render: (val) => <span className="text-xs">{val?.slice(-4)}</span> },
     { key: 'name', label: 'Brand Name' },
     { 
+      key: 'hsn_code', 
+      label: 'HSN Code',
+      render: (value) => {
+        const hsn = hsns.find(h => h._id === value);
+        return <span className="text-sm">{hsn ? `${hsn.hsn_number} (${hsn.gst_percentage}%)` : '-'}</span>;
+      }
+    },
+    { 
       key: 'items', 
       label: 'Items Count',
       render: (value) => <span className="text-sm">{value?.length || 0} items</span>
@@ -96,6 +112,7 @@ const BrandMaster = () => {
         setEditingBrand(brand);
         setNewBrandName(brand.name);
         setSelectedItems(brand.items || []);
+        setSelectedHsn(brand.hsn_code || '');
         setIsEditModalOpen(true);
       },
       className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
@@ -113,11 +130,13 @@ const BrandMaster = () => {
     try {
         await api.post('/brands', { 
             brand_name: newBrandName, 
-            items: selectedItems.map(i => i.id) 
+            items: selectedItems.map(i => i.id),
+            hsn_code: selectedHsn || undefined
         });
         showToast('Brand added successfully', 'success');
         setNewBrandName('');
         setSelectedItems([]);
+        setSelectedHsn('');
         setIsAddModalOpen(false);
         fetchData();
     } catch (error) {
@@ -129,13 +148,15 @@ const BrandMaster = () => {
     try {
         await api.put(`/brands/${editingBrand.id}`, { 
             brand_name: newBrandName, 
-            items: selectedItems.map(i => i.id) 
+            items: selectedItems.map(i => i.id),
+            hsn_code: selectedHsn || undefined
         });
         showToast('Brand updated successfully', 'success');
         setIsEditModalOpen(false);
         setEditingBrand(null);
         setNewBrandName('');
         setSelectedItems([]);
+        setSelectedHsn('');
         fetchData();
     } catch (error) {
         showToast('Failed to update brand', 'error');
@@ -178,6 +199,7 @@ const BrandMaster = () => {
         <Button onClick={() => {
           setNewBrandName('');
           setSelectedItems([]);
+          setSelectedHsn('');
           setIsAddModalOpen(true);
         }} className="flex items-center gap-2">
           <FaPlus />
@@ -204,6 +226,20 @@ const BrandMaster = () => {
               onChange={setNewBrandName}
               placeholder="Enter brand name"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+            <select
+              value={selectedHsn}
+              onChange={(e) => setSelectedHsn(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">Select HSN Code</option>
+              {hsns.map(h => (
+                <option key={h._id} value={h._id}>{h.hsn_number} - {h.gst_percentage}%</option>
+              ))}
+            </select>
           </div>
 
           {/* Selected Items */}
@@ -288,6 +324,20 @@ const BrandMaster = () => {
               onChange={setNewBrandName}
               placeholder="Enter brand name"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+            <select
+              value={selectedHsn}
+              onChange={(e) => setSelectedHsn(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="">Select HSN Code</option>
+              {hsns.map(h => (
+                <option key={h._id} value={h._id}>{h.hsn_number} - {h.gst_percentage}%</option>
+              ))}
+            </select>
           </div>
 
           {/* Selected Items */}
