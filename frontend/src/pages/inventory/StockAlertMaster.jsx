@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '../../components/common';
-import { reportAPI } from '../../services/api';
+import api from '../../services/axiosInstance';
 
 const StockAlertMaster = () => {
   const [stockAlerts, setStockAlerts] = useState([]);
@@ -8,7 +8,7 @@ const StockAlertMaster = () => {
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const response = await reportAPI.getStockAlertItems(); // Use the endpoint you confirmed works
+            const response = await api.get('/stock-alerts/items');
             const val = response.data?.data;
             const items = Array.isArray(val) ? val : (val?.data || []);
             setStockAlerts(items.map(i => ({

@@ -3,7 +3,7 @@ import { FaFileInvoiceDollar, FaCheck, FaPlus, FaEdit, FaTrash, FaDownload, FaTi
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, } from '../../components/ui';
 import useStore from '../../store';
-import { challanAPI, accountAPI, itemAPI, billAPI } from '../../services/api';
+import api from '../../services/axiosInstance';// 
 
 const ChallanList = () => {
   const { showToast, selectedFirm } = useStore();
@@ -353,14 +353,14 @@ const ChallanList = () => {
             challan_ids: selectedChallans.map(c => c.id)
         };
         
-        await billAPI.create(payload);
+        await api.post('/bills', payload);
         showToast('Bill created successfully', 'success');
         
-        const cRes = await challanAPI.getAll();
+        const cRes = await api.get('/challans', { params: { firmId: selectedFirm?.id } });
         const cVal = cRes.data?.data;
-        const cList = Array.isArray(cVal) ? cVal : (cVal?.data || []);
+        const cListRaw = Array.isArray(cVal) ? cVal : (cVal?.data || []);
 
-        const activeChallans = cList
+        const activeChallans = cListRaw
             .filter(c => c.status !== 'Converted')
             .map(c => ({
                id: c._id,
@@ -406,11 +406,11 @@ const ChallanList = () => {
          is_gst: newChallan.gstType
       };
 
-      await challanAPI.create(payload);
+      await api.post('/challans', payload);
       showToast('Challan created successfully', 'success');
       
       // Refresh
-      const cRes = await challanAPI.getAll();
+      const cRes = await api.get('/challans', { params: { firmId: selectedFirm?.id } });
       const cVal = cRes.data?.data;
       const cListRaw = Array.isArray(cVal) ? cVal : (cVal?.data || []);
 
@@ -468,11 +468,11 @@ const ChallanList = () => {
          is_gst: editingChallan.gstType
       };
 
-      await challanAPI.update(editingChallan.id, payload);
+      await api.put(`/challans/${editingChallan.id}`, payload);
       showToast('Challan updated successfully', 'success');
       
       // Refresh
-      const cRes = await challanAPI.getAll();
+      const cRes = await api.get('/challans', { params: { firmId: selectedFirm?.id } });
       const cVal = cRes.data?.data;
       const cListRaw = Array.isArray(cVal) ? cVal : (cVal?.data || []);
 
@@ -1543,7 +1543,7 @@ const ChallanList = () => {
         onClose={() => setDeleteDialog({ isOpen: false, challan: null })}
         onConfirm={async () => {
              try {
-                 await challanAPI.delete(deleteDialog.challan.id);
+                 await api.delete(`/challans/${deleteDialog.challan.id}`);
                  showToast('Challan deleted successfully', 'success');
                  setChallans(prev => prev.filter(c => c.id !== deleteDialog.challan.id));
                  setDeleteDialog({ isOpen: false, challan: null });

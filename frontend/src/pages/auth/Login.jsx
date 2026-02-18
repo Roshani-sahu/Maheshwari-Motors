@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { FaLayerGroup, FaCircleExclamation, FaEye, FaEyeSlash } from "react-icons/fa6";
 import { Link, useNavigate } from "react-router-dom";
 import useStore from '../../store';
-import { authAPI } from '../../services/api';
+import api from '../../services/axiosInstance';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -30,6 +30,46 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const loginUser = async (credentials) => {
+    console.log('🚀 Login attempt:', {
+      credentials: { username: credentials.username, password: '***' },
+      API_BASE_URL: api.defaults.baseURL,
+      fullURL: `${api.defaults.baseURL}/auth/login`
+    });
+    
+    try {
+      const response = await api.post('/auth/login', credentials);
+      console.log('✅ Login success:', {
+        status: response.status,
+        hasData: !!response.data,
+        hasToken: !!response.data?.data?.token
+      });
+      return response;
+    } catch (error) {
+      console.error('❌ Login failed:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
+      
+      if (error.response && error.response.status === 401) {
+        try {
+          console.log('🔄 Retrying login...');
+          const retryResponse = await api.post('/auth/login', credentials);
+          console.log('✅ Retry success:', retryResponse.status);
+          return retryResponse;
+        } catch (adminError) {
+          console.error('❌ Retry failed:', adminError.response?.data);
+          throw adminError;
+        }
+      }
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -43,8 +83,8 @@ const Login = () => {
 
     setLoading(true);
     try {
-      console.log('🔑 Calling authAPI.login...');
-      const response = await authAPI.login(formData);
+      console.log('🔑 Calling loginUser...');
+      const response = await loginUser(formData);
       
       console.log('✅ Login API response:', {
         status: response.status,

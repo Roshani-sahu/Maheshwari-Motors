@@ -3,7 +3,7 @@ import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import { brandAPI, itemAPI } from '../../services/api';
+import api from '../../services/axiosInstance';// 
 
 const BrandMaster = () => {
   const { showToast } = useStore();
@@ -24,12 +24,12 @@ const BrandMaster = () => {
   const fetchData = async () => {
       try {
           // Helper function to fetch all pages from an API endpoint
-          const fetchAllPages = async (apiCall) => {
+          const fetchAllPages = async (endpoint) => {
               let allDocs = [];
               let page = 1;
               let hasMore = true;
               while(hasMore) {
-                  const res = await apiCall({ page, limit: 100 });
+                  const res = await api.get(endpoint, { params: { page, limit: 100 } });
                   const payload = res.data?.data;
                   let pageData = [];
 
@@ -51,8 +51,8 @@ const BrandMaster = () => {
           };
 
           const [brandList, itemList] = await Promise.all([
-              fetchAllPages(brandAPI.getAll),
-              fetchAllPages(itemAPI.getAll)
+              fetchAllPages('/brands'),
+              fetchAllPages('/items')
           ]);
 
           setItems(itemList.map(i => ({ 
@@ -111,7 +111,7 @@ const BrandMaster = () => {
 
   const handleAddBrand = async () => {
     try {
-        await brandAPI.create({ 
+        await api.post('/brands', { 
             brand_name: newBrandName, 
             items: selectedItems.map(i => i.id) 
         });
@@ -127,7 +127,7 @@ const BrandMaster = () => {
 
   const handleEditBrand = async () => {
     try {
-        await brandAPI.update(editingBrand.id, { 
+        await api.put(`/brands/${editingBrand.id}`, { 
             brand_name: newBrandName, 
             items: selectedItems.map(i => i.id) 
         });
@@ -144,7 +144,7 @@ const BrandMaster = () => {
 
   const handleDeleteBrand = async () => {
       try {
-          await brandAPI.delete(deleteDialog.brand.id);
+          await api.delete(`/brands/${deleteDialog.brand.id}`);
           showToast('Brand deleted successfully', 'success');
           setDeleteDialog({ isOpen: false, brand: null });
           fetchData();

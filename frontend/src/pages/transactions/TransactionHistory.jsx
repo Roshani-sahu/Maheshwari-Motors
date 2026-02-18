@@ -3,7 +3,8 @@ import { FaFilter, FaHistory, FaFileInvoiceDollar, FaReceipt, FaMoneyBillWave, F
 import { DataTable, Modal } from '../../components/common';
 import { Select, Input, Button } from '../../components/ui';
 import useStore from '../../store';
-import { transactionAPI } from '../../services/api';
+import api from '../../services/axiosInstance';// 
+
 const TransactionHistory = () => {
   const { transactions: storeTransactions, setTransactions: setStoreTransactions, selectedFirm } = useStore();
   const [transactions, setTransactions] = useState([]);
@@ -15,7 +16,7 @@ const TransactionHistory = () => {
         setLoading(true);
         console.debug("🔄 Fetching transactions. Selected Firm:", selectedFirm?.id || 'None');
         
-        const response = await transactionAPI.getAll(selectedFirm?.id); 
+        const response = await api.get('/transactions', { params: { firmId: selectedFirm?.id } }); 
         console.debug("✅ Transaction API Response:", response);
 
         // Handle various response structures (Access data safely)

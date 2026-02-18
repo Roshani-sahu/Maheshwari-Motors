@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaImage, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal } from '../../components/common';
 import useStore from '../../store';
-import { itemAPI, categoryAPI } from '../../services/api';
+import api from '../../services/axiosInstance';// 
 
 const ItemView = () => {
   const { items, setItems } = useStore();
@@ -14,7 +14,7 @@ const ItemView = () => {
     const fetchData = async () => {
         try {
             // Fetch Categories
-            const catRes = await categoryAPI.getAll();
+            const catRes = await api.get('/categories');
             const catList = catRes.data?.data;
             const finalCats = Array.isArray(catList) ? catList : (catList?.data || []);
             setCategories(finalCats.map(c => ({ id: c._id, name: c.name })));
@@ -25,7 +25,7 @@ const ItemView = () => {
             let hasMore = true;
             
             while(hasMore) {
-                const response = await itemAPI.getAll({ page, limit: 100 });
+                const response = await api.get('/items', { params: { page, limit: 100 } });
                 const payload = response.data?.data;
                 let pageData = [];
                 

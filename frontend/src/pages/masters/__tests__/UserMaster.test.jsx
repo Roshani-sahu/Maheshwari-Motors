@@ -1,11 +1,19 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
 import UserMaster from '../UserMaster';
-import { adminAPI } from '../../../services/api';
+import api from '../../../services/axiosInstance';
 import useStore from '../../../store';
 
 // Mock dependencies
-vi.mock('../../../services/api');
+vi.mock('../../../services/axiosInstance', () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
+  }
+}));
+
 vi.mock('../../../store', () => ({
   __esModule: true,
   default: vi.fn()
@@ -20,7 +28,6 @@ vi.mock('../../../components/common', () => ({
         <div key={user.id || idx} data-testid="user-row">
           <span>{user.username}</span>
           {actions && actions.map((action, actionIdx) => {
-             // Heuristic to identify delete button based on label or className (red)
              const isDelete = action.className?.includes('red');
              return (
                <button 
@@ -47,39 +54,49 @@ vi.mock('react-icons/fa', () => ({
   FaPlus: () => null,
   FaEdit: () => null,
   FaTrash: () => null,
-  FaSignOutAlt: () => null
+  FaSignOutAlt: () => null,
+  FaSync: () => null // Added missing mock
 }));
 
 describe('UserMaster Component', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     useStore.mockReturnValue({
       users: [],
       setUsers: vi.fn(),
       showToast: vi.fn()
     });
+    // Mock localStorage
+    Storage.prototype.getItem = vi.fn((key) => {
+      if (key === 'userRole') return 'admin';
+      return null;
+    });
   });
 
   test('fetches all pages of users correctly', async () => {
     // Mock API to return 2 pages of data
-    adminAPI.getUsers.mockImplementation(({ page }) => {
-      if (page === 1) {
-        return Promise.resolve({
-          data: {
+    api.get.mockImplementation((url, config) => {
+      if (url === '/admin/users') {
+        const page = config?.params?.page || 1;
+        if (page === 1) {
+          return Promise.resolve({
             data: {
-              data: [{ _id: '1', name: 'User 1' }],
-              meta: { hasNextPage: true }
+              data: {
+                data: [{ _id: '1', name: 'User 1', email: 'u1@test.com' }],
+                meta: { hasNextPage: true }
+              }
             }
-          }
-        });
-      } else if (page === 2) {
-        return Promise.resolve({
-          data: {
+          });
+        } else if (page === 2) {
+          return Promise.resolve({
             data: {
-              data: [{ _id: '2', name: 'User 2' }],
-              meta: { hasNextPage: false }
+              data: {
+                data: [{ _id: '2', name: 'User 2', email: 'u2@test.com' }],
+                meta: { hasNextPage: false }
+              }
             }
-          }
-        });
+          });
+        }
       }
       return Promise.resolve({ data: { data: { data: [] } } });
     });
@@ -95,7 +112,7 @@ describe('UserMaster Component', () => {
 
     // Wait for effect to run and fetch loop to complete
     await waitFor(() => {
-      expect(adminAPI.getUsers).toHaveBeenCalledTimes(2);
+      expect(api.get).toHaveBeenCalledTimes(2); // Should call twice for pagination
       expect(setUsersMock).toHaveBeenCalledWith(expect.arrayContaining([
         expect.objectContaining({ username: 'User 1' }),
         expect.objectContaining({ username: 'User 2' })
@@ -105,21 +122,20 @@ describe('UserMaster Component', () => {
 
   test('handles user deletion correctly', async () => {
     // Setup store with one user
-    const mockUser = { id: 'user-123', username: 'Test User' };
+    const mockUser = { id: 'user-12345', username: 'Test User' }; // ID length > 5 for safety check
     const setUsersMock = vi.fn();
     
     useStore.mockReturnValue({
       users: [mockUser],
       setUsers: setUsersMock,
-      showToast: vi.fn(), 
-      deleteUser: vi.fn() // We mock the store action too
+      showToast: vi.fn()
     });
 
     // Mock delete API success
-    adminAPI.deleteUser = vi.fn().mockResolvedValue({ data: { success: true } });
+    api.delete.mockResolvedValue({ data: { success: true } });
     
     // We also need to mock getUsers for the refresh call after delete
-    adminAPI.getUsers.mockResolvedValue({ data: { data: { data: [] } } }); // Return empty after delete
+    api.get.mockResolvedValue({ data: { data: { data: [] } } }); // Return empty after delete
 
     render(<UserMaster />);
 
@@ -129,23 +145,23 @@ describe('UserMaster Component', () => {
     // Click Delete button
     const deleteBtns = screen.getAllByLabelText('delete-btn');
     expect(deleteBtns.length).toBeGreaterThan(0);
-    deleteBtns[0].click();
+    fireEvent.click(deleteBtns[0]);
 
-    // Check if dialog opens
+    // Check if dialog opens - Wait for state update
     expect(await screen.findByTestId('delete-dialog')).toBeTruthy();
 
     // Confirm Delete
     const confirmBtn = screen.getByLabelText('confirm-delete');
-    confirmBtn.click();
+    fireEvent.click(confirmBtn);
 
     // Verify API call
     await waitFor(() => {
-       expect(adminAPI.deleteUser).toHaveBeenCalledWith('user-123');
+       expect(api.delete).toHaveBeenCalledWith('/admin/users/user-12345');
     });
     
     // Verify refresh called (getUsers)
     await waitFor(() => {
-       expect(adminAPI.getUsers).toHaveBeenCalled(); 
+       expect(api.get).toHaveBeenCalled(); 
     });
   });
 });
