@@ -42,6 +42,7 @@ import ViewAllSupplier from "./pages/inventory/ViewAllSupplier";
 
 // Transaction Pages
 import ChallanList from "./pages/transactions/ChallanList";
+import ChallanForm from "./pages/transactions/ChallanForm";
 import BillList from "./pages/transactions/BillList";
 import TransactionHistory from "./pages/transactions/TransactionHistory";
 
@@ -131,6 +132,8 @@ const App = () => {
 
           {/* 3. Transactions */}
           <Route path="/transactions/challan-list" element={<ChallanList />} />
+          <Route path="/transactions/challans/create" element={<ChallanForm />} />
+          <Route path="/transactions/challans/edit/:id" element={<ChallanForm />} />
           <Route path="/transactions/bill-list" element={<BillList />} />
           <Route path="/transactions/transaction-history" element={<TransactionHistory />} />
 
