@@ -10,7 +10,7 @@ import { Toast, ConfirmDialog, LoadingOverlay } from "./components/GlobalCompone
 
 // Auth Pages
 import Login from "./pages/auth/Login";
-import ForgotPassword from "./pages/auth/ForgotPassword";
+// import ForgotPassword from "./pages/auth/ForgotPassword";
 
 // Core Pages
 import Dashboard from "./pages/core/Dashboard";
@@ -97,7 +97,7 @@ const App = () => {
 
         {/* Auth Routes */}
         <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* <Route path="/forgot-password" element={<ForgotPassword />} /> */}
         {/* <Route path="/company-selection" element={<CompanySelection />} /> */}
 
         <Route element={<ProtectedRoute />}>

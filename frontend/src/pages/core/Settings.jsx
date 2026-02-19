@@ -1,6 +1,6 @@
 import api from '../../services/axiosInstance';
 import { useState, useEffect } from 'react';
-import { FaUser, FaCog, FaSignOutAlt, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
+import { FaUser, FaSignOutAlt, FaEdit, FaSave, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
@@ -9,45 +9,54 @@ const Settings = () => {
   const navigate = useNavigate();
   const { user, setUser, showToast } = useStore();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState({
     username: '',
     email: ''
   });
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchProfile = async () => {
+      setLoading(true);
       try {
-        const res = await api.get('/auth/me');
-        const userData = res.data.data;
+        const res = await api.get('/auth/me', { signal: controller.signal });
+        const userData = res?.data?.data || {};
         setProfileData({
-          username: userData.username || '',
-          email: userData.email || ''
+          username: userData?.username || userData?.name || '',
+          email: userData?.email || ''
         });
       } catch (err) {
-        console.error('Failed to fetch profile', err);
+        if (err?.name !== 'CanceledError') {
+          showToast('Failed to fetch profile', 'error');
+        }
+      } finally {
+        setLoading(false);
       }
     };
-    fetchProfile();
-  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    showToast('Logged out successfully', 'success');
-    navigate('/login');
+    fetchProfile();
+    return () => controller.abort();
+  }, [showToast]);
+
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (_) {
+      // Ignore API logout failures and clear local session anyway.
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
+      setUser(null);
+      showToast('Logged out successfully', 'success');
+      navigate('/login');
+    }
   };
 
   const handleSaveProfile = async () => {
-    try {
-      // Assuming endpoint for update is /auth/profile or /auth/me (PUT)
-      // Since it was missing in api.js, this might fail unless backend supports it.
-      await api.put('/auth/profile', profileData);
-      setUser({ ...user, ...profileData });
-      setIsEditingProfile(false);
-      showToast('Profile updated successfully', 'success');
-    } catch (err) {
-      showToast('Failed to update profile', 'error');
-    }
+    showToast('Profile update endpoint is not available in current API.', 'error');
+    setIsEditingProfile(false);
   };
 
   return (
@@ -57,7 +66,6 @@ const Settings = () => {
         <p className="text-gray-600">Manage your account and preferences</p>
       </div>
 
-      {/* User Profile Section */}
       <div className="bg-white p-6 rounded-lg border">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -65,29 +73,17 @@ const Settings = () => {
             <h2 className="text-lg font-semibold text-gray-900">User Profile</h2>
           </div>
           {!isEditingProfile ? (
-            <Button
-              onClick={() => setIsEditingProfile(true)}
-              className="flex items-center gap-2 text-sm"
-            >
+            <Button onClick={() => setIsEditingProfile(true)} className="flex items-center gap-2 text-sm" disabled={loading}>
               <FaEdit />
               Edit Profile
             </Button>
           ) : (
             <div className="flex gap-2">
-              <Button
-                onClick={handleSaveProfile}
-                className="flex items-center gap-2 text-sm"
-              >
+              <Button onClick={handleSaveProfile} className="flex items-center gap-2 text-sm">
                 <FaSave />
                 Save
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsEditingProfile(false);
-                }}
-                className="flex items-center gap-2 text-sm"
-              >
+              <Button variant="outline" onClick={() => setIsEditingProfile(false)} className="flex items-center gap-2 text-sm">
                 <FaTimes />
                 Cancel
               </Button>
@@ -99,74 +95,29 @@ const Settings = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
             {isEditingProfile ? (
-              <Input
-                value={profileData.username}
-                onChange={(value) => setProfileData(prev => ({ ...prev, username: value }))}
-                placeholder="Enter username"
-              />
+              <Input value={profileData.username} onChange={(value) => setProfileData((prev) => ({ ...prev, username: value }))} />
             ) : (
-              <p className="text-gray-900 py-2">{profileData.username}</p>
+              <p className="text-gray-900 py-2">{profileData.username || '-'}</p>
             )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             {isEditingProfile ? (
-              <Input
-                type="email"
-                value={profileData.email}
-                onChange={(value) => setProfileData(prev => ({ ...prev, email: value }))}
-                placeholder="Enter email"
-              />
+              <Input type="email" value={profileData.email} onChange={(value) => setProfileData((prev) => ({ ...prev, email: value }))} />
             ) : (
-              <p className="text-gray-900 py-2">{profileData.email}</p>
+              <p className="text-gray-900 py-2">{profileData.email || '-'}</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* System Settings Section */}
-      {/* <div className="bg-white p-6 rounded-lg border">
-        <div className="flex items-center gap-3 mb-4">
-          <FaCog className="text-gray-500" />
-          <h2 className="text-lg font-semibold text-gray-900">System Settings</h2>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b">
-            <div>
-              <h3 className="font-medium text-gray-900">Theme</h3>
-              <p className="text-sm text-gray-600">Choose your preferred theme</p>
-            </div>
-            <select className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="auto">Auto</option>
-            </select>
-          </div>
-          <div className="flex items-center justify-between py-3 border-b">
-            <div>
-              <h3 className="font-medium text-gray-900">Language</h3>
-              <p className="text-sm text-gray-600">Select your language</p>
-            </div>
-            <select className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-              <option value="gu">Gujarati</option>
-            </select>
-          </div>
-        </div>
-      </div> */}
-
-      {/* Logout Section */}
       <div className="bg-white p-6 rounded-lg border">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Account</h2>
             <p className="text-sm text-gray-600">Sign out of your account</p>
           </div>
-          <Button
-            onClick={handleLogout}
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
-          >
+          <Button onClick={handleLogout} className="flex items-center gap-2 bg-red-600 hover:bg-red-700">
             <FaSignOutAlt />
             Logout
           </Button>

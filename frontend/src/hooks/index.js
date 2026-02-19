@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState } from 'react';
 import { useApp } from '../contexts/AppContext';
+import api from '../services/axiosInstance';
 
 // Keyboard shortcuts hook
 export const useKeyboard = (shortcuts) => {
@@ -27,10 +28,10 @@ export const useData = (endpoint, dependencies = []) => {
     
     actions.setLoading(true);
     try {
-      // Mock API call - replace with actual API
-      const response = await fetch(`/api/${endpoint}?firmId=${state.selectedFirm.id}`);
-      const data = await response.json();
-      return data;
+      const response = await api.get(`/${endpoint}`, {
+        params: { page: 1, limit: 50 }
+      });
+      return response?.data?.data ?? null;
     } catch (error) {
       actions.showToast('Failed to fetch data', 'error');
       return null;

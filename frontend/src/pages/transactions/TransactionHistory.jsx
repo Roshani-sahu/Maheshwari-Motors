@@ -1,118 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import { FaFilter, FaHistory, FaFileInvoiceDollar, FaReceipt, FaMoneyBillWave, FaCheckCircle, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
-import { DataTable, Modal } from '../../components/common';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FaFilter, FaFileInvoiceDollar, FaReceipt, FaMoneyBillWave, FaCheckCircle, FaDownload } from 'react-icons/fa';
+import { DataTable } from '../../components/common';
 import { Select, Input, Button } from '../../components/ui';
 import useStore from '../../store';
-import api from '../../services/axiosInstance';// 
+import api from '../../services/axiosInstance';
 
 const TransactionHistory = () => {
-  const { transactions: storeTransactions, setTransactions: setStoreTransactions, selectedFirm } = useStore();
+  const { setTransactions: setStoreTransactions } = useStore();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({ dateFrom: '', type: 'all', gstType: 'all' });
+
+  const listFromResponse = (res) => {
+    const payload = res?.data?.data;
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    return [];
+  };
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchTransactions = async () => {
       try {
         setLoading(true);
-        console.debug("🔄 Fetching transactions. Selected Firm:", selectedFirm?.id || 'None');
-        
-        const response = await api.get('/transactions', { params: { firmId: selectedFirm?.id } }); 
-        console.debug("✅ Transaction API Response:", response);
 
-        // Handle various response structures (Access data safely)
-        let apiTransactions = [];
-        const resData = response.data;
+        const [saleRes, purchaseRes, billRes] = await Promise.all([
+          api.get('/challans/sale', { params: { page: 1, limit: 200 }, signal: controller.signal }),
+          api.get('/challans/purchase', { params: { page: 1, limit: 200 }, signal: controller.signal }),
+          api.get('/bills', { params: { page: 1, limit: 200 }, signal: controller.signal })
+        ]);
 
-        if (Array.isArray(resData)) {
-          // Direct array: [ ... ]
-          apiTransactions = resData;
-        } else if (resData?.data && Array.isArray(resData.data)) {
-           // Standard: { data: [ ... ] }
-           apiTransactions = resData.data;
-        } else if (resData?.data?.data && Array.isArray(resData.data.data)) {
-           // Double nested/Paginated: { data: { data: [ ... ] } }
-           apiTransactions = resData.data.data;
-        } else if (resData?.data?.docs && Array.isArray(resData.data.docs)) {
-           // Mongoose Paginated: { data: { docs: [ ... ] } }
-           apiTransactions = resData.data.docs;
-        } else {
-           console.warn("⚠️ Unexpected API response structure:", resData);
-        }
-        
-        console.debug("📦 Extracted Transactions:", apiTransactions);
+        const saleTxns = listFromResponse(saleRes).map((c) => ({
+          id: c._id,
+          transactionId: c.challan_no || c._id,
+          type: 'Challan',
+          amount: Number(c.amount || 0),
+          date: c.date,
+          party: c.contact_id?.name || 'Unknown',
+          gstType: Number(c.is_gst || 0),
+          status: c.payment_status || (c.converted_to_bill ? 'Converted' : 'Generated')
+        }));
 
-        // Transform API data to match component structure
-        const formattedTransactions = apiTransactions.map(txn => {
-          const firmName = txn.firm_id?.name || txn.firm_name || 'Unknown Firm';
-          const partyName = txn.party_id?.name || txn.party_name || 'Unknown Party';
-          
-          // Derive and normalize type
-          let type = txn.type;
-          if (!type) {
-             if (txn.challan_no) type = 'Challan';
-             else if (txn.invoice_no) type = 'Bill';
-             else type = 'Unknown';
-          }
+        const purchaseTxns = listFromResponse(purchaseRes).map((c) => ({
+          id: c._id,
+          transactionId: c.challan_no || c._id,
+          type: 'Prepaid',
+          amount: Number(c.amount || 0),
+          date: c.date,
+          party: c.contact_id?.name || 'Unknown',
+          gstType: Number(c.is_gst || 0),
+          status: c.payment_status || 'Generated'
+        }));
 
-          // Case-insensitive normalization
-          const lowerType = String(type).toLowerCase();
-          if (lowerType === 'challan') type = 'Challan';
-          else if (lowerType === 'bill' || lowerType === 'invoice' || lowerType === 'sale') type = 'Bill';
-          else if (lowerType === 'prepaid' || lowerType === 'receipt' || lowerType === 'payment') type = 'Prepaid';
-          else if (lowerType === 'due') type = 'Due';
-          else type = type.charAt(0).toUpperCase() + type.slice(1); // Capitalize others
+        const billTxns = listFromResponse(billRes).map((b) => ({
+          id: b._id,
+          transactionId: b.bill_no || b._id,
+          type: 'Bill',
+          amount: Number(b.amount || b.total_amount || 0),
+          date: b.date,
+          party: b.contact_id?.name || b.party_id?.name || 'Unknown',
+          gstType: Number(b.is_gst || 0),
+          status: b.payment_status || 'Generated'
+        }));
 
-          return {
-            id: txn._id || txn.id, // Handle both _id and id
-            transactionId: txn.invoice_no || txn.challan_no || txn.transaction_id || `TXN-${(txn._id || txn.id || '').slice(-6)}`,
-            type: type, 
-            firm: firmName,
-            amount: txn.amount || 0,
-            date: txn.date,
-            party: partyName,
-            gstType: txn.is_gst !== undefined ? txn.is_gst : 1,
-            status: txn.status || 'Completed',
-            // Keep original references just in case needed
-            reference: txn.invoice_no || txn.challan_no
-          };
-        });
+        const merged = [...saleTxns, ...purchaseTxns, ...billTxns].filter((t) => t.id);
+        merged.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        // Debug types found to help with breakdown issues
-        const foundTypes = [...new Set(formattedTransactions.map(t => t.type))];
-        console.debug("📊 Transaction Types Found:", foundTypes);
-
-        // Filter out any invalid items (must have an ID)
-        const validTransactions = formattedTransactions.filter(t => t.id);
-        
-        if (validTransactions.length === 0 && apiTransactions.length > 0) {
-             console.warn("⚠️ Transactions found but filtered out due to missing IDs. Check mapping.");
-        }
-
-        setTransactions(validTransactions);
-        setStoreTransactions(validTransactions); 
+        setTransactions(merged);
+        setStoreTransactions(merged);
       } catch (error) {
-        console.error("❌ Failed to fetch transactions:", error);
+        if (error?.name !== 'CanceledError') {
+          console.error('Failed to fetch transactions', error);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchTransactions();
-  }, [setStoreTransactions, selectedFirm]);
+    return () => controller.abort();
+  }, [setStoreTransactions]);
 
-  const [filters, setFilters] = useState({
-    dateFrom: '',
-    dateTo: '',
-    type: 'all',
-    firm: 'all',
-    gstType: 'all'
-  });
+  const filteredTransactions = useMemo(() => (
+    transactions.filter((txn) => {
+      if (filters.type !== 'all' && txn.type !== filters.type) return false;
+      if (filters.gstType !== 'all' && txn.gstType !== Number(filters.gstType)) return false;
+      if (filters.dateFrom && new Date(txn.date) < new Date(filters.dateFrom)) return false;
+      return true;
+    })
+  ), [transactions, filters]);
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState(null);
-
-  const firms = ['Maa Auto', 'Motors Division', ];
-  const parties = ['ABC Motors', 'XYZ Parts', 'PQR Auto', 'LMN Garage', 'RST Motors'];
+  const stats = useMemo(() => ({
+    total: filteredTransactions.length,
+    totalAmount: filteredTransactions.reduce((sum, txn) => sum + Number(txn.amount || 0), 0),
+    byType: {
+      Challan: filteredTransactions.filter((t) => t.type === 'Challan').length,
+      Bill: filteredTransactions.filter((t) => t.type === 'Bill').length,
+      Prepaid: filteredTransactions.filter((t) => t.type === 'Prepaid').length,
+      Due: filteredTransactions.filter((t) => t.status === 'due').length
+    }
+  }), [filteredTransactions]);
 
   const columns = [
     { key: 'transactionId', label: 'Transaction ID' },
@@ -121,113 +109,51 @@ const TransactionHistory = () => {
       label: 'Type',
       render: (value) => {
         const icons = {
-          'Challan': <FaFileInvoiceDollar className="inline mr-1" />,
-          'Bill': <FaReceipt className="inline mr-1" />,
-          'Prepaid': <FaCheckCircle className="inline mr-1" />,
-          'Due': <FaMoneyBillWave className="inline mr-1" />
+          Challan: <FaFileInvoiceDollar className="inline mr-1" />,
+          Bill: <FaReceipt className="inline mr-1" />,
+          Prepaid: <FaCheckCircle className="inline mr-1" />,
+          Due: <FaMoneyBillWave className="inline mr-1" />
         };
         const colors = {
-          'Challan': 'bg-blue-100 text-blue-800',
-          'Bill': 'bg-green-100 text-green-800',
-          'Prepaid': 'bg-purple-100 text-purple-800',
-          'Due': 'bg-orange-100 text-orange-800'
+          Challan: 'bg-blue-100 text-blue-800',
+          Bill: 'bg-green-100 text-green-800',
+          Prepaid: 'bg-purple-100 text-purple-800',
+          Due: 'bg-orange-100 text-orange-800'
         };
-        return (
-          <span className={`px-2 py-1 text-xs rounded-full ${colors[value]}`}>
-            {icons[value]}
-            {value}
-          </span>
-        );
+        return <span className={`px-2 py-1 text-xs rounded-full ${colors[value] || 'bg-gray-100 text-gray-700'}`}>{icons[value]}{value}</span>;
       }
     },
-    { key: 'firm', label: 'Firm' },
     {
       key: 'status',
       label: 'Status',
-      render: (value) => value ? (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          value === 'Generated' ? 'bg-green-100 text-green-800' : value === 'Deleted' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-        }`}>
-          {value}
-        </span>
-      ) : (
-        <span className="text-xs text-gray-500">—</span>
-      )
+      render: (value) => <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">{value || '-'}</span>
     },
-    {
-      key: 'amount',
-      label: 'Amount',
-      render: (value) => `₹${value.toLocaleString()}`
-    },
-    {
-      key: 'date',
-      label: 'Date',
-      render: (value) => new Date(value).toLocaleDateString()
-    },
+    { key: 'amount', label: 'Amount', render: (value) => `Rs ${Number(value || 0).toLocaleString()}` },
+    { key: 'date', label: 'Date', render: (value) => (value ? new Date(value).toLocaleDateString() : '-') },
     { key: 'party', label: 'Party' },
     {
       key: 'gstType',
-      label: 'Type',
-      render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-        }`}>
-          {value}
-        </span>
-      )
+      label: 'GST Type',
+      render: (value) => <span className={`px-2 py-1 text-xs rounded-full ${value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{value}</span>
     },
     {
       key: 'actions',
       label: 'Actions',
-      render: (value, txn) => (
+      render: (_, txn) => (
         <div className="flex gap-2">
-          {/* <button
-            onClick={() => {
-              setEditingTransaction({...txn});
-              setIsEditModalOpen(true);
-            }}
-            className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-            title="Edit"
-          >
-            <FaEdit size={14} />
-          </button>
           <button
             onClick={() => {
-              if (confirm(`Delete transaction ${txn.transactionId}?`)) {
-                setTransactions(prev => prev.filter(t => t.id !== txn.id));
-              }
-            }}
-            className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-            title="Delete"
-          >
-            <FaTrash size={14} />
-          </button> */}
-          <button
-            onClick={() => {
-              // Generate PDF
               const printWindow = window.open('', '', 'width=800,height=600');
               printWindow.document.write(`
                 <html>
-                  <head>
-                    <title>Transaction ${txn.transactionId}</title>
-                    <style>
-                      body { font-family: Arial, sans-serif; padding: 40px; }
-                      h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                      .info { margin: 20px 0; }
-                      .label { font-weight: bold; display: inline-block; width: 150px; }
-                    </style>
-                  </head>
-                  <body>
-                    <h1>Transaction Details</h1>
-                    <div class="info">
-                      <p><span class="label">Transaction ID:</span> ${txn.transactionId}</p>
-                      <p><span class="label">Type:</span> ${txn.type}</p>
-                      <p><span class="label">Firm:</span> ${txn.firm}</p>
-                      <p><span class="label">Party:</span> ${txn.party}</p>
-                      <p><span class="label">Date:</span> ${new Date(txn.date).toLocaleDateString()}</p>
-                      <p><span class="label">Amount:</span> ₹${txn.amount.toLocaleString()}</p>
-           
-                    </div>
+                  <head><title>Transaction ${txn.transactionId}</title></head>
+                  <body style="font-family: Arial; padding: 24px;">
+                    <h2>Transaction Details</h2>
+                    <p><strong>Transaction ID:</strong> ${txn.transactionId}</p>
+                    <p><strong>Type:</strong> ${txn.type}</p>
+                    <p><strong>Party:</strong> ${txn.party}</p>
+                    <p><strong>Date:</strong> ${new Date(txn.date).toLocaleDateString()}</p>
+                    <p><strong>Amount:</strong> Rs ${Number(txn.amount || 0).toLocaleString()}</p>
                   </body>
                 </html>
               `);
@@ -244,280 +170,57 @@ const TransactionHistory = () => {
     }
   ];
 
-  const handleEditTransaction = () => {
-    setTransactions(prev => prev.map(t => 
-      t.id === editingTransaction.id ? {...editingTransaction, amount: parseFloat(editingTransaction.amount)} : t
-    ));
-    setIsEditModalOpen(false);
-    setEditingTransaction(null);
-    // Alert or toast could go here
-    console.log('Transaction updated locally'); 
-  };
-
-  // Deduplicate transactions: keep only the latest status per reference (bill/challan)
-  // so if a bill is generated then deleted, show only the Deleted one
-  const getLatestTransactionPerReference = (txns) => {
-    const refMap = {};
-    // Group transactions by reference, preferring "Deleted" status, otherwise keep the most recent
-    txns.forEach(txn => {
-      if (txn.reference) {
-        const existingTxn = refMap[txn.reference];
-        // If we haven't seen this reference, or if this one is "Deleted" and the existing isn't, update
-        if (!existingTxn || (txn.status === 'Deleted' && existingTxn.status !== 'Deleted')) {
-          refMap[txn.reference] = txn;
-        }
-      }
-    });
-    
-    // Return transactions: keep only latest per reference, or keep all if no reference
-    const latestIds = new Set(Object.values(refMap).map(txn => txn.id));
-    return txns.filter(txn => {
-      if (!txn.reference) return true; // keep transactions without reference
-      return latestIds.has(txn.id); // keep only the latest per reference
-    });
-  };
-
-  const deduplicatedTransactions = getLatestTransactionPerReference(transactions);
-
-  const filteredTransactions = deduplicatedTransactions.filter(txn => {
-    if (filters.type !== 'all' && txn.type !== filters.type) return false;
-    if (filters.firm !== 'all' && txn.firm !== filters.firm) return false;
-    if (filters.gstType !== 'all' && txn.gstType !== parseInt(filters.gstType)) return false;
-    return true;
-  });
-
-  const stats = {
-    total: filteredTransactions.length,
-    totalAmount: filteredTransactions.reduce((sum, txn) => sum + txn.amount, 0),
-    byType: {
-      Challan: filteredTransactions.filter(t => t.type === 'Challan').length,
-      Bill: filteredTransactions.filter(t => t.type === 'Bill').length,
-      Prepaid: filteredTransactions.filter(t => t.type === 'Prepaid').length,
-      Due: filteredTransactions.filter(t => t.type === 'Due').length
-    }
-  };
+  if (loading) {
+    return <div className="p-6 text-sm text-gray-600">Loading transactions...</div>;
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Transaction History</h1>
-          <p className="text-gray-600">Unified history of all transactions</p>
+          <p className="text-gray-600">Unified history of bills and challans</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-500">
-          <h3 className="text-sm font-medium text-blue-800">Total Transactions</h3>
-          <p className="text-2xl font-bold text-blue-900">{stats.total}</p>
-        </div>
-        <div className="bg-green-50 p-4 rounded-lg border-l-4 border-l-green-500">
-          <h3 className="text-sm font-medium text-green-800">Total Amount</h3>
-          <p className="text-2xl font-bold text-green-900">₹{(stats.totalAmount / 100000).toFixed(1)}L</p>
-        </div>
+        <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-l-blue-500"><h3 className="text-sm font-medium text-blue-800">Total Transactions</h3><p className="text-2xl font-bold text-blue-900">{stats.total}</p></div>
+        <div className="bg-green-50 p-4 rounded-lg border-l-4 border-l-green-500"><h3 className="text-sm font-medium text-green-800">Total Amount</h3><p className="text-2xl font-bold text-green-900">Rs {(stats.totalAmount / 100000).toFixed(1)}L</p></div>
       </div>
 
       <div className="bg-white p-4 rounded-lg border">
         <h3 className="font-medium text-gray-900 mb-3">Transaction Breakdown</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <FaFileInvoiceDollar className="text-blue-600" />
-              <span className="text-sm font-medium">Challans</span>
-            </div>
-            <span className="text-lg font-bold text-blue-600">{stats.byType.Challan}</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <FaReceipt className="text-green-600" />
-              <span className="text-sm font-medium">Bills</span>
-            </div>
-            <span className="text-lg font-bold text-green-600">{stats.byType.Bill}</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <FaCheckCircle className="text-purple-600" />
-              <span className="text-sm font-medium">Prepaid</span>
-            </div>
-            <span className="text-lg font-bold text-purple-600">{stats.byType.Prepaid}</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <FaMoneyBillWave className="text-orange-600" />
-              <span className="text-sm font-medium">Due Amount</span>
-            </div>
-            <span className="text-lg font-bold text-orange-600">{stats.byType.Due}</span>
-          </div>
+          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg"><div className="flex items-center gap-2"><FaFileInvoiceDollar className="text-blue-600" /><span className="text-sm font-medium">Challans</span></div><span className="text-lg font-bold text-blue-600">{stats.byType.Challan}</span></div>
+          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg"><div className="flex items-center gap-2"><FaReceipt className="text-green-600" /><span className="text-sm font-medium">Bills</span></div><span className="text-lg font-bold text-green-600">{stats.byType.Bill}</span></div>
+          <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg"><div className="flex items-center gap-2"><FaCheckCircle className="text-purple-600" /><span className="text-sm font-medium">Prepaid</span></div><span className="text-lg font-bold text-purple-600">{stats.byType.Prepaid}</span></div>
+          <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg"><div className="flex items-center gap-2"><FaMoneyBillWave className="text-orange-600" /><span className="text-sm font-medium">Due</span></div><span className="text-lg font-bold text-orange-600">{stats.byType.Due}</span></div>
         </div>
       </div>
 
       <div className="bg-white p-4 rounded-lg border">
-        <div className="flex items-center gap-2 mb-4">
-          <FaFilter className="text-gray-500" />
-          <h3 className="font-medium text-gray-900">Filters</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Select
-            value={filters.type}
-            onChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
-          >
+        <div className="flex items-center gap-2 mb-4"><FaFilter className="text-gray-500" /><h3 className="font-medium text-gray-900">Filters</h3></div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Select value={filters.type} onChange={(value) => setFilters((prev) => ({ ...prev, type: value }))}>
             <option value="all">All Types</option>
             <option value="Challan">Challan</option>
             <option value="Bill">Bill</option>
             <option value="Prepaid">Prepaid</option>
-            <option value="Due">Due</option>
           </Select>
-          
-          <Select
-            value={filters.firm}
-            onChange={(value) => setFilters(prev => ({ ...prev, firm: value }))}
-          >
-            <option value="all">All Firms</option>
-            {firms.map(firm => (
-              <option key={firm} value={firm}>{firm}</option>
-            ))}
-          </Select>
-          
-          <Select
-            value={filters.gstType}
-            onChange={(value) => setFilters(prev => ({ ...prev, gstType: value }))}
-          >
-            <option value="all">All Types</option>
+
+          <Select value={filters.gstType} onChange={(value) => setFilters((prev) => ({ ...prev, gstType: value }))}>
+            <option value="all">All GST Types</option>
             <option value="1">1</option>
             <option value="0">0</option>
           </Select>
-          
-          <Input
-            type="date"
-            value={filters.dateFrom}
-            onChange={(value) => setFilters(prev => ({ ...prev, dateFrom: value }))}
-            placeholder="From Date"
-          />
-          
-          <Button
-            variant="outline"
-            onClick={() => setFilters({
-              dateFrom: '', dateTo: '', type: 'all', firm: 'all', gstType: 'all'
-            })}
-          >
-            Clear All
-          </Button>
+
+          <Input type="date" value={filters.dateFrom} onChange={(value) => setFilters((prev) => ({ ...prev, dateFrom: value }))} placeholder="From Date" />
+
+          <Button variant="outline" onClick={() => setFilters({ dateFrom: '', type: 'all', gstType: 'all' })}>Clear All</Button>
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredTransactions}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-        pageSize={15}
-      />
-
-      <Modal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        title="Edit Transaction"
-        size="md"
-      >
-        {editingTransaction && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Transaction ID</label>
-              <input
-                type="text"
-                value={editingTransaction.transactionId}
-                disabled
-                className="w-full px-3 py-2 border rounded-md bg-gray-100 cursor-not-allowed"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
-              <select
-                value={editingTransaction.type}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, type: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="Challan">Challan</option>
-                <option value="Bill">Bill</option>
-                <option value="Prepaid">Prepaid</option>
-                <option value="Due">Due</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Firm *</label>
-              <select
-                value={editingTransaction.firm}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, firm: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {firms.map(firm => (
-                  <option key={firm} value={firm}>{firm}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Party *</label>
-              <select
-                value={editingTransaction.party}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, party: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select Party</option>
-                {parties.map(party => (
-                  <option key={party} value={party}>{party}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
-              <input
-                type="number"
-                value={editingTransaction.amount}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, amount: e.target.value }))}
-                placeholder="Enter amount"
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">GST Type *</label>
-              <select
-                value={editingTransaction.gstType}
-                onChange={(e) => setEditingTransaction(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value={1}>1</option>
-                <option value={0}>0</option>
-              </select>
-            </div>
-            
-            <div className="flex gap-3 pt-4">
-              <Button 
-                onClick={handleEditTransaction}
-                disabled={!editingTransaction.party || !editingTransaction.amount}
-                className="flex items-center gap-2"
-              >
-                <FaEdit />
-                Update Transaction
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsEditModalOpen(false);
-                  setEditingTransaction(null);
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <DataTable columns={columns} data={filteredTransactions} searchable sortable pagination pageSize={15} />
     </div>
   );
 };

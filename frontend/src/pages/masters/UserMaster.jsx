@@ -223,7 +223,7 @@ const UserMaster = () => {
 
   const handleUpdateUser = async () => {
       try {
-        const updatedUser = { ...editingUser };
+        const updatedUser = { ...editingForm };
         if (newPassword) {
           updatedUser.password = newPassword;
         }

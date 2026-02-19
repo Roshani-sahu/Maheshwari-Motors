@@ -15,45 +15,57 @@ const INDIAN_STATES = [
   "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Lakshadweep", "Puducherry", "Ladakh", "Jammu and Kashmir"
 ];
 
+const INITIAL_FORM = {
+  name: '',
+  phone: '',
+  mobile: '',
+  email: '',
+  address: '',
+  city: '',
+  state: '',
+  gstNo: '',
+  category: '',
+  is_gst: 0,
+  cin: '',
+  reg_number: '',
+  bank_name: '',
+  bank_branch: '',
+  ifsc_code: '',
+  account_number: '',
+  transport_charge: '',
+  transport_id: '',
+  area_id: '',
+  agent: ''
+};
+
 const PartyMaster = () => {
   const { showToast } = useStore(); // Added hook usage
   const [parties, setParties] = useState([]);
   const [categories, setCategories] = useState([]);
   const [agents, setAgents] = useState([]);
+  const [transports, setTransports] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, party: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedParty, setSelectedParty] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    mobile: '',
-    email: '',
-    address: '',
-    city: '',
-    state: '',
-    gstNo: '',
-    category: '',
-    type: 0,
-    cin: '',
-    reg_number: '',
-    bank_name: '',
-    bank_branch: '',
-    ifsc_code: '',
-    account_number: '',
-    transport_charge: '',
-    area: '',
-    agent: ''
-  });
+  const [formData, setFormData] = useState(INITIAL_FORM);
+
+  const listFromResponse = (response) => {
+    const payload = response?.data?.data;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload)) return payload;
+    return [];
+  };
 
   // Fetch parties from backend
   useEffect(() => {
     const fetchParties = async () => {
       try {
-        const response = await api.get('/parties');
+        const response = await api.get('/contacts');
         console.log("Parties response:", response);
-        const backendParties = (response.data?.data?.data || []).map(p => ({
+        const backendParties = listFromResponse(response).map((p) => ({
           id: p._id,
           name: p.name,
           phone: p.phone || '',
@@ -63,8 +75,9 @@ const PartyMaster = () => {
           city: p.city || '',
           state: p.state || '',
           gstNo: p.gstin || '',
+          contact_type: p.type || 'party',
+          is_gst: Number(p.is_gst) === 1 ? 1 : 0,
           category: p.category_id || '',
-          type: p.type || 0,
           cin: p.cin || '',
           reg_number: p.reg_number || '',
           bank_name: p.bank_name || '',
@@ -72,6 +85,8 @@ const PartyMaster = () => {
           ifsc_code: p.ifsc_code || '',
           account_number: p.account_number || '',
           transport_charge: p.transport_charge || '',
+          transport_id: typeof p.transport_id === 'object' ? (p.transport_id?._id || '') : (p.transport_id || ''),
+          area_id: typeof p.area_id === 'object' ? (p.area_id?._id || '') : (p.area_id || ''),
           agent: p.agent_id || ''
         }));
         setParties(backendParties);
@@ -88,7 +103,7 @@ const PartyMaster = () => {
     const fetchCategories = async () => {
       try {
         const response = await api.get('/categories');
-        setCategories(response.data?.data?.data || []);
+        setCategories(listFromResponse(response));
       } catch (error) {
         console.error("Failed to fetch categories", error);
       }
@@ -101,12 +116,38 @@ const PartyMaster = () => {
     const fetchAgents = async () => {
       try {
         const response = await api.get('/agents');
-        setAgents(response.data?.data?.data || []);
+        setAgents(listFromResponse(response));
       } catch (error) {
         console.error("Failed to fetch agents", error);
       }
     };
     fetchAgents();
+  }, []);
+
+  // Fetch transports
+  useEffect(() => {
+    const fetchTransports = async () => {
+      try {
+        const response = await api.get('/transports');
+        setTransports(listFromResponse(response));
+      } catch (error) {
+        console.error("Failed to fetch transports", error);
+      }
+    };
+    fetchTransports();
+  }, []);
+
+  // Fetch areas
+  useEffect(() => {
+    const fetchAreas = async () => {
+      try {
+        const response = await api.get('/areas');
+        setAreas(listFromResponse(response));
+      } catch (error) {
+        console.error("Failed to fetch areas", error);
+      }
+    };
+    fetchAreas();
   }, []);
 
   const columns = [
@@ -189,15 +230,16 @@ const PartyMaster = () => {
 
     const payload = {
        name: formData.name,
+       type: 'party',
+       is_gst: Number(formData.is_gst) === 1 ? 1 : 0,
        phone: cleanPhone || undefined,
        mobile: formData.mobile || undefined,
        email: formData.email || undefined,
        address: formData.address || undefined,
        city: formData.city || undefined,
        state: formData.state || undefined,
-       gstin: formData.gstNo ? formData.gstNo.toUpperCase() : undefined,
+       gstin: Number(formData.is_gst) === 1 && formData.gstNo ? formData.gstNo.toUpperCase() : undefined,
        category_id: formData.category || undefined,
-       type: formData.type || 0,
        cin: formData.cin || undefined,
        reg_number: formData.reg_number || undefined,
        bank_name: formData.bank_name || undefined,
@@ -205,22 +247,23 @@ const PartyMaster = () => {
        ifsc_code: formData.ifsc_code || undefined,
        account_number: formData.account_number || undefined,
        transport_charge: formData.transport_charge || undefined,
-       area: formData.area || undefined,
+       transport_id: formData.transport_id || undefined,
+       area_id: formData.area_id || undefined,
        agent_id: formData.agent || undefined
     };
 
     try {
       if (isEditModalOpen) {
-        await api.put(`/parties/${selectedParty.id}`, payload);
+        await api.put(`/contacts/${selectedParty.id}`, payload);
         showToast('Party updated successfully', 'success');
       } else {
-        await api.post('/parties', payload);
+        await api.post('/contacts', payload);
         showToast('Party created successfully', 'success');
       }
       
       // Refresh list
-      const response = await api.get('/parties');
-      const backendParties = (response.data?.data?.data || []).map(p => ({
+      const response = await api.get('/contacts');
+      const backendParties = listFromResponse(response).map((p) => ({
         id: p._id,
         name: p.name,
         phone: p.phone || '',
@@ -230,8 +273,9 @@ const PartyMaster = () => {
         city: p.city || '',
         state: p.state || '',
         gstNo: p.gstin || '',
+        contact_type: p.type || 'party',
+        is_gst: Number(p.is_gst) === 1 ? 1 : 0,
         category: p.category_id || '',
-        type: p.type || 0,
         cin: p.cin || '',
         reg_number: p.reg_number || '',
         bank_name: p.bank_name || '',
@@ -239,14 +283,15 @@ const PartyMaster = () => {
         ifsc_code: p.ifsc_code || '',
         account_number: p.account_number || '',
         transport_charge: p.transport_charge || '',
-        area: p.area || '',
+        transport_id: typeof p.transport_id === 'object' ? (p.transport_id?._id || '') : (p.transport_id || ''),
+        area_id: typeof p.area_id === 'object' ? (p.area_id?._id || '') : (p.area_id || ''),
         agent: p.agent_id || ''
       }));
       setParties(backendParties);
       
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
-      setFormData({ name: '', phone: '', mobile: '', email: '', address: '', city: '', state: '', gstNo: '', category: '', type: 0, cin: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '', transport_charge: '', area: '', agent: '' });
+      setFormData(INITIAL_FORM);
       setSelectedParty(null);
     } catch (error) {
       console.error("Party submit error:", error);
@@ -261,7 +306,7 @@ const PartyMaster = () => {
   const handleDelete = async () => {
     if (!deleteDialog.party) return;
     try {
-       await api.delete(`/parties/${deleteDialog.party.id}`);
+       await api.delete(`/contacts/${deleteDialog.party.id}`);
        showToast('Party deleted successfully', 'success');
        setParties(parties.filter(p => p.id !== deleteDialog.party.id));
        setDeleteDialog({ isOpen: false, party: null });
@@ -276,7 +321,7 @@ const PartyMaster = () => {
   };
 
   const openAddModal = () => {
-    setFormData({ name: '', phone: '', mobile: '', email: '', address: '', city: '', state: '', gstNo: '', category: '', type: 0, cin: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '', transport_charge: '', area: '', agent: '' });
+    setFormData(INITIAL_FORM);
     setIsAddModalOpen(true);
   };
 
@@ -354,11 +399,23 @@ const PartyMaster = () => {
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type</label>
-                <p className="text-sm text-gray-900">{selectedParty.type || 'customer'}</p>
+                <p className="text-sm text-gray-900">{selectedParty.contact_type || 'party'}</p>
               </div>
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Area</label>
-                <p className="text-sm text-gray-900">{selectedParty.area || 'N/A'}</p>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST Type</label>
+                <p className="text-sm text-gray-900">{selectedParty.is_gst === 1 ? 'GST' : 'Non-GST'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Area Mapping</label>
+                <p className="text-sm text-gray-900">
+                  {areas.find((a) => a._id === selectedParty.area_id)?.city
+                    ? `${areas.find((a) => a._id === selectedParty.area_id)?.city} - ${areas.find((a) => a._id === selectedParty.area_id)?.state || ''}`
+                    : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Transport Mapping</label>
+                <p className="text-sm text-gray-900">{transports.find((t) => t._id === selectedParty.transport_id)?.name || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
@@ -423,7 +480,7 @@ const PartyMaster = () => {
           setIsAddModalOpen(false);
           setIsEditModalOpen(false);
           setSelectedParty(null);
-          setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '', category: '' });
+          setFormData(INITIAL_FORM);
         }} 
         title={isEditModalOpen ? 'Edit Party' : 'Add New Party'} 
         size="md"
@@ -435,26 +492,22 @@ const PartyMaster = () => {
           </div>
           
           <div>
-            {/* <label className="block text-sm font-medium text-gray-700 mb-1">Type</label> */}
+            {/* <label className="block text-sm font-medium text-gray-700 mb-1">GST Type</label> */}
             <div className="flex items-center gap-3">
-              {/* <span className="text-xs sm:text-sm text-gray-700">Type 0</span> */}
+              {/* <span className="text-xs sm:text-sm text-gray-700">Non-GST</span> */}
               <div
-                onClick={() => setFormData(prev => ({ ...prev, type: prev.type === 0 ? 1 : 0 }))}
+                onClick={() => setFormData((prev) => ({ ...prev, is_gst: prev.is_gst === 0 ? 1 : 0 }))}
                 className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
-                  formData.type === 1
-                    ? 'bg-green-500'
-                    : 'bg-gray-300'
+                  formData.is_gst === 1 ? 'bg-green-500' : 'bg-gray-300'
                 }`}
               >
                 <div
                   className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
-                    formData.type === 1
-                      ? 'translate-x-7'
-                      : 'translate-x-0'
+                    formData.is_gst === 1 ? 'translate-x-7' : 'translate-x-0'
                   }`}
                 />
               </div>
-              {/* <span className="text-xs sm:text-sm text-gray-700">Type 1</span> */}
+              {/* <span className="text-xs sm:text-sm text-gray-700">GST</span> */}
             </div>
           </div>
 
@@ -495,13 +548,24 @@ const PartyMaster = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Area</label>
-              <input type="text" name="area" value={formData.area} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Area" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Transport mapping</label>
+              <select name="transport_id" value={formData.transport_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Select Transport</option>
+                {transports.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+              </select>
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Area mapping</label>
+              <select name="area_id" value={formData.area_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Select Area</option>
+                {areas.map((a) => <option key={a._id} value={a._id}>{a.city} - {a.state}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
               <input type="number" name="transport_charge" value={formData.transport_charge} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0" />
-            </div>
           </div>
 
           <div>
@@ -568,7 +632,7 @@ const PartyMaster = () => {
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
                 setSelectedParty(null);
-                setFormData({ name: '', phone: '', email: '', address: '', city: '', state: '', gstNo: '', category: '' });
+                setFormData(INITIAL_FORM);
               }}
             >
               Cancel

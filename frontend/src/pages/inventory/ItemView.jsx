@@ -23,11 +23,11 @@ const ItemView = () => {
             
             const catList = catRes.data?.data;
             const finalCats = Array.isArray(catList) ? catList : (catList?.data || []);
-            setCategories(finalCats.map(c => ({ id: c._id, name: c.name })));
+            setCategories(finalCats.map(c => ({ id: c._id, name: c.category_name || c.name })));
             
             const brandList = brandRes.data?.data;
             const finalBrands = Array.isArray(brandList) ? brandList : (brandList?.data || []);
-            setBrands(finalBrands.map(b => ({ id: b._id, name: b.name })));
+            setBrands(finalBrands.map(b => ({ id: b._id, name: b.brand_name || b.name })));
 
             // Fetch Items - Loop paging
             let allDocs = [];

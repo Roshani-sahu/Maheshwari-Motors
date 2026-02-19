@@ -1,88 +1,93 @@
 import api from '../../services/axiosInstance';
-import React, { useState, useEffect } from 'react';
-import { FaUser, FaCalendar, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
-import useStore from '../../store';
+import  { useState, useEffect } from 'react';
+import { FaUser,  FaEnvelope, FaPhone } from 'react-icons/fa';
 
 const UserProfile = () => {
-  const { user, setUser, showToast } = useStore();
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ challans: 0, bills: 0, items: 0 });
+  const [dashboardData, setDashboardData] = useState({
+    todaysChallans: 0,
+    todaysBills: 0,
+    lowStockAlerts: 0
+  });
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
     phone: '',
     type: '',
     role: '',
-    firm_data: null,
+    current_firm_type: '',
     is_active: false,
-    createdAt: ''
+    createdAt: '',
+    admin: {},
+    gst_firm: {},
+    nongst_firm: {}
   });
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const controller = new AbortController();
+
+    const fetchProfileAndStats = async () => {
+      setLoading(true);
       try {
-        const res = await api.get('/auth/me');
-        const userData = res.data.data;
-        console.log('Profile Data:', userData);
-        
-        const firmData = userData.current_firm_type === 'GST' 
-          ? { ...userData.gst_firm, firm_type: 'GST' }
-          : { ...userData.nongst_firm, firm_type: 'NON_GST' };
-        
-        console.log('Firm Data:', firmData);
-        console.log('Current firm type:', userData.current_firm_type);
-        
+        const profileRes = await api.get('/auth/me', { signal: controller.signal });
+        const userData = profileRes?.data?.data || {};
+
         setProfileData({
-          name: userData.name || '',
-          email: userData.email || '',
-          phone: userData.phone || '',
-          type: userData.type || '',
-          role: userData.current_role || '',
-          firm_data: firmData,
-          is_active: userData.is_active || false,
-          createdAt: userData.createdAt || ''
+          name: userData?.name || '',
+          email: userData?.email || '',
+          phone: userData?.phone || '',
+          type: userData?.type || '',
+          role: userData?.current_role || userData?.role || '',
+          current_firm_type: userData?.current_firm_type || '',
+          is_active: Boolean(userData?.is_active),
+          createdAt: userData?.createdAt || '',
+          admin: userData?.admin || {},
+          gst_firm: userData?.gst_firm || {},
+          nongst_firm: userData?.nongst_firm || {}
+        });
+
+        const [dashboardRes, lowStockRes] = await Promise.all([
+          api.get('/dashboard', { signal: controller.signal }),
+          api.get('/items/low-stock', { params: { page: 1, limit: 200 }, signal: controller.signal })
+        ]);
+
+        const data = dashboardRes?.data?.data || {};
+        const counts = data?.counts || {};
+        const isGst = String(userData?.current_firm_type || '').toUpperCase() === 'GST';
+
+        const lowStockPayload = lowStockRes?.data?.data;
+        const lowStockCount = Array.isArray(lowStockPayload)
+          ? lowStockPayload.length
+          : (Array.isArray(lowStockPayload?.data) ? lowStockPayload.data.length : (lowStockPayload?.meta?.totalDocs || 0));
+
+        setDashboardData({
+          todaysChallans: isGst ? Number(counts?.gst_challans || 0) : Number(counts?.nongst_challans || 0),
+          todaysBills: isGst ? Number(counts?.gst_bills || 0) : Number(counts?.nongst_bills || 0),
+          lowStockAlerts: Number(lowStockCount || 0)
         });
       } catch (err) {
-        console.error('Failed to fetch profile', err);
+        if (err?.name !== 'CanceledError') {
+          console.error('Failed to fetch profile/stats', err);
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    const fetchStats = async () => {
-      try {
-        const [challansRes, billsRes, itemsRes] = await Promise.all([
-          challanAPI.getAll(),
-          billAPI.getAll(),
-          itemAPI.getAll()
-        ]);
-        setStats({
-          challans: challansRes.data?.data?.length || 0,
-          bills: billsRes.data?.data?.length || 0,
-          items: itemsRes.data?.data?.length || 0
-        });
-      } catch (err) {
-        console.error('Failed to fetch stats', err);
-      }
-    };
-
-    fetchProfile();
-    fetchStats();
+    fetchProfileAndStats();
+    return () => controller.abort();
   }, []);
 
-  const handleSave = async () => {
-    try {
-      // Assuming endpoint for update
-      await api.put('/auth/profile', profileData);
-      setUser({ ...user, ...profileData });
-      setIsEditing(false);
-      showToast('Profile updated successfully', 'success');
-    } catch (err) {
-      showToast('Failed to update profile', 'error');
-    }
-  };
+  const view = (value) => (value !== undefined && value !== null && String(value).trim() !== '' ? String(value) : 'N/A');
+  const isGstLogin = String(profileData.current_firm_type || '').toUpperCase() === 'GST';
+  const activeFirm = isGstLogin ? profileData.gst_firm : profileData.nongst_firm;
 
+  const renderField = (label, value, mono = false) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <p className={`text-gray-900 py-2 ${mono ? 'font-mono' : ''}`}>{view(value)}</p>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -93,194 +98,102 @@ const UserProfile = () => {
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
         </div>
       ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Card */}
-        <div className="lg:col-span-2">
-          <div className="bg-white p-6 rounded-lg border">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                  <FaUser className="text-2xl text-blue-600" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div className="bg-white p-6 rounded-lg border">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                    <FaUser className="text-2xl text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">{view(profileData.name)}</h2>
+                    <p className="text-gray-600">{view(profileData.role)} - {view(profileData.current_firm_type)}</p>
+                    <p className="text-sm text-gray-500">{profileData.is_active ? 'Active' : 'Inactive'}</p>
+                  </div>
                 </div>
+              </div>
+
+              <div className="space-y-8">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">{profileData.name}</h2>
-                  <p className="text-gray-600">{profileData.role} - {profileData.firm_data?.firm_type || 'N/A'}</p>
-                  <p className="text-sm text-gray-500">{profileData.is_active ? 'Active' : 'Inactive'}</p>
-                </div>
-              </div>
-             
-            </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1"><FaUser className="inline mr-2" />Name</label>
+                      <p className="text-gray-900 py-2">{view(profileData.name)}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1"><FaEnvelope className="inline mr-2" />Email</label>
+                      <p className="text-gray-900 py-2">{view(profileData.email)}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1"><FaPhone className="inline mr-2" />Phone</label>
+                      <p className="text-gray-900 py-2">{view(profileData.phone)}</p>
+                    </div>
+                    {/* <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1"><FaCalendar className="inline mr-2" />Member Since</label>
+                      <p className="text-gray-900 py-2">{profileData.createdAt ? new Date(profileData.createdAt).toLocaleDateString() : 'N/A'}</p>
+                    </div> */}
+                                        {renderField('Username', profileData.admin?.username)}
 
-            <div className="space-y-6">
-              {/* Personal Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      <FaUser className="inline mr-2" />
-                      Name
-                    </label>
-                    <p className="text-gray-900 py-2">{profileData.name}</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      <FaEnvelope className="inline mr-2" />
-                      Email
-                    </label>
-                    <p className="text-gray-900 py-2">{profileData.email}</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      <FaPhone className="inline mr-2" />
-                      Phone
-                    </label>
-                    <p className="text-gray-900 py-2">{profileData.phone}</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      <FaCalendar className="inline mr-2" />
-                      Member Since
-                    </label>
-                    <p className="text-gray-900 py-2">{new Date(profileData.createdAt).toLocaleDateString()}</p>
                   </div>
                 </div>
-              </div>
 
-              {/* Firm Details */}
-              {profileData.firm_data && (
-                <>
+                {/* <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Admin Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderField('Password', profileData.admin?.password || '********', true)}
+                  </div>
+                </div> */}
+
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    {isGstLogin ? 'GST Firm Details' : 'Non-GST Firm Details'}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {renderField('Firm Name', activeFirm?.name)}
+                    {renderField('Username', activeFirm?.username)}
+                    {renderField('Phone', activeFirm?.phone)}
+                    {renderField('Email', activeFirm?.email)}
+                    {renderField('Address', activeFirm?.address)}
+                    {renderField('City', activeFirm?.city)}
+                    {renderField('State', activeFirm?.state)}
+                    {isGstLogin && renderField('Godown Address', activeFirm?.godown_address)}
+                    {isGstLogin && renderField('GSTIN', activeFirm?.GSTIN, true)}
+                    {isGstLogin && renderField('CIN', activeFirm?.CIN, true)}
+                    {isGstLogin && renderField('Registration Number', activeFirm?.reg_number, true)}
+                  </div>
+                </div>
+
+                {isGstLogin && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">{profileData.firm_data.firm_type} Firm Details</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">GST Bank Details</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Firm Type</label>
-                        <p className="text-gray-900 py-2">{profileData.firm_data.firm_type}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Firm Name</label>
-                        <p className="text-gray-900 py-2">{profileData.firm_data.name}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                        <p className="text-gray-900 py-2">{profileData.firm_data.username}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Firm Email</label>
-                        <p className="text-gray-900 py-2">{profileData.firm_data.email}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Firm Phone</label>
-                        <p className="text-gray-900 py-2">{profileData.firm_data.phone}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                        <p className="text-gray-900 py-2">{profileData.firm_data.city || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                        <p className="text-gray-900 py-2">{profileData.firm_data.state || 'N/A'}</p>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Business Address</label>
-                        <p className="text-gray-900 py-2">{profileData.firm_data.address || 'N/A'}</p>
-                      </div>
-                      {profileData.firm_data.godown_address && (
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Godown/Warehouse Address</label>
-                          <p className="text-gray-900 py-2">{profileData.firm_data.godown_address}</p>
-                        </div>
-                      )}
+                      {renderField('Bank Name', activeFirm?.bank_name)}
+                      {renderField('Bank Branch', activeFirm?.bank_branch)}
+                      {renderField('IFSC Code', activeFirm?.ifsc_code, true)}
+                      {renderField('Account Number', activeFirm?.account_number, true)}
                     </div>
                   </div>
-
-                  {/* GST-Specific Details */}
-                  {profileData.firm_data.firm_type === 'GST' && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">GST & Registration Details</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {profileData.firm_data.GSTIN && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
-                            <p className="text-gray-900 py-2 font-mono">{profileData.firm_data.GSTIN}</p>
-                          </div>
-                        )}
-                        {profileData.firm_data.CIN && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">CIN</label>
-                            <p className="text-gray-900 py-2 font-mono">{profileData.firm_data.CIN}</p>
-                          </div>
-                        )}
-                        {profileData.firm_data.reg_number && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
-                            <p className="text-gray-900 py-2 font-mono">{profileData.firm_data.reg_number}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bank Details */}
-                  {profileData.firm_data.firm_type === 'GST' && profileData.firm_data.bank_name && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Bank Details</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
-                          <p className="text-gray-900 py-2">{profileData.firm_data.bank_name}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Branch Name</label>
-                          <p className="text-gray-900 py-2">{profileData.firm_data.bank_branch || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
-                          <p className="text-gray-900 py-2 font-mono">{profileData.firm_data.account_number || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
-                          <p className="text-gray-900 py-2 font-mono">{profileData.firm_data.ifsc_code || 'N/A'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>  
-
-        {/* Activity Sidebar */}
-        <div className="space-y-6">
-          {/* Stats Card */}
-          <div className="bg-white p-6 rounded-lg border">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Challans</span>
-                <span className="font-semibold">{stats.challans}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Bills</span>
-                <span className="font-semibold">{stats.bills}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Items</span>
-                <span className="font-semibold">{stats.items}</span>
+                )}
               </div>
             </div>
           </div>
 
-         
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-lg border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between"><span className="text-gray-600">Total Challans</span><span className="font-semibold">{dashboardData?.todaysChallans || 0}</span></div>
+                <div className="flex justify-between"><span className="text-gray-600">Total Bills</span><span className="font-semibold">{dashboardData?.todaysBills || 0}</span></div>
+                <div className="flex justify-between"><span className="text-gray-600">Total Low Stock Alerts</span><span className="font-semibold">{dashboardData?.lowStockAlerts || 0}</span></div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
       )}
     </div>
   );

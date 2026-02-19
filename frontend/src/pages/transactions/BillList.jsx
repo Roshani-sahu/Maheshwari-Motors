@@ -21,8 +21,8 @@ const BillList = () => {
            id: b._id,
            billNo: b.bill_no,
            date: b.date,
-           party: b.party_id?.name || 'Unknown',
-           amount: b.amount,
+           party: b.contact_id?.name || b.party_id?.name || 'Unknown',
+           amount: b.amount || b.total_amount || 0,
            linkedChallans: b.challan_ids?.map(c => c.challan_no) || [],
            gstType: b.is_gst
         }));

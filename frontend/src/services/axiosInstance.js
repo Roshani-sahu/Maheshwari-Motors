@@ -1,57 +1,53 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api-maheshwari-motors.koyeb.app/api/v1';
-
-console.log('🔧 API Configuration:', {
-  VITE_API_URL: import.meta.env.VITE_API_URL,
-  API_BASE_URL,
-  MODE: import.meta.env.MODE,
-  DEV: import.meta.env.DEV,
-  PROD: import.meta.env.PROD
-});
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+let isHandlingUnauthorized = false;
+const AUTH_OPTIONAL_PATHS = ['/auth/login', '/auth/admin/register', '/health'];
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
   withCredentials: false,
 });
 
-// Request interceptor for auth token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  } else if (!config.url.includes('/auth/login')) {
-    console.warn('No auth token found for request:', config.url);
+  const requestUrl = config.url || '';
+  const needsAuth = !AUTH_OPTIONAL_PATHS.some((path) => requestUrl.includes(path));
+
+  if (needsAuth && !token) {
+    const error = new Error('Missing authentication token');
+    error.code = 'MISSING_TOKEN';
+    return Promise.reject(error);
   }
 
-  // 🛡️ Monitor deletion (Safe now that frontend is fixed)
-  if (config.method === 'delete') {
-    console.log(`🗑️ DELETE Request Initiated: ${config.url}`);
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;
 });
 
-// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isHandlingUnauthorized) {
+      isHandlingUnauthorized = true;
       localStorage.removeItem('token');
+
       if (!window.location.pathname.includes('/login')) {
-         window.location.href = '/login';
+        window.location.href = '/login';
       }
+
+      setTimeout(() => {
+        isHandlingUnauthorized = false;
+      }, 300);
     }
+
     return Promise.reject(error);
   }
 );

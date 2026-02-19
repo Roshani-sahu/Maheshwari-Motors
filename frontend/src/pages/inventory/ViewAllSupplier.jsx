@@ -6,26 +6,36 @@ const ViewAllSupplier = () => {
   const [suppliers, setSuppliers] = useState([]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchSuppliers = async () => {
       try {
-        const response = await api.get('/suppliers');
-        const val = response.data?.data;
-        const list = Array.isArray(val) ? val : (val?.data || []);
-        setSuppliers(list.map(s => ({
-            id: s._id,
-            name: s.name,
-            contact: s.phone,
-            email: s.email,
-            address: s.address,
-            city: s.city,
-            state: s.state,
-            gstin: s.gstin
+        const response = await api.get('/contacts', {
+          params: { page: 1, limit: 200, type: 'supplier' },
+          signal: controller.signal
+        });
+        const payload = response?.data?.data;
+        const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
+
+        setSuppliers(list.map((s) => ({
+          id: s._id,
+          name: s.name,
+          contact: s.phone,
+          email: s.email,
+          address: s.address,
+          city: s.city,
+          state: s.state,
+          gstin: s.gstin
         })));
       } catch (error) {
-        console.error("Failed to fetch suppliers", error);
+        if (error?.name !== 'CanceledError') {
+          console.error('Failed to fetch suppliers', error);
+        }
       }
     };
+
     fetchSuppliers();
+    return () => controller.abort();
   }, []);
 
   const columns = [
@@ -47,13 +57,7 @@ const ViewAllSupplier = () => {
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={suppliers}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-      />
+      <DataTable columns={columns} data={suppliers} searchable sortable pagination />
     </div>
   );
 };

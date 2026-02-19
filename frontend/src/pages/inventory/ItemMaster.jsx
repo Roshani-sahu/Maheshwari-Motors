@@ -25,9 +25,8 @@ const ItemMaster = () => {
               const [catRes, brandRes, supplierRes, hsnRes] = await Promise.all([
                   api.get('/categories'),
                   api.get('/brands'),
-                  api.get('/suppliers'),
-                  // api.get('/hsns')
-                  api.get('/categories'),
+                  api.get('/contacts', { params: { type: 'supplier', page: 1, limit: 200 } }),
+                  api.get('/hsn', { params: { page: 1, limit: 200 } }),
               ]);
               const getList = (res) => {
                   const val = res.data?.data;
@@ -36,7 +35,7 @@ const ItemMaster = () => {
               setCategories(getList(catRes).map(c => ({ id: c._id, name: c.name })));
               setBrands(getList(brandRes).map(b => ({ id: b._id, name: b.name })));
               setSuppliers(getList(supplierRes).map(s => ({ id: s._id, name: s.name })));
-              setHsns(getList(hsnRes).filter(h => h.is_active !== false));
+              setHsns(getList(hsnRes).filter(h => h.is_active !== false).map(h => ({ ...h, hsn_number: h.hsn_code, gst_percentage: h.gst_rate })));
           } catch (e) { console.error(e); }
       };
       fetchCategories();
@@ -84,7 +83,7 @@ const ItemMaster = () => {
           type: item.is_gst,
           categoryId: item.category_id || item.category_ids?.[0],
           brandId: item.brand_id,
-          supplierId: item.supplier_id,
+          supplierId: item.contact_id || item.supplier_id,
           hsn_code: item.hsn_code,
           description: item.description,
           gst_percent: item.gst_percent || 0,
@@ -211,7 +210,7 @@ const ItemMaster = () => {
         if (editingItem.gst_percent) formData.append('gst_percent', editingItem.gst_percent);
         if (editingItem.categoryId) formData.append('category_id', editingItem.categoryId);
         if (editingItem.brandId) formData.append('brand_id', editingItem.brandId);
-        if (editingItem.supplierId) formData.append('supplier_id', editingItem.supplierId);
+        if (editingItem.supplierId) formData.append('contact_id', editingItem.supplierId);
         if (editingItem.hsn_code) formData.append('hsn_code', editingItem.hsn_code);
         if (editingItem.description) formData.append('description', editingItem.description);
         
@@ -243,7 +242,7 @@ const ItemMaster = () => {
             type: item.is_gst,
             categoryId: item.category_id || item.category_ids?.[0],
             brandId: item.brand_id,
-            supplierId: item.supplier_id,
+            supplierId: item.contact_id || item.supplier_id,
             hsn_code: item.hsn_code,
             description: item.description,
             gst_percent: item.gst_percent || 0,

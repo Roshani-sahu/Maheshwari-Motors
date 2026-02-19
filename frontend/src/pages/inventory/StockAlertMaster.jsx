@@ -13,7 +13,7 @@ const StockAlertMaster = () => {
     const fetchData = async () => {
         try {
             const [itemsRes, catRes, brandRes] = await Promise.all([
-                api.get('/stock-alerts/items'),
+                api.get('/items/low-stock', { params: { page: 1, limit: 200 } }),
                 api.get('/categories'),
                 api.get('/brands')
             ]);

@@ -25,8 +25,7 @@ const Dashboard = () => {
   /* REMOVED DUMMY DATA */
 
   const { 
-    challans, setChallans, 
-    bills, setBills, 
+   
     setItems, // to update global state
     user, setFirm,
   } = useStore();
@@ -76,14 +75,17 @@ const Dashboard = () => {
         // Fetch General Dashboard Data (Big Object), Items (for stock), and Alert Count
         const [dashboardRes, itemRes, alertCountRes] = await Promise.all([
              api.get('/dashboard'),
-             api.get('/items', { params: { firmId: currentFirmId } }),
-             api.get('/stock-alerts/count')
+             api.get('/items', { params: { page: 1, limit: 100 } }),
+             api.get('/items/low-stock', { params: { page: 1, limit: 100 } })
         ]);
         
         const data = dashboardRes.data?.data || {};
         const items = Array.isArray(itemRes.data?.data) ? itemRes.data.data : (Array.isArray(itemRes.data) ? itemRes.data : []);
         // Get alert count safely
-        const alertCountVal = alertCountRes?.data?.data?.count || 0;
+        const alertPayload = alertCountRes?.data?.data;
+        const alertCountVal = Array.isArray(alertPayload)
+          ? alertPayload.length
+          : (Array.isArray(alertPayload?.data) ? alertPayload.data.length : (alertPayload?.meta?.totalDocs || 0));
 
         // Counts based on Firm Selection
         let totalChallans = 0;

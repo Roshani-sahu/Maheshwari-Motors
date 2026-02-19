@@ -11,7 +11,7 @@ const ViewCategory = () => {
             const res = await api.get('/categories');
             const list = res.data?.data;
             const final = Array.isArray(list) ? list : (list?.data || []);
-            setCategories(final.map(c => ({ id: c._id, name: c.name })));
+            setCategories(final.map(c => ({ id: c._id, name: c.category_name || c.name })));
         } catch(e) { console.error(e); }
     };
     fetchCats();

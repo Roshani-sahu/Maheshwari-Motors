@@ -32,10 +32,10 @@ const ChallanForm = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pRes, iRes, discRes] = await Promise.all([
-          api.get('/parties', { params: { page: 1, limit: 200 } }),
+        const [pRes, iRes, brandRes] = await Promise.all([
+          api.get('/contacts', { params: { page: 1, limit: 200, type: 'party' } }),
           api.get('/items', { params: { page: 1, limit: 50, search: '' } }),
-          api.get('/discounts')
+          api.get('/brands', { params: { page: 1, limit: 200 } })
         ]);
 
         const getList = (res) => {
@@ -59,32 +59,26 @@ const ChallanForm = () => {
         setLoadedParties(partiesData);
         setLoadedItems(itemsData);
 
-        // Build discount map
-        try {
-          const discountList = Array.isArray(discRes.data?.data) ? discRes.data.data : (discRes.data?.data?.data || []);
-          const discountMap = {};
-          discountList.forEach(d => {
-            if (d.brand_id) {
-              const bId = typeof d.brand_id === 'object' ? d.brand_id._id : d.brand_id;
-              discountMap[bId] = {
-                discount1: d.discount1 || { normal: 0, special: 0 },
-                discount2: d.discount2 || { normal: 0, special: 0 }
-              };
-            }
-          });
-          setLoadedDiscounts(discountMap);
-        } catch (e) {
-          console.warn('Failed to parse discounts', e);
-        }
+        const brandList = getList(brandRes);
+        const discountMap = {};
+        brandList.forEach((b) => {
+          if (b?._id) {
+            discountMap[b._id] = {
+              discount1: b.discount1 || { normal: 0, special: 0 },
+              discount2: b.discount2 || { normal: 0, special: 0 }
+            };
+          }
+        });
+        setLoadedDiscounts(discountMap);
 
         const itemsResponse = iRes.data?.data || iRes.data;
         setTotalItemsPages(itemsResponse?.totalPages || 1);
 
         if (isEditMode) {
           const challanRes = await api.get(`/challans/${id}`);
-          const challanData = challanRes.data;
+          const challanData = challanRes.data?.data || challanRes.data || {};
           setChallan({
-            party: challanData.party_id?._id || challanData.party_id,
+            party: challanData.contact_id?._id || challanData.contact_id || challanData.party_id?._id || challanData.party_id,
             items: challanData.items?.map(i => i.item_id?._id || i.item_id) || [],
             gstType: challanData.is_gst,
             date: new Date(challanData.date).toISOString().split('T')[0],
@@ -255,24 +249,24 @@ const ChallanForm = () => {
     try {
       const totalAmount = calculateTotalAmount();
       const payload = {
+        challan_type: 'sale',
         date: challan.date,
-        party_id: challan.party,
+        contact_id: challan.party,
+        is_gst: challan.gstType,
         items: challan.items.map(itemId => {
           const item = loadedItems.find(i => i.id === itemId);
           const details = challan.itemDetails[itemId] || {};
-          const calc = calculateItemAmount(itemId);
           return {
             item_id: itemId,
             quantity: parseFloat(details.pcs || 1),
             rate: parseFloat(details.rate || item?.amount || 0),
-            amount: calc.afterDiscount,
-            gross_amount: calc.afterDiscount
+            discount: parseFloat(details.disPercent || 0),
+            special_discount: parseFloat(details.spDis || 0),
+            gst_percent: parseFloat(details.gstPercent || 0),
+            is_gst: challan.gstType
           };
         }),
-        amount: totalAmount,
-        gross_total: totalAmount,
-        sub_total: totalAmount,
-        is_gst: challan.gstType
+        discount: 0
       };
 
       if (isEditMode) {
@@ -296,7 +290,7 @@ const ChallanForm = () => {
         <h1 className="text-2xl font-bold text-gray-900">
           {isEditMode ? 'Edit Challan' : 'Create Challan'}
         </h1>
-        <Button variant="outline" onClick={() => navigate('/transactions/challans')}>
+        <Button variant="outline" onClick={() => navigate('/transactions/challan-list')}>
           Back to List
         </Button>
       </div>
@@ -603,7 +597,7 @@ const ChallanForm = () => {
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate('/transactions/challans')}
+            onClick={() => navigate('/transactions/challan-list')}
           >
             Cancel
           </Button>

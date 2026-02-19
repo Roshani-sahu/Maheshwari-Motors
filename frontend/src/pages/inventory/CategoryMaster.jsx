@@ -9,74 +9,58 @@ const CategoryMaster = () => {
   const { showToast } = useStore();
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, category: null });
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const listFromResponse = (res) => {
+    const payload = res?.data?.data;
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    return [];
+  };
 
-  const fetchData = async () => {
+  const fetchData = async (signal) => {
     try {
-      // Helper function to fetch all pages from an API endpoint
-      const fetchAllPages = async (endpoint) => {
-          let allDocs = [];
-          let page = 1;
-          let hasMore = true;
-          while(hasMore) {
-              const res = await api.get(endpoint, { params: { page, limit: 100 } });
-              let pageData = [];
-              const payload = res.data?.data;
-
-              if (Array.isArray(payload)) {
-                  pageData = payload;
-                  hasMore = false;
-              } else {
-                  pageData = payload?.data || [];
-                  if (payload?.meta && payload.meta.hasNextPage) {
-                      page++;
-                  } else {
-                      hasMore = false;
-                  }
-              }
-              allDocs = [...allDocs, ...pageData];
-              if (page > 50) break;
-          }
-          return allDocs;
-      };
-
-      const [catList, brandList] = await Promise.all([
-        fetchAllPages('/categories'),
-        fetchAllPages('/brands')
+      const [catRes, brandRes] = await Promise.all([
+        api.get('/categories', { params: { page: 1, limit: 200 }, signal }),
+        api.get('/brands', { params: { page: 1, limit: 200 }, signal })
       ]);
 
-      setCategories(catList.map(c => ({ 
-        id: c._id, 
-        name: c.name,
-        // Brands in category might be populated or just IDs. Ideally backend should populate them.
-        // If not populated, we might only have IDs.
-        brands: c.brand_ids?.map(bid => {
-            const b = brandList.find(bl => bl._id === bid || bl._id === bid._id);
-            return b ? { id: b._id, name: b.name } : null;
-        }).filter(Boolean) || []
-      })));
+      const brandList = listFromResponse(brandRes).map((b) => ({ id: b._id, name: b.brand_name || b.name || '' }));
+      const categoryList = listFromResponse(catRes).map((c) => ({
+        id: c._id,
+        name: c.category_name || c.name || '',
+        brands: (c.brands || c.brand_ids || []).map((raw) => {
+          const id = typeof raw === 'object' ? raw._id : raw;
+          const matched = brandList.find((b) => b.id === id);
+          return matched ? { ...matched } : null;
+        }).filter(Boolean)
+      }));
 
-      setBrands(brandList.map(b => ({ id: b._id, name: b.name, items: b.item_ids || [] })));
-
+      setBrands(brandList);
+      setCategories(categoryList);
     } catch (error) {
-      console.error("Failed to fetch data", error);
-      showToast('Failed to load data', 'error');
+      if (error?.name !== 'CanceledError') {
+        showToast('Failed to load data', 'error');
+      }
     }
   };
 
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, []);
+
   const columns = [
     { key: 'id', label: 'Category ID', render: (val) => <span className="text-xs">{val?.slice(-4)}</span> },
-    { key: 'name', label: 'Category Name' }
+    { key: 'name', label: 'Category Name' },
+    { key: 'brands', label: 'Brands', render: (value) => `${value?.length || 0}` }
   ];
 
   const actions = [
@@ -92,70 +76,80 @@ const CategoryMaster = () => {
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (category) => {
-        setDeleteDialog({ isOpen: true, category });
-      },
+      onClick: (category) => setDeleteDialog({ isOpen: true, category }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
+  const payload = () => ({
+    category_name: newCategoryName?.trim(),
+    brands: selectedBrands.map((b) => b.id)
+  });
+
   const handleAddCategory = async () => {
+    if (!newCategoryName?.trim() || submitting) {
+      showToast('Category name is required', 'error');
+      return;
+    }
+
+    setSubmitting(true);
     try {
-        await api.post('/categories', { 
-            category_name: newCategoryName,
-            brands: selectedBrands.map(b => b.id)
-        });
-        showToast('Category added successfully', 'success');
-        setNewCategoryName('');
-        setSelectedBrands([]);
-        setIsAddModalOpen(false);
-        fetchData();
+      await api.post('/categories', payload());
+      showToast('Category added successfully', 'success');
+      setNewCategoryName('');
+      setSelectedBrands([]);
+      setIsAddModalOpen(false);
+      fetchData();
     } catch (error) {
-        showToast('Failed to add category', 'error');
+      showToast(error?.response?.data?.message || 'Failed to add category', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleEditCategory = async () => {
+    if (!editingCategory?.id || !newCategoryName?.trim() || submitting) return;
+    setSubmitting(true);
     try {
-        await api.put(`/categories/${editingCategory.id}`, { 
-            category_name: newCategoryName,
-            brands: selectedBrands.map(b => b.id)
-        });
-        showToast('Category updated successfully', 'success');
-        setIsEditModalOpen(false);
-        setEditingCategory(null);
-        setNewCategoryName('');
-        setSelectedBrands([]);
-        fetchData();
+      await api.put(`/categories/${editingCategory.id}`, payload());
+      showToast('Category updated successfully', 'success');
+      setIsEditModalOpen(false);
+      setEditingCategory(null);
+      setNewCategoryName('');
+      setSelectedBrands([]);
+      fetchData();
     } catch (error) {
-        showToast('Failed to update category', 'error');
+      showToast(error?.response?.data?.message || 'Failed to update category', 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleDeleteCategory = async () => {
-      try {
-          await api.delete(`/categories/${deleteDialog.category.id}`);
-          showToast('Category deleted successfully', 'success');
-          setDeleteDialog({ isOpen: false, category: null });
-          fetchData();
-      } catch (error) {
-          showToast('Failed to delete category', 'error');
-      }
+    if (!deleteDialog?.category?.id || submitting) return;
+    setSubmitting(true);
+    try {
+      await api.delete(`/categories/${deleteDialog.category.id}`);
+      showToast('Category deleted successfully', 'success');
+      setDeleteDialog({ isOpen: false, category: null });
+      fetchData();
+    } catch (error) {
+      showToast(error?.response?.data?.message || 'Failed to delete category', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleBrandToggle = (brand) => {
-    setSelectedBrands(prev => {
-      const exists = prev.find(b => b.id === brand.id);
-      if (exists) {
-        return prev.filter(b => b.id !== brand.id);
-      } else {
-        return [...prev, brand];
-      }
+    setSelectedBrands((prev) => {
+      const exists = prev.find((b) => b.id === brand.id);
+      if (exists) return prev.filter((b) => b.id !== brand.id);
+      return [...prev, brand];
     });
   };
 
   const removeBrandFromCategory = (brandId) => {
-    setSelectedBrands(prev => prev.filter(b => b.id !== brandId));
+    setSelectedBrands((prev) => prev.filter((b) => b.id !== brandId));
   };
 
   return (
@@ -165,185 +159,58 @@ const CategoryMaster = () => {
           <h1 className="text-2xl font-bold text-gray-900">Category Master</h1>
           <p className="text-gray-600">Manage item categories</p>
         </div>
-        <Button onClick={() => {
-          setNewCategoryName('');
-          setSelectedBrands([]);
-          setIsAddModalOpen(true);
-        }} className="flex items-center gap-2">
-          <FaPlus />
-          Add Category
-        </Button>
+        <Button onClick={() => { setNewCategoryName(''); setSelectedBrands([]); setIsAddModalOpen(true); }} className="flex items-center gap-2"><FaPlus />Add Category</Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={categories}
-        actions={actions}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-      />
+      <DataTable columns={columns} data={categories} actions={actions} searchable sortable pagination />
 
-      {/* Add Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Category" size="lg">
         <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
-            <Input
-              value={newCategoryName}
-              onChange={setNewCategoryName}
-              placeholder="Enter category name"
-            />
-          </div>
-
-          {/* Selected Brands */}
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label><Input value={newCategoryName} onChange={setNewCategoryName} /></div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Brands in Category ({selectedBrands.length})</label>
             <div className="bg-gray-50 p-3 rounded-lg min-h-[100px] max-h-[200px] overflow-y-auto">
-              {selectedBrands.length === 0 ? (
-                <p className="text-gray-500 text-sm">No brands selected</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {selectedBrands.map(brand => (
-                    <div key={brand.id} className="flex items-center gap-2 bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                      <span>{brand.name}</span>
-                      <button
-                        onClick={() => removeBrandFromCategory(brand.id)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <FaTimes size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              {selectedBrands.length === 0 ? <p className="text-gray-500 text-sm">No brands selected</p> : (
+                <div className="flex flex-wrap gap-2">{selectedBrands.map((brand) => <div key={brand.id} className="flex items-center gap-2 bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm"><span>{brand.name}</span><button onClick={() => removeBrandFromCategory(brand.id)} className="text-blue-600 hover:text-blue-800"><FaTimes size={12} /></button></div>)}</div>
               )}
             </div>
           </div>
-
-          {/* Available Brands */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Available Brands</label>
             <div className="border rounded-lg max-h-[300px] overflow-y-auto">
-              {brands.length === 0 ? (
-                <p className="text-gray-500 text-sm p-4">No brands available</p>
-              ) : (
-                <div className="divide-y">
-                  {brands.map(brand => {
-                    const isSelected = selectedBrands.find(b => b.id === brand.id);
-                    return (
-                      <div key={brand.id} className="p-3 hover:bg-gray-50">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={!!isSelected}
-                            onChange={() => handleBrandToggle(brand)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-gray-900">{brand.name}</span>
-                              <span className="text-sm text-gray-500">{brand.items?.length || 0} items</span>
-                            </div>
-                          </div>
-                        </label>
-                      </div>
-                    );
-                  })}
-                </div>
+              {brands.length === 0 ? <p className="text-gray-500 text-sm p-4">No brands available</p> : (
+                <div className="divide-y">{brands.map((brand) => { const isSelected = selectedBrands.find((b) => b.id === brand.id); return <div key={brand.id} className="p-3 hover:bg-gray-50"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!isSelected} onChange={() => handleBrandToggle(brand)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><div className="flex-1"><span className="font-medium text-gray-900">{brand.name}</span></div></label></div>; })}</div>
               )}
             </div>
           </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button onClick={handleAddCategory} disabled={!newCategoryName}>Add Category</Button>
-            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-          </div>
+          <div className="flex gap-3 pt-4"><Button onClick={handleAddCategory} disabled={!newCategoryName || submitting}>Add Category</Button><Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button></div>
         </div>
       </Modal>
 
-      {/* Edit Modal */}
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Category" size="lg">
         <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label>
-            <Input
-              value={newCategoryName}
-              onChange={setNewCategoryName}
-              placeholder="Enter category name"
-            />
-          </div>
-
-          {/* Selected Brands */}
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label><Input value={newCategoryName} onChange={setNewCategoryName} /></div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Brands in Category ({selectedBrands.length})</label>
             <div className="bg-gray-50 p-3 rounded-lg min-h-[100px] max-h-[200px] overflow-y-auto">
-              {selectedBrands.length === 0 ? (
-                <p className="text-gray-500 text-sm">No brands selected</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {selectedBrands.map(brand => (
-                    <div key={brand.id} className="flex items-center gap-2 bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                      <span>{brand.name}</span>
-                      <button
-                        onClick={() => removeBrandFromCategory(brand.id)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <FaTimes size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              {selectedBrands.length === 0 ? <p className="text-gray-500 text-sm">No brands selected</p> : (
+                <div className="flex flex-wrap gap-2">{selectedBrands.map((brand) => <div key={brand.id} className="flex items-center gap-2 bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm"><span>{brand.name}</span><button onClick={() => removeBrandFromCategory(brand.id)} className="text-blue-600 hover:text-blue-800"><FaTimes size={12} /></button></div>)}</div>
               )}
             </div>
           </div>
-
-          {/* Available Brands */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Available Brands</label>
             <div className="border rounded-lg max-h-[300px] overflow-y-auto">
-              {brands.length === 0 ? (
-                <p className="text-gray-500 text-sm p-4">No brands available</p>
-              ) : (
-                <div className="divide-y">
-                  {brands.map(brand => {
-                    const isSelected = selectedBrands.find(b => b.id === brand.id);
-                    return (
-                      <div key={brand.id} className="p-3 hover:bg-gray-50">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={!!isSelected}
-                            onChange={() => handleBrandToggle(brand)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-gray-900">{brand.name}</span>
-                              <span className="text-sm text-gray-500">{brand.items?.length || 0} items</span>
-                            </div>
-                          </div>
-                        </label>
-                      </div>
-                    );
-                  })}
-                </div>
+              {brands.length === 0 ? <p className="text-gray-500 text-sm p-4">No brands available</p> : (
+                <div className="divide-y">{brands.map((brand) => { const isSelected = selectedBrands.find((b) => b.id === brand.id); return <div key={brand.id} className="p-3 hover:bg-gray-50"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!isSelected} onChange={() => handleBrandToggle(brand)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><div className="flex-1"><span className="font-medium text-gray-900">{brand.name}</span></div></label></div>; })}</div>
               )}
             </div>
           </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button onClick={handleEditCategory} disabled={!newCategoryName}>Save Changes</Button>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-          </div>
+          <div className="flex gap-3 pt-4"><Button onClick={handleEditCategory} disabled={!newCategoryName || submitting}>Save Changes</Button><Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button></div>
         </div>
       </Modal>
 
-      <DeleteConfirmDialog
-        isOpen={deleteDialog.isOpen}
-        onClose={() => setDeleteDialog({ isOpen: false, category: null })}
-        onConfirm={handleDeleteCategory}
-        itemName={deleteDialog.category?.name}
-      />
+      <DeleteConfirmDialog isOpen={deleteDialog.isOpen} onClose={() => setDeleteDialog({ isOpen: false, category: null })} onConfirm={handleDeleteCategory} itemName={deleteDialog.category?.name} />
     </div>
   );
 };

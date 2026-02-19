@@ -3,7 +3,9 @@ import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
-import api from '../../services/axiosInstance';// 
+import api from '../../services/axiosInstance';
+
+const emptyForm = { name: '', contact: '', email: '', address: '', city: '', state: '', gstin: '' };
 
 const AddSupplier = () => {
   const { showToast } = useStore();
@@ -11,37 +13,44 @@ const AddSupplier = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
-  const [formData, setFormData] = useState({ name: '', contact: '', email: '', address: '', city: '', state: '', gstin: '' });
+  const [formData, setFormData] = useState(emptyForm);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, supplier: null });
+  const [submitting, setSubmitting] = useState(false);
+
+  const normalizeList = (res) => {
+    const payload = res?.data?.data;
+    const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
+    return list.map((s) => ({
+      id: s._id,
+      name: s.name || '',
+      contact: s.phone || '',
+      email: s.email || '',
+      address: s.address || '',
+      city: s.city || '',
+      state: s.state || '',
+      gstin: s.gstin || ''
+    }));
+  };
+
+  const fetchSuppliers = async (signal) => {
+    try {
+      const response = await api.get('/contacts', {
+        params: { page: 1, limit: 200, type: 'supplier' },
+        signal
+      });
+      setSuppliers(normalizeList(response));
+    } catch (error) {
+      if (error?.name !== 'CanceledError') {
+        showToast('Failed to fetch suppliers', 'error');
+      }
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
     fetchSuppliers(controller.signal);
     return () => controller.abort();
   }, []);
-
-  const fetchSuppliers = async (signal) => {
-      try {
-        const response = await api.get('/suppliers', { signal });
-        const val = response.data?.data;
-        const list = Array.isArray(val) ? val : (val?.data || []);
-        setSuppliers(list.map(s => ({
-            id: s._id,
-            name: s.name,
-            contact: s.phone || '',
-            email: s.email || '',
-            address: s.address || '',
-            city: s.city || '',
-            state: s.state || '',
-            gstin: s.gstin || ''
-        })));
-      } catch (error) {
-        if (error.name !== 'CanceledError' && !error.message?.includes('canceled')) {
-           console.error(error); 
-           // showToast('Failed to fetch suppliers', 'error'); // Optional: don't spam toasts on mount
-        }
-      }
-  };
 
   const columns = [
     { key: 'id', label: 'ID', render: (val) => <span className="text-xs">{val?.slice(-4)}</span> },
@@ -58,78 +67,80 @@ const AddSupplier = () => {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (supplier) => {
         setEditingSupplier(supplier);
-        setFormData({
-            name: supplier.name,
-            contact: supplier.contact,
-            email: supplier.email,
-            address: supplier.address,
-            city: supplier.city,
-            state: supplier.state,
-            gstin: supplier.gstin
-        });
+        setFormData({ ...supplier });
         setIsEditModalOpen(true);
       },
       className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
-      onClick: (supplier) => {
-        setDeleteDialog({ isOpen: true, supplier });
-      },
+      onClick: (supplier) => setDeleteDialog({ isOpen: true, supplier }),
       className: 'bg-red-600 text-white hover:bg-red-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];
 
+  const buildPayload = () => ({
+    name: formData.name?.trim(),
+    type: 'supplier',
+    phone: formData.contact?.trim() || undefined,
+    email: formData.email?.trim() || undefined,
+    address: formData.address?.trim() || undefined,
+    city: formData.city?.trim() || undefined,
+    state: formData.state?.trim() || undefined,
+    gstin: formData.gstin?.trim().toUpperCase() || undefined,
+    is_gst: formData.gstin?.trim() ? 1 : 0
+  });
+
   const handleAdd = async () => {
-      try {
-          await api.post('/suppliers', {
-              name: formData.name,
-              phone: formData.contact,
-              email: formData.email,
-              address: formData.address,
-              city: formData.city,
-              state: formData.state,
-              gstin: formData.gstin
-          });
-          showToast('Supplier added successfully', 'success');
-          setFormData({ name: '', contact: '', email: '', address: '', city: '', state: '', gstin: '' });
-          setIsAddModalOpen(false);
-          fetchSuppliers();
-      } catch (error) {
-          showToast('Failed to add supplier', 'error');
-      }
+    if (!formData.name?.trim() || submitting) {
+      showToast('Supplier name is required', 'error');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.post('/contacts', buildPayload());
+      showToast('Supplier added successfully', 'success');
+      setFormData(emptyForm);
+      setIsAddModalOpen(false);
+      fetchSuppliers();
+    } catch (error) {
+      showToast(error?.response?.data?.message || 'Failed to add supplier', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleEdit = async () => {
-       try {
-          await api.put(`/suppliers/${editingSupplier.id}`, {
-              name: formData.name,
-              phone: formData.contact,
-              email: formData.email,
-              address: formData.address,
-              city: formData.city,
-              state: formData.state,
-              gstin: formData.gstin
-          });
-          showToast('Supplier updated successfully', 'success');
-          setIsEditModalOpen(false);
-          setEditingSupplier(null);
-          setFormData({ name: '', contact: '', email: '', address: '', city: '', state: '', gstin: '' });
-          fetchSuppliers();
-       } catch (error) {
-          showToast('Failed to update supplier', 'error');
-       }
+    if (!editingSupplier?.id || submitting) return;
+    setSubmitting(true);
+    try {
+      await api.put(`/contacts/${editingSupplier.id}`, buildPayload());
+      showToast('Supplier updated successfully', 'success');
+      setIsEditModalOpen(false);
+      setEditingSupplier(null);
+      setFormData(emptyForm);
+      fetchSuppliers();
+    } catch (error) {
+      showToast(error?.response?.data?.message || 'Failed to update supplier', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDelete = async () => {
-       try {
-           await api.delete(`/suppliers/${deleteDialog.supplier.id}`);
-           showToast('Supplier deleted successfully', 'success');
-           setDeleteDialog({ isOpen: false, supplier: null });
-           fetchSuppliers();
-       } catch (error) {
-           showToast('Failed to delete supplier', 'error');
-       }
+    if (!deleteDialog?.supplier?.id || submitting) return;
+    setSubmitting(true);
+    try {
+      await api.delete(`/contacts/${deleteDialog.supplier.id}`);
+      showToast('Supplier deleted successfully', 'success');
+      setDeleteDialog({ isOpen: false, supplier: null });
+      fetchSuppliers();
+    } catch (error) {
+      showToast(error?.response?.data?.message || 'Failed to delete supplier', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -145,97 +156,41 @@ const AddSupplier = () => {
         </Button>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={suppliers}
-        actions={actions}
-        searchable={true}
-        sortable={true}
-        pagination={true}
-      />
+      <DataTable columns={columns} data={suppliers} actions={actions} searchable sortable pagination />
 
-      {/* Add Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Supplier" size="md">
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name</label>
-            <Input value={formData.name} onChange={(v) => setFormData(prev => ({ ...prev, name: v }))} placeholder="Enter name" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
-            <Input value={formData.contact} onChange={(v) => setFormData(prev => ({ ...prev, contact: v }))} placeholder="Enter contact" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <Input value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} placeholder="Enter email" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-            <Input value={formData.address} onChange={(v) => setFormData(prev => ({ ...prev, address: v }))} placeholder="Enter address" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-            <Input value={formData.city} onChange={(v) => setFormData(prev => ({ ...prev, city: v }))} placeholder="Enter city" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-            <Input value={formData.state} onChange={(v) => setFormData(prev => ({ ...prev, state: v }))} placeholder="Enter state" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
-            <Input value={formData.gstin} onChange={(v) => setFormData(prev => ({ ...prev, gstin: v }))} placeholder="Enter GSTIN" />
-          </div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name</label><Input value={formData.name} onChange={(v) => setFormData((p) => ({ ...p, name: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Contact</label><Input value={formData.contact} onChange={(v) => setFormData((p) => ({ ...p, contact: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><Input value={formData.email} onChange={(v) => setFormData((p) => ({ ...p, email: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Address</label><Input value={formData.address} onChange={(v) => setFormData((p) => ({ ...p, address: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">City</label><Input value={formData.city} onChange={(v) => setFormData((p) => ({ ...p, city: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">State</label><Input value={formData.state} onChange={(v) => setFormData((p) => ({ ...p, state: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label><Input value={formData.gstin} onChange={(v) => setFormData((p) => ({ ...p, gstin: v }))} /></div>
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleAdd} disabled={!formData.name}>Add Supplier</Button>
+            <Button onClick={handleAdd} disabled={submitting || !formData.name?.trim()}>Add Supplier</Button>
             <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
           </div>
         </div>
       </Modal>
 
-      {/* Edit Modal */}
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Supplier" size="md">
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name</label>
-            <Input value={formData.name} onChange={(v) => setFormData(prev => ({ ...prev, name: v }))} placeholder="Enter name" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
-            <Input value={formData.contact} onChange={(v) => setFormData(prev => ({ ...prev, contact: v }))} placeholder="Enter contact" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <Input value={formData.email} onChange={(v) => setFormData(prev => ({ ...prev, email: v }))} placeholder="Enter email" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-            <Input value={formData.address} onChange={(v) => setFormData(prev => ({ ...prev, address: v }))} placeholder="Enter address" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-            <Input value={formData.city} onChange={(v) => setFormData(prev => ({ ...prev, city: v }))} placeholder="Enter city" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-            <Input value={formData.state} onChange={(v) => setFormData(prev => ({ ...prev, state: v }))} placeholder="Enter state" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label>
-            <Input value={formData.gstin} onChange={(v) => setFormData(prev => ({ ...prev, gstin: v }))} placeholder="Enter GSTIN" />
-          </div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name</label><Input value={formData.name} onChange={(v) => setFormData((p) => ({ ...p, name: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Contact</label><Input value={formData.contact} onChange={(v) => setFormData((p) => ({ ...p, contact: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><Input value={formData.email} onChange={(v) => setFormData((p) => ({ ...p, email: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Address</label><Input value={formData.address} onChange={(v) => setFormData((p) => ({ ...p, address: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">City</label><Input value={formData.city} onChange={(v) => setFormData((p) => ({ ...p, city: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">State</label><Input value={formData.state} onChange={(v) => setFormData((p) => ({ ...p, state: v }))} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">GSTIN</label><Input value={formData.gstin} onChange={(v) => setFormData((p) => ({ ...p, gstin: v }))} /></div>
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleEdit} disabled={!formData.name}>Save Changes</Button>
+            <Button onClick={handleEdit} disabled={submitting || !formData.name?.trim()}>Save Changes</Button>
             <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
           </div>
         </div>
       </Modal>
 
-      <DeleteConfirmDialog
-        isOpen={deleteDialog.isOpen}
-        onClose={() => setDeleteDialog({ isOpen: false, supplier: null })}
-        onConfirm={handleDelete}
-        itemName={deleteDialog.supplier?.name}
-      />
+      <DeleteConfirmDialog isOpen={deleteDialog.isOpen} onClose={() => setDeleteDialog({ isOpen: false, supplier: null })} onConfirm={handleDelete} itemName={deleteDialog.supplier?.name} />
     </div>
   );
 };

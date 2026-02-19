@@ -18,8 +18,8 @@ const ChallanList = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await api.get('/challans', { 
-          params: { page: 1, limit: 200, ...(selectedFirm?.id ? { firmId: selectedFirm.id } : {}) } 
+        const response = await api.get('/challans/sale', { 
+          params: { page: 1, limit: 200 } 
         });
 
         const getList = (res) => {
@@ -36,11 +36,12 @@ const ChallanList = () => {
           id: c._id || c.id,
           challanNo: c.challan_no || c.challanNo,
           date: c.date,
-          partyId: c.party_id?._id || c.party_id,
-          party: c.party_id?.name || c.party_name || 'Unknown',
+          partyId: c.contact_id?._id || c.contact_id || c.party_id?._id || c.party_id,
+          party: c.contact_id?.name || c.party_id?.name || c.party_name || 'Unknown',
           items: c.items?.map(i => (i.item_id?.item_name || i.item_name || 'Item')) || [],
           amount: c.amount,
-          gstType: c.is_gst
+          gstType: c.is_gst,
+          converted_to_bill: Boolean(c.converted_to_bill)
         }));
 
         setChallans(challansData);
@@ -158,28 +159,29 @@ const ChallanList = () => {
 
     try {
       const payload = {
-        party_id: firstPartyId,
+        contact_id: firstPartyId,
         challan_ids: selectedChallans.map(c => c.id)
       };
       
       await api.post('/bills', payload);
       showToast('Bill created successfully', 'success');
       
-      const cRes = await api.get('/challans', { params: { firmId: selectedFirm?.id } });
+      const cRes = await api.get('/challans/sale', { params: { page: 1, limit: 200 } });
       const cVal = cRes.data?.data;
       const cListRaw = Array.isArray(cVal) ? cVal : (cVal?.data || []);
 
       const activeChallans = cListRaw
-        .filter(c => c.status !== 'Converted')
+        .filter(c => !c.converted_to_bill)
         .map(c => ({
           id: c._id,
           challanNo: c.challan_no,
           date: c.date,
-          partyId: c.party_id?._id,
-          party: c.party_id?.name || 'Unknown',
+          partyId: c.contact_id?._id || c.party_id?._id,
+          party: c.contact_id?.name || c.party_id?.name || 'Unknown',
           items: c.items?.map(i => i.item_id?.item_name || 'Item') || [],
           amount: c.amount,
-          gstType: c.is_gst
+          gstType: c.is_gst,
+          converted_to_bill: Boolean(c.converted_to_bill)
         }));
       setChallans(activeChallans);
       
