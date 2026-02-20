@@ -54,10 +54,7 @@ const BrandMaster = () => {
         id: b._id,
         name: b.brand_name || b.name || '',
         hsn_id: typeof b.hsn_id === 'object' ? b.hsn_id?._id : (b.hsn_id || ''),
-        itemCount: itemList.filter(item => {
-          const brandId = typeof item.brand_id === 'object' ? item.brand_id?._id : item.brand_id;
-          return brandId === b._id;
-        }).length
+        itemCount: b.total_items || 0
       }));
       setBrands(brandList);
     } catch (error) {

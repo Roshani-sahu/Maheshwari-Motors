@@ -216,8 +216,12 @@ const UserMaster = () => {
         });
         fetchUsers(); 
     } catch (error) {
-        console.error(error);
-        showToast(error.response?.data?.message || 'Failed to add user', 'error');
+        console.error("User submit error:", error);
+        const msg = error.response?.data?.message || 'Failed to add user';
+        const details = Array.isArray(error.response?.data?.errors) 
+            ? error.response.data.errors.join(', ') 
+            : '';
+        showToast(details ? `${msg}: ${details}` : msg, 'error');
     }
   };
 
@@ -236,8 +240,12 @@ const UserMaster = () => {
         showToast('User updated successfully', 'success');
         fetchUsers();
       } catch (error) {
-        console.error(error);
-        showToast('Failed to update user', 'error');
+        console.error("User update error:", error);
+        const msg = error.response?.data?.message || 'Failed to update user';
+        const details = Array.isArray(error.response?.data?.errors) 
+            ? error.response.data.errors.join(', ') 
+            : '';
+        showToast(details ? `${msg}: ${details}` : msg, 'error');
       }
   };
 
@@ -269,8 +277,12 @@ const UserMaster = () => {
        setDeleteDialog({ isOpen: false, user: null });
        fetchUsers();
     } catch (error) {
-       console.error(error);
-       showToast('Failed to delete user', 'error');
+       console.error("User delete error:", error);
+       const msg = error.response?.data?.message || 'Failed to delete user';
+       const details = Array.isArray(error.response?.data?.errors) 
+           ? error.response.data.errors.join(', ') 
+           : '';
+       showToast(details ? `${msg}: ${details}` : msg, 'error');
     }
   }, [deleteDialog, showToast]); 
 
