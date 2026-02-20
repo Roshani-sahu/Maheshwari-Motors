@@ -36,6 +36,7 @@ class ContactService {
   async createContact(contactData, userId) {
     const {
       name,
+      alias = "",
       type,
       phone,
       whatsapp_number,
@@ -138,6 +139,7 @@ class ContactService {
     const contact = await Contact.create({
       id: await getNextId("Contact", userId),
       name: name.trim(),
+      alias,
       type,
       phone,
       whatsapp_number,
@@ -173,6 +175,7 @@ class ContactService {
 
     const {
       name,
+      alias = "",
       phone,
       whatsapp_number,
       email,
@@ -279,6 +282,7 @@ class ContactService {
 
     const fields = {};
     if (name !== undefined) fields.name = name.trim();
+    if (alias != "") fields.alias = alias.trim();
     if (phone !== undefined) fields.phone = phone;
     if (whatsapp_number !== undefined) fields.whatsapp_number = whatsapp_number;
     if (email !== undefined) fields.email = email;
