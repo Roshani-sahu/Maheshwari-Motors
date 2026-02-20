@@ -114,6 +114,11 @@ const Header = ({ onMenuClick }) => {
                 <FaCog className="text-neutral-500" />
                 Settings
               </Link> */}
+             <Link to="/user-profile" onClick={() => setShowUserMenu(false)} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50">
+  <FaUser className="text-neutral-500" />
+  User Profile
+</Link>
+
               <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-neutral-50 text-left">
                 <FaSignOutAlt className="text-neutral-500" />
                 Logout

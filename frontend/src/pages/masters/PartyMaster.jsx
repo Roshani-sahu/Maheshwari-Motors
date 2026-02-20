@@ -18,12 +18,12 @@ const INDIAN_STATES = [
 const INITIAL_FORM = {
   name: '',
   phone: '',
-  mobile: '',
+  whatsapp_number: '',
   email: '',
   address: '',
   city: '',
   state: '',
-  gstNo: '',
+  gstin: '',
   category: '',
   is_gst: 0,
   cin: '',
@@ -39,7 +39,7 @@ const INITIAL_FORM = {
 };
 
 const PartyMaster = () => {
-  const { showToast } = useStore(); // Added hook usage
+  const { showToast } = useStore();
   const [parties, setParties] = useState([]);
   const [categories, setCategories] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -51,6 +51,12 @@ const PartyMaster = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedParty, setSelectedParty] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
+
+  // Extract PAN from GSTIN (characters 3-12)
+  const extractPAN = (gstin) => {
+    if (!gstin || gstin.length < 15) return '';
+    return gstin.substring(2, 12);
+  };
 
   const listFromResponse = (response) => {
     const payload = response?.data?.data;
@@ -69,12 +75,12 @@ const PartyMaster = () => {
           id: p._id,
           name: p.name,
           phone: p.phone || '',
-          mobile: p.mobile || '',
+          whatsapp_number: p.whatsapp_number || '',
           email: p.email || '',
           address: p.address || '',
           city: p.city || '',
           state: p.state || '',
-          gstNo: p.gstin || '',
+          gstin: p.gstin || '',
           contact_type: p.type || 'party',
           is_gst: Number(p.is_gst) === 1 ? 1 : 0,
           category: p.category_id || '',
@@ -163,7 +169,18 @@ const PartyMaster = () => {
       width: '180px',
       render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span>
     },
-    
+    {
+      key: 'is_gst',
+      label: 'Type',
+      width: '80px',
+      render: (value) => (
+        <span className={`px-2 py-1 text-xs rounded-full ${
+          value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+        }`}>
+          {value === 1 ? '1' : '0'}
+        </span>
+      )
+    },
     {
       key: 'phone',
       label: 'Phone',
@@ -177,7 +194,7 @@ const PartyMaster = () => {
       render: (value) => <span className="text-xs sm:text-sm truncate">{value}</span>
     },
     {
-      key: 'gstNo',
+      key: 'gstin',
       label: 'GST No',
       render: (value) => <span className="text-xs sm:text-sm truncate">{value || 'N/A'}</span>,
       width: '130px'
@@ -233,12 +250,12 @@ const PartyMaster = () => {
        type: 'party',
        is_gst: Number(formData.is_gst) === 1 ? 1 : 0,
        phone: cleanPhone || undefined,
-       mobile: formData.mobile || undefined,
+       whatsapp_number: formData.whatsapp_number || undefined,
        email: formData.email || undefined,
        address: formData.address || undefined,
        city: formData.city || undefined,
        state: formData.state || undefined,
-       gstin: Number(formData.is_gst) === 1 && formData.gstNo ? formData.gstNo.toUpperCase() : undefined,
+       gstin: formData.gstin ? formData.gstin.toUpperCase() : undefined,
        category_id: formData.category || undefined,
        cin: formData.cin || undefined,
        reg_number: formData.reg_number || undefined,
@@ -267,12 +284,12 @@ const PartyMaster = () => {
         id: p._id,
         name: p.name,
         phone: p.phone || '',
-        mobile: p.mobile || '',
+        whatsapp_number: p.whatsapp_number || '',
         email: p.email || '',
         address: p.address || '',
         city: p.city || '',
         state: p.state || '',
-        gstNo: p.gstin || '',
+        gstin: p.gstin || '',
         contact_type: p.type || 'party',
         is_gst: Number(p.is_gst) === 1 ? 1 : 0,
         category: p.category_id || '',
@@ -390,20 +407,20 @@ const PartyMaster = () => {
                 <p className="text-sm text-gray-900">{selectedParty.phone}</p>
               </div>
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Mobile</label>
-                <p className="text-sm text-gray-900">{selectedParty.mobile || 'N/A'}</p>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label>
+                <p className="text-sm text-gray-900">{selectedParty.whatsapp_number || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
                 <p className="text-sm text-gray-900">{selectedParty.email}</p>
               </div>
-              <div>
+              {/* <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type</label>
                 <p className="text-sm text-gray-900">{selectedParty.contact_type || 'party'}</p>
-              </div>
+              </div> */}
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST Type</label>
-                <p className="text-sm text-gray-900">{selectedParty.is_gst === 1 ? 'GST' : 'Non-GST'}</p>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Type</label>
+                <p className="text-sm text-gray-900">{selectedParty.is_gst === 1 ? '1' : '0'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Area Mapping</label>
@@ -423,7 +440,11 @@ const PartyMaster = () => {
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST Number</label>
-                <p className="text-sm text-gray-900">{selectedParty.gstNo || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{selectedParty.gstin || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">PAN Number</label>
+                <p className="text-sm text-gray-900 font-mono">{extractPAN(selectedParty.gstin) || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">CIN</label>
@@ -452,6 +473,18 @@ const PartyMaster = () => {
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label>
                 <p className="text-sm text-gray-900">{categories.find(c => c._id === selectedParty.category)?.name || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Agent</label>
+                <p className="text-sm text-gray-900">{agents.find(a => a._id === selectedParty.agent)?.name || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label>
+                <p className="text-sm text-gray-900">{selectedParty.city || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">State</label>
+                <p className="text-sm text-gray-900">{selectedParty.state || 'N/A'}</p>
               </div>
             </div>
             <div className="md:col-span-2">
@@ -517,8 +550,8 @@ const PartyMaster = () => {
               <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Phone" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-              <input type="tel" name="mobile" value={formData.mobile} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Mobile" />
+              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label>
+              <input type="tel" name="whatsapp_number" value={formData.whatsapp_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="WhatsApp Number" />
             </div>
           </div>
 
@@ -568,9 +601,28 @@ const PartyMaster = () => {
               <input type="number" name="transport_charge" value={formData.transport_charge} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0" />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
-            <input type="text" name="gstNo" value={formData.gstNo} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="27ABCDE1234F1Z5" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
+              <input 
+                type="text" 
+                name="gstin" 
+                value={formData.gstin} 
+                onChange={handleInputChange} 
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                placeholder="27ABCDE1234F1Z5" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number (Auto-extracted)</label>
+              <input 
+                type="text" 
+                value={extractPAN(formData.gstin) || ''} 
+                disabled 
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-mono" 
+                placeholder="Enter GST to extract PAN"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

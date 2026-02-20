@@ -71,39 +71,40 @@ const Dashboard = () => {
         
         // Determine is GST mode
         const isGst = (selectedFirm?.type === 'GST' || selectedFirm?.id === 'gst' || currentFirmId === 'gst');
+        const isGstValue = isGst ? 1 : 0;
 
         // Fetch General Dashboard Data (Big Object), Items (for stock), and Alert Count
-        const [dashboardRes, itemRes, alertCountRes] = await Promise.all([
+        const [dashboardRes, todayFirmRes, monthFirmRes, itemRes, alertCountRes] = await Promise.all([
              api.get('/dashboard'),
+             api.get('/dashboard/firm', { params: { is_gst: isGstValue, period: 'today' } }),
+             api.get('/dashboard/firm', { params: { is_gst: isGstValue, period: 'monthly' } }),
              api.get('/items', { params: { page: 1, limit: 100 } }),
              api.get('/items/low-stock', { params: { page: 1, limit: 100 } })
         ]);
         
+        
+
         const data = dashboardRes.data?.data || {};
+        const todayData = todayFirmRes.data?.data || {};
+        const monthData = monthFirmRes.data?.data || {};
         const items = Array.isArray(itemRes.data?.data) ? itemRes.data.data : (Array.isArray(itemRes.data) ? itemRes.data : []);
+        
         // Get alert count safely
         const alertPayload = alertCountRes?.data?.data;
         const alertCountVal = Array.isArray(alertPayload)
           ? alertPayload.length
           : (Array.isArray(alertPayload?.data) ? alertPayload.data.length : (alertPayload?.meta?.totalDocs || 0));
 
-        // Counts based on Firm Selection
-        let totalChallans = 0;
-        let totalBills = 0;
-        
-        if (isGst) {
-            totalChallans = data.counts?.gst_challans || 0;
-            totalBills = data.counts?.gst_bills || 0;
-        } else {
-            totalChallans = data.counts?.nongst_challans || 0;
-            totalBills = data.counts?.nongst_bills || 0;
-        }
+        // Use firm-specific data with period filter
+        const totalChallans = todayData.sale_challans || data.counts?.sale_challans || 0;
+        const todayBills = todayData.bills || 0;
+        const monthBills = monthData.bills || 0;
 
         setDashboardData({
             totalFirms: 2, 
-            todaysChallans: totalChallans, // Using Total as per API availability
-            todaysBills: totalBills,
-            thisMonthBills: totalBills, // API gives total, not monthly sep. Reusing total.
+            todaysChallans: totalChallans,
+            todaysBills: todayBills,
+            thisMonthBills: monthBills,
             lowStockAlerts: alertCountVal
         });
         
@@ -138,7 +139,7 @@ const Dashboard = () => {
     };
     
     fetchData();
-  }, [user, selectedFirm, billPeriod, setItems, setFirm]);
+  }, [user, selectedFirm, setItems, setFirm]);
 
   return (
     <div className="space-y-6">
