@@ -17,6 +17,7 @@ const INDIAN_STATES = [
 
 const INITIAL_FORM = {
   name: '',
+  alias: '',
   phone: '',
   whatsapp_number: '',
   email: '',
@@ -74,6 +75,7 @@ const PartyMaster = () => {
         const backendParties = listFromResponse(response).map((p) => ({
           id: p._id,
           name: p.name,
+          alias: p.alias || '',
           phone: p.phone || '',
           whatsapp_number: p.whatsapp_number || '',
           email: p.email || '',
@@ -247,6 +249,7 @@ const PartyMaster = () => {
 
     const payload = {
        name: formData.name,
+       alias: formData.alias || undefined,
        type: 'party',
        is_gst: Number(formData.is_gst) === 1 ? 1 : 0,
        phone: cleanPhone || undefined,
@@ -283,6 +286,7 @@ const PartyMaster = () => {
       const backendParties = listFromResponse(response).map((p) => ({
         id: p._id,
         name: p.name,
+        alias: p.alias || '',
         phone: p.phone || '',
         whatsapp_number: p.whatsapp_number || '',
         email: p.email || '',
@@ -401,7 +405,10 @@ const PartyMaster = () => {
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Party Name</label>
                 <p className="text-sm text-gray-900">{selectedParty.name}</p>
               </div>
-             
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Alias</label>
+                <p className="text-sm text-gray-900">{selectedParty.alias || 'N/A'}</p>
+              </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Phone</label>
                 <p className="text-sm text-gray-900">{selectedParty.phone}</p>
@@ -525,6 +532,11 @@ const PartyMaster = () => {
           </div>
           
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Alias</label>
+            <input type="text" name="alias" value={formData.alias} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter alias (optional)" />
+          </div>
+          
+          <div>
             {/* <label className="block text-sm font-medium text-gray-700 mb-1">GST Type</label> */}
             <div className="flex items-center gap-3">
               {/* <span className="text-xs sm:text-sm text-gray-700">Non-GST</span> */}
@@ -607,9 +619,10 @@ const PartyMaster = () => {
               <input 
                 type="text" 
                 name="gstin" 
-                value={formData.gstin} 
+                value={formData.is_gst === 1 ? formData.gstin : ''} 
                 onChange={handleInputChange} 
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                disabled={formData.is_gst === 0}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" 
                 placeholder="27ABCDE1234F1Z5" 
               />
             </div>
@@ -617,7 +630,7 @@ const PartyMaster = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number (Auto-extracted)</label>
               <input 
                 type="text" 
-                value={extractPAN(formData.gstin) || ''} 
+                value={formData.is_gst === 1 ? extractPAN(formData.gstin) || '' : ''} 
                 disabled 
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-mono" 
                 placeholder="Enter GST to extract PAN"
