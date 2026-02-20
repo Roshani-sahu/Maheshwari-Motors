@@ -6,6 +6,7 @@ import { Button } from '../../components/ui';
 import useStore from '../../store';
 
 import api from '../../services/axiosInstance';
+import { getResponseList, getEntityId, normalizeContact } from '../../services/apiUtils';
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
@@ -52,6 +53,7 @@ const PartyMaster = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedParty, setSelectedParty] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
+  const [validationModal, setValidationModal] = useState({ isOpen: false, errors: [] });
 
   // Extract PAN from GSTIN (characters 3-12)
   const extractPAN = (gstin) => {
@@ -59,45 +61,41 @@ const PartyMaster = () => {
     return gstin.substring(2, 12);
   };
 
-  const listFromResponse = (response) => {
-    const payload = response?.data?.data;
-    if (Array.isArray(payload?.data)) return payload.data;
-    if (Array.isArray(payload)) return payload;
-    return [];
+  const mapParty = (contact) => {
+    const normalized = normalizeContact(contact);
+    return {
+      id: normalized.id,
+      name: normalized.name,
+      alias: normalized.alias,
+      phone: normalized.phone,
+      whatsapp_number: normalized.whatsapp_number,
+      email: normalized.email,
+      address: normalized.address,
+      city: normalized.city,
+      state: normalized.state,
+      gstin: normalized.gstin,
+      contact_type: normalized.type || 'party',
+      is_gst: normalized.is_gst,
+      category: normalized.category_id,
+      cin: normalized.cin,
+      reg_number: normalized.reg_number,
+      bank_name: normalized.bank_name,
+      bank_branch: normalized.bank_branch,
+      ifsc_code: normalized.ifsc_code,
+      account_number: normalized.account_number,
+      transport_charge: normalized.transport_charge,
+      transport_id: normalized.transport_id,
+      area_id: normalized.area_id,
+      agent: normalized.agent_id
+    };
   };
 
   // Fetch parties from backend
   useEffect(() => {
     const fetchParties = async () => {
       try {
-        const response = await api.get('/contacts');
-        console.log("Parties response:", response);
-        const backendParties = listFromResponse(response).map((p) => ({
-          id: p._id,
-          name: p.name,
-          alias: p.alias || '',
-          phone: p.phone || '',
-          whatsapp_number: p.whatsapp_number || '',
-          email: p.email || '',
-          address: p.address || '',
-          city: p.city || '',
-          state: p.state || '',
-          gstin: p.gstin || '',
-          contact_type: p.type || 'party',
-          is_gst: Number(p.is_gst) === 1 ? 1 : 0,
-          category: p.category_id || '',
-          cin: p.cin || '',
-          reg_number: p.reg_number || '',
-          bank_name: p.bank_name || '',
-          bank_branch: p.bank_branch || '',
-          ifsc_code: p.ifsc_code || '',
-          account_number: p.account_number || '',
-          transport_charge: p.transport_charge || '',
-          transport_id: typeof p.transport_id === 'object' ? (p.transport_id?._id || '') : (p.transport_id || ''),
-          area_id: typeof p.area_id === 'object' ? (p.area_id?._id || '') : (p.area_id || ''),
-          agent: p.agent_id || ''
-        }));
-        setParties(backendParties);
+        const response = await api.get('/contacts/parties', { params: { page: 1, limit: 200 } });
+        setParties(getResponseList(response).map(mapParty));
       } catch (error) {
         console.error("Failed to fetch parties", error);
         showToast("Failed to load parties", "error");
@@ -111,7 +109,7 @@ const PartyMaster = () => {
     const fetchCategories = async () => {
       try {
         const response = await api.get('/categories');
-        setCategories(listFromResponse(response));
+        setCategories(getResponseList(response));
       } catch (error) {
         console.error("Failed to fetch categories", error);
       }
@@ -124,7 +122,7 @@ const PartyMaster = () => {
     const fetchAgents = async () => {
       try {
         const response = await api.get('/agents');
-        setAgents(listFromResponse(response));
+        setAgents(getResponseList(response));
       } catch (error) {
         console.error("Failed to fetch agents", error);
       }
@@ -137,7 +135,7 @@ const PartyMaster = () => {
     const fetchTransports = async () => {
       try {
         const response = await api.get('/transports');
-        setTransports(listFromResponse(response));
+        setTransports(getResponseList(response));
       } catch (error) {
         console.error("Failed to fetch transports", error);
       }
@@ -150,7 +148,7 @@ const PartyMaster = () => {
     const fetchAreas = async () => {
       try {
         const response = await api.get('/areas');
-        setAreas(listFromResponse(response));
+        setAreas(getResponseList(response));
       } catch (error) {
         console.error("Failed to fetch areas", error);
       }
@@ -236,15 +234,28 @@ const PartyMaster = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Sanitize and validate phone strictly to match backend
+    const errors = [];
+    if (!formData.name?.trim()) errors.push('Party Name is required');
+    if (!formData.phone?.trim()) errors.push('Phone Number is required');
+    if (!formData.email?.trim()) errors.push('Email is required');
+    if (!formData.address?.trim()) errors.push('Address is required');
+    if (!formData.city?.trim()) errors.push('City is required');
+    if (!formData.state?.trim()) errors.push('State is required');
+    if (!formData.category) errors.push('Category is required');
+    if (!formData.transport_id) errors.push('Transport is required');
+    if (!formData.area_id) errors.push('Area is required');
+    if (!formData.agent) errors.push('Agent is required');
+    
     let cleanPhone = formData.phone ? formData.phone.replace(/\D/g, '') : '';
-    if (cleanPhone.length > 10) {
-        cleanPhone = cleanPhone.slice(-10);
+    if (cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
+    if (cleanPhone && !/^[6-9][0-9]{9}$/.test(cleanPhone)) {
+      errors.push('Phone number must be a valid 10-digit Indian number (starts with 6-9)');
     }
     
-    if (cleanPhone && !/^[6-9][0-9]{9}$/.test(cleanPhone)) {
-        showToast('Phone number must be a valid 10-digit Indian number (starts with 6-9)', 'error');
-        return;
+    if (errors.length > 0) {
+      setValidationModal({ isOpen: true, errors });
+      showToast('Please fill all required fields', 'error');
+      return;
     }
 
     const payload = {
@@ -282,33 +293,8 @@ const PartyMaster = () => {
       }
       
       // Refresh list
-      const response = await api.get('/contacts');
-      const backendParties = listFromResponse(response).map((p) => ({
-        id: p._id,
-        name: p.name,
-        alias: p.alias || '',
-        phone: p.phone || '',
-        whatsapp_number: p.whatsapp_number || '',
-        email: p.email || '',
-        address: p.address || '',
-        city: p.city || '',
-        state: p.state || '',
-        gstin: p.gstin || '',
-        contact_type: p.type || 'party',
-        is_gst: Number(p.is_gst) === 1 ? 1 : 0,
-        category: p.category_id || '',
-        cin: p.cin || '',
-        reg_number: p.reg_number || '',
-        bank_name: p.bank_name || '',
-        bank_branch: p.bank_branch || '',
-        ifsc_code: p.ifsc_code || '',
-        account_number: p.account_number || '',
-        transport_charge: p.transport_charge || '',
-        transport_id: typeof p.transport_id === 'object' ? (p.transport_id?._id || '') : (p.transport_id || ''),
-        area_id: typeof p.area_id === 'object' ? (p.area_id?._id || '') : (p.area_id || ''),
-        agent: p.agent_id || ''
-      }));
-      setParties(backendParties);
+      const response = await api.get('/contacts/parties', { params: { page: 1, limit: 200 } });
+      setParties(getResponseList(response).map(mapParty));
       
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
@@ -432,14 +418,14 @@ const PartyMaster = () => {
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Area Mapping</label>
                 <p className="text-sm text-gray-900">
-                  {areas.find((a) => a._id === selectedParty.area_id)?.city
-                    ? `${areas.find((a) => a._id === selectedParty.area_id)?.city} - ${areas.find((a) => a._id === selectedParty.area_id)?.state || ''}`
+                  {areas.find((a) => getEntityId(a) === selectedParty.area_id)?.city
+                    ? `${areas.find((a) => getEntityId(a) === selectedParty.area_id)?.city} - ${areas.find((a) => getEntityId(a) === selectedParty.area_id)?.state || ''}`
                     : 'N/A'}
                 </p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Transport Mapping</label>
-                <p className="text-sm text-gray-900">{transports.find((t) => t._id === selectedParty.transport_id)?.name || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{transports.find((t) => getEntityId(t) === selectedParty.transport_id)?.name || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
@@ -479,11 +465,11 @@ const PartyMaster = () => {
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label>
-                <p className="text-sm text-gray-900">{categories.find(c => c._id === selectedParty.category)?.name || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{categories.find(c => getEntityId(c) === selectedParty.category)?.name || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Agent</label>
-                <p className="text-sm text-gray-900">{agents.find(a => a._id === selectedParty.agent)?.name || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{agents.find(a => getEntityId(a) === selectedParty.agent)?.name || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label>
@@ -512,6 +498,32 @@ const PartyMaster = () => {
           </div>
         )}
       </Modal>
+
+      {/* Validation Error Modal */}
+      <div className={validationModal.isOpen ? 'relative z-[9999]' : ''}>
+        <Modal
+          isOpen={validationModal.isOpen}
+          onClose={() => setValidationModal({ isOpen: false, errors: [] })}
+          title="Validation Failed"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="text-red-800 font-semibold mb-2">Please fix the following errors:</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {validationModal.errors.map((error, index) => (
+                  <li key={index} className="text-red-700 text-sm">{error}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setValidationModal({ isOpen: false, errors: [] })}>
+                OK
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
 
       {/* Add/Edit Party Modal */}
       <Modal 
@@ -596,14 +608,14 @@ const PartyMaster = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Transport mapping</label>
               <select name="transport_id" value={formData.transport_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Select Transport</option>
-                {transports.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+                {transports.map((t) => <option key={getEntityId(t)} value={getEntityId(t)}>{t.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Area mapping</label>
               <select name="area_id" value={formData.area_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Select Area</option>
-                {areas.map((a) => <option key={a._id} value={a._id}>{a.city} - {a.state}</option>)}
+                {areas.map((a) => <option key={getEntityId(a)} value={getEntityId(a)}>{a.city} - {a.state}</option>)}
               </select>
             </div>
           </div>
@@ -653,7 +665,7 @@ const PartyMaster = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
             <select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">Select Category</option>
-              {categories.map(cat => <option className='text-black' key={cat._id} value={cat._id}>{cat.name}</option>)}
+              {categories.map(cat => <option className='text-black' key={getEntityId(cat)} value={getEntityId(cat)}>{cat.name}</option>)}
             </select>
           </div>
 
@@ -661,7 +673,7 @@ const PartyMaster = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
             <select name="agent" value={formData.agent} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">Select Agent</option>
-              {agents.map(agent => <option key={agent._id} value={agent._id}>{agent.name}</option>)}
+              {agents.map(agent => <option key={getEntityId(agent)} value={getEntityId(agent)}>{agent.name}</option>)}
             </select>
           </div>
 

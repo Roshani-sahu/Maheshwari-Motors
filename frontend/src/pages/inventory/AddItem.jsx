@@ -4,6 +4,14 @@ import { FaSave } from 'react-icons/fa';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
+import {
+  getResponseList,
+  normalizeCategory,
+  normalizeBrand,
+  normalizeContact,
+  getEntityId,
+  toNumber
+} from '../../services/apiUtils';
 
 const AddItem = () => {
   const navigate = useNavigate();
@@ -35,13 +43,6 @@ const AddItem = () => {
 
   const [errors, setErrors] = useState({});
 
-  const listFromResponse = (res) => {
-    const payload = res?.data?.data;
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.data)) return payload.data;
-    return [];
-  };
-
   useEffect(() => {
     const controller = new AbortController();
 
@@ -50,20 +51,29 @@ const AddItem = () => {
         const [catRes, brandRes, supplierRes, hsnRes] = await Promise.all([
           api.get('/categories', { params: { page: 1, limit: 200 }, signal: controller.signal }),
           api.get('/brands', { params: { page: 1, limit: 200 }, signal: controller.signal }),
-          api.get('/contacts', { params: { page: 1, limit: 200, type: 'supplier' }, signal: controller.signal }),
+          api.get('/contacts/suppliers', { params: { page: 1, limit: 200 }, signal: controller.signal }),
           api.get('/hsn', { params: { page: 1, limit: 200 }, signal: controller.signal })
         ]);
 
-        const cats = listFromResponse(catRes);
-        const brds = listFromResponse(brandRes);
-        const sups = listFromResponse(supplierRes);
-        const hsnList = listFromResponse(hsnRes).filter((h) => h?.is_active !== false);
+        const cats = getResponseList(catRes).map(normalizeCategory);
+        const brds = getResponseList(brandRes).map(normalizeBrand);
+        const sups = getResponseList(supplierRes).map((supplier) => {
+          const normalized = normalizeContact(supplier);
+          return { id: normalized.id, name: normalized.name };
+        });
+        const hsnList = getResponseList(hsnRes)
+          .filter((hsn) => hsn?.is_active !== false)
+          .map((hsn) => ({
+            id: getEntityId(hsn),
+            hsn_number: hsn?.hsn_code || '',
+            gst_percentage: toNumber(hsn?.gst_rate, 0)
+          }));
 
         setCategories(cats);
         setAllBrands(brds);
         setBrands(brds);
         setSuppliers(sups);
-        setHsns(hsnList.map((h) => ({ _id: h._id, hsn_number: h.hsn_code, gst_percentage: Number(h.gst_rate || 0) })));
+        setHsns(hsnList);
       } catch (error) {
         if (error?.name !== 'CanceledError') {
           showToast('Failed to load form data', 'error');
@@ -81,21 +91,21 @@ const AddItem = () => {
       return;
     }
 
-    const selectedCat = categories.find((c) => c._id === formData.category);
-    const linkedBrandIds = (selectedCat?.brands || selectedCat?.brand_ids || []).map((b) => (typeof b === 'object' ? b._id : b));
+    const selectedCat = categories.find((category) => category.id === formData.category);
+    const linkedBrandIds = selectedCat?.brandIds || [];
     if (linkedBrandIds.length === 0) {
       setBrands(allBrands);
       return;
     }
 
-    setBrands(allBrands.filter((b) => linkedBrandIds.includes(b._id)));
+    setBrands(allBrands.filter((brand) => linkedBrandIds.includes(brand.id)));
   }, [formData.category, categories, allBrands]);
 
   const handleChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (name === 'hsn_code' && value) {
-      const selectedHsn = hsns.find((h) => h._id === value);
+      const selectedHsn = hsns.find((hsn) => hsn.id === value);
       if (selectedHsn) {
         setFormData((prev) => ({ ...prev, gst_percent: selectedHsn.gst_percentage }));
       }
@@ -186,7 +196,7 @@ const AddItem = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
               <select value={formData.category || ''} onChange={(e) => handleChange('category', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 <option value="">Select Category</option>
-                {categories.map((c) => <option key={c._id} value={c._id}>{c.category_name || c.name}</option>)}
+                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
               </select>
             </div>
 
@@ -194,7 +204,7 @@ const AddItem = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
               <select value={formData.brand || ''} onChange={(e) => handleChange('brand', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 <option value="">Select Brand</option>
-                {brands.map((b) => <option key={b._id} value={b._id}>{b.brand_name || b.name}</option>)}
+                {brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}
               </select>
             </div>
 
@@ -202,7 +212,7 @@ const AddItem = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
               <select value={formData.supplier || ''} onChange={(e) => handleChange('supplier', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 <option value="">Select Supplier</option>
-                {suppliers.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
               </select>
             </div>
 
@@ -210,7 +220,7 @@ const AddItem = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
               <select value={formData.hsn_code || ''} onChange={(e) => handleChange('hsn_code', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 <option value="">Select HSN Code</option>
-                {hsns.map((h) => <option key={h._id} value={h._id}>{h.hsn_number} - {h.gst_percentage}%</option>)}
+                {hsns.map((hsn) => <option key={hsn.id} value={hsn.id}>{hsn.hsn_number} - {hsn.gst_percentage}%</option>)}
               </select>
             </div>
 

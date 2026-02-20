@@ -4,6 +4,7 @@ import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';// 
+import { getResponseList, normalizeBill } from '../../services/apiUtils';
 
 const BillList = () => {
   const { showToast } = useStore();
@@ -13,20 +14,7 @@ const BillList = () => {
     const fetchBills = async () => {
       try {
         const response = await api.get('/bills');
-        const getList = (res) => {
-            const val = res.data?.data;
-            return Array.isArray(val) ? val : (val?.data || []);
-        };
-        const backendBills = getList(response).map(b => ({
-           id: b._id,
-           billNo: b.bill_no,
-           date: b.date,
-           party: b.contact_id?.name || b.party_id?.name || 'Unknown',
-           amount: b.amount || b.total_amount || 0,
-           linkedChallans: b.challan_ids?.map(c => c.challan_no) || [],
-           gstType: b.is_gst
-        }));
-        setBills(backendBills);
+        setBills(getResponseList(response).map(normalizeBill));
       } catch (error) {
         console.error("Failed to fetch bills", error);
       }
@@ -41,7 +29,7 @@ const BillList = () => {
     gstType: 'all'
   });
 
-  const [selectedBill, setSelectedBill] = useState(null);
+  const [selectedBill] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, bill: null });
 

@@ -50,12 +50,18 @@ const BrandMaster = () => {
       }));
       setItems(itemList);
 
-      const brandList = listFromResponse(brandRes).map((b) => ({
-        id: b._id,
-        name: b.brand_name || b.name || '',
-        hsn_id: typeof b.hsn_id === 'object' ? b.hsn_id?._id : (b.hsn_id || ''),
-        itemCount: b.total_items || 0
-      }));
+      const brandList = listFromResponse(brandRes).map((b) => {
+        const rawItemIds = Array.isArray(b.item_ids)
+          ? b.item_ids.map((item) => (typeof item === 'string' ? item : item?._id)).filter(Boolean)
+          : [];
+        return {
+          id: b._id,
+          name: b.brand_name || b.name || '',
+          hsn_id: typeof b.hsn_id === 'object' ? b.hsn_id?._id : (b.hsn_id || ''),
+          item_ids: rawItemIds,
+          itemCount: rawItemIds.length || b.total_items || 0
+        };
+      });
       setBrands(brandList);
     } catch (error) {
       if (error?.name !== 'CanceledError') {
@@ -92,13 +98,15 @@ const BrandMaster = () => {
     {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (brand) => {
-        setEditingBrand(brand);
-        setNewBrandName(brand.name);
-        setSelectedHsn(brand.hsn_id || '');
-        const hsn = hsns.find(h => h._id === brand.hsn_id);
-        setGstRate(hsn ? hsn.gst_percentage : 0);
-        setIsEditModalOpen(true);
-      },
+      setEditingBrand(brand);
+      setNewBrandName(brand.name);
+      setSelectedHsn(brand.hsn_id || '');
+      const hsn = hsns.find(h => h._id === brand.hsn_id);
+      setGstRate(hsn ? hsn.gst_percentage : 0);
+      const preselectedItems = items.filter((item) => brand.item_ids?.includes(item.id));
+      setSelectedItems(preselectedItems);
+      setIsEditModalOpen(true);
+    },
       className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
     },
     {
@@ -114,12 +122,16 @@ const BrandMaster = () => {
     try {
       await api.post('/brands', {
         brand_name: newBrandName?.trim(),
-        hsn_id: selectedHsn || undefined
+        hsn_id: selectedHsn || undefined,
+        item_ids: selectedItems.map((item) => item.id),
+        discount1: { normal: 0, special: 0 },
+        discount2: { normal: 0, special: 0 }
       });
       showToast('Brand added successfully', 'success');
       setNewBrandName('');
       setSelectedHsn('');
       setGstRate(0);
+      setSelectedItems([]);
       setIsAddModalOpen(false);
       fetchData();
     } catch (error) {
@@ -135,7 +147,10 @@ const BrandMaster = () => {
     try {
       await api.put(`/brands/${editingBrand.id}`, {
         brand_name: newBrandName?.trim(),
-        hsn_id: selectedHsn || undefined
+        hsn_id: selectedHsn || undefined,
+        item_ids: selectedItems.map((item) => item.id),
+        discount1: { normal: 0, special: 0 },
+        discount2: { normal: 0, special: 0 }
       });
       showToast('Brand updated successfully', 'success');
       setIsEditModalOpen(false);
@@ -143,6 +158,7 @@ const BrandMaster = () => {
       setNewBrandName('');
       setSelectedHsn('');
       setGstRate(0);
+      setSelectedItems([]);
       fetchData();
     } catch (error) {
       showToast(error?.response?.data?.message || 'Failed to update brand', 'error');
@@ -198,7 +214,7 @@ const BrandMaster = () => {
 
       <DataTable columns={columns} data={brands} actions={actions} searchable sortable pagination />
 
-      <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Brand" size="lg">
+      <Modal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); setSelectedItems([]); }} title="Add Brand" size="lg">
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
@@ -282,7 +298,7 @@ const BrandMaster = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Brand" size="lg">
+      <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setSelectedItems([]); }} title="Edit Brand" size="lg">
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>

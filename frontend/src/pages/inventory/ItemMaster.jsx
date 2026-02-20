@@ -5,10 +5,20 @@ import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
+import {
+  getResponseList,
+  getResponseMeta,
+  normalizeCategory,
+  normalizeBrand,
+  normalizeContact,
+  normalizeItem,
+  getEntityId,
+  toNumber
+} from '../../services/apiUtils';
 
 const ItemMaster = () => {
   const navigate = useNavigate();
-  const { items, setItems, updateItem, deleteItem, showToast } = useStore();
+  const { items, setItems, deleteItem, showToast } = useStore();
   const [editingItem, setEditingItem] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editImageFile, setEditImageFile] = useState(null);
@@ -18,6 +28,46 @@ const ItemMaster = () => {
   const [brands, setBrands] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [hsns, setHsns] = useState([]);
+
+  const mapItemRecord = (item) => {
+    const normalized = normalizeItem(item);
+    return {
+      ...normalized,
+      status: normalized.stockCount < normalized.threshold ? 'LOW' : 'OK',
+      hsn_code: item?.hsn_code || '',
+      description: item?.description || ''
+    };
+  };
+
+  const fetchAllItems = async () => {
+    let allItems = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await api.get('/items', { params: { page, limit: 100 } });
+      const pageItems = getResponseList(response);
+      const meta = getResponseMeta(response);
+
+      allItems = [...allItems, ...pageItems];
+
+      if (meta?.hasNextPage) {
+        page = toNumber(meta.page, page) + 1;
+      } else {
+        hasMore = false;
+      }
+
+      if (!meta && pageItems.length === 0) {
+        hasMore = false;
+      }
+
+      if (page > 100) {
+        hasMore = false;
+      }
+    }
+
+    return allItems.map(mapItemRecord);
+  };
   
   useEffect(() => {
       const fetchCategories = async () => {
@@ -25,17 +75,30 @@ const ItemMaster = () => {
               const [catRes, brandRes, supplierRes, hsnRes] = await Promise.all([
                   api.get('/categories'),
                   api.get('/brands'),
-                  api.get('/contacts', { params: { type: 'supplier', page: 1, limit: 200 } }),
+                  api.get('/contacts/suppliers', { params: { page: 1, limit: 200 } }),
                   api.get('/hsn', { params: { page: 1, limit: 200 } }),
               ]);
-              const getList = (res) => {
-                  const val = res.data?.data;
-                  return Array.isArray(val) ? val : (val?.data || []);
-              };
-              setCategories(getList(catRes).map(c => ({ id: c._id, name: c.name })));
-              setBrands(getList(brandRes).map(b => ({ id: b._id, name: b.name })));
-              setSuppliers(getList(supplierRes).map(s => ({ id: s._id, name: s.name })));
-              setHsns(getList(hsnRes).filter(h => h.is_active !== false).map(h => ({ ...h, hsn_number: h.hsn_code, gst_percentage: h.gst_rate })));
+              setCategories(getResponseList(catRes).map((category) => {
+                const normalized = normalizeCategory(category);
+                return { id: normalized.id, name: normalized.name };
+              }));
+              setBrands(getResponseList(brandRes).map((brand) => {
+                const normalized = normalizeBrand(brand);
+                return { id: normalized.id, name: normalized.name };
+              }));
+              setSuppliers(getResponseList(supplierRes).map((supplier) => {
+                const normalized = normalizeContact(supplier);
+                return { id: normalized.id, name: normalized.name };
+              }));
+              setHsns(
+                getResponseList(hsnRes)
+                  .filter((hsn) => hsn?.is_active !== false)
+                  .map((hsn) => ({
+                    _id: getEntityId(hsn),
+                    hsn_number: hsn?.hsn_code || '',
+                    gst_percentage: toNumber(hsn?.gst_rate, 0)
+                  })),
+              );
           } catch (e) { console.error(e); }
       };
       fetchCategories();
@@ -45,53 +108,8 @@ const ItemMaster = () => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        let allDocs = [];
-        let page = 1;
-        let hasMore = true;
-        
-        while(hasMore) {
-            // Request large limit, backend will cap it to MAX_PAGE_SIZE (10)
-            const response = await api.get('/items', { params: { page, limit: 100 } });
-            const payload = response.data?.data;
-            let pageData = [];
-            
-            if (Array.isArray(payload)) {
-                pageData = payload;
-                hasMore = false; // If array, likely no pagination meta, assume single page or all
-            } else {
-                pageData = payload?.data || [];
-                // Check if we have more pages
-                if (payload?.meta && payload.meta.hasNextPage) {
-                    page++;
-                } else {
-                    hasMore = false;
-                }
-            }
-            
-            allDocs = [...allDocs, ...pageData];
-            if (page > 100) break; // Safety break
-        }
-        
-        const backendItems = allDocs.map(item => ({
-          id: item._id,
-          itemName: item.item_name,
-          amount: item.sale_rate || item.amount || 0,
-          threshold: Number(item.threshold) || 0,
-          stockCount: Number(item.stock) || Number(item.current_stock) || Number(item.opening_stock) || Number(item.physical_stock) || Number(item.quantity) || (Number(item.gst_stock || 0) + Number(item.nongst_stock || 0)) || 0,
-          itemMedia: item.image,
-          status: ((Number(item.stock) || 0) < (Number(item.threshold) || 0)) ? 'LOW' : 'OK',
-          type: item.is_gst,
-          categoryId: item.category_id || item.category_ids?.[0],
-          brandId: item.brand_id,
-          supplierId: item.contact_id || item.supplier_id,
-          hsn_code: item.hsn_code,
-          description: item.description,
-          gst_percent: item.gst_percent || 0,
-          purchase_rate: item.purchase_rate || 0,
-          mrp_rate: item.mrp_rate || 0,
-          discount: item.discount || 0
-        }));
-        setItems(backendItems);
+        const data = await fetchAllItems();
+        setItems(data);
       } catch (err) {
         console.error("Failed to fetch items", err);
         showToast("Failed to load items", "error");
@@ -228,29 +246,8 @@ const ItemMaster = () => {
         setEditImageFile(null);
         
         // Refresh
-        const response = await api.get('/items');
-        const val = response.data?.data;
-        const rawList = Array.isArray(val) ? val : (val?.data || []);
-        const backendItems = rawList.map(item => ({
-            id: item._id,
-            itemName: item.item_name,
-            amount: item.sale_rate || item.amount || 0,
-            threshold: Number(item.threshold) || 0,
-            stockCount: Number(item.stock) || Number(item.physical_stock) || (Number(item.gst_stock || 0) + Number(item.nongst_stock || 0)) || 0,
-            itemMedia: item.image,
-            status: ((Number(item.stock) || Number(item.physical_stock) || 0) < (Number(item.threshold) || 0)) ? 'LOW' : 'OK',
-            type: item.is_gst,
-            categoryId: item.category_id || item.category_ids?.[0],
-            brandId: item.brand_id,
-            supplierId: item.contact_id || item.supplier_id,
-            hsn_code: item.hsn_code,
-            description: item.description,
-            gst_percent: item.gst_percent || 0,
-            purchase_rate: item.purchase_rate || 0,
-            mrp_rate: item.mrp_rate || 0,
-            discount: item.discount || 0
-        }));
-        setItems(backendItems);
+        const data = await fetchAllItems();
+        setItems(data);
       } catch (error) {
         console.error('Update failed', error);
         showToast('Failed to update item', 'error');

@@ -4,6 +4,7 @@ import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
+import { getResponseList, getEntityId } from '../../services/apiUtils';
 
 const emptyForm = { name: '', address: '', city: '', pincode: '', phone: '', whatsapp: '', party_id: '' };
 
@@ -18,13 +19,6 @@ const AgentMaster = () => {
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
-
-  const listFromResponse = (res) => {
-    const payload = res?.data?.data;
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.data)) return payload.data;
-    return [];
-  };
 
   const normalizeAgent = (a) => ({
     _id: a?._id,
@@ -42,10 +36,10 @@ const AgentMaster = () => {
     try {
       const [agentsRes, partiesRes] = await Promise.all([
         api.get('/agents', { params: { page: 1, limit: 200 }, signal }),
-        api.get('/contacts', { params: { page: 1, limit: 200, type: 'party' }, signal })
+        api.get('/contacts/parties', { params: { page: 1, limit: 200 }, signal })
       ]);
-      setAgents(listFromResponse(agentsRes).map(normalizeAgent));
-      setParties(listFromResponse(partiesRes));
+      setAgents(getResponseList(agentsRes).map(normalizeAgent));
+      setParties(getResponseList(partiesRes));
     } catch (error) {
       if (error?.name !== 'CanceledError') {
         showToast('Failed to fetch agents', 'error');
@@ -178,7 +172,7 @@ const AgentMaster = () => {
       <Modal isOpen={isAddModalOpen || isEditModalOpen} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedAgent(null); setFormData(emptyForm); }} title={isEditModalOpen ? 'Edit Agent' : 'Add New Agent'} size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Party</label><select name="party_id" value={formData.party_id} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Party</option>{parties.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}</select></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Party</label><select name="party_id" value={formData.party_id} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Party</option>{parties.map((p) => <option key={getEntityId(p)} value={getEntityId(p)}>{p.name}</option>)}</select></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Address</label><textarea name="address" value={formData.address} onChange={handleInputChange} rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">City</label><input type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>

@@ -4,19 +4,13 @@ import { DataTable } from '../../components/common';
 import { Select, Input, Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
+import { getResponseList, normalizeChallan, normalizeBill } from '../../services/apiUtils';
 
 const TransactionHistory = () => {
   const { setTransactions: setStoreTransactions } = useStore();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ dateFrom: '', type: 'all', gstType: 'all' });
-
-  const listFromResponse = (res) => {
-    const payload = res?.data?.data;
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.data)) return payload.data;
-    return [];
-  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -31,38 +25,47 @@ const TransactionHistory = () => {
           api.get('/bills', { params: { page: 1, limit: 200 }, signal: controller.signal })
         ]);
 
-        const saleTxns = listFromResponse(saleRes).map((c) => ({
-          id: c._id,
-          transactionId: c.challan_no || c._id,
-          type: 'Challan',
-          amount: Number(c.amount || 0),
-          date: c.date,
-          party: c.contact_id?.name || 'Unknown',
-          gstType: Number(c.is_gst || 0),
-          status: c.payment_status || (c.converted_to_bill ? 'Converted' : 'Generated')
-        }));
+        const saleTxns = getResponseList(saleRes).map((challan) => {
+          const normalized = normalizeChallan(challan);
+          return {
+            id: normalized.id,
+            transactionId: normalized.challanNo || normalized.id,
+            type: 'Challan',
+            amount: Number(normalized.amount || 0),
+            date: normalized.date,
+            party: normalized.party,
+            gstType: Number(normalized.gstType || 0),
+            status: normalized.payment_status || (normalized.converted_to_bill ? 'Converted' : 'Generated')
+          };
+        });
 
-        const purchaseTxns = listFromResponse(purchaseRes).map((c) => ({
-          id: c._id,
-          transactionId: c.challan_no || c._id,
-          type: 'Prepaid',
-          amount: Number(c.amount || 0),
-          date: c.date,
-          party: c.contact_id?.name || 'Unknown',
-          gstType: Number(c.is_gst || 0),
-          status: c.payment_status || 'Generated'
-        }));
+        const purchaseTxns = getResponseList(purchaseRes).map((challan) => {
+          const normalized = normalizeChallan(challan);
+          return {
+            id: normalized.id,
+            transactionId: normalized.challanNo || normalized.id,
+            type: 'Prepaid',
+            amount: Number(normalized.amount || 0),
+            date: normalized.date,
+            party: normalized.party,
+            gstType: Number(normalized.gstType || 0),
+            status: normalized.payment_status || 'Generated'
+          };
+        });
 
-        const billTxns = listFromResponse(billRes).map((b) => ({
-          id: b._id,
-          transactionId: b.bill_no || b._id,
-          type: 'Bill',
-          amount: Number(b.amount || b.total_amount || 0),
-          date: b.date,
-          party: b.contact_id?.name || b.party_id?.name || 'Unknown',
-          gstType: Number(b.is_gst || 0),
-          status: b.payment_status || 'Generated'
-        }));
+        const billTxns = getResponseList(billRes).map((bill) => {
+          const normalized = normalizeBill(bill);
+          return {
+            id: normalized.id,
+            transactionId: normalized.billNo || normalized.id,
+            type: 'Bill',
+            amount: Number(normalized.amount || 0),
+            date: normalized.date,
+            party: normalized.party,
+            gstType: Number(normalized.gstType || 0),
+            status: normalized.payment_status || 'Generated'
+          };
+        });
 
         const merged = [...saleTxns, ...purchaseTxns, ...billTxns].filter((t) => t.id);
         merged.sort((a, b) => new Date(b.date) - new Date(a.date));

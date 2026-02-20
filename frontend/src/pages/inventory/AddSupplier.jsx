@@ -4,6 +4,7 @@ import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
+import { getResponseList, getEntityId, normalizeContact } from '../../services/apiUtils';
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
@@ -43,45 +44,43 @@ const AddSupplier = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
+  const [validationModal, setValidationModal] = useState({ isOpen: false, errors: [] });
 
   const extractPAN = (gstin) => {
     if (!gstin || gstin.length < 15) return '';
     return gstin.substring(2, 12);
   };
 
-  const listFromResponse = (response) => {
-    const payload = response?.data?.data;
-    if (Array.isArray(payload?.data)) return payload.data;
-    if (Array.isArray(payload)) return payload;
-    return [];
+  const mapSupplier = (contact) => {
+    const normalized = normalizeContact(contact);
+    return {
+      id: normalized.id,
+      name: normalized.name,
+      alias: normalized.alias,
+      phone: normalized.phone,
+      whatsapp_number: normalized.whatsapp_number,
+      email: normalized.email,
+      address: normalized.address,
+      city: normalized.city,
+      state: normalized.state,
+      gstin: normalized.gstin,
+      is_gst: normalized.is_gst,
+      category: normalized.category_id,
+      cin: normalized.cin,
+      reg_number: normalized.reg_number,
+      bank_name: normalized.bank_name,
+      bank_branch: normalized.bank_branch,
+      ifsc_code: normalized.ifsc_code,
+      account_number: normalized.account_number
+    };
   };
 
   useEffect(() => {
     const fetchSuppliers = async () => {
       try {
-        const response = await api.get('/contacts', { params: { type: 'supplier' } });
-        const backendSuppliers = listFromResponse(response).map((s) => ({
-          id: s._id,
-          name: s.name,
-          alias: s.alias || '',
-          phone: s.phone || '',
-          whatsapp_number: s.whatsapp_number || '',
-          email: s.email || '',
-          address: s.address || '',
-          city: s.city || '',
-          state: s.state || '',
-          gstin: s.gstin || '',
-          is_gst: Number(s.is_gst) === 1 ? 1 : 0,
-          category: s.category_id || '',
-          cin: s.cin || '',
-          reg_number: s.reg_number || '',
-          bank_name: s.bank_name || '',
-          bank_branch: s.bank_branch || '',
-          ifsc_code: s.ifsc_code || '',
-          account_number: s.account_number || ''
-        }));
-        setSuppliers(backendSuppliers);
-      } catch (error) {
+        const response = await api.get('/contacts/suppliers', { params: { page: 1, limit: 200 } });
+        setSuppliers(getResponseList(response).map(mapSupplier));
+      } catch {
         showToast("Failed to load suppliers", "error");
       }
     };
@@ -92,7 +91,7 @@ const AddSupplier = () => {
     const fetchCategories = async () => {
       try {
         const response = await api.get('/categories');
-        setCategories(listFromResponse(response));
+        setCategories(getResponseList(response));
       } catch (error) {
         console.error("Failed to fetch categories", error);
       }
@@ -122,10 +121,24 @@ const AddSupplier = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    const errors = [];
+    if (!formData.name?.trim()) errors.push('Supplier Name is required');
+    if (!formData.phone?.trim()) errors.push('Phone Number is required');
+    if (!formData.email?.trim()) errors.push('Email is required');
+    if (!formData.address?.trim()) errors.push('Address is required');
+    if (!formData.city?.trim()) errors.push('City is required');
+    if (!formData.state?.trim()) errors.push('State is required');
+    if (!formData.category) errors.push('Category is required');
+    
     let cleanPhone = formData.phone ? formData.phone.replace(/\D/g, '') : '';
     if (cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
     if (cleanPhone && !/^[6-9][0-9]{9}$/.test(cleanPhone)) {
-      showToast('Phone number must be a valid 10-digit Indian number (starts with 6-9)', 'error');
+      errors.push('Phone number must be a valid 10-digit Indian number (starts with 6-9)');
+    }
+    
+    if (errors.length > 0) {
+      setValidationModal({ isOpen: true, errors });
+      showToast('Please fill all required fields', 'error');
       return;
     }
 
@@ -159,28 +172,8 @@ const AddSupplier = () => {
         showToast('Supplier created successfully', 'success');
       }
       
-      const response = await api.get('/contacts', { params: { type: 'supplier' } });
-      const backendSuppliers = listFromResponse(response).map((s) => ({
-        id: s._id,
-        name: s.name,
-        alias: s.alias || '',
-        phone: s.phone || '',
-        whatsapp_number: s.whatsapp_number || '',
-        email: s.email || '',
-        address: s.address || '',
-        city: s.city || '',
-        state: s.state || '',
-        gstin: s.gstin || '',
-        is_gst: Number(s.is_gst) === 1 ? 1 : 0,
-        category: s.category_id || '',
-        cin: s.cin || '',
-        reg_number: s.reg_number || '',
-        bank_name: s.bank_name || '',
-        bank_branch: s.bank_branch || '',
-        ifsc_code: s.ifsc_code || '',
-        account_number: s.account_number || ''
-      }));
-      setSuppliers(backendSuppliers);
+      const response = await api.get('/contacts/suppliers', { params: { page: 1, limit: 200 } });
+      setSuppliers(getResponseList(response).map(mapSupplier));
       
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
@@ -224,6 +217,31 @@ const AddSupplier = () => {
 
       <DeleteConfirmDialog isOpen={deleteDialog.isOpen} onClose={() => setDeleteDialog({ isOpen: false, supplier: null })} onConfirm={handleDelete} itemName={deleteDialog.supplier?.name} />
 
+      <div className={validationModal.isOpen ? 'relative z-[9999]' : ''}>
+        <Modal
+          isOpen={validationModal.isOpen}
+          onClose={() => setValidationModal({ isOpen: false, errors: [] })}
+          title="Validation Failed"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="text-red-800 font-semibold mb-2">Please fix the following errors:</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {validationModal.errors.map((error, index) => (
+                  <li key={index} className="text-red-700 text-sm">{error}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setValidationModal({ isOpen: false, errors: [] })}>
+                OK
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+
       <Modal isOpen={isViewModalOpen} onClose={() => { setIsViewModalOpen(false); setSelectedSupplier(null); }} title="Supplier Details" size="lg">
         {selectedSupplier && (
           <div className="space-y-4">
@@ -242,7 +260,7 @@ const AddSupplier = () => {
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Branch</label><p className="text-sm text-gray-900">{selectedSupplier.bank_branch || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">IFSC Code</label><p className="text-sm text-gray-900">{selectedSupplier.ifsc_code || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Account Number</label><p className="text-sm text-gray-900">{selectedSupplier.account_number || 'N/A'}</p></div>
-              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label><p className="text-sm text-gray-900">{categories.find(c => c._id === selectedSupplier.category)?.name || 'N/A'}</p></div>
+              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label><p className="text-sm text-gray-900">{categories.find(c => getEntityId(c) === selectedSupplier.category)?.name || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label><p className="text-sm text-gray-900">{selectedSupplier.city || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">State</label><p className="text-sm text-gray-900">{selectedSupplier.state || 'N/A'}</p></div>
             </div>
@@ -275,7 +293,7 @@ const AddSupplier = () => {
             <div><label className="block text-sm font-medium text-gray-700 mb-1">CIN</label><input type="text" name="cin" value={formData.cin} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="CIN" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Reg Number</label><input type="text" name="reg_number" value={formData.reg_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Registration Number" /></div>
           </div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Category</label><select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Category</option>{categories.map(cat => <option className='text-black' key={cat._id} value={cat._id}>{cat.name}</option>)}</select></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Category</label><select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Category</option>{categories.map(cat => <option className='text-black' key={getEntityId(cat)} value={getEntityId(cat)}>{cat.name}</option>)}</select></div>
           <div className="border-t pt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-3">Bank Details</h3>
             <div className="space-y-4">

@@ -1,0 +1,2892 @@
+{
+  "info": {
+    "_postman_id": "1763709e-cf49-4309-b39a-d9092fd338f9",
+    "name": "Maheshwari Motors API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Generated from Tushar/backend source. Base prefix `/api/v1`."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{authToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://13.233.250.55:3000"
+    },
+    {
+      "key": "authToken",
+      "value": ""
+    },
+    {
+      "key": "sessionId",
+      "value": "507f1f77bcf86cd799439011"
+    },
+    {
+      "key": "userId",
+      "value": "507f1f77bcf86cd799439012"
+    },
+    {
+      "key": "itemId",
+      "value": "507f1f77bcf86cd799439013"
+    },
+    {
+      "key": "categoryId",
+      "value": "507f1f77bcf86cd799439014"
+    },
+    {
+      "key": "brandId",
+      "value": "507f1f77bcf86cd799439015"
+    },
+    {
+      "key": "hsnId",
+      "value": "507f1f77bcf86cd799439016"
+    },
+    {
+      "key": "contactId",
+      "value": "507f1f77bcf86cd799439017"
+    },
+    {
+      "key": "agentId",
+      "value": "507f1f77bcf86cd799439018"
+    },
+    {
+      "key": "transportId",
+      "value": "507f1f77bcf86cd799439019"
+    },
+    {
+      "key": "areaId",
+      "value": "507f1f77bcf86cd799439020"
+    },
+    {
+      "key": "challanId",
+      "value": "507f1f77bcf86cd799439021"
+    },
+    {
+      "key": "billId",
+      "value": "507f1f77bcf86cd799439022"
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "GET /health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Public health.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            },
+            "description": "Public root health.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/v1/auth/admin/register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/admin/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "admin",
+                "register"
+              ]
+            },
+            "description": "Public. One-time main user registration.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Owner Name\",\n  \"email\": \"owner@example.com\",\n  \"phone\": \"9876543210\",\n  \"admin\": {\n    \"username\": \"admin_user\",\n    \"password\": \"Admin@1234\"\n  },\n  \"gst_firm\": {\n    \"username\": \"gst_user\",\n    \"password\": \"Test@1234\",\n    \"name\": \"GST Firm\",\n    \"phone\": \"9876543211\",\n    \"email\": \"gst@example.com\",\n    \"address\": \"Address line\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  },\n  \"nongst_firm\": {\n    \"username\": \"nongst_user\",\n    \"password\": \"Test@1234\",\n    \"name\": \"NON GST Firm\",\n    \"phone\": \"9876543212\",\n    \"email\": \"nongst@example.com\",\n    \"address\": \"Address line\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/auth/login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Public login for admin or firm credentials.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin_user\",\n  \"password\": \"Admin@1234\",\n  \"device_name\": \"Chrome\",\n  \"device_type\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "POST /api/v1/auth/logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Auth required."
+          }
+        },
+        {
+          "name": "GET /api/v1/auth/me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Auth required."
+          }
+        },
+        {
+          "name": "PUT /api/v1/auth/change-password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "Auth required. current_password + new_password(min 6).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Admin@1234\",\n  \"new_password\": \"Admin@12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/auth/sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sessions"
+              ]
+            },
+            "description": "Auth required."
+          }
+        },
+        {
+          "name": "DELETE /api/v1/auth/sessions/:sessionId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sessions/{{sessionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sessions",
+                "{{sessionId}}"
+              ]
+            },
+            "description": "Auth required."
+          }
+        },
+        {
+          "name": "DELETE /api/v1/auth/sessions",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "sessions"
+              ]
+            },
+            "description": "Auth required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "description": "All routes require auth + requireAdmin middleware.",
+      "item": [
+        {
+          "name": "GET /api/v1/admin/users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true,
+                  "description": "optional, default 1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "disabled": true,
+                  "description": "optional, default 5, max 10"
+                }
+              ]
+            },
+            "description": "Admin only."
+          }
+        },
+        {
+          "name": "POST /api/v1/admin/users",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ]
+            },
+            "description": "Admin only. Required: name, gst_firm, nongst_firm.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Staff User\",\n  \"email\": \"staff@example.com\",\n  \"phone\": \"9876500000\",\n  \"gst_firm\": {\n    \"username\": \"gst_staff\",\n    \"password\": \"Staff@1234\",\n    \"name\": \"GST Staff Firm\",\n    \"phone\": \"9876500001\",\n    \"email\": \"gst.staff@example.com\",\n    \"address\": \"Address\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  },\n  \"nongst_firm\": {\n    \"username\": \"nongst_staff\",\n    \"password\": \"Staff@1234\",\n    \"name\": \"NON GST Staff Firm\",\n    \"phone\": \"9876500002\",\n    \"email\": \"nongst.staff@example.com\",\n    \"address\": \"Address\",\n    \"city\": \"Jaipur\",\n    \"state\": \"Rajasthan\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/v1/admin/users/:userId",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Admin only."
+          }
+        },
+        {
+          "name": "PUT /api/v1/admin/users/:userId",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Admin only. Partial update.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Staff\",\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/v1/admin/users/:userId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Admin only."
+          }
+        },
+        {
+          "name": "POST /api/v1/admin/users/:userId/deactivate",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/deactivate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{userId}}",
+                "deactivate"
+              ]
+            },
+            "description": "Admin only."
+          }
+        },
+        {
+          "name": "POST /api/v1/admin/users/:userId/reactivate",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/reactivate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                "{{userId}}",
+                "reactivate"
+              ]
+            },
+            "description": "Admin only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "GET /api/v1/dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard"
+              ]
+            },
+            "description": "Auth required."
+          }
+        },
+        {
+          "name": "GET /api/v1/dashboard/firm",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/dashboard/firm",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "dashboard",
+                "firm"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "monthly",
+                  "disabled": true,
+                  "description": "optional"
+                }
+              ]
+            },
+            "description": "Firm role required. period=today|yearly|monthly(default)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Master",
+      "item": [
+        {
+          "name": "Items",
+          "item": [
+            {
+              "name": "GET /api/v1/items",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/items",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "items"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "brake",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "POST /api/v1/items",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/items",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "items"
+                  ]
+                },
+                "description": "Auth required. multipart/form-data with optional image file.",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "item_name",
+                      "type": "text",
+                      "value": "Brake Pad",
+                      "description": "required"
+                    },
+                    {
+                      "key": "sale_rate",
+                      "type": "text",
+                      "value": "450",
+                      "description": "required"
+                    },
+                    {
+                      "key": "barcode",
+                      "type": "text",
+                      "value": "AB12CD34EF",
+                      "disabled": true
+                    },
+                    {
+                      "key": "item_id",
+                      "type": "text",
+                      "value": "123",
+                      "disabled": true
+                    },
+                    {
+                      "key": "purchase_rate",
+                      "type": "text",
+                      "value": "300",
+                      "disabled": true
+                    },
+                    {
+                      "key": "mrp_rate",
+                      "type": "text",
+                      "value": "500",
+                      "disabled": true
+                    },
+                    {
+                      "key": "gst_percent",
+                      "type": "text",
+                      "value": "18",
+                      "disabled": true
+                    },
+                    {
+                      "key": "discount",
+                      "type": "text",
+                      "value": "5",
+                      "disabled": true
+                    },
+                    {
+                      "key": "stock",
+                      "type": "text",
+                      "value": "20",
+                      "disabled": true
+                    },
+                    {
+                      "key": "threshold",
+                      "type": "text",
+                      "value": "5",
+                      "disabled": true
+                    },
+                    {
+                      "key": "is_gst",
+                      "type": "text",
+                      "value": "1",
+                      "disabled": true
+                    },
+                    {
+                      "key": "category_id",
+                      "type": "text",
+                      "value": "{{categoryId}}",
+                      "disabled": true
+                    },
+                    {
+                      "key": "brand_id",
+                      "type": "text",
+                      "value": "{{brandId}}",
+                      "disabled": true
+                    },
+                    {
+                      "key": "contact_id",
+                      "type": "text",
+                      "value": "{{contactId}}",
+                      "disabled": true
+                    },
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": "",
+                      "disabled": true,
+                      "description": "optional image <=5MB"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/items/low-stock",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/items/low-stock",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "items",
+                    "low-stock"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "pad",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "GET /api/v1/items/:itemId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/items/{{itemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "items",
+                    "{{itemId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PUT /api/v1/items/:itemId",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/items/{{itemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "items",
+                    "{{itemId}}"
+                  ]
+                },
+                "description": "Auth required. multipart/form-data partial update.",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "item_name",
+                      "type": "text",
+                      "value": "Brake Pad Updated",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sale_rate",
+                      "type": "text",
+                      "value": "500",
+                      "disabled": true
+                    },
+                    {
+                      "key": "stock",
+                      "type": "text",
+                      "value": "25",
+                      "disabled": true
+                    },
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": "",
+                      "disabled": true
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/items/:itemId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/items/{{itemId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "items",
+                    "{{itemId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PATCH /api/v1/items/:itemId/stock",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/items/{{itemId}}/stock",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "items",
+                    "{{itemId}}",
+                    "stock"
+                  ]
+                },
+                "description": "Auth required.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"stock\": 100\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categories",
+          "item": [
+            {
+              "name": "GET /api/v1/categories",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "categories"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "engine",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "POST /api/v1/categories",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/categories",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "categories"
+                  ]
+                },
+                "description": "Auth required. category_name required.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"category_name\": \"Engine Parts\",\n  \"description\": \"desc\",\n  \"brands\": [\n    \"{{brandId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/categories/:categoryId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PUT /api/v1/categories/:categoryId",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                },
+                "description": "Auth required. Partial update.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"category_name\": \"Updated Category\",\n  \"description\": \"updated\",\n  \"brands\": [\n    \"{{brandId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/categories/:categoryId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/categories/{{categoryId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "categories",
+                    "{{categoryId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Brands",
+          "item": [
+            {
+              "name": "GET /api/v1/brands",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/brands",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "brands"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "royal",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "POST /api/v1/brands",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/brands",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "brands"
+                  ]
+                },
+                "description": "Create",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"brand_name\": \"Royal Enfield\",\n  \"hsn_id\": \"{{hsnId}}\",\n  \"discount1\": {\n    \"normal\": 10,\n    \"special\": 15\n  },\n  \"discount2\": {\n    \"normal\": 5,\n    \"special\": 8\n  },\n  \"item_ids\": [\n    \"{{itemId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/brands/category/:categoryId/discounts",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/brands/category/{{categoryId}}/discounts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "brands",
+                    "category",
+                    "{{categoryId}}",
+                    "discounts"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PATCH /api/v1/brands/:brandId/discount",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/brands/{{brandId}}/discount",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "brands",
+                    "{{brandId}}",
+                    "discount"
+                  ]
+                },
+                "description": "Auth required.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"discount1\": {\n    \"normal\": 11,\n    \"special\": 16\n  },\n  \"discount2\": {\n    \"normal\": 4,\n    \"special\": 7\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/brands/:brandId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/brands/{{brandId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "brands",
+                    "{{brandId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PUT /api/v1/brands/:brandId",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/brands/{{brandId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "brands",
+                    "{{brandId}}"
+                  ]
+                },
+                "description": "Auth required. Partial update.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"brand_name\": \"Royal Enfield Updated\",\n  \"hsn_id\": \"{{hsnId}}\",\n  \"discount1\": {\n    \"normal\": 12,\n    \"special\": 18\n  },\n  \"discount2\": {\n    \"normal\": 6,\n    \"special\": 9\n  },\n  \"item_ids\": [\n    \"{{itemId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/brands/:brandId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/brands/{{brandId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "brands",
+                    "{{brandId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            }
+          ]
+        },
+        {
+          "name": "HSN",
+          "item": [
+            {
+              "name": "GET /api/v1/hsn",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hsn",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hsn"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "8714",
+                      "disabled": true
+                    },
+                    {
+                      "key": "is_active",
+                      "value": "true",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "POST /api/v1/hsn",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hsn",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hsn"
+                  ]
+                },
+                "description": "Auth required. hsn_code + gst_rate required.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"hsn_code\": \"8714\",\n  \"description\": \"HSN desc\",\n  \"gst_rate\": 28,\n  \"is_active\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/hsn/:hsnId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hsn/{{hsnId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hsn",
+                    "{{hsnId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PUT /api/v1/hsn/:hsnId",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hsn/{{hsnId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hsn",
+                    "{{hsnId}}"
+                  ]
+                },
+                "description": "Auth required. Partial update.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"hsn_code\": \"8714\",\n  \"description\": \"Updated HSN\",\n  \"gst_rate\": 18,\n  \"is_active\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/hsn/:hsnId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/hsn/{{hsnId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "hsn",
+                    "{{hsnId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Contacts",
+          "item": [
+            {
+              "name": "GET /api/v1/contacts",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "type",
+                      "value": "party",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "abc",
+                      "disabled": true
+                    },
+                    {
+                      "key": "balance_status",
+                      "value": "due",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "GET /api/v1/contacts/parties",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts/parties",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts",
+                    "parties"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "abc",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "GET /api/v1/contacts/suppliers",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts/suppliers",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts",
+                    "suppliers"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "xyz",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "POST /api/v1/contacts",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts"
+                  ]
+                },
+                "description": "Auth required. name + type required.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"ABC Traders\",\n  \"alias\": \"ABC\",\n  \"type\": \"party\",\n  \"phone\": \"9876543210\",\n  \"whatsapp_number\": \"9876543210\",\n  \"email\": \"abc@example.com\",\n  \"address\": \"Main Road\",\n  \"city\": \"Jaipur\",\n  \"state\": \"Rajasthan\",\n  \"gstin\": \"08ABCDE1234F1Z5\",\n  \"transport_charge\": 100,\n  \"is_gst\": 1,\n  \"category_id\": \"{{categoryId}}\",\n  \"transport_id\": \"{{transportId}}\",\n  \"agent_id\": \"{{agentId}}\",\n  \"area_id\": \"{{areaId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/contacts/due",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts/due",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts",
+                    "due"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "GET /api/v1/contacts/overpaid",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts/overpaid",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts",
+                    "overpaid"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "GET /api/v1/contacts/:contactId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts/{{contactId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts",
+                    "{{contactId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PUT /api/v1/contacts/:contactId",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts/{{contactId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts",
+                    "{{contactId}}"
+                  ]
+                },
+                "description": "Auth required. Partial update.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"ABC Traders Updated\",\n  \"city\": \"Udaipur\",\n  \"transport_id\": \"{{transportId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/contacts/:contactId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts/{{contactId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts",
+                    "{{contactId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "GET /api/v1/contacts/:contactId/balance",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts/{{contactId}}/balance",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts",
+                    "{{contactId}}",
+                    "balance"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PATCH /api/v1/contacts/:contactId/balance",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/contacts/{{contactId}}/balance",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "contacts",
+                    "{{contactId}}",
+                    "balance"
+                  ]
+                },
+                "description": "Auth required. amount + operation(add|subtract).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 500,\n  \"operation\": \"add\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agents",
+          "item": [
+            {
+              "name": "GET /api/v1/agents",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/agents",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "agents"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "agent",
+                      "disabled": true
+                    },
+                    {
+                      "key": "party_id",
+                      "value": "{{contactId}}",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "POST /api/v1/agents",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/agents",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "agents"
+                  ]
+                },
+                "description": "Create",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Agent Name\",\n  \"city\": \"Jaipur\",\n  \"phone\": \"9876543210\",\n  \"party_id\": \"{{contactId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/agents/:agentId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/agents/{{agentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "agents",
+                    "{{agentId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PUT /api/v1/agents/:agentId",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/agents/{{agentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "agents",
+                    "{{agentId}}"
+                  ]
+                },
+                "description": "Auth required. Partial update.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Agent Updated\",\n  \"city\": \"Udaipur\",\n  \"party_id\": \"{{contactId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/agents/:agentId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/agents/{{agentId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "agents",
+                    "{{agentId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transports",
+          "item": [
+            {
+              "name": "GET /api/v1/transports",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/transports",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transports"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "balaji",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "POST /api/v1/transports",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/transports",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transports"
+                  ]
+                },
+                "description": "Create",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Balaji Transport\",\n  \"city\": \"Jaipur\",\n  \"phone\": \"9876543210\",\n  \"gstin\": \"08ABCDE1234F1Z5\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/transports/:transportId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/transports/{{transportId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transports",
+                    "{{transportId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PUT /api/v1/transports/:transportId",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/transports/{{transportId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transports",
+                    "{{transportId}}"
+                  ]
+                },
+                "description": "Auth required. Partial update.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Balaji Transport Updated\",\n  \"city\": \"Udaipur\",\n  \"phone\": \"9876500000\",\n  \"gstin\": \"08ABCDE1234F1Z5\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/transports/:transportId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/transports/{{transportId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "transports",
+                    "{{transportId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            }
+          ]
+        },
+        {
+          "name": "Areas",
+          "item": [
+            {
+              "name": "GET /api/v1/areas",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/areas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "areas"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "search",
+                      "value": "jaipur",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "POST /api/v1/areas",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/areas",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "areas"
+                  ]
+                },
+                "description": "Auth required. city required.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"city\": \"Jaipur\",\n  \"state\": \"Rajasthan\",\n  \"agent_id\": \"{{agentId}}\",\n  \"transport_id\": \"{{transportId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/areas/:areaId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/areas/{{areaId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "areas",
+                    "{{areaId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            },
+            {
+              "name": "PUT /api/v1/areas/:areaId",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/areas/{{areaId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "areas",
+                    "{{areaId}}"
+                  ]
+                },
+                "description": "Auth required. Partial update.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"city\": \"Udaipur\",\n  \"state\": \"Rajasthan\",\n  \"agent_id\": \"{{agentId}}\",\n  \"transport_id\": \"{{transportId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/areas/:areaId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/areas/{{areaId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "areas",
+                    "{{areaId}}"
+                  ]
+                },
+                "description": "Auth required."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "description": "All transaction routes require auth + requireFirm middleware.",
+      "item": [
+        {
+          "name": "Challans",
+          "item": [
+            {
+              "name": "POST /api/v1/challans",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/challans",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "challans"
+                  ]
+                },
+                "description": "Firm role required. challan_type + contact_id + items required.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"challan_type\": \"sale\",\n  \"date\": \"2026-02-20T10:30:00.000Z\",\n  \"contact_id\": \"{{contactId}}\",\n  \"items\": [\n    {\n      \"item_id\": \"{{itemId}}\",\n      \"quantity\": 2,\n      \"rate\": 450,\n      \"discount\": 5,\n      \"special_discount\": 2,\n      \"discount_amount\": 10,\n      \"gst_percent\": 18,\n      \"is_gst\": 1\n    }\n  ],\n  \"discount\": 3,\n  \"is_gst\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/challans/sale",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/challans/sale",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "challans",
+                    "sale"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "contact_id",
+                      "value": "{{contactId}}",
+                      "disabled": true
+                    },
+                    {
+                      "key": "payment_status",
+                      "value": "due",
+                      "disabled": true
+                    },
+                    {
+                      "key": "from_date",
+                      "value": "2026-01-01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to_date",
+                      "value": "2026-02-20",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            },
+            {
+              "name": "GET /api/v1/challans/purchase",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/challans/purchase",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "challans",
+                    "purchase"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "contact_id",
+                      "value": "{{contactId}}",
+                      "disabled": true
+                    },
+                    {
+                      "key": "payment_status",
+                      "value": "due",
+                      "disabled": true
+                    },
+                    {
+                      "key": "from_date",
+                      "value": "2026-01-01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to_date",
+                      "value": "2026-02-20",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            },
+            {
+              "name": "GET /api/v1/challans/contact/:contactId/unconverted",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/challans/contact/{{contactId}}/unconverted",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "challans",
+                    "contact",
+                    "{{contactId}}",
+                    "unconverted"
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            },
+            {
+              "name": "GET /api/v1/challans/:challanId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/challans/{{challanId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "challans",
+                    "{{challanId}}"
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            },
+            {
+              "name": "PUT /api/v1/challans/:challanId",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/challans/{{challanId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "challans",
+                    "{{challanId}}"
+                  ]
+                },
+                "description": "Firm role required. Partial update for unbilled sale challan.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"discount\": 2\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/challans/:challanId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/challans/{{challanId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "challans",
+                    "{{challanId}}"
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            },
+            {
+              "name": "POST /api/v1/challans/:challanId/payment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/challans/{{challanId}}/payment",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "challans",
+                    "{{challanId}}",
+                    "payment"
+                  ]
+                },
+                "description": "Firm role required. amount >= 0.01.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 500\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Bills",
+          "item": [
+            {
+              "name": "GET /api/v1/bills",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/bills",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bills"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "contact_id",
+                      "value": "{{contactId}}",
+                      "disabled": true
+                    },
+                    {
+                      "key": "payment_status",
+                      "value": "due",
+                      "disabled": true
+                    },
+                    {
+                      "key": "from_date",
+                      "value": "2026-01-01",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to_date",
+                      "value": "2026-02-20",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            },
+            {
+              "name": "POST /api/v1/bills",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/bills",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bills"
+                  ]
+                },
+                "description": "Firm role required. contact_id + challan_ids required.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"contact_id\": \"{{contactId}}\",\n  \"challan_ids\": [\n    \"{{challanId}}\"\n  ],\n  \"apply_balance\": true,\n  \"delivered_amount\": 1000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "GET /api/v1/bills/summary",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/bills/summary",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bills",
+                    "summary"
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            },
+            {
+              "name": "GET /api/v1/bills/status/:status",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/bills/status/due",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bills",
+                    "status",
+                    "due"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "contact_id",
+                      "value": "{{contactId}}",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Firm role required. status usually due|paid|overpaid."
+              }
+            },
+            {
+              "name": "GET /api/v1/bills/contact/:contactId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/bills/contact/{{contactId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bills",
+                    "contact",
+                    "{{contactId}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "disabled": true,
+                      "description": "optional, default 1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "5",
+                      "disabled": true,
+                      "description": "optional, default 5, max 10"
+                    },
+                    {
+                      "key": "payment_status",
+                      "value": "due",
+                      "disabled": true
+                    }
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            },
+            {
+              "name": "GET /api/v1/bills/:billId",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/bills/{{billId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bills",
+                    "{{billId}}"
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            },
+            {
+              "name": "POST /api/v1/bills/:billId/payment",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/bills/{{billId}}/payment",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bills",
+                    "{{billId}}",
+                    "payment"
+                  ]
+                },
+                "description": "Firm role required. amount >= 0.01.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 1200\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "POST /api/v1/bills/:billId/return",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/bills/{{billId}}/return",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bills",
+                    "{{billId}}",
+                    "return"
+                  ]
+                },
+                "description": "Firm role required. return_amount >= 0.01.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"return_amount\": 150\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "name": "DELETE /api/v1/bills/:billId",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/bills/{{billId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bills",
+                    "{{billId}}"
+                  ]
+                },
+                "description": "Firm role required."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "description": "All routes require auth + requireFirm.",
+      "item": [
+        {
+          "name": "GET /api/v1/reports/purchase",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/purchase",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "purchase"
+              ],
+              "query": [
+                {
+                  "key": "from_date",
+                  "value": "2026-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-02-20",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Firm role required."
+          }
+        },
+        {
+          "name": "GET /api/v1/reports/sales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports/sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports",
+                "sales"
+              ],
+              "query": [
+                {
+                  "key": "from_date",
+                  "value": "2026-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "to_date",
+                  "value": "2026-02-20",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Firm role required."
+          }
+        }
+      ]
+    }
+  ]
+}

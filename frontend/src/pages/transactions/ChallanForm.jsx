@@ -4,6 +4,15 @@ import { FaTimes, FaSave } from 'react-icons/fa';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
+import {
+  getResponseData,
+  getResponseList,
+  getResponseMeta,
+  getEntityId,
+  normalizeContact,
+  normalizeItem,
+  normalizeChallan
+} from '../../services/apiUtils';
 
 const ChallanForm = () => {
   const navigate = useNavigate();
@@ -33,37 +42,34 @@ const ChallanForm = () => {
     const fetchData = async () => {
       try {
         const [pRes, iRes, brandRes] = await Promise.all([
-          api.get('/contacts', { params: { page: 1, limit: 200, type: 'party' } }),
+          api.get('/contacts/parties', { params: { page: 1, limit: 200 } }),
           api.get('/items', { params: { page: 1, limit: 50, search: '' } }),
           api.get('/brands', { params: { page: 1, limit: 200 } })
         ]);
 
-        const getList = (res) => {
-          const val = res.data;
-          if (Array.isArray(val)) return val;
-          if (val?.data && Array.isArray(val.data)) return val.data;
-          if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
-          if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
-          if (val?.docs && Array.isArray(val.docs)) return val.docs;
-          return [];
-        };
-
-        const partiesData = getList(pRes).map(p => ({ id: p._id || p.id, name: p.name }));
-        const itemsData = getList(iRes).map(i => ({
-          ...i,
-          id: i._id || i.id,
-          name: i.item_name || i.name,
-          amount: i.amount || i.rate || 0
-        }));
+        const partiesData = getResponseList(pRes).map((party) => {
+          const normalized = normalizeContact(party);
+          return { id: normalized.id, name: normalized.name };
+        });
+        const itemsData = getResponseList(iRes).map((item) => {
+          const normalized = normalizeItem(item);
+          return {
+            ...item,
+            id: normalized.id,
+            name: normalized.itemName,
+            amount: normalized.amount
+          };
+        });
 
         setLoadedParties(partiesData);
         setLoadedItems(itemsData);
 
-        const brandList = getList(brandRes);
+        const brandList = getResponseList(brandRes);
         const discountMap = {};
         brandList.forEach((b) => {
-          if (b?._id) {
-            discountMap[b._id] = {
+          const brandId = getEntityId(b);
+          if (brandId) {
+            discountMap[brandId] = {
               discount1: b.discount1 || { normal: 0, special: 0 },
               discount2: b.discount2 || { normal: 0, special: 0 }
             };
@@ -71,18 +77,36 @@ const ChallanForm = () => {
         });
         setLoadedDiscounts(discountMap);
 
-        const itemsResponse = iRes.data?.data || iRes.data;
-        setTotalItemsPages(itemsResponse?.totalPages || 1);
+        const itemsMeta = getResponseMeta(iRes);
+        setTotalItemsPages(itemsMeta?.totalPages || 1);
 
         if (isEditMode) {
           const challanRes = await api.get(`/challans/${id}`);
-          const challanData = challanRes.data?.data || challanRes.data || {};
+          const challanData = getResponseData(challanRes) || {};
+          const normalizedChallan = normalizeChallan(challanData);
+          const itemDetails = {};
+          (challanData?.items || []).forEach((item) => {
+            const itemId = getEntityId(item?.item_id || item);
+            if (!itemId) return;
+            itemDetails[itemId] = {
+              pcs: item?.quantity || 1,
+              rate: item?.rate || 0,
+              disPercent: item?.discount || 0,
+              spDis: item?.special_discount || 0,
+              gstPercent: item?.gst_percent || 0
+            };
+          });
+
+          const dateValue = challanData?.date
+            ? new Date(challanData.date).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0];
+
           setChallan({
-            party: challanData.contact_id?._id || challanData.contact_id || challanData.party_id?._id || challanData.party_id,
-            items: challanData.items?.map(i => i.item_id?._id || i.item_id) || [],
-            gstType: challanData.is_gst,
-            date: new Date(challanData.date).toISOString().split('T')[0],
-            itemDetails: {}
+            party: normalizedChallan.partyId,
+            items: (challanData?.items || []).map((item) => getEntityId(item?.item_id || item)).filter(Boolean),
+            gstType: normalizedChallan.gstType,
+            date: dateValue,
+            itemDetails
           });
         }
       } catch (err) {
@@ -97,28 +121,21 @@ const ChallanForm = () => {
     setIsLoadingItems(true);
     try {
       const response = await api.get('/items', { params: { page, limit: 50, search: itemSearchTerm } });
-      const getList = (res) => {
-        const val = res.data;
-        if (Array.isArray(val)) return val;
-        if (val?.data && Array.isArray(val.data)) return val.data;
-        if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
-        if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
-        if (val?.docs && Array.isArray(val.docs)) return val.docs;
-        return [];
-      };
-
-      const items = getList(response).map(i => ({
-        ...i,
-        id: i._id || i.id,
-        name: i.item_name || i.name,
-        amount: i.amount || i.rate || 0
-      }));
+      const items = getResponseList(response).map((item) => {
+        const normalized = normalizeItem(item);
+        return {
+          ...item,
+          id: normalized.id,
+          name: normalized.itemName,
+          amount: normalized.amount
+        };
+      });
 
       setLoadedItems(items);
       setItemsPage(page);
 
-      const itemsResponse = response.data?.data || response.data;
-      setTotalItemsPages(itemsResponse?.totalPages || Math.ceil(itemsResponse?.total / 50) || 1);
+      const meta = getResponseMeta(response);
+      setTotalItemsPages(meta?.totalPages || 1);
     } catch (err) {
       console.error('Failed to load items page:', err);
     } finally {
@@ -131,28 +148,21 @@ const ChallanForm = () => {
       setIsLoadingItems(true);
       try {
         const response = await api.get('/items', { params: { page: 1, limit: 50, search: itemSearchTerm } });
-        const getList = (res) => {
-          const val = res.data;
-          if (Array.isArray(val)) return val;
-          if (val?.data && Array.isArray(val.data)) return val.data;
-          if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
-          if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
-          if (val?.docs && Array.isArray(val.docs)) return val.docs;
-          return [];
-        };
-
-        const searchResults = getList(response).map(i => ({
-          ...i,
-          id: i._id || i.id,
-          name: i.item_name || i.name,
-          amount: i.amount || i.rate || 0
-        }));
+        const searchResults = getResponseList(response).map((item) => {
+          const normalized = normalizeItem(item);
+          return {
+            ...item,
+            id: normalized.id,
+            name: normalized.itemName,
+            amount: normalized.amount
+          };
+        });
 
         setLoadedItems(searchResults);
         setItemsPage(1);
 
-        const itemsResponse = response.data?.data || response.data;
-        setTotalItemsPages(itemsResponse?.totalPages || Math.ceil(itemsResponse?.total / 50) || 1);
+        const meta = getResponseMeta(response);
+        setTotalItemsPages(meta?.totalPages || 1);
       } catch (err) {
         console.error('Failed to search items:', err);
       } finally {
@@ -247,7 +257,6 @@ const ChallanForm = () => {
 
   const handleSave = async () => {
     try {
-      const totalAmount = calculateTotalAmount();
       const payload = {
         challan_type: 'sale',
         date: challan.date,

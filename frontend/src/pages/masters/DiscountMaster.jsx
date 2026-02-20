@@ -166,8 +166,20 @@ const DiscountMaster = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">Brand</th>
-                      <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">GST Discount (Normal / Special)</th>
-                      <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Non-GST Discount (Normal / Special)</th>
+                      <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                        <div className="mb-2">GST Discount</div>
+                        <div className="flex gap-2 text-[10px] normal-case font-normal">
+                          <div className="w-full">Normal</div>
+                          <div className="w-full">Special</div>
+                        </div>
+                      </th>
+                      <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <div className="mb-2">Non-GST Discount</div>
+                        <div className="flex gap-2 text-[10px] normal-case font-normal">
+                          <div className="w-full">Normal</div>
+                          <div className="w-full">Special</div>
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">

@@ -5,6 +5,7 @@ import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
+import { getResponseList, normalizeChallan } from '../../services/apiUtils';
 
 const ChallanList = () => {
   const navigate = useNavigate();
@@ -14,43 +15,35 @@ const ChallanList = () => {
   const [selectedChallans, setSelectedChallans] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, challan: null });
   const [validationError, setValidationError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
+        console.log('Fetching challans...');
         const response = await api.get('/challans/sale', { 
           params: { page: 1, limit: 200 } 
         });
-
-        const getList = (res) => {
-          const val = res.data;
-          if (Array.isArray(val)) return val;
-          if (val?.data && Array.isArray(val.data)) return val.data;
-          if (val?.data?.data && Array.isArray(val.data.data)) return val.data.data;
-          if (val?.data?.docs && Array.isArray(val.data.docs)) return val.data.docs;
-          if (val?.docs && Array.isArray(val.docs)) return val.docs;
-          return [];
-        };
-
-        const challansData = getList(response).map(c => ({
-          id: c._id || c.id,
-          challanNo: c.challan_no || c.challanNo,
-          date: c.date,
-          partyId: c.contact_id?._id || c.contact_id || c.party_id?._id || c.party_id,
-          party: c.contact_id?.name || c.party_id?.name || c.party_name || 'Unknown',
-          items: c.items?.map(i => (i.item_id?.item_name || i.item_name || 'Item')) || [],
-          amount: c.amount,
-          gstType: c.is_gst,
-          converted_to_bill: Boolean(c.converted_to_bill)
-        }));
-
-        setChallans(challansData);
+        console.log('API Response:', response);
+        console.log('Response Data:', response.data);
+        
+        const challanList = getResponseList(response)
+          .map(normalizeChallan)
+          .filter((challan) => !challan.converted_to_bill);
+        
+        console.log('Processed Challans:', challanList);
+        setChallans(challanList);
       } catch (err) {
-        console.error('Failed to fetch challans', err);
+        console.error('Failed to fetch challans:', err);
+        console.error('Error response:', err.response?.data);
+        showToast(err.response?.data?.message || 'Failed to load challans', 'error');
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
-  }, [selectedFirm?.id]);
+  }, [selectedFirm?.id, showToast]);
 
   const columns = [
     {
@@ -167,23 +160,7 @@ const ChallanList = () => {
       showToast('Bill created successfully', 'success');
       
       const cRes = await api.get('/challans/sale', { params: { page: 1, limit: 200 } });
-      const cVal = cRes.data?.data;
-      const cListRaw = Array.isArray(cVal) ? cVal : (cVal?.data || []);
-
-      const activeChallans = cListRaw
-        .filter(c => !c.converted_to_bill)
-        .map(c => ({
-          id: c._id,
-          challanNo: c.challan_no,
-          date: c.date,
-          partyId: c.contact_id?._id || c.party_id?._id,
-          party: c.contact_id?.name || c.party_id?.name || 'Unknown',
-          items: c.items?.map(i => i.item_id?.item_name || 'Item') || [],
-          amount: c.amount,
-          gstType: c.is_gst,
-          converted_to_bill: Boolean(c.converted_to_bill)
-        }));
-      setChallans(activeChallans);
+      setChallans(getResponseList(cRes).map(normalizeChallan).filter((challan) => !challan.converted_to_bill));
       
       setIsConvertModalOpen(false);
       setSelectedChallans([]);
@@ -192,6 +169,14 @@ const ChallanList = () => {
       showToast('Failed to convert challans', 'error');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-600">Loading challans...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -340,7 +325,7 @@ const ChallanList = () => {
             showToast('Challan deleted successfully', 'success');
             setChallans(prev => prev.filter(c => c.id !== deleteDialog.challan.id));
             setDeleteDialog({ isOpen: false, challan: null });
-          } catch (error) {
+          } catch {
             showToast('Failed to delete challan', 'error');
           }
         }}
