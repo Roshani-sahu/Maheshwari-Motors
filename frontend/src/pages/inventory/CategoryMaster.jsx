@@ -26,12 +26,20 @@ const CategoryMaster = () => {
 
   const fetchData = async (signal) => {
     try {
-      const [catRes, brandRes] = await Promise.all([
+      const [catRes, brandRes, itemRes] = await Promise.all([
         api.get('/categories', { params: { page: 1, limit: 200 }, signal }),
-        api.get('/brands', { params: { page: 1, limit: 200 }, signal })
+        api.get('/brands', { params: { page: 1, limit: 200 }, signal }),
+        api.get('/items', { params: { page: 1, limit: 1000 }, signal })
       ]);
 
-      const brandList = listFromResponse(brandRes).map((b) => ({ id: b._id, name: b.brand_name || b.name || '' }));
+      const itemList = listFromResponse(itemRes);
+      const brandList = listFromResponse(brandRes).map((b) => {
+        const itemCount = itemList.filter(item => {
+          const brandId = typeof item.brand_id === 'object' ? item.brand_id?._id : item.brand_id;
+          return brandId === b._id;
+        }).length;
+        return { id: b._id, name: b.brand_name || b.name || '', itemCount };
+      });
       const categoryList = listFromResponse(catRes).map((c) => ({
         id: c._id,
         name: c.category_name || c.name || '',
@@ -179,7 +187,7 @@ const CategoryMaster = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">Available Brands</label>
             <div className="border rounded-lg max-h-[300px] overflow-y-auto">
               {brands.length === 0 ? <p className="text-gray-500 text-sm p-4">No brands available</p> : (
-                <div className="divide-y">{brands.map((brand) => { const isSelected = selectedBrands.find((b) => b.id === brand.id); return <div key={brand.id} className="p-3 hover:bg-gray-50"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!isSelected} onChange={() => handleBrandToggle(brand)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><div className="flex-1"><span className="font-medium text-gray-900">{brand.name}</span></div></label></div>; })}</div>
+                <div className="divide-y">{brands.map((brand) => { const isSelected = selectedBrands.find((b) => b.id === brand.id); return <div key={brand.id} className="p-3 hover:bg-gray-50"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!isSelected} onChange={() => handleBrandToggle(brand)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><div className="flex-1"><div className="flex items-center justify-between"><span className="font-medium text-gray-900">{brand.name}</span><span className="text-sm text-gray-500">{brand.itemCount || 0} items</span></div></div></label></div>; })}</div>
               )}
             </div>
           </div>
@@ -202,7 +210,7 @@ const CategoryMaster = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">Available Brands</label>
             <div className="border rounded-lg max-h-[300px] overflow-y-auto">
               {brands.length === 0 ? <p className="text-gray-500 text-sm p-4">No brands available</p> : (
-                <div className="divide-y">{brands.map((brand) => { const isSelected = selectedBrands.find((b) => b.id === brand.id); return <div key={brand.id} className="p-3 hover:bg-gray-50"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!isSelected} onChange={() => handleBrandToggle(brand)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><div className="flex-1"><span className="font-medium text-gray-900">{brand.name}</span></div></label></div>; })}</div>
+                <div className="divide-y">{brands.map((brand) => { const isSelected = selectedBrands.find((b) => b.id === brand.id); return <div key={brand.id} className="p-3 hover:bg-gray-50"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={!!isSelected} onChange={() => handleBrandToggle(brand)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><div className="flex-1"><div className="flex items-center justify-between"><span className="font-medium text-gray-900">{brand.name}</span><span className="text-sm text-gray-500">{brand.itemCount || 0} items</span></div></div></label></div>; })}</div>
               )}
             </div>
           </div>
