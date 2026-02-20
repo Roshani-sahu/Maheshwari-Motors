@@ -21,11 +21,40 @@ const contactSchema = {
     format: "phone",
     label: "Phone number",
   },
+  whatsapp_number: {
+    required: false,
+    type: "string",
+    max: 20,
+    label: "WhatsApp Number",
+  },
   email: { required: false, type: "string", format: "email", label: "Email" },
   address: { required: false, type: "string", max: 500, label: "Address" },
   city: { required: false, type: "string", max: 100, label: "City" },
   state: { required: false, type: "string", max: 100, label: "State" },
   gstin: { required: false, type: "string", format: "gstin", label: "GSTIN" },
+  cin: { required: false, type: "string", max: 50, label: "CIN" },
+  reg_number: { required: false, type: "string", max: 50, label: "Reg Number" },
+  bank_name: { required: false, type: "string", max: 100, label: "Bank Name" },
+  bank_branch: {
+    required: false,
+    type: "string",
+    max: 100,
+    label: "Bank Branch",
+  },
+  ifsc_code: { required: false, type: "string", max: 20, label: "IFSC Code" },
+  account_number: {
+    required: false,
+    type: "string",
+    max: 30,
+    label: "Account Number",
+  },
+  transport_charge: {
+    required: false,
+    type: "number",
+    min: 0,
+    label: "Transport Charge",
+  },
+  area: { required: false, type: "string", max: 200, label: "Area" },
   is_gst: {
     required: false,
     type: "number",
@@ -42,6 +71,12 @@ const contactSchema = {
     type: "objectId",
     nullable: true,
     label: "Transport ID",
+  },
+  agent_id: {
+    required: false,
+    type: "objectId",
+    nullable: true,
+    label: "Agent ID",
   },
   area_id: {
     required: false,
@@ -66,6 +101,26 @@ export const getContacts = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, result, "Contacts fetched successfully"));
+});
+
+export const getParties = asyncHandler(async (req, res) => {
+  const result = await contactService.getContacts(req.user._id, {
+    ...req.query,
+    type: "party",
+  });
+  res
+    .status(200)
+    .json(new ApiResponse(200, result, "Parties fetched successfully"));
+});
+
+export const getSuppliers = asyncHandler(async (req, res) => {
+  const result = await contactService.getContacts(req.user._id, {
+    ...req.query,
+    type: "supplier",
+  });
+  res
+    .status(200)
+    .json(new ApiResponse(200, result, "Suppliers fetched successfully"));
 });
 
 export const getContactById = asyncHandler(async (req, res) => {

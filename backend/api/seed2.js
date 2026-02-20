@@ -763,7 +763,7 @@ async function seed() {
         cat: 1,
         brand: 4,
         sup: 2,
-        stock: 8,
+        stock: 1,
       },
       {
         name: "Front Fender (Honda Activa)",
@@ -808,7 +808,7 @@ async function seed() {
         cat: 2,
         brand: 4,
         sup: 2,
-        stock: 9,
+        stock: 2,
       },
       {
         name: "Battery 12V (Exide)",
@@ -864,7 +864,7 @@ async function seed() {
         cat: 3,
         brand: 0,
         sup: 0,
-        stock: 10,
+        stock: 2,
       },
       {
         name: "Swing Arm Bush Kit",
@@ -898,7 +898,7 @@ async function seed() {
         cat: 4,
         brand: 7,
         sup: 3,
-        stock: 6,
+        stock: 2,
       },
       {
         name: "Brake Cable (Universal)",
@@ -1000,7 +1000,7 @@ async function seed() {
         cat: 7,
         brand: 0,
         sup: 0,
-        stock: 8,
+        stock: 1,
       },
       {
         name: "Fuel Cock Assembly (Honda)",
@@ -1023,7 +1023,7 @@ async function seed() {
         cat: 8,
         brand: 4,
         sup: 2,
-        stock: 5,
+        stock: 1,
       },
       {
         name: "Exhaust Gasket Set (Oscar)",

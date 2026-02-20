@@ -85,7 +85,6 @@ class DashboardService {
     } else if (period === "yearly") {
       startDate = new Date(now.getFullYear(), 0, 1);
     } else {
-      
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
@@ -162,10 +161,10 @@ class DashboardService {
     return {
       period: period || "monthly",
       sale_challans: challanCount,
+      purchase_challans: purchaseCount,
       bills: billCount,
       total_revenue: revenue[0]?.total || 0,
       pending_amount: pendingAmount[0]?.total || 0,
-      purchases: purchaseCount,
       purchase_amount: purchaseAmount[0]?.total || 0,
       monthly_revenue: monthlyRevenue,
     };

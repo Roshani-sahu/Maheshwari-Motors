@@ -7,6 +7,8 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get("/", contactController.getContacts);
+router.get("/parties", contactController.getParties);
+router.get("/suppliers", contactController.getSuppliers);
 router.post("/", contactController.createContact);
 router.get("/due", contactController.getContactsWithDue);
 router.get("/overpaid", contactController.getContactsWithOverpaid);

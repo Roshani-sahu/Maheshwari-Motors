@@ -10,11 +10,20 @@ const contactSchema = new mongoose.Schema(
       required: true,
     },
     phone: { type: String },
+    whatsapp_number: { type: String },
     email: { type: String },
     address: { type: String },
     city: { type: String },
     state: { type: String },
     gstin: { type: String },
+    cin: { type: String },
+    reg_number: { type: String },
+    bank_name: { type: String },
+    bank_branch: { type: String },
+    ifsc_code: { type: String },
+    account_number: { type: String },
+    transport_charge: { type: Number, default: 0 },
+    area: { type: String },
     is_gst: { type: Number, enum: [0, 1], default: 1 },
     category_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -23,6 +32,11 @@ const contactSchema = new mongoose.Schema(
     transport_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Transport",
+      default: null,
+    },
+    agent_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Agent",
       default: null,
     },
     area_id: {

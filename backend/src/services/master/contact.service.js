@@ -38,14 +38,24 @@ class ContactService {
       name,
       type,
       phone,
+      whatsapp_number,
       email,
       address,
       city,
       state,
       gstin,
+      cin,
+      reg_number,
+      bank_name,
+      bank_branch,
+      ifsc_code,
+      account_number,
+      transport_charge,
+      area,
       is_gst,
       category_id,
       transport_id,
+      agent_id,
       area_id,
     } = contactData;
 
@@ -111,19 +121,43 @@ class ContactService {
       }
     }
 
+    if (type === "party" && agent_id) {
+      const { default: Agent } =
+        await import("../../models/master/agent.model.js");
+      const agentExists = await Agent.exists({
+        _id: agent_id,
+        user_id: userId,
+      });
+      if (!agentExists) {
+        throw ApiError.badRequest(
+          "Agent not found. Please select a valid agent.",
+        );
+      }
+    }
+
     const contact = await Contact.create({
       id: await getNextId("Contact", userId),
       name: name.trim(),
       type,
       phone,
+      whatsapp_number,
       email,
       address,
       city,
       state,
       gstin,
+      cin,
+      reg_number,
+      bank_name,
+      bank_branch,
+      ifsc_code,
+      account_number,
+      transport_charge,
+      area,
       is_gst: is_gst ?? 1,
       category_id: category_id || null,
       transport_id: type === "party" ? transport_id || null : undefined,
+      agent_id: type === "party" ? agent_id || null : undefined,
       area_id: type === "party" ? area_id || null : undefined,
       user_id: userId,
     });
@@ -140,14 +174,24 @@ class ContactService {
     const {
       name,
       phone,
+      whatsapp_number,
       email,
       address,
       city,
       state,
       gstin,
+      cin,
+      reg_number,
+      bank_name,
+      bank_branch,
+      ifsc_code,
+      account_number,
+      transport_charge,
+      area,
       is_gst,
       category_id,
       transport_id,
+      agent_id,
       area_id,
     } = updateData;
 
@@ -217,18 +261,46 @@ class ContactService {
       }
     }
 
+    if (agent_id !== undefined && contact.type === "party") {
+      if (agent_id !== null) {
+        const { default: Agent } =
+          await import("../../models/master/agent.model.js");
+        const agentExists = await Agent.exists({
+          _id: agent_id,
+          user_id: userId,
+        });
+        if (!agentExists) {
+          throw ApiError.badRequest(
+            "Agent not found. Please select a valid agent.",
+          );
+        }
+      }
+    }
+
     const fields = {};
     if (name !== undefined) fields.name = name.trim();
     if (phone !== undefined) fields.phone = phone;
+    if (whatsapp_number !== undefined) fields.whatsapp_number = whatsapp_number;
     if (email !== undefined) fields.email = email;
     if (address !== undefined) fields.address = address;
     if (city !== undefined) fields.city = city;
     if (state !== undefined) fields.state = state;
     if (gstin !== undefined) fields.gstin = gstin;
+    if (cin !== undefined) fields.cin = cin;
+    if (reg_number !== undefined) fields.reg_number = reg_number;
+    if (bank_name !== undefined) fields.bank_name = bank_name;
+    if (bank_branch !== undefined) fields.bank_branch = bank_branch;
+    if (ifsc_code !== undefined) fields.ifsc_code = ifsc_code;
+    if (account_number !== undefined) fields.account_number = account_number;
+    if (transport_charge !== undefined)
+      fields.transport_charge = transport_charge;
+    if (area !== undefined) fields.area = area;
     if (is_gst !== undefined) fields.is_gst = is_gst;
     if (category_id !== undefined) fields.category_id = category_id;
     if (transport_id !== undefined && contact.type === "party")
       fields.transport_id = transport_id;
+    if (agent_id !== undefined && contact.type === "party")
+      fields.agent_id = agent_id;
     if (area_id !== undefined && contact.type === "party")
       fields.area_id = area_id;
 
@@ -293,38 +365,6 @@ class ContactService {
     }
 
     await Contact.findByIdAndDelete(contactId);
-  }
-
-  async getContactBalance(contactId, userId) {
-    const contact = await Contact.findOne({
-      _id: contactId,
-      user_id: userId,
-    });
-    if (!contact) throw ApiError.notFound("Contact not found");
-    return contact.balance;
-  }
-
-  async updateBalance(contactId, userId, amount, operation = "add") {
-    const contact = await Contact.findOne({
-      _id: contactId,
-      user_id: userId,
-    });
-    if (!contact) throw ApiError.notFound("Contact not found");
-
-    if (typeof amount !== "number" || isNaN(amount) || amount < 0) {
-      throw ApiError.badRequest("Amount must be a non-negative number");
-    }
-    if (!["add", "subtract"].includes(operation)) {
-      throw ApiError.badRequest("Operation must be 'add' or 'subtract'");
-    }
-
-    const adjustedAmount = operation === "subtract" ? -amount : amount;
-    const updatedContact = await Contact.findByIdAndUpdate(
-      contactId,
-      { $inc: { balance: adjustedAmount } },
-      { new: true },
-    );
-    return updatedContact.balance;
   }
 }
 
