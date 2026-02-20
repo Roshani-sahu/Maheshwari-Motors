@@ -206,6 +206,13 @@ class ItemService {
       user_id: userId,
     });
 
+    // Sync: add item to brand's item_ids
+    if (brand_id) {
+      await Brand.findByIdAndUpdate(brand_id, {
+        $addToSet: { item_ids: item._id },
+      });
+    }
+
     return item;
   }
 
@@ -374,6 +381,27 @@ class ItemService {
     if (brand_id !== undefined) fields.brand_id = brand_id;
     if (contact_id !== undefined) fields.contact_id = contact_id;
 
+    // Sync brand item_ids when brand_id changes
+    if (brand_id !== undefined) {
+      const oldBrandId = item.brand_id ? String(item.brand_id) : null;
+      const newBrandId = brand_id ? String(brand_id) : null;
+
+      if (oldBrandId !== newBrandId) {
+        // Remove item from old brand's item_ids
+        if (oldBrandId) {
+          await Brand.findByIdAndUpdate(oldBrandId, {
+            $pull: { item_ids: item._id },
+          });
+        }
+        // Add item to new brand's item_ids
+        if (newBrandId) {
+          await Brand.findByIdAndUpdate(newBrandId, {
+            $addToSet: { item_ids: item._id },
+          });
+        }
+      }
+    }
+
     if (file) {
       if (item.image) {
         await s3Service.deleteFile(item.image);
@@ -400,6 +428,13 @@ class ItemService {
 
     if (item.image) {
       await s3Service.deleteFile(item.image);
+    }
+
+    // Remove item from brand's item_ids
+    if (item.brand_id) {
+      await Brand.findByIdAndUpdate(item.brand_id, {
+        $pull: { item_ids: item._id },
+      });
     }
 
     await Item.findByIdAndDelete(itemId);
