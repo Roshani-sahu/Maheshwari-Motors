@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaFileInvoiceDollar, FaCheck, FaPlus, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
-import { getResponseList, normalizeChallan } from '../../services/apiUtils';
+import { getResponseList, getResponseMeta, normalizeChallan } from '../../services/apiUtils';
 
 const ChallanList = () => {
   const navigate = useNavigate();
@@ -17,23 +17,58 @@ const ChallanList = () => {
   const [validationError, setValidationError] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const fetchAllPagesByType = useCallback(async (challanType) => {
+    const firstResponse = await api.get(`/challans/purchase`, {
+      params: { page: 1, limit: 200 }
+    });
+
+    const firstPageRows = getResponseList(firstResponse).map((challan) => ({
+      ...normalizeChallan(challan),
+      challanType: challan?.challan_type || challanType
+    }));
+    const meta = getResponseMeta(firstResponse);
+    const totalPages = meta?.totalPages || 1;
+
+    if (totalPages <= 1) {
+      return firstPageRows;
+    }
+
+    const requests = [];
+    for (let page = 2; page <= totalPages; page += 1) {
+      requests.push(
+        api.get(`/challans/${challanType}`, {
+          params: { page, limit: 200 }
+        })
+      );
+    }
+
+    const responses = await Promise.all(requests);
+    const remainingRows = responses.flatMap((response) =>
+      getResponseList(response).map((challan) => ({
+        ...normalizeChallan(challan),
+        challanType: challan?.challan_type || challanType
+      }))
+    );
+
+    return [...firstPageRows, ...remainingRows];
+  }, []);
+
+  const loadAllChallans = useCallback(async () => {
+    const [saleChallans, purchaseChallans] = await Promise.all([
+      fetchAllPagesByType('sale'),
+      fetchAllPagesByType('purchase')
+    ]);
+
+    return [...saleChallans, ...purchaseChallans].sort(
+      (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
+    );
+  }, [fetchAllPagesByType]);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        console.log('Fetching challans...');
-        const response = await api.get('/challans/sale', { 
-          params: { page: 1, limit: 200 } 
-        });
-        console.log('API Response:', response);
-        console.log('Response Data:', response.data);
-        
-        const challanList = getResponseList(response)
-          .map(normalizeChallan)
-          .filter((challan) => !challan.converted_to_bill);
-        
-        console.log('Processed Challans:', challanList);
-        setChallans(challanList);
+        setChallans(await loadAllChallans());
       } catch (err) {
         console.error('Failed to fetch challans:', err);
         console.error('Error response:', err.response?.data);
@@ -43,7 +78,12 @@ const ChallanList = () => {
       }
     };
     fetchData();
-  }, [selectedFirm?.id, showToast]);
+  }, [selectedFirm?.id, showToast, loadAllChallans]);
+
+  const convertibleChallans = useMemo(
+    () => challans.filter((challan) => challan.challanType === 'sale' && !challan.converted_to_bill),
+    [challans]
+  );
 
   const columns = [
     {
@@ -70,6 +110,11 @@ const ChallanList = () => {
       key: 'amount',
       label: 'Amount',
       render: (value) => <span className="text-xs sm:text-sm">₹{value.toLocaleString()}</span>
+    },
+    {
+      key: 'challanType',
+      label: 'Challan Type',
+      render: (value) => <span className="text-xs sm:text-sm capitalize">{value}</span>
     },
     {
       key: 'gstType',
@@ -159,8 +204,7 @@ const ChallanList = () => {
       await api.post('/bills', payload);
       showToast('Bill created successfully', 'success');
       
-      const cRes = await api.get('/challans/sale', { params: { page: 1, limit: 200 } });
-      setChallans(getResponseList(cRes).map(normalizeChallan).filter((challan) => !challan.converted_to_bill));
+      setChallans(await loadAllChallans());
       
       setIsConvertModalOpen(false);
       setSelectedChallans([]);
@@ -234,15 +278,15 @@ const ChallanList = () => {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
                     <input
                       type="checkbox"
-                      checked={selectedChallans.length === challans.length && challans.length > 0}
+                      checked={selectedChallans.length === convertibleChallans.length && convertibleChallans.length > 0}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          const parties = Array.from(new Set(challans.map(c => c.party)));
+                          const parties = Array.from(new Set(convertibleChallans.map(c => c.party)));
                           if (parties.length > 1) {
                             setValidationError('Cannot select challans from different parties. Please select challans of the same party only.');
                             return;
                           }
-                          setSelectedChallans([...challans]);
+                          setSelectedChallans([...convertibleChallans]);
                         } else {
                           setSelectedChallans([]);
                         }
@@ -256,7 +300,7 @@ const ChallanList = () => {
                 </tr>
               </thead>
               <tbody>
-                {challans.map(challan => (
+                {convertibleChallans.map(challan => (
                   <tr key={challan.id} className="border-t">
                     <td className="px-4 py-2">
                       <input

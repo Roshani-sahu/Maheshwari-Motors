@@ -44,6 +44,7 @@ import ViewAllSupplier from "./pages/inventory/ViewAllSupplier";
 import ChallanList from "./pages/transactions/ChallanList";
 import ChallanForm from "./pages/transactions/ChallanForm";
 import BillList from "./pages/transactions/BillList";
+import BillForm from "./pages/transactions/BillForm";
 import TransactionHistory from "./pages/transactions/TransactionHistory";
 
 // Report Pages
@@ -70,10 +71,10 @@ const App = () => {
       const token = localStorage.getItem('token');
       if (token) {
         try {
-          console.log('🔄 Initializing authentication...');
+          // console.log('🔄 Initializing authentication...');
           const { default: api } = await import('./services/axiosInstance');
           const response = await api.get('/auth/me');
-          console.log('✅ Auth initialization successful:', response.data.data);
+          // console.log('✅ Auth initialization successful:', response.data.data);
           setUser(response.data.data);
         } catch (error) {
           console.error('❌ Auth initialization failed:', {
@@ -135,6 +136,7 @@ const App = () => {
           <Route path="/transactions/challans/create" element={<ChallanForm />} />
           <Route path="/transactions/challans/edit/:id" element={<ChallanForm />} />
           <Route path="/transactions/bill-list" element={<BillList />} />
+          <Route path="/transactions/bills/create" element={<BillForm />} />
           <Route path="/transactions/transaction-history" element={<TransactionHistory />} />
 
           {/* 4. Reports */}

@@ -1,24 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaSave } from 'react-icons/fa';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
 import {
-  getResponseData,
   getResponseList,
   getResponseMeta,
   getEntityId,
   normalizeContact,
-  normalizeItem,
-  normalizeChallan
+  normalizeItem
 } from '../../services/apiUtils';
 
-const ChallanForm = () => {
+const BillForm = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const { showToast, selectedFirm } = useStore();
-  const isEditMode = !!id;
+  const { showToast } = useStore();
 
   const [loadedParties, setLoadedParties] = useState([]);
   const [loadedSuppliers, setLoadedSuppliers] = useState([]);
@@ -31,7 +27,7 @@ const ChallanForm = () => {
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const itemDropdownRef = useRef(null);
 
-  const [challan, setChallan] = useState({
+  const [bill, setBill] = useState({
     contactType: 'party',
     party: '',
     items: [],
@@ -87,43 +83,13 @@ const ChallanForm = () => {
 
         const itemsMeta = getResponseMeta(iRes);
         setTotalItemsPages(itemsMeta?.totalPages || 1);
-
-        if (isEditMode) {
-          const challanRes = await api.get(`/challans/${id}`);
-          const challanData = getResponseData(challanRes) || {};
-          const normalizedChallan = normalizeChallan(challanData);
-          const itemDetails = {};
-          (challanData?.items || []).forEach((item) => {
-            const itemId = getEntityId(item?.item_id || item);
-            if (!itemId) return;
-            itemDetails[itemId] = {
-              pcs: item?.quantity || 1,
-              rate: item?.rate || 0,
-              disPercent: item?.discount || 0,
-              spDis: item?.special_discount || 0,
-              gstPercent: item?.gst_percent || 0
-            };
-          });
-
-          const dateValue = challanData?.date
-            ? new Date(challanData.date).toISOString().split('T')[0]
-            : new Date().toISOString().split('T')[0];
-
-          setChallan({
-            party: normalizedChallan.partyId,
-            items: (challanData?.items || []).map((item) => getEntityId(item?.item_id || item)).filter(Boolean),
-            gstType: normalizedChallan.gstType,
-            date: dateValue,
-            itemDetails
-          });
-        }
       } catch (err) {
         console.error('Failed to fetch data', err);
         showToast('Failed to load data', 'error');
       }
     };
     fetchData();
-  }, [selectedFirm?.id, id, isEditMode]);
+  }, []);
 
   const loadItemsPage = async (page) => {
     setIsLoadingItems(true);
@@ -194,10 +160,10 @@ const ChallanForm = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredItems = loadedItems.filter(item => !challan.items.includes(item.id));
+  const filteredItems = loadedItems.filter(item => !bill.items.includes(item.id));
 
   const toggleItemSelection = (itemId) => {
-    setChallan(prev => {
+    setBill(prev => {
       const items = prev.items.includes(itemId)
         ? prev.items.filter(i => i !== itemId)
         : [...prev.items, itemId];
@@ -221,7 +187,7 @@ const ChallanForm = () => {
   };
 
   const calculateItemAmount = (itemId) => {
-    const details = challan.itemDetails[itemId] || {};
+    const details = bill.itemDetails[itemId] || {};
     const pcs = parseFloat(details.pcs || 1);
     const rate = parseFloat(details.rate || 0);
     const disPercent = parseFloat(details.disPercent || 0);
@@ -231,20 +197,18 @@ const ChallanForm = () => {
     const baseAmount = pcs * rate;
     const discountAmount = (baseAmount * disPercent / 100) + spDis;
     const afterDiscount = baseAmount - discountAmount;
-    const gstAmount = challan.gstType === 1 ? (afterDiscount * gstPercent / 100) : 0;
-    const finalAmount = afterDiscount + gstAmount;
+    const gstAmount = bill.gstType === 1 ? (afterDiscount * gstPercent / 100) : 0;
 
     return {
       baseAmount,
       discountAmount,
       afterDiscount,
-      gstAmount,
-      finalAmount
+      gstAmount
     };
   };
 
   const updateItemDetail = (itemId, field, value) => {
-    setChallan(prev => ({
+    setBill(prev => ({
       ...prev,
       itemDetails: {
         ...prev.itemDetails,
@@ -257,57 +221,76 @@ const ChallanForm = () => {
   };
 
   const calculateTotalAmount = () => {
-    return challan.items.reduce((total, itemId) => {
+    return bill.items.reduce((total, itemId) => {
       const calc = calculateItemAmount(itemId);
       return total + calc.afterDiscount;
     }, 0);
   };
 
   const handleSave = async () => {
+    if (!bill.party) {
+      showToast('Please select a party', 'error');
+      return;
+    }
+    if (bill.items.length === 0) {
+      showToast('Please add at least one item', 'error');
+      return;
+    }
+
     try {
-      const payload = {
+      // Create challan
+      const challanPayload = {
         challan_type: 'sale',
-        date: challan.date,
-        contact_id: challan.party,
-        is_gst: challan.gstType,
-        items: challan.items.map(itemId => {
+        date: bill.date,
+        contact_id: bill.party,
+        items: bill.items.map(itemId => {
           const item = loadedItems.find(i => i.id === itemId);
-          const details = challan.itemDetails[itemId] || {};
+          const details = bill.itemDetails[itemId] || {};
           return {
             item_id: itemId,
-            quantity: parseFloat(details.pcs || 1),
-            rate: parseFloat(details.rate || item?.amount || 0),
-            discount: parseFloat(details.disPercent || 0),
-            special_discount: parseFloat(details.spDis || 0),
-            gst_percent: parseFloat(details.gstPercent || 0),
-            is_gst: challan.gstType
+            quantity: Math.max(1, parseFloat(details.pcs || 1)),
+            rate: Math.max(0, parseFloat(details.rate || item?.amount || 0)),
+            discount: Math.max(0, parseFloat(details.disPercent || 0)),
+            special_discount: Math.max(0, parseFloat(details.spDis || 0)),
+            gst_percent: Math.max(0, parseFloat(details.gstPercent || 0))
           };
         }),
         discount: 0
       };
 
-      if (isEditMode) {
-        await api.put(`/challans/${id}`, payload);
-        showToast('Challan updated successfully', 'success');
-      } else {
-        await api.post('/challans', payload);
-        showToast('Challan created successfully', 'success');
+      const challanRes = await api.post('/challans', challanPayload);
+      console.log(challanRes);
+      const challanId = challanRes.data?._id || challanRes.data?.data?.id;
+
+      if (!challanId) {
+        throw new Error('Failed to create challan');
       }
 
-      navigate('/transactions/challan-list');
+      // Convert to bill
+      try {
+        const payload = {
+          contact_id: bill.party,
+          challan_ids: [challanId]
+        };
+        await api.post('/bills', payload);
+      } catch (error) {
+        console.log('Bill creation error:', error);
+      }
+      
+      showToast('Bill created successfully', 'success');
+      navigate('/transactions/bill-list');
     } catch (error) {
-      console.error(error);
-      showToast(`Failed to ${isEditMode ? 'update' : 'create'} challan`, 'error');
+      console.error('Error:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to create bill';
+      showToast(errorMsg, 'error');
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {isEditMode ? 'Edit Challan' : 'Create Challan'}
-        </h1>
-        <Button variant="outline" onClick={() => navigate('/transactions/challan-list')}>
+        <h1 className="text-2xl font-bold text-gray-900">Create Bill</h1>
+        <Button variant="outline" onClick={() => navigate('/transactions/bill-list')}>
           Back to List
         </Button>
       </div>
@@ -317,8 +300,8 @@ const ChallanForm = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Contact Type *</label>
             <select
-              value={challan.contactType}
-              onChange={(e) => setChallan(prev => ({ ...prev, contactType: e.target.value, party: '' }))}
+              value={bill.contactType}
+              onChange={(e) => setBill(prev => ({ ...prev, contactType: e.target.value, party: '' }))}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
               <option value="party">Party</option>
@@ -327,15 +310,15 @@ const ChallanForm = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {challan.contactType === 'party' ? 'Party' : 'Supplier'} *
+              {bill.contactType === 'party' ? 'Party' : 'Supplier'} *
             </label>
             <select
-              value={challan.party}
-              onChange={(e) => setChallan(prev => ({ ...prev, party: e.target.value }))}
+              value={bill.party}
+              onChange={(e) => setBill(prev => ({ ...prev, party: e.target.value }))}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
-              <option value="">Select {challan.contactType === 'party' ? 'Party' : 'Supplier'}</option>
-              {(challan.contactType === 'party' ? loadedParties : loadedSuppliers).map(contact => (
+              <option value="">Select {bill.contactType === 'party' ? 'Party' : 'Supplier'}</option>
+              {(bill.contactType === 'party' ? loadedParties : loadedSuppliers).map(contact => (
                 <option key={contact.id} value={contact.id}>{contact.name}</option>
               ))}
             </select>
@@ -344,8 +327,8 @@ const ChallanForm = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
             <input
               type="date"
-              value={challan.date}
-              onChange={(e) => setChallan(prev => ({ ...prev, date: e.target.value }))}
+              value={bill.date}
+              onChange={(e) => setBill(prev => ({ ...prev, date: e.target.value }))}
               className="w-full px-3 py-2 border rounded-md text-sm"
             />
           </div>
@@ -357,8 +340,8 @@ const ChallanForm = () => {
                   type="radio"
                   name="gstType"
                   value={0}
-                  checked={challan.gstType === 0}
-                  onChange={(e) => setChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
+                  checked={bill.gstType === 0}
+                  onChange={(e) => setBill(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
                 />
                 <span className="text-sm">0</span>
               </label>
@@ -367,8 +350,8 @@ const ChallanForm = () => {
                   type="radio"
                   name="gstType"
                   value={1}
-                  checked={challan.gstType === 1}
-                  onChange={(e) => setChallan(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
+                  checked={bill.gstType === 1}
+                  onChange={(e) => setBill(prev => ({ ...prev, gstType: parseInt(e.target.value) }))}
                 />
                 <span className="text-sm">1</span>
               </label>
@@ -387,15 +370,12 @@ const ChallanForm = () => {
                 <tr>
                   <th className="px-2 py-2 text-left border-r">SNo</th>
                   <th className="px-2 py-2 text-left border-r">ItemName</th>
-                  <th className="px-2 py-2 text-left border-r">MRP</th>
-                  <th className="px-2 py-2 text-left border-r">Stock</th>
-                  <th className="px-2 py-2 text-left border-r">Type</th>
                   <th className="px-2 py-2 text-left border-r">PCS</th>
                   <th className="px-2 py-2 text-left border-r">Rate</th>
                   <th className="px-2 py-2 text-left border-r">Dis %</th>
                   <th className="px-2 py-2 text-left border-r">SP Dis</th>
                   <th className="px-2 py-2 text-left border-r">Disc Amt</th>
-                  {challan.gstType === 1 && (
+                  {bill.gstType === 1 && (
                     <>
                       <th className="px-2 py-2 text-left border-r">GST %</th>
                       <th className="px-2 py-2 text-left border-r">GST Amt</th>
@@ -406,9 +386,9 @@ const ChallanForm = () => {
                 </tr>
               </thead>
               <tbody>
-                {challan.items.map((itemId, index) => {
+                {bill.items.map((itemId, index) => {
                   const item = loadedItems.find(i => i.id === itemId);
-                  const details = challan.itemDetails[itemId] || {};
+                  const details = bill.itemDetails[itemId] || {};
                   const calc = calculateItemAmount(itemId);
 
                   return (
@@ -416,20 +396,6 @@ const ChallanForm = () => {
                       <td className="px-2 py-2 border-r">{index + 1}</td>
                       <td className="px-2 py-2 border-r">
                         <span className="text-xs">{item?.name || 'Unknown Item'}</span>
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          value={details.rate || item?.amount || 0}
-                          onChange={(e) => updateItemDetail(itemId, 'rate', e.target.value)}
-                          className="w-16 px-1 py-1 border rounded text-xs"
-                        />
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <input type="number" defaultValue="5.00" className="w-16 px-1 py-1 border rounded text-xs" />
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <input type="text" defaultValue="1" className="w-12 px-1 py-1 border rounded text-xs" />
                       </td>
                       <td className="px-2 py-2 border-r">
                         <input
@@ -466,7 +432,7 @@ const ChallanForm = () => {
                       <td className="px-2 py-2 border-r">
                         <span className="text-xs">{calc.discountAmount.toFixed(2)}</span>
                       </td>
-                      {challan.gstType === 1 && (
+                      {bill.gstType === 1 && (
                         <>
                           <td className="px-2 py-2 border-r">
                             <input
@@ -495,9 +461,9 @@ const ChallanForm = () => {
                     </tr>
                   );
                 })}
-                {challan.items.length === 0 && (
+                {bill.items.length === 0 && (
                   <tr>
-                    <td colSpan={challan.gstType === 1 ? 14 : 12} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={bill.gstType === 1 ? 11 : 9} className="px-4 py-8 text-center text-gray-500">
                       No items selected. Use the search below to add items.
                     </td>
                   </tr>
@@ -580,11 +546,11 @@ const ChallanForm = () => {
           </div>
         </div>
 
-        {challan.items.length > 0 && (
+        {bill.items.length > 0 && (
           <div className="border rounded-lg p-4 bg-gray-50">
-            <span className="text-sm font-medium text-gray-700">Selected Items ({challan.items.length}):</span>
+            <span className="text-sm font-medium text-gray-700">Selected Items ({bill.items.length}):</span>
             <div className="flex flex-wrap gap-2 mt-2">
-              {challan.items.map(itemId => {
+              {bill.items.map(itemId => {
                 const item = loadedItems.find(i => i.id === itemId);
                 return (
                   <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
@@ -619,15 +585,15 @@ const ChallanForm = () => {
         <div className="flex gap-3 pt-4 border-t">
           <Button
             onClick={handleSave}
-            disabled={!challan.party || challan.items.length === 0}
+            disabled={!bill.party || bill.items.length === 0}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
           >
             <FaSave />
-            {isEditMode ? 'Update' : 'Save'} Challan
+            Save Bill
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate('/transactions/challan-list')}
+            onClick={() => navigate('/transactions/bill-list')}
           >
             Cancel
           </Button>
@@ -637,4 +603,4 @@ const ChallanForm = () => {
   );
 };
 
-export default ChallanForm;
+export default BillForm;

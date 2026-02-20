@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink, FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { FaEye, FaFileInvoiceDollar, FaFilter, FaLink, FaEdit, FaTrash, FaDownload, FaPlus } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
@@ -7,6 +8,7 @@ import api from '../../services/axiosInstance';//
 import { getResponseList, normalizeBill } from '../../services/apiUtils';
 
 const BillList = () => {
+  const navigate = useNavigate();
   const { showToast } = useStore();
   const [bills, setBills] = useState([]);
 
@@ -151,6 +153,13 @@ const BillList = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bill List</h1>
           <p className="text-gray-600 text-xs sm:text-sm">View and manage final bills</p>
         </div>
+        <Button 
+          onClick={() => navigate('/transactions/bills/create')}
+          className="flex items-center gap-2 text-xs sm:text-sm w-full sm:w-auto justify-center sm:justify-start"
+        >
+          <FaPlus className="text-sm sm:text-base" />
+          Create Bill
+        </Button>
       </div>
 
       {/* Summary Cards */}
