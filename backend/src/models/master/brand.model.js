@@ -14,6 +14,12 @@ const brandSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     discount1: { type: discountFieldSchema, default: () => ({}) },
     discount2: { type: discountFieldSchema, default: () => ({}) },
+    item_ids: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Item",
+      },
+    ],
     hsn_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Hsn",

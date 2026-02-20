@@ -16,6 +16,7 @@ const brandSchema = {
     type: "object",
     label: "Discount 2 (Non-GST)",
   },
+  item_ids: { required: false, type: "array", label: "Item IDs" },
 };
 
 const discountSchema = {
@@ -52,6 +53,7 @@ export const createBrand = asyncHandler(async (req, res) => {
       discount1: data.discount1,
       discount2: data.discount2,
       hsn_id: data.hsn_id,
+      item_ids: data.item_ids,
     },
     req.user._id,
   );
@@ -67,6 +69,7 @@ export const updateBrand = asyncHandler(async (req, res) => {
   if (data.discount1) updateData.discount1 = data.discount1;
   if (data.discount2) updateData.discount2 = data.discount2;
   if (data.hsn_id !== undefined) updateData.hsn_id = data.hsn_id;
+  if (data.item_ids !== undefined) updateData.item_ids = data.item_ids;
   const brand = await brandService.updateBrand(
     req.params.brandId,
     req.user._id,

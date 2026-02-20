@@ -1241,7 +1241,7 @@ async function seed() {
       email: "ramesh@maheshwarimotors.com",
       phone: "9876543210",
       gst_firm: {
-        username: "gst_ramesh",
+        username: "gst_user",
         password: gstPass,
         name: "Maheshwari Motors Pvt Ltd",
         phone: "9876543210",
@@ -1259,7 +1259,7 @@ async function seed() {
         account_number: "50100068753421",
       },
       nongst_firm: {
-        username: "nongst_ramesh",
+        username: "nongst_user",
         password: nonGstPass,
         name: "Maheshwari Motors",
         phone: "9876543211",
@@ -1274,7 +1274,7 @@ async function seed() {
         account_number: "38764521098765",
       },
       admin: {
-        username: "admin_ramesh",
+        username: "admin_user",
         password: adminPass,
       },
     });
@@ -1285,7 +1285,7 @@ async function seed() {
       email: "suresh@maheshwarimotors.com",
       phone: "9876501234",
       gst_firm: {
-        username: "gst_suresh",
+        username: "gst_staff",
         password: staffGstPass,
         name: "Maheshwari Motors Pvt Ltd",
         phone: "9876501234",
@@ -1296,7 +1296,7 @@ async function seed() {
         GSTIN: "08AABCM1234A1Z5",
       },
       nongst_firm: {
-        username: "nongst_suresh",
+        username: "nongst_staff",
         password: staffNonGstPass,
         name: "Maheshwari Motors",
         phone: "9876501234",
@@ -1314,7 +1314,7 @@ async function seed() {
       email: "mukesh@maheshwarimotors.com",
       phone: "9876504567",
       gst_firm: {
-        username: "gst_mukesh",
+        username: "gst_staff2",
         password: staff2Pass,
         name: "Maheshwari Motors Pvt Ltd",
         phone: "9876504567",
@@ -1325,7 +1325,7 @@ async function seed() {
         GSTIN: "08AABCM1234A1Z5",
       },
       nongst_firm: {
-        username: "nongst_mukesh",
+        username: "nongst_staff2",
         password: staff2Pass,
         name: "Maheshwari Motors",
         phone: "9876504567",
@@ -1338,11 +1338,11 @@ async function seed() {
 
     const userId = mainUser._id;
     console.log("✅ Users created: 3 (1 main + 2 staff)");
-    console.log(`   Admin: admin_ramesh / Admin@1234`);
-    console.log(`   GST Firm: gst_ramesh / Test@1234`);
-    console.log(`   Non-GST Firm: nongst_ramesh / Test@1234`);
+    console.log(`   Admin: admin_user / Admin@1234`);
+    console.log(`   GST Firm: gst_user / Test@1234`);
+    console.log(`   Non-GST Firm: nongst_user / Test@1234`);
     console.log(
-      `   Staff GST: gst_suresh / Staff@1234, gst_mukesh / Staff@1234`,
+      `   Staff GST: gst_staff / Staff@1234, gst_staff2 / Staff@1234`,
     );
 
     // ── 3 · HSN Codes ─────────────────────────────────────────────
@@ -2051,11 +2051,11 @@ async function seed() {
     console.log("╠══════════════════════════════════════════╣");
     console.log("║ LOGIN CREDENTIALS                        ║");
     console.log("╠══════════════════════════════════════════╣");
-    console.log("║ Admin:  admin_ramesh / Admin@1234        ║");
-    console.log("║ GST:    gst_ramesh   / Test@1234         ║");
-    console.log("║ NonGST: nongst_ramesh / Test@1234        ║");
-    console.log("║ Staff:  gst_suresh   / Staff@1234        ║");
-    console.log("║         gst_mukesh   / Staff@1234        ║");
+    console.log("║ Admin:  admin_user / Admin@1234           ║");
+    console.log("║ GST:    gst_user   / Test@1234            ║");
+    console.log("║ NonGST: nongst_user / Test@1234           ║");
+    console.log("║ Staff:  gst_staff  / Staff@1234           ║");
+    console.log("║         gst_staff2 / Staff@1234           ║");
     console.log("╚══════════════════════════════════════════╝");
 
     process.exit(0);

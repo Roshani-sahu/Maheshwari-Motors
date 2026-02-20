@@ -13,7 +13,6 @@ const health = (res) => {
 
 const createApp = () => {
   const app = express();
-
   app.set("trust proxy", 1);
 
   console.log("[CORS] CORS_ORIGIN =", env.CORS_ORIGIN);

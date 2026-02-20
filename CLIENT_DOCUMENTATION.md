@@ -1,9 +1,10 @@
 # Maheshwari Motors - ERP System
+
 ## Complete Project Documentation
 
-**Version:** 1.0.0  
-**Date:** January 2025  
-**Developed By:** Royal IT Company  
+**Version:** 1.0.0
+**Date:** January 2025
+**Developed By:** Royal IT Company
 **Client:** Maheshwari Motors
 
 ---
@@ -29,6 +30,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ### Technology Stack
 
 #### Frontend
+
 - **Framework**: React 19.2.0
 - **Styling**: Tailwind CSS 3.4.19
 - **State Management**: Zustand 4.5.7
@@ -40,6 +42,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 - **Build Tool**: Vite 7.2.4
 
 #### Backend
+
 - **Runtime**: Node.js with Express 5.2.1
 - **Database**: MongoDB with Mongoose 9.1.6
 - **Authentication**: JWT (jsonwebtoken 9.0.2)
@@ -54,6 +57,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ### 1. Authentication & Authorization Module
 
 #### 1.1 User Authentication
+
 - **Multi-Level Login System**
   - Admin login for main users
   - Separate GST firm login
@@ -62,6 +66,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Secure password hashing with bcrypt
 
 #### 1.2 User Management
+
 - **User Types**
   - Main users (with admin access)
   - Secondary users (firm-level access only)
@@ -71,6 +76,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Profile picture upload (AWS S3)
 
 #### 1.3 Session Management
+
 - Automatic token refresh
 - Session tracking
 - Secure logout functionality
@@ -80,6 +86,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ### 2. Master Data Management
 
 #### 2.1 Firm Master
+
 - **Dual Firm Setup**
   - GST Firm configuration
   - Non-GST Firm configuration
@@ -91,6 +98,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Separate credentials for each firm
 
 #### 2.2 Party/Account Master
+
 - **Party Management**
   - Add, edit, delete parties
   - Auto-incrementing party ID
@@ -101,6 +109,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Search and filter functionality
 
 #### 2.3 Item Master
+
 - **Excel-Like Grid Interface**
   - Inline editing capabilities
   - Keyboard navigation (Tab, Enter)
@@ -124,6 +133,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Mass updates
 
 #### 2.4 Category Master
+
 - **Category Management**
   - Create and manage product categories
   - Auto-incrementing category ID
@@ -132,6 +142,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Search and filter
 
 #### 2.5 Brand Master
+
 - **Brand Management**
   - Add, edit, delete brands
   - Auto-incrementing brand ID
@@ -140,6 +151,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Search functionality
 
 #### 2.6 Supplier Master
+
 - **Supplier Management**
   - Supplier details (name, contact)
   - Address information
@@ -149,6 +161,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Search and filter
 
 #### 2.7 Discount Master
+
 - **Discount Configuration**
   - Create discount schemes
   - Percentage-based discounts
@@ -158,6 +171,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Auto-apply rules
 
 #### 2.8 User Master
+
 - **User Administration**
   - Create secondary users
   - Assign firm access
@@ -170,6 +184,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ### 3. Transaction Management
 
 #### 3.1 Challan Entry System
+
 - **Challan Creation**
   - Auto-generated challan numbers
   - Date selection
@@ -204,6 +219,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Search and filter challans
 
 #### 3.2 Bill Generation
+
 - **Bill Creation from Challans**
   - Select multiple challans
   - Merge challans into single bill
@@ -223,6 +239,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Email bills to parties
 
 #### 3.3 Purchase Entry
+
 - **Purchase Recording**
   - Supplier selection
   - Purchase date
@@ -237,6 +254,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Supplier linking
 
 #### 3.4 Transaction History
+
 - **Comprehensive Transaction Log**
   - All transactions in one view
   - Filter by type (challan, bill, purchase)
@@ -250,6 +268,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ### 4. Inventory Management
 
 #### 4.1 Stock Management
+
 - **Unified Stock System**
   - Single physical stock across firms
   - Real-time stock updates
@@ -262,6 +281,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Stock movements history
 
 #### 4.2 Stock Alerts
+
 - **Low Stock Alerts**
   - Threshold-based alerts
   - Reorder level notifications
@@ -273,6 +293,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Alert frequency settings
 
 #### 4.3 Item View
+
 - **Detailed Item Information**
   - Complete item details
   - Stock history
@@ -286,6 +307,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ### 5. Reporting Module
 
 #### 5.1 GST Reports
+
 - **GSTR-1 Report**
   - B2B invoices
   - B2C invoices
@@ -302,6 +324,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Tax payable summary
 
 #### 5.2 Sales Reports
+
 - **Sales Summary**
   - Date range selection
   - Party-wise sales
@@ -319,6 +342,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Challan-wise details
 
 #### 5.3 Purchase Reports
+
 - **Purchase Summary**
   - Supplier-wise purchases
   - Item-wise purchases
@@ -330,6 +354,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Cost analysis
 
 #### 5.4 Sales Return Reports
+
 - **Return Tracking**
   - Return date and details
   - Item-wise returns
@@ -338,6 +363,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Credit note generation
 
 #### 5.5 Purchase Return Reports
+
 - **Purchase Return Tracking**
   - Supplier-wise returns
   - Item-wise returns
@@ -345,6 +371,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Return amount summary
 
 #### 5.6 Universal Report
+
 - **Customizable Reports**
   - Select data fields
   - Custom date ranges
@@ -357,6 +384,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ### 6. Dashboard & Analytics
 
 #### 6.1 Main Dashboard
+
 - **Key Metrics**
   - Today's sales
   - Monthly sales
@@ -384,6 +412,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ### 7. Settings & Configuration
 
 #### 7.1 User Settings
+
 - **Profile Management**
   - Update personal information
   - Change password
@@ -391,6 +420,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Email preferences
 
 #### 7.2 System Settings
+
 - **General Settings**
   - Company logo upload
   - Invoice prefix configuration
@@ -402,6 +432,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Header/footer customization
 
 #### 7.3 Backup & Restore
+
 - **Data Backup**
   - Manual backup creation
   - Scheduled backups
@@ -413,6 +444,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - Selective restore options
 
 #### 7.4 Financial Year Close
+
 - **Year-End Processing**
   - Close financial year
   - Opening balance transfer
@@ -424,6 +456,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ### 8. Help & Support
 
 #### 8.1 Help Documentation
+
 - **User Guides**
   - Getting started guide
   - Feature-wise tutorials
@@ -431,6 +464,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
   - FAQ section
 
 #### 8.2 Support System
+
 - **Support Tickets**
   - Create support tickets
   - Track ticket status
@@ -442,18 +476,21 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ## 🔐 Security Features
 
 ### Authentication Security
+
 - JWT token-based authentication
 - Secure password hashing (bcrypt)
 - Token expiration and refresh
 - Session management
 
 ### Data Security
+
 - Role-based access control
 - Firm-level data isolation
 - Encrypted password storage
 - Secure API endpoints
 
 ### File Security
+
 - AWS S3 secure file storage
 - Pre-signed URLs for file access
 - File type validation
@@ -464,6 +501,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ## 📊 Business Logic Implementation
 
 ### GST Compliance Rules
+
 1. **Non-GST Purchase Restriction**
    - Items purchased without GST cannot be sold through GST firm
    - Validation at challan creation level
@@ -477,6 +515,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
    - State code verification
 
 ### Stock Management Rules
+
 1. **Unified Stock Ledger**
    - Single physical stock across all firms
    - Real-time stock synchronization
@@ -491,6 +530,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
    - Alert on insufficient stock
 
 ### Billing Workflow
+
 1. **Challan-First Approach**
    - Mandatory challan creation before billing
    - Multiple challans can be merged into one bill
@@ -505,11 +545,13 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ## 🎨 User Interface Features
 
 ### Responsive Design
+
 - Desktop-optimized layout
 - Tablet-friendly interface
 - Touch-friendly controls
 
 ### User Experience
+
 - Intuitive navigation
 - Quick search functionality
 - Keyboard shortcuts
@@ -520,6 +562,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 - Error handling
 
 ### Data Grid Features
+
 - Excel-like editing
 - Inline validation
 - Keyboard navigation
@@ -541,12 +584,14 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ## 🚀 Deployment Information
 
 ### Frontend Deployment
+
 - Platform: Vercel
 - Build Command: `npm run build`
 - Output Directory: `dist`
 - Environment Variables: Configured in Vercel dashboard
 
 ### Backend Deployment
+
 - Platform: Vercel Serverless Functions
 - Entry Point: `api/index.js`
 - Database: MongoDB Atlas
@@ -567,6 +612,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ## 🔄 Future Enhancements (Roadmap)
 
 ### Phase 2 Features
+
 - Mobile application (iOS/Android)
 - WhatsApp integration for bills
 - SMS notifications
@@ -575,6 +621,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 - Multi-language support
 
 ### Phase 3 Features
+
 - AI-powered demand forecasting
 - Automated reordering
 - Customer portal
@@ -586,11 +633,13 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ## 📞 Support & Maintenance
 
 ### Support Channels
+
 - **Email**: support@royalitcompany.com
 - **Phone**: [Contact Number]
 - **Support Hours**: Monday-Saturday, 9 AM - 6 PM
 
 ### Maintenance Schedule
+
 - **Regular Updates**: Monthly
 - **Security Patches**: As needed
 - **Backup Frequency**: Daily automated backups
@@ -601,12 +650,14 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ## 📝 Training & Documentation
 
 ### Training Provided
+
 - Initial system training (2 days)
 - User manual (PDF)
 - Video tutorials
 - On-site support (first week)
 
 ### Documentation Delivered
+
 - User manual
 - Admin guide
 - API documentation
@@ -618,12 +669,14 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ## ⚖️ Terms & Conditions
 
 ### License
+
 - Single-client license
 - Unlimited users within organization
 - Source code ownership: Royal IT Company
 - Usage rights: Maheshwari Motors
 
 ### Warranty
+
 - 90 days bug-fix warranty
 - 1 year technical support
 - Free updates for 1 year
@@ -633,6 +686,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 ## 📋 Appendix
 
 ### A. Database Schema
+
 - Users Collection
 - Items Collection
 - Parties Collection
@@ -645,6 +699,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 - Stock Alerts Collection
 
 ### B. API Endpoints
+
 - Authentication APIs
 - Master Data APIs
 - Transaction APIs
@@ -653,6 +708,7 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 - Settings APIs
 
 ### C. Environment Variables
+
 - Frontend: `VITE_API_URL`
 - Backend: `MONGODB_URI`, `JWT_SECRET`, `AWS_*`
 
@@ -689,11 +745,11 @@ Maheshwari Motors ERP is a comprehensive, multi-user inventory management and bi
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: January 2025  
-**Prepared By**: Royal IT Company  
+**Document Version**: 1.0
+**Last Updated**: January 2025
+**Prepared By**: Royal IT Company
 **Approved By**: [Client Name]
 
 ---
 
-*This document is confidential and proprietary to Maheshwari Motors and Royal IT Company.*
+_This document is confidential and proprietary to Maheshwari Motors and Royal IT Company._
