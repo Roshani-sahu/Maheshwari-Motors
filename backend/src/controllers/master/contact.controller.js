@@ -9,6 +9,7 @@ const contactSchema = {
     max: 200,
     label: "Contact name",
   },
+  alias: { required: false, type: "string" },
   type: {
     required: true,
     type: "string",

@@ -9,6 +9,20 @@ const createItemSchema = {
     max: 200,
     label: "Item name",
   },
+  barcode: {
+    required: false,
+    type: "string",
+    min: 10,
+    max: 10,
+    pattern: /^[A-Za-z0-9]{10}$/,
+    label: "Barcode",
+  },
+  item_id: {
+    required: false,
+    type: "number",
+    min: 1,
+    label: "Item ID",
+  },
   sale_rate: { required: true, type: "number", min: 0, label: "Sale rate" },
   purchase_rate: {
     required: false,

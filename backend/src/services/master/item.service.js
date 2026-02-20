@@ -4,6 +4,11 @@ import Category from "../../models/master/category.model.js";
 import Contact from "../../models/master/contact.model.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
+import {
+  generateUniqueBarcode,
+  generateUniqueItemId,
+  isValidBarcodeFormat,
+} from "../../helpers/identifierGenerator.js";
 import s3Service from "../common/s3.service.js";
 
 class ItemService {
@@ -31,6 +36,8 @@ class ItemService {
   async createItem(itemData, userId, file = null) {
     const {
       item_name,
+      barcode,
+      item_id,
       sale_rate,
       purchase_rate,
       mrp_rate,
@@ -52,6 +59,41 @@ class ItemService {
     }
     if (typeof sale_rate !== "number" || sale_rate < 0) {
       throw ApiError.badRequest("Sale rate must be a non-negative number");
+    }
+
+    let finalBarcode;
+    if (barcode !== undefined && barcode !== null && barcode !== "") {
+      if (!isValidBarcodeFormat(barcode)) {
+        throw ApiError.badRequest(
+          "Barcode must be exactly 10 alphanumeric characters",
+        );
+      }
+      const barcodeExists = await Item.exists({ barcode });
+      if (barcodeExists) {
+        throw ApiError.conflict(
+          `Barcode '${barcode}' is already in use by another item`,
+        );
+      }
+      finalBarcode = barcode.toUpperCase();
+    } else {
+      finalBarcode = await generateUniqueBarcode();
+    }
+
+    let finalItemId;
+    if (item_id !== undefined && item_id !== null && item_id !== "") {
+      const numericId = Number(item_id);
+      if (!Number.isFinite(numericId) || numericId < 1 || numericId % 1 !== 0) {
+        throw ApiError.badRequest("Item ID must be a positive integer");
+      }
+      const itemIdExists = await Item.exists({ item_id: numericId });
+      if (itemIdExists) {
+        throw ApiError.conflict(
+          `Item ID '${numericId}' is already in use by another item`,
+        );
+      }
+      finalItemId = numericId;
+    } else {
+      finalItemId = await generateUniqueItemId(userId);
     }
 
     if (
@@ -147,6 +189,8 @@ class ItemService {
     const item = await Item.create({
       id: nextId,
       item_name: item_name.trim(),
+      barcode: finalBarcode,
+      item_id: finalItemId,
       sale_rate,
       purchase_rate,
       mrp_rate,
@@ -173,6 +217,8 @@ class ItemService {
 
     const {
       item_name,
+      barcode,
+      item_id,
       sale_rate,
       purchase_rate,
       mrp_rate,
@@ -201,6 +247,39 @@ class ItemService {
       });
       if (duplicate) {
         throw ApiError.conflict("Another item with this name already exists");
+      }
+    }
+
+    if (barcode !== undefined && barcode !== null && barcode !== "") {
+      if (!isValidBarcodeFormat(barcode)) {
+        throw ApiError.badRequest(
+          "Barcode must be exactly 10 alphanumeric characters",
+        );
+      }
+      const barcodeExists = await Item.exists({
+        barcode: barcode.toUpperCase(),
+        _id: { $ne: itemId },
+      });
+      if (barcodeExists) {
+        throw ApiError.conflict(
+          `Barcode '${barcode}' is already in use by another item`,
+        );
+      }
+    }
+
+    if (item_id !== undefined && item_id !== null && item_id !== "") {
+      const numericId = Number(item_id);
+      if (!Number.isFinite(numericId) || numericId < 1 || numericId % 1 !== 0) {
+        throw ApiError.badRequest("Item ID must be a positive integer");
+      }
+      const itemIdExists = await Item.exists({
+        item_id: numericId,
+        _id: { $ne: itemId },
+      });
+      if (itemIdExists) {
+        throw ApiError.conflict(
+          `Item ID '${numericId}' is already in use by another item`,
+        );
       }
     }
     if (
@@ -279,6 +358,10 @@ class ItemService {
 
     const fields = {};
     if (item_name !== undefined) fields.item_name = item_name.trim();
+    if (barcode !== undefined && barcode !== null && barcode !== "")
+      fields.barcode = barcode.toUpperCase();
+    if (item_id !== undefined && item_id !== null && item_id !== "")
+      fields.item_id = Number(item_id);
     if (sale_rate !== undefined) fields.sale_rate = sale_rate;
     if (purchase_rate !== undefined) fields.purchase_rate = purchase_rate;
     if (mrp_rate !== undefined) fields.mrp_rate = mrp_rate;

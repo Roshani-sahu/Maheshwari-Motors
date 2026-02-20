@@ -4,6 +4,17 @@ const itemSchema = new mongoose.Schema(
   {
     id: { type: Number },
     item_name: { type: String, required: true },
+    barcode: {
+      type: String,
+      trim: true,
+      match: [
+        /^[A-Za-z0-9]{10}$/,
+        "Barcode must be exactly 10 alphanumeric characters",
+      ],
+    },
+    item_id: {
+      type: Number,
+    },
     sale_rate: { type: Number, required: true },
     purchase_rate: { type: Number, default: 0 },
     mrp_rate: { type: Number, default: 0 },
@@ -37,5 +48,7 @@ const itemSchema = new mongoose.Schema(
 );
 
 itemSchema.index({ id: 1, user_id: 1 });
+itemSchema.index({ barcode: 1 }, { unique: true, sparse: true });
+itemSchema.index({ item_id: 1 }, { unique: true, sparse: true });
 
 export default mongoose.model("Item", itemSchema);
