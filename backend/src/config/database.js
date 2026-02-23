@@ -18,21 +18,21 @@ class Database {
         socketTimeoutMS: 45000,
       };
 
-      this.connection = await mongoose.connect(env.MONGODB_URI, options);
+      this.connection = await mongoose.connect(env.Database_URI, options);
 
-      console.log(`MongoDB connected: ${this.connection.connection.host}`);
+      console.log(`Database connected`);
 
       mongoose.connection.on("error", (err) => {
-        console.error("MongoDB connection error:", err);
+        console.error("Database connection error:", err);
       });
 
       mongoose.connection.on("disconnected", () => {
-        console.warn("MongoDB disconnected. Attempting to reconnect...");
+        console.warn("Database disconnected. Attempting to reconnect...");
       });
 
       return this.connection;
     } catch (error) {
-      console.error("MongoDB connection failed:", error.message);
+      console.error("Database connection failed:", error.message);
       process.exit(1);
     }
   }
@@ -41,15 +41,12 @@ class Database {
     if (this.connection) {
       await mongoose.disconnect();
       this.connection = null;
-      console.log("MongoDB disconnected");
+      console.log("Database disconnected");
     }
   }
 }
 
 const database = new Database();
-
 export const connectDB = () => database.connect();
-
 export const disconnectDB = () => database.disconnect();
-
 export default database;
