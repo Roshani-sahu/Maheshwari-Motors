@@ -12,3 +12,4 @@ export * as billController from "./transaction/bill.controller.js";
 export * as challanController from "./transaction/challan.controller.js";
 export * as dashboardController from "./dashboard/dashboard.controller.js";
 export * as reportController from "./report/report.controller.js";
+export { default as departmentController } from "./master/department.controller.js";

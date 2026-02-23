@@ -13,6 +13,7 @@ import challanRoutes from "./transaction/challan.routes.js";
 import billRoutes from "./transaction/bill.routes.js";
 import dashboardRoutes from "./dashboard/dashboard.routes.js";
 import reportRoutes from "./report/report.routes.js";
+import departmentRoutes from "./master/department.route.js";
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use("/challans", challanRoutes);
 router.use("/bills", billRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/reports", reportRoutes);
+router.use("/departments", departmentRoutes);
 
 export default router;
