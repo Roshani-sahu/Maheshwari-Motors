@@ -13,7 +13,7 @@ const INDIAN_STATES = [
   'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Lakshadweep', 'Puducherry', 'Ladakh', 'Jammu and Kashmir'
 ];
 
-const emptyForm = { city: '', state: '', pincode: '', phone: '', whatsapp: '', agent_id: '', transport_id: '' };
+const emptyForm = { city: '', state: '', pincode: '', phone: '', agent_id: '', transport_id: '' };
 
 const AreaMaster = () => {
   const { showToast } = useStore();
@@ -42,7 +42,6 @@ const AreaMaster = () => {
     state: a?.state || '',
     pincode: a?.pincode || '',
     phone: a?.phone || '',
-    whatsapp: a?.whatsapp || '',
     agent_id: typeof a?.agent_id === 'object' ? a.agent_id?._id : (a?.agent_id || ''),
     transport_id: typeof a?.transport_id === 'object' ? a.transport_id?._id : (a?.transport_id || '')
   });
@@ -101,7 +100,6 @@ const AreaMaster = () => {
     state: formData.state?.trim(),
     pincode: formData.pincode?.trim() || undefined,
     phone: formData.phone?.trim() || undefined,
-    whatsapp: formData.whatsapp?.trim() || undefined,
     agent_id: formData.agent_id || undefined,
     transport_id: formData.transport_id || undefined
   });
@@ -109,6 +107,10 @@ const AreaMaster = () => {
   const validate = () => {
     if (!formData.city?.trim() || !formData.state?.trim()) {
       showToast('City and state are required', 'error');
+      return false;
+    }
+    if (formData.phone && !/^\d{10}$/.test(formData.phone.trim())) {
+      showToast('Phone number must be exactly 10 digits', 'error');
       return false;
     }
     return true;
@@ -124,7 +126,8 @@ const AreaMaster = () => {
       setFormData(emptyForm);
       fetchAll();
     } catch (error) {
-      showToast(error?.response?.data?.message || 'Failed to add area', 'error');
+      const errorMsg = error?.response?.data?.error || error?.response?.data?.message || 'Failed to add area';
+      showToast(errorMsg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -141,7 +144,8 @@ const AreaMaster = () => {
       setFormData(emptyForm);
       fetchAll();
     } catch (error) {
-      showToast(error?.response?.data?.message || 'Failed to update area', 'error');
+      const errorMsg = error?.response?.data?.error || error?.response?.data?.message || 'Failed to update area';
+      showToast(errorMsg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -174,8 +178,7 @@ const AreaMaster = () => {
           </select>
         </div>
         <div><label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label><Input value={formData.pincode} onChange={(v) => setFormData({ ...formData, pincode: v })} disabled={isView} /></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label><Input value={formData.phone} onChange={(v) => setFormData({ ...formData, phone: v })} disabled={isView} /></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label><Input value={formData.whatsapp} onChange={(v) => setFormData({ ...formData, whatsapp: v })} disabled={isView} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label><Input value={formData.phone} onChange={(v) => setFormData({ ...formData, phone: v.replace(/\D/g, '').slice(0, 10) })} disabled={isView} placeholder="10 digit number" /></div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
           <select value={formData.agent_id} onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })} disabled={isView} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">

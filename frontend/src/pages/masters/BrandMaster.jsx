@@ -17,6 +17,7 @@ const BrandMaster = () => {
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectedHsn, setSelectedHsn] = useState('');
   const [gstRate, setGstRate] = useState(0);
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, brand: null });
   const [submitting, setSubmitting] = useState(false);
 
@@ -105,6 +106,7 @@ const BrandMaster = () => {
       setGstRate(hsn ? hsn.gst_percentage : 0);
       const preselectedItems = items.filter((item) => brand.item_ids?.includes(item.id));
       setSelectedItems(preselectedItems);
+      setItemSearchTerm('');
       setIsEditModalOpen(true);
     },
       className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
@@ -132,6 +134,7 @@ const BrandMaster = () => {
       setSelectedHsn('');
       setGstRate(0);
       setSelectedItems([]);
+      setItemSearchTerm('');
       setIsAddModalOpen(false);
       fetchData();
     } catch (error) {
@@ -159,6 +162,7 @@ const BrandMaster = () => {
       setSelectedHsn('');
       setGstRate(0);
       setSelectedItems([]);
+      setItemSearchTerm('');
       fetchData();
     } catch (error) {
       showToast(error?.response?.data?.message || 'Failed to update brand', 'error');
@@ -194,6 +198,10 @@ const BrandMaster = () => {
     setSelectedItems(prev => prev.filter(i => i.id !== itemId));
   };
 
+  const filteredItems = items.filter(item => 
+    item.itemName.toLowerCase().includes(itemSearchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -206,6 +214,7 @@ const BrandMaster = () => {
           setSelectedItems([]);
           setSelectedHsn('');
           setGstRate(0);
+          setItemSearchTerm('');
           setIsAddModalOpen(true);
         }} className="flex items-center gap-2">
           <FaPlus />Add Brand
@@ -214,7 +223,7 @@ const BrandMaster = () => {
 
       <DataTable columns={columns} data={brands} actions={actions} searchable sortable pagination />
 
-      <Modal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); setSelectedItems([]); }} title="Add Brand" size="lg">
+      <Modal isOpen={isAddModalOpen} onClose={() => { setIsAddModalOpen(false); setSelectedItems([]); setItemSearchTerm(''); }} title="Add Brand" size="lg">
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
@@ -260,12 +269,18 @@ const BrandMaster = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Available Items</label>
+            <Input
+              value={itemSearchTerm}
+              onChange={setItemSearchTerm}
+              placeholder="Search items..."
+              className="mb-2"
+            />
             <div className="border rounded-lg max-h-[300px] overflow-y-auto">
-              {items.length === 0 ? (
-                <p className="text-gray-500 text-sm p-4">No items available</p>
+              {filteredItems.length === 0 ? (
+                <p className="text-gray-500 text-sm p-4">No items found</p>
               ) : (
                 <div className="divide-y">
-                  {items.map(item => {
+                  {filteredItems.map(item => {
                     const isSelected = selectedItems.find(i => i.id === item.id);
                     return (
                       <div key={item.id} className="p-3 hover:bg-gray-50">
@@ -277,7 +292,7 @@ const BrandMaster = () => {
                               <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-500">₹{item.amount}</span>
                                 <span className={`px-2 py-1 text-xs rounded-full ${item.type === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                                  {item.type === 1 ? 'GST' : 'Non-GST'}
+                                  {item.type === 1 ? '1' : '0'}
                                 </span>
                               </div>
                             </div>
@@ -298,7 +313,7 @@ const BrandMaster = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setSelectedItems([]); }} title="Edit Brand" size="lg">
+      <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setSelectedItems([]); setItemSearchTerm(''); }} title="Edit Brand" size="lg">
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
@@ -344,12 +359,18 @@ const BrandMaster = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Available Items</label>
+            <Input
+              value={itemSearchTerm}
+              onChange={setItemSearchTerm}
+              placeholder="Search items..."
+              className="mb-2"
+            />
             <div className="border rounded-lg max-h-[300px] overflow-y-auto">
-              {items.length === 0 ? (
-                <p className="text-gray-500 text-sm p-4">No items available</p>
+              {filteredItems.length === 0 ? (
+                <p className="text-gray-500 text-sm p-4">No items found</p>
               ) : (
                 <div className="divide-y">
-                  {items.map(item => {
+                  {filteredItems.map(item => {
                     const isSelected = selectedItems.find(i => i.id === item.id);
                     return (
                       <div key={item.id} className="p-3 hover:bg-gray-50">

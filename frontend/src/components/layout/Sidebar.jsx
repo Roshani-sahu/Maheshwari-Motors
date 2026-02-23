@@ -208,6 +208,21 @@ const Sidebar = ({ onClose }) => {
               Area Master
             </NavLink>
             
+            <NavLink
+              to="/inventory/department-master"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaBuilding className="w-4 h-4" />
+              Department Master
+            </NavLink>
+            
 
               <NavLink
               to="/inventory/stock-alert-master"

@@ -20,6 +20,7 @@ const AddItem = () => {
   const [brands, setBrands] = useState([]);
   const [allBrands, setAllBrands] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [hsns, setHsns] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,6 +30,7 @@ const AddItem = () => {
     category: '',
     brand: '',
     supplier: '',
+    department: '',
     hsn_code: '',
     description: '',
     gst_percent: '',
@@ -48,10 +50,11 @@ const AddItem = () => {
 
     const fetchData = async () => {
       try {
-        const [catRes, brandRes, supplierRes, hsnRes] = await Promise.all([
+        const [catRes, brandRes, supplierRes, deptRes, hsnRes] = await Promise.all([
           api.get('/categories', { params: { page: 1, limit: 200 }, signal: controller.signal }),
           api.get('/brands', { params: { page: 1, limit: 200 }, signal: controller.signal }),
           api.get('/contacts/suppliers', { params: { page: 1, limit: 200 }, signal: controller.signal }),
+          api.get('/categories', { params: { page: 1, limit: 200 }, signal: controller.signal }),
           api.get('/hsn', { params: { page: 1, limit: 200 }, signal: controller.signal })
         ]);
 
@@ -61,6 +64,10 @@ const AddItem = () => {
           const normalized = normalizeContact(supplier);
           return { id: normalized.id, name: normalized.name };
         });
+        const depts = getResponseList(deptRes).map((dept) => ({
+          id: dept._id,
+          name: dept.name || ''
+        }));
         const hsnList = getResponseList(hsnRes)
           .filter((hsn) => hsn?.is_active !== false)
           .map((hsn) => ({
@@ -73,6 +80,7 @@ const AddItem = () => {
         setAllBrands(brds);
         setBrands(brds);
         setSuppliers(sups);
+        setDepartments(depts);
         setHsns(hsnList);
       } catch (error) {
         if (error?.name !== 'CanceledError') {
@@ -155,6 +163,7 @@ const AddItem = () => {
       appendOptional(payload, 'category_id', formData.category);
       appendOptional(payload, 'brand_id', formData.brand);
       appendOptional(payload, 'contact_id', formData.supplier);
+      appendOptional(payload, 'dept_id', formData.department);
       appendOptional(payload, 'description', formData.description);
       if (formData.image) payload.append('image', formData.image);
 
@@ -213,6 +222,14 @@ const AddItem = () => {
               <select value={formData.supplier || ''} onChange={(e) => handleChange('supplier', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                 <option value="">Select Supplier</option>
                 {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+              <select value={formData.department || ''} onChange={(e) => handleChange('department', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                <option value="">Select Department</option>
+                {departments.map((dept) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
               </select>
             </div>
 

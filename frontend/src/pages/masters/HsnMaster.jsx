@@ -182,6 +182,12 @@ const HsnMaster = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <div onClick={() => setFormData({ ...formData, is_active: !formData.is_active })} className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${formData.is_active ? 'bg-green-500' : 'bg-gray-300'}`}>
+              <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${formData.is_active ? 'translate-x-7' : 'translate-x-0'}`} />
+            </div>
+          </div>
           <div className="flex gap-3 pt-4"><Button onClick={handleEdit} disabled={submitting}>Save Changes</Button><Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button></div>
         </div>
       </Modal>

@@ -39,6 +39,7 @@ import CategoryMaster from "./pages/inventory/CategoryMaster";
 import ViewCategory from "./pages/inventory/ViewCategory";
 import AddSupplier from "./pages/inventory/AddSupplier";
 import ViewAllSupplier from "./pages/inventory/ViewAllSupplier";
+import DepartmentMaster from "./pages/inventory/DepartmentMaster";
 
 // Transaction Pages
 import ChallanList from "./pages/transactions/ChallanList";
@@ -130,6 +131,7 @@ const App = () => {
           <Route path="/masters/transport-master" element={<TransportMaster />} />
           <Route path="/masters/hsn-master" element={<HsnMaster />} />
           <Route path="/masters/area-master" element={<AreaMaster />} />
+          <Route path="/inventory/department-master" element={<DepartmentMaster />} />
 
           {/* 3. Transactions */}
           <Route path="/transactions/challan-list" element={<ChallanList />} />
