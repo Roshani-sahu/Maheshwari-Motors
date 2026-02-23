@@ -26,6 +26,7 @@ const AddItem = () => {
 
   const [formData, setFormData] = useState({
     name: '',
+    item_id: '',
     stock: '',
     category: '',
     brand: '',
@@ -165,6 +166,7 @@ const AddItem = () => {
       appendOptional(payload, 'contact_id', formData.supplier);
       appendOptional(payload, 'dept_id', formData.department);
       appendOptional(payload, 'description', formData.description);
+      appendOptional(payload, 'item_id', formData.item_id);
       if (formData.image) payload.append('image', formData.image);
 
       await api.post('/items', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -194,6 +196,10 @@ const AddItem = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
               <Input name="name" value={formData.name} onChange={(value) => handleChange('name', value)} placeholder="Enter item name" />
               {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Item ID</label>
+              <Input name="item_id" type="number" value={formData.item_id} onChange={(value) => handleChange('item_id', value)} placeholder="Auto-generated if empty" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label>

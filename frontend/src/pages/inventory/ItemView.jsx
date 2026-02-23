@@ -56,7 +56,9 @@ const ItemView = () => {
             }
 
             const backendItems = allDocs.map(item => ({
-                id: item._id,
+                id: item.id,
+                item_id: item.item_id,
+                barcode: item.barcode,
                 itemName: item.item_name,
                 amount: item.sale_rate || item.amount || 0,
                 categoryId: item.category_id || item.category_ids?.[0],
@@ -70,7 +72,9 @@ const ItemView = () => {
   }, [setItems]);
 
   const columns = [
-    { key: 'id', label: 'ID', render: (val , row, index) => <span className="text-xs">{index + 1}</span> },
+    { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs sm:text-sm">{index + 1}</span> },
+    { key: 'item_id', label: 'Item ID', render: (val) => <span className="text-xs sm:text-sm">{val || '-'}</span> },
+    { key: 'barcode', label: 'Barcode', render: (val) => <span className="text-xs sm:text-sm">{val || '-'}</span> },
     { key: 'itemName', label: 'Item Name' },
     {
       key: 'categoryId',

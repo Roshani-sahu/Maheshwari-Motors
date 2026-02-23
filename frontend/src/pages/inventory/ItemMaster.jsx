@@ -33,6 +33,9 @@ const ItemMaster = () => {
     const normalized = normalizeItem(item);
     return {
       ...normalized,
+      id: item?.id,
+      item_id: item?.item_id,
+      barcode: item?.barcode,
       status: normalized.stockCount < normalized.threshold ? 'LOW' : 'OK',
       hsn_code: item?.hsn_code || '',
       description: item?.description || ''
@@ -119,11 +122,9 @@ const ItemMaster = () => {
   }, [setItems, showToast]);
 
   const columns = [
-    {
-      key: 'id',
-      label: 'Barcode',
-      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
-    },
+    { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs sm:text-sm">{index + 1}</span> },
+    { key: 'item_id', label: 'Item ID', render: (val) => <span className="text-xs sm:text-sm">{val || '-'}</span> },
+    { key: 'barcode', label: 'Barcode', render: (val) => <span className="text-xs sm:text-sm">{val || '-'}</span> },
     {
       key: 'itemName',
       label: 'Item Name',
