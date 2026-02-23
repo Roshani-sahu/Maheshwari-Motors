@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaTimes, FaSave } from 'react-icons/fa';
+import { FaTimes, FaSave, FaEye } from 'react-icons/fa';
 import { Button } from '../../components/ui';
+import { Modal } from '../../components/common';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
 import {
@@ -25,6 +26,7 @@ const BillForm = () => {
   const [itemsPage, setItemsPage] = useState(1);
   const [totalItemsPages, setTotalItemsPages] = useState(1);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [viewItemModal, setViewItemModal] = useState({ isOpen: false, data: null });
   const itemDropdownRef = useRef(null);
 
   const [bill, setBill] = useState({
@@ -265,7 +267,7 @@ const BillForm = () => {
 
       const challanRes = await api.post('/challans', challanPayload);
       console.log(challanRes);
-      const challanId = challanRes.data?._id || challanRes.data?.data?.id;
+      const challanId = challanRes.data.data._id;
 
       if (!challanId) {
         throw new Error('Failed to create challan');
@@ -274,12 +276,12 @@ const BillForm = () => {
       // Convert to bill
       try {
         const payload = {
-          contact_id: bill.party,
+          contact_id: challanRes.data.data.contact_id._id,
           challan_ids: [challanId]
         };
         await api.post('/bills', payload);
       } catch (error) {
-        console.log('Bill creation error:', error);
+        console.log('Bill creation error:', error, error.response.data);
       }
       
       showToast('Bill created successfully', 'success');
@@ -288,6 +290,15 @@ const BillForm = () => {
       console.error('Error:', error);
       const errorMsg = error.response?.data?.message || 'Failed to create bill';
       showToast(errorMsg, 'error');
+    }
+  };
+
+  const handleViewLastSold = async (itemId) => {
+    try {
+      const response = await api.get(`/items/${itemId}/last-sold`);
+      setViewItemModal({ isOpen: true, data: response.data.data });
+    } catch (error) {
+      showToast('Failed to fetch last sold details', 'error');
     }
   };
 
@@ -498,12 +509,20 @@ const BillForm = () => {
                         <span className="text-xs font-medium">{calc.afterDiscount.toFixed(2)}</span>
                       </td>
                       <td className="px-2 py-2">
-                        <button
-                          onClick={() => toggleItemSelection(itemId)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <FaTimes size={12} />
-                        </button>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleViewLastSold(itemId)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            <FaEye size={12} />
+                          </button>
+                          <button
+                            onClick={() => toggleItemSelection(itemId)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <FaTimes size={12} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -656,6 +675,61 @@ const BillForm = () => {
           </Button>
         </div>
       </div>
+
+      <Modal
+        isOpen={viewItemModal.isOpen}
+        onClose={() => setViewItemModal({ isOpen: false, data: null })}
+        title="Last Sold Details"
+        size="lg"
+      >
+        {viewItemModal.data && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Challan No:</p>
+                <p className="text-sm">{viewItemModal.data.challan_no}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Date:</p>
+                <p className="text-sm">{new Date(viewItemModal.data.challan_date).toLocaleDateString()}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Contact:</p>
+                <p className="text-sm">{viewItemModal.data.contact?.name}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">Phone:</p>
+                <p className="text-sm">{viewItemModal.data.contact?.phone || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700">GST Type:</p>
+                <p className="text-sm">{viewItemModal.data.is_gst === 1 ? 'GST' : 'Non-GST'}</p>
+              </div>
+            </div>
+            <div className="border-t pt-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">Item Details:</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-600">Quantity:</p>
+                  <p className="text-sm">{viewItemModal.data.item?.quantity}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">Rate:</p>
+                  <p className="text-sm">₹{viewItemModal.data.item?.rate}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">Discount:</p>
+                  <p className="text-sm">{viewItemModal.data.item?.discount}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-600">GST:</p>
+                  <p className="text-sm">{viewItemModal.data.item?.gst_percent}%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

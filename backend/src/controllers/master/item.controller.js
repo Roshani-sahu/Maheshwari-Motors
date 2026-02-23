@@ -1,4 +1,5 @@
 import { itemService } from "../../services/index.js";
+import challanService from "../../services/transaction/challan.service.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
 export const getItems = asyncHandler(async (req, res) => {
@@ -52,4 +53,9 @@ export const updateStock = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, item, "Stock updated successfully"));
+});
+
+export const getLastSoldItem = asyncHandler(async (req, res) => {
+  const data = await challanService.getLastSoldItem(req.params.itemId, req.user._id);
+  res.status(200).json(new ApiResponse(200, data, "Last sold item fetched successfully"));
 });
