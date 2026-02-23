@@ -33,7 +33,8 @@ const BillForm = () => {
     items: [],
     gstType: 0,
     date: new Date().toISOString().split('T')[0],
-    itemDetails: {}
+    itemDetails: {},
+    discount: 0
   });
 
   useEffect(() => {
@@ -48,11 +49,11 @@ const BillForm = () => {
 
         const partiesData = getResponseList(pRes).map((party) => {
           const normalized = normalizeContact(party);
-          return { id: normalized.id, name: normalized.name };
+          return { id: normalized.id, name: normalized.name, is_gst: normalized.is_gst };
         });
         const suppliersData = getResponseList(sRes).map((supplier) => {
           const normalized = normalizeContact(supplier);
-          return { id: normalized.id, name: normalized.name };
+          return { id: normalized.id, name: normalized.name, is_gst: normalized.is_gst, gstin: supplier.gstin || '' };
         });
         const itemsData = getResponseList(iRes).map((item) => {
           const normalized = normalizeItem(item);
@@ -178,7 +179,10 @@ const BillForm = () => {
           rate: item?.amount || 0,
           disPercent: useDisc.normal || 0,
           spDis: useDisc.special || 0,
-          gstPercent: 0
+          gstPercent: 0,
+          itemDiscount: item?.discount || 0,
+          stock: item?.stock || 0,
+          type: prev.gstType !== null ? prev.gstType : 0
         };
       }
 
@@ -193,11 +197,12 @@ const BillForm = () => {
     const disPercent = parseFloat(details.disPercent || 0);
     const spDis = parseFloat(details.spDis || 0);
     const gstPercent = parseFloat(details.gstPercent || 0);
+    const itemType = details.type !== undefined ? details.type : bill.gstType;
 
     const baseAmount = pcs * rate;
     const discountAmount = (baseAmount * disPercent / 100) + spDis;
     const afterDiscount = baseAmount - discountAmount;
-    const gstAmount = bill.gstType === 1 ? (afterDiscount * gstPercent / 100) : 0;
+    const gstAmount = itemType === 1 ? (afterDiscount * gstPercent / 100) : 0;
 
     return {
       baseAmount,
@@ -314,7 +319,16 @@ const BillForm = () => {
             </label>
             <select
               value={bill.party}
-              onChange={(e) => setBill(prev => ({ ...prev, party: e.target.value }))}
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const contacts = bill.contactType === 'party' ? loadedParties : loadedSuppliers;
+                const selected = contacts.find(c => c.id === selectedId);
+                setBill(prev => ({ 
+                  ...prev, 
+                  party: selectedId,
+                  gstType: selected ? (selected.is_gst || 0) : prev.gstType
+                }));
+              }}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
               <option value="">Select {bill.contactType === 'party' ? 'Party' : 'Supplier'}</option>
@@ -370,17 +384,15 @@ const BillForm = () => {
                 <tr>
                   <th className="px-2 py-2 text-left border-r">SNo</th>
                   <th className="px-2 py-2 text-left border-r">ItemName</th>
+                  <th className="px-2 py-2 text-left border-r">Type</th>
+                  <th className="px-2 py-2 text-left border-r">Stock</th>
                   <th className="px-2 py-2 text-left border-r">PCS</th>
                   <th className="px-2 py-2 text-left border-r">Rate</th>
                   <th className="px-2 py-2 text-left border-r">Dis %</th>
                   <th className="px-2 py-2 text-left border-r">SP Dis</th>
-                  <th className="px-2 py-2 text-left border-r">Disc Amt</th>
-                  {bill.gstType === 1 && (
-                    <>
-                      <th className="px-2 py-2 text-left border-r">GST %</th>
-                      <th className="px-2 py-2 text-left border-r">GST Amt</th>
-                    </>
-                  )}
+                  <th className="px-2 py-2 text-left border-r">Item Disc</th>
+                  <th className="px-2 py-2 text-left border-r">GST %</th>
+                  <th className="px-2 py-2 text-left border-r">GST Amt</th>
                   <th className="px-2 py-2 text-left border-r">Amount</th>
                   <th className="px-2 py-2 text-left">Action</th>
                 </tr>
@@ -390,12 +402,32 @@ const BillForm = () => {
                   const item = loadedItems.find(i => i.id === itemId);
                   const details = bill.itemDetails[itemId] || {};
                   const calc = calculateItemAmount(itemId);
+                  const itemType = details.type !== undefined ? details.type : bill.gstType;
 
                   return (
                     <tr key={itemId} className="border-t">
                       <td className="px-2 py-2 border-r">{index + 1}</td>
                       <td className="px-2 py-2 border-r">
                         <span className="text-xs">{item?.name || 'Unknown Item'}</span>
+                      </td>
+                      <td className="px-2 py-2 border-r">
+                        <select
+                          value={itemType !== null ? itemType : ''}
+                          onChange={(e) => updateItemDetail(itemId, 'type', parseInt(e.target.value))}
+                          className="w-12 px-1 py-1 border rounded text-xs"
+                        >
+                          <option value="">-</option>
+                          <option value={0}>0</option>
+                          <option value={1}>1</option>
+                        </select>
+                      </td>
+                      <td className="px-2 py-2 border-r">
+                        <input
+                          type="number"
+                          value={details.stock || 0}
+                          onChange={(e) => updateItemDetail(itemId, 'stock', e.target.value)}
+                          className="w-12 px-1 py-1 border rounded text-xs"
+                        />
                       </td>
                       <td className="px-2 py-2 border-r">
                         <input
@@ -430,9 +462,15 @@ const BillForm = () => {
                         />
                       </td>
                       <td className="px-2 py-2 border-r">
-                        <span className="text-xs">{calc.discountAmount.toFixed(2)}</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={details.itemDiscount || 0}
+                          onChange={(e) => updateItemDetail(itemId, 'itemDiscount', e.target.value)}
+                          className="w-16 px-1 py-1 border rounded text-xs"
+                        />
                       </td>
-                      {bill.gstType === 1 && (
+                      {itemType === 1 ? (
                         <>
                           <td className="px-2 py-2 border-r">
                             <input
@@ -444,6 +482,15 @@ const BillForm = () => {
                           </td>
                           <td className="px-2 py-2 border-r">
                             <span className="text-xs">{calc.gstAmount.toFixed(2)}</span>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-2 py-2 border-r">
+                            <span className="text-xs">-</span>
+                          </td>
+                          <td className="px-2 py-2 border-r">
+                            <span className="text-xs">-</span>
                           </td>
                         </>
                       )}
@@ -463,7 +510,7 @@ const BillForm = () => {
                 })}
                 {bill.items.length === 0 && (
                   <tr>
-                    <td colSpan={bill.gstType === 1 ? 11 : 9} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={13} className="px-4 py-8 text-center text-gray-500">
                       No items selected. Use the search below to add items.
                     </td>
                   </tr>
@@ -571,10 +618,20 @@ const BillForm = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
+              <span className="text-sm font-medium w-32">Discount:</span>
+              <input
+                type="number"
+                step="0.01"
+                value={bill.discount}
+                onChange={(e) => setBill(prev => ({ ...prev, discount: parseFloat(e.target.value) || 0 }))}
+                className="flex-1 px-3 py-2 border rounded-md text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2">
               <span className="text-sm font-medium w-32">Net Amount:</span>
               <input
                 type="number"
-                value={calculateTotalAmount().toFixed(2)}
+                value={(calculateTotalAmount() - bill.discount).toFixed(2)}
                 readOnly
                 className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50"
               />
