@@ -10,8 +10,9 @@ import {
   // FaToggleOff
 } from 'react-icons/fa';
 import useStore from '../../store';
-import { StatsCard, Toggle } from '../../components/common';
+import { StatsCard } from '../../components/common';
 import { formatCurrency, formatDate } from '../../utils';
+import { getResponseList } from '../../services/apiUtils';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -19,8 +20,6 @@ const Dashboard = () => {
   
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const [billPeriod, setBillPeriod] = useState('today'); // today | month
 
   /* REMOVED DUMMY DATA */
 
@@ -74,10 +73,10 @@ const Dashboard = () => {
         const isGstValue = isGst ? 1 : 0;
 
         // Fetch General Dashboard Data (Big Object), Items (for stock), and Alert Count
-        const [dashboardRes, todayFirmRes, monthFirmRes, itemRes, alertCountRes] = await Promise.all([
+        const [dashboardRes, todayFirmRes, billsRes, itemRes, alertCountRes] = await Promise.all([
              api.get('/dashboard'),
              api.get('/dashboard/firm', { params: { is_gst: isGstValue, period: 'today' } }),
-             api.get('/dashboard/firm', { params: { is_gst: isGstValue, period: 'monthly' } }),
+             api.get('/bills'),
              api.get('/items', { params: { page: 1, limit: 100 } }),
              api.get('/items/low-stock', { params: { page: 1, limit: 100 } })
         ]);
@@ -86,7 +85,7 @@ const Dashboard = () => {
 
         const data = dashboardRes.data?.data || {};
         const todayData = todayFirmRes.data?.data || {};
-        const monthData = monthFirmRes.data?.data || {};
+        const totalBills = getResponseList(billsRes).length;
         const items = Array.isArray(itemRes.data?.data) ? itemRes.data.data : (Array.isArray(itemRes.data) ? itemRes.data : []);
         
         // Get alert count safely
@@ -97,14 +96,10 @@ const Dashboard = () => {
 
         // Use firm-specific data with period filter
         const totalChallans = todayData.sale_challans || data.counts?.sale_challans || 0;
-        const todayBills = todayData.bills || 0;
-        const monthBills = monthData.bills || 0;
-
         setDashboardData({
             totalFirms: 2, 
             todaysChallans: totalChallans,
-            todaysBills: todayBills,
-            thisMonthBills: monthBills,
+            todaysBills: totalBills,
             lowStockAlerts: alertCountVal
         });
         
@@ -182,23 +177,13 @@ const Dashboard = () => {
     <div className="flex items-center justify-between mb-2 sm:mb-3 md:mb-4">
       <div>
         <p className="text-xs sm:text-sm font-medium text-gray-600">Total Bills</p>
-        <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-2">
-          <Toggle
-            checked={billPeriod === 'month'}
-            onChange={() => setBillPeriod(billPeriod === 'today' ? 'month' : 'today')}
-            size="sm"
-          />
-          <span className="text-xs text-gray-500">
-            {billPeriod === 'today' ? 'Today' : 'This Month'}
-          </span>
-        </div>
       </div>
       <div className="p-2 sm:p-3 rounded-full bg-purple-50">
         <FaFileInvoiceDollar className="text-sm sm:text-base md:text-xl text-purple-600" />
       </div>
     </div>
     <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-      {billPeriod === 'today' ? (dashboardData?.todaysBills || 0) : (dashboardData?.thisMonthBills || 0)}
+      {dashboardData?.todaysBills || 0}
     </p>
   </div>
   
