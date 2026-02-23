@@ -18,6 +18,7 @@ import {
   Area,
   Category,
   Counter,
+  Department,
 } from "../src/models/index.js";
 
 const SALT = 10;
@@ -42,6 +43,7 @@ const C = {
 
   agents: 10,
   areas: 10,
+  departments: 10,
 
   gstItems: 10,
   nongstItems: 10,
@@ -354,6 +356,7 @@ async function seed() {
     Contact,
     Agent,
     Area,
+    Department,
     Transport,
     Brand,
     Category,
@@ -712,7 +715,29 @@ async function seed() {
     .filter(Boolean);
   if (partyBulk.length) await Contact.bulkWrite(partyBulk);
 
-  /* ── 10. ITEMS (deterministic GST / non-GST) ── */
+  /* ── 10. DEPARTMENTS ── */
+  const DEPT_NAMES = [
+    "Service",
+    "Sales",
+    "Spare Parts",
+    "Accounts",
+    "Warehouse",
+    "Purchase",
+    "Quality Control",
+    "Logistics",
+    "Workshop",
+    "Administration",
+  ];
+  const departments = await Department.insertMany(
+    DEPT_NAMES.slice(0, C.departments).map((name, i) => ({
+      id: i + 1,
+      name,
+      user_id: uid,
+    })),
+  );
+  console.log(`✓ Departments: ${departments.length}`);
+
+  /* ── 11. ITEMS (deterministic GST / non-GST) ── */
   const freshCats = await Category.find({ user_id: uid }).lean();
   const catBrandMap = new Map(
     freshCats.map((c) => [String(c._id), (c.brand_ids || []).map(String)]),
@@ -754,6 +779,7 @@ async function seed() {
         category_id: cat._id,
         brand_id: br?._id,
         contact_id: sup._id,
+        dept_id: departments[idx % departments.length]._id,
       };
     });
 
@@ -1080,6 +1106,7 @@ async function seed() {
     { model_name: "Agent", user_id: uid, seq: agents.length },
     { model_name: "Transport", user_id: uid, seq: transports.length },
     { model_name: "Area", user_id: uid, seq: areas.length },
+    { model_name: "Department", user_id: uid, seq: departments.length },
     { model_name: "Item", user_id: uid, seq: items.length },
     { model_name: "ItemId", user_id: uid, seq: itemIdSeq - 1 },
     { model_name: "Challan", user_id: uid, seq: allChallans.length },
@@ -1114,6 +1141,7 @@ async function seed() {
   console.log(`    Non-GST Suppliers: ${nongstSuppliers.length}`);
   console.log(`  Agents          : ${agents.length}`);
   console.log(`  Areas           : ${areas.length}`);
+  console.log(`  Departments     : ${departments.length}`);
   console.log(
     `  Items           : ${items.length} (${gstItems.length} GST + ${nongstItems.length} non-GST)`,
   );
