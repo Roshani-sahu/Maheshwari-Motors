@@ -41,7 +41,7 @@ const AddItem = () => {
     discount: '',
     image: null,
     threshold: '',
-    is_gst: 1
+    is_gst: 0
   });
 
   const [errors, setErrors] = useState({});
@@ -258,6 +258,22 @@ const AddItem = () => {
             <div><label className="block text-sm font-medium text-gray-700 mb-1">MRP Rate</label><Input name="mrp_rate" type="number" step="0.01" value={formData.mrp_rate} onChange={(value) => handleChange('mrp_rate', value)} /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Discount</label><Input name="discount" type="number" step="0.01" value={formData.discount} onChange={(value) => handleChange('discount', value)} /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Threshold</label><Input name="threshold" type="number" value={formData.threshold} onChange={(value) => handleChange('threshold', value)} /></div>
+          </div>
+
+          <div>
+            <div
+              onClick={() => setFormData(prev => ({ ...prev, is_gst: prev.is_gst === 0 ? 1 : 0 }))}
+              className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
+                formData.is_gst === 1 ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+            >
+              <div
+                className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
+                  formData.is_gst === 1 ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+            </div>
+            <span className="text-xs text-gray-600 mt-1 block">{formData.is_gst === 1 ? '' : ''}</span>
           </div>
 
           <div>

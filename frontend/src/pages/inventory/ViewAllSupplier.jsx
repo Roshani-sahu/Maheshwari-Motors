@@ -47,7 +47,7 @@ const ViewAllSupplier = () => {
     { key: 'email', label: 'Email' },
     { key: 'city', label: 'City' },
     { key: 'state', label: 'State' },
-    { key: 'gstin', label: 'GSTIN' }
+    { key: 'gstin', label: 'GSTIN', render: (val) => val || 'N/A' }
   ];
 
   return (

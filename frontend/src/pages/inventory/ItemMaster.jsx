@@ -33,7 +33,6 @@ const ItemMaster = () => {
     const normalized = normalizeItem(item);
     return {
       ...normalized,
-      id: item?.id,
       item_id: item?.item_id,
       barcode: item?.barcode,
       status: normalized.stockCount < normalized.threshold ? 'LOW' : 'OK',
@@ -500,7 +499,6 @@ const ItemMaster = () => {
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST Type</label>
               <div
                 onClick={() => setEditingItem(prev => ({ ...prev, type: prev.type === 0 ? 1 : 0 }))}
                 className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
@@ -513,7 +511,7 @@ const ItemMaster = () => {
                   }`}
                 />
               </div>
-              <span className="text-xs text-gray-600 mt-1 block">{editingItem.type === 1 ? 'GST (1)' : 'Non-GST (0)'}</span>
+              <span className="text-xs text-gray-600 mt-1 block">{editingItem.type === 1 ? '' : ''}</span>
             </div>
 
             <div>
