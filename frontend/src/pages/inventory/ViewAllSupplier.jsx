@@ -39,7 +39,9 @@ const ViewAllSupplier = () => {
   }, []);
 
   const columns = [
-    { key: 'id', label: 'ID' },
+    // { key: 'id', label: 'ID' },
+        { key: 'id', label: ' ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
+
     { key: 'name', label: 'Supplier Name' },
     { key: 'contact', label: 'Contact' },
     { key: 'email', label: 'Email' },

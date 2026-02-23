@@ -106,7 +106,9 @@ const TransactionHistory = () => {
   }), [filteredTransactions]);
 
   const columns = [
-    { key: 'transactionId', label: 'Transaction ID' },
+    { key: 'transactionId', label: 'Transaction ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
+     
+
     {
       key: 'type',
       label: 'Type',

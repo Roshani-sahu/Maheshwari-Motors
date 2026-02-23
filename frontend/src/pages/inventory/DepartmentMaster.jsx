@@ -34,7 +34,7 @@ const DepartmentMaster = () => {
   }, []);
 
   const columns = [
-    { key: 'id', label: 'ID', render: (val) => <span className="text-xs">{val?.slice(-4)}</span> },
+    { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
     { key: 'name', label: 'Department Name' }
   ];
 

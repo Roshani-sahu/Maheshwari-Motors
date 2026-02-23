@@ -102,7 +102,7 @@ const DataTable = ({
               >
                 {columns.map(col => (
                   <td key={col.key} className="px-4 py-3 text-sm text-gray-900">
-                    {col.render ? col.render(row[col.key], row) : row[col.key]}
+                    {col.render ? col.render(row[col.key], row, (currentPage - 1) * pageSize + index) : row[col.key]}
                   </td>
                 ))}
                 {actions && (

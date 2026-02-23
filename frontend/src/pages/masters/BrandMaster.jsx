@@ -78,7 +78,7 @@ const BrandMaster = () => {
   }, []);
 
   const columns = [
-    { key: 'id', label: 'Brand ID', render: (val) => <span className="text-xs">{val?.slice(-4)}</span> },
+    { key: 'id', label: 'Brand ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
     { key: 'name', label: 'Brand Name' },
     {
       key: 'hsn_id',

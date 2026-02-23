@@ -54,6 +54,9 @@ const AgentMaster = () => {
   }, []);
 
   const columns = [
+
+        { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
+
     { key: 'name', label: 'Name', render: (value) => <span className="text-xs sm:text-sm font-medium">{value}</span> },
     { key: 'city', label: 'City', render: (value) => <span className="text-xs sm:text-sm">{value}</span> },
     { key: 'party_name', label: 'Party', render: (value) => <span className="text-xs sm:text-sm">{value || '-'}</span> },

@@ -71,6 +71,8 @@ const AreaMaster = () => {
   }, []);
 
   const columns = useMemo(() => [
+        { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
+
     { key: 'city', label: 'City' },
     { key: 'state', label: 'State' },
     { key: 'pincode', label: 'Pincode' },

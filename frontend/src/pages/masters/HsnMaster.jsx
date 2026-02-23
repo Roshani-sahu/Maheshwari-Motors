@@ -45,6 +45,7 @@ const HsnMaster = () => {
   }, []);
 
   const columns = useMemo(() => [
+    { key: '_id', label: 'ID', render: (value, row, index) => index + 1 },
     { key: 'hsn_number', label: 'HSN Number' },
     { key: 'gst_percentage', label: 'GST %', render: (value) => `${value}%` },
     { key: 'description', label: 'Description' },

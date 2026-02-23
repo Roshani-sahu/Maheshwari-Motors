@@ -48,7 +48,7 @@ const StockAlertMaster = () => {
     {
       key: 'id',
       label: 'ID',
-      render: (value) => <span className="text-xs sm:text-sm">{value}</span>
+      render: (value, row, index) => <span className="text-xs sm:text-sm">{index + 1}</span>
     },
     {
       key: 'itemName',

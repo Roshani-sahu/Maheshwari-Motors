@@ -39,7 +39,7 @@ const BillList = () => {
     { 
       key: 'billNo', 
       label: 'Bill No',
-      render: (value) => <span className="text-xs sm:text-sm font-medium">{value}</span>
+      render: (value, row, index) => <span className="text-xs sm:text-sm font-medium">{index + 1}</span>
     },
     {
       key: 'date',

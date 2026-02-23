@@ -100,7 +100,7 @@ const AddSupplier = () => {
   }, []);
 
   const columns = [
-    { key: 'id', label: 'ID', width: '50px', render: (value) => <span className="text-xs sm:text-sm">{value ? value.slice(-4) : ''}</span> },
+    { key: 'id', label: 'ID', width: '50px', render: (value, row, index) => <span className="text-xs sm:text-sm">{index + 1}</span> },
     { key: 'name', label: 'Supplier Name', width: '180px', render: (value) => <span className="text-xs sm:text-sm font-medium truncate">{value}</span> },
     { key: 'is_gst', label: 'Type', width: '80px', render: (value) => <span className={`px-2 py-1 text-xs rounded-full ${value === 1 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{value === 1 ? '1' : '0'}</span> },
     { key: 'phone', label: 'Phone', width: '120px', render: (value) => <span className="text-xs sm:text-sm">{value}</span> },

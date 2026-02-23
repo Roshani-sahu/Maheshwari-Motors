@@ -161,7 +161,7 @@ const PartyMaster = () => {
       key: 'id',
       label: 'ID',
       width: '50px',
-      render: (value) => <span className="text-xs sm:text-sm">{value ? value.slice(-4) : ''}</span>
+      render: (value, row, index) => <span className="text-xs sm:text-sm">{index + 1}</span>
     },
     {
       key: 'name',
