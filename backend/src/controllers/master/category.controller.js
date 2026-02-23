@@ -1,28 +1,6 @@
 import { categoryService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
-const categorySchema = {
-  category_name: {
-    required: true,
-    type: "string",
-    min: 1,
-    max: 100,
-    label: "Category name",
-  },
-  description: {
-    required: false,
-    type: "string",
-    max: 500,
-    label: "Description",
-  },
-  brands: {
-    required: false,
-    type: "array",
-    arrayType: "objectId",
-    label: "Brands",
-  },
-};
-
 export const getCategories = asyncHandler(async (req, res) => {
   const result = await categoryService.getCategories(req.user._id, req.query);
   res

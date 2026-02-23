@@ -8,6 +8,7 @@ export { default as Contact } from "./master/contact.model.js";
 export { default as Agent } from "./master/agent.model.js";
 export { default as Transport } from "./master/transport.model.js";
 export { default as Area } from "./master/area.model.js";
+export { default as Department } from "./master/department.model.js";
 export { default as Bill } from "./transaction/bill.model.js";
 export { default as Challan } from "./transaction/challan.model.js";
 export { default as Counter } from "./common/counter.model.js";

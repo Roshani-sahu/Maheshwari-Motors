@@ -43,6 +43,10 @@ const itemSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Contact",
     },
+    dept_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+    },
   },
   { timestamps: true, id: false },
 );

@@ -1,33 +1,6 @@
 import { brandService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
-const brandSchema = {
-  brand_name: {
-    required: true,
-    type: "string",
-    min: 1,
-    max: 100,
-    label: "Brand name",
-  },
-  hsn_id: { required: false, type: "objectId", label: "HSN Code" },
-  discount1: { required: false, type: "object", label: "Discount 1 (GST)" },
-  discount2: {
-    required: false,
-    type: "object",
-    label: "Discount 2 (Non-GST)",
-  },
-  item_ids: { required: false, type: "array", label: "Item IDs" },
-};
-
-const discountSchema = {
-  discount1: { required: false, type: "object", label: "Discount 1 (GST)" },
-  discount2: {
-    required: false,
-    type: "object",
-    label: "Discount 2 (Non-GST)",
-  },
-};
-
 export const getBrands = asyncHandler(async (req, res) => {
   const result = await brandService.getBrands(req.user._id, req.query);
   res

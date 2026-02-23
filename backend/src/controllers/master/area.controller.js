@@ -1,42 +1,6 @@
 import { areaService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
-const areaSchema = {
-  city: {
-    required: true,
-    type: "string",
-    min: 1,
-    max: 100,
-    label: "City",
-  },
-  state: { required: false, type: "string", max: 100, label: "State" },
-  pincode: { required: false, type: "string", max: 10, label: "Pincode" },
-  phone: {
-    required: false,
-    type: "string",
-    format: "phone",
-    label: "Phone number",
-  },
-  whatsapp: {
-    required: false,
-    type: "string",
-    format: "phone",
-    label: "WhatsApp number",
-  },
-  agent_id: {
-    required: false,
-    type: "objectId",
-    nullable: true,
-    label: "Agent ID",
-  },
-  transport_id: {
-    required: false,
-    type: "objectId",
-    nullable: true,
-    label: "Transport ID",
-  },
-};
-
 export const getAreas = asyncHandler(async (req, res) => {
   const result = await areaService.getAreas(req.user._id, req.query);
   res

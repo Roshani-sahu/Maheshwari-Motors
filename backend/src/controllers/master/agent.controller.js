@@ -1,32 +1,6 @@
 import { agentService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
-const agentSchema = {
-  name: {
-    required: true,
-    type: "string",
-    min: 1,
-    max: 200,
-    label: "Agent name",
-  },
-  address: { required: false, type: "string", max: 500, label: "Address" },
-  city: { required: false, type: "string", max: 100, label: "City" },
-  pincode: { required: false, type: "string", max: 10, label: "Pincode" },
-  phone: {
-    required: false,
-    type: "string",
-    format: "phone",
-    label: "Phone number",
-  },
-  whatsapp: {
-    required: false,
-    type: "string",
-    format: "phone",
-    label: "WhatsApp number",
-  },
-  party_id: { required: true, type: "objectId", label: "Party ID" },
-};
-
 export const getAgents = asyncHandler(async (req, res) => {
   const result = await agentService.getAgents(req.user._id, req.query);
   res

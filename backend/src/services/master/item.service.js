@@ -2,6 +2,7 @@ import Item from "../../models/master/item.model.js";
 import Brand from "../../models/master/brand.model.js";
 import Category from "../../models/master/category.model.js";
 import Contact from "../../models/master/contact.model.js";
+import Department from "../../models/master/department.model.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 import {
@@ -49,6 +50,7 @@ class ItemService {
       category_id,
       brand_id,
       contact_id,
+      dept_id,
     } = itemData;
 
     if (!item_name || typeof item_name !== "string" || !item_name.trim()) {
@@ -172,6 +174,17 @@ class ItemService {
         );
       }
     }
+    if (dept_id) {
+      const deptExists = await Department.exists({
+        _id: dept_id,
+        user_id: userId,
+      });
+      if (!deptExists) {
+        throw ApiError.badRequest(
+          "Department not found. Please select a valid department.",
+        );
+      }
+    }
 
     let imageUrl = null;
 
@@ -202,6 +215,7 @@ class ItemService {
       category_id,
       brand_id,
       contact_id,
+      dept_id,
       image: imageUrl,
       user_id: userId,
     });
@@ -237,6 +251,7 @@ class ItemService {
       category_id,
       brand_id,
       contact_id,
+      dept_id,
     } = updateData;
 
     if (item_name !== undefined) {
@@ -362,6 +377,17 @@ class ItemService {
         );
       }
     }
+    if (dept_id !== undefined && dept_id !== null) {
+      const deptExists = await Department.exists({
+        _id: dept_id,
+        user_id: userId,
+      });
+      if (!deptExists) {
+        throw ApiError.badRequest(
+          "Department not found. Please select a valid department.",
+        );
+      }
+    }
 
     const fields = {};
     if (item_name !== undefined) fields.item_name = item_name.trim();
@@ -380,6 +406,7 @@ class ItemService {
     if (category_id !== undefined) fields.category_id = category_id;
     if (brand_id !== undefined) fields.brand_id = brand_id;
     if (contact_id !== undefined) fields.contact_id = contact_id;
+    if (dept_id !== undefined) fields.dept_id = dept_id;
 
     // Sync brand item_ids when brand_id changes
     if (brand_id !== undefined) {

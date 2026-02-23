@@ -1,60 +1,6 @@
 import { itemService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
-const createItemSchema = {
-  item_name: {
-    required: true,
-    type: "string",
-    min: 1,
-    max: 200,
-    label: "Item name",
-  },
-  barcode: {
-    required: false,
-    type: "string",
-    min: 10,
-    max: 10,
-    pattern: /^[A-Za-z0-9]{10}$/,
-    label: "Barcode",
-  },
-  item_id: {
-    required: false,
-    type: "number",
-    min: 1,
-    label: "Item ID",
-  },
-  sale_rate: { required: true, type: "number", min: 0, label: "Sale rate" },
-  purchase_rate: {
-    required: false,
-    type: "number",
-    min: 0,
-    label: "Purchase rate",
-  },
-  mrp_rate: { required: false, type: "number", min: 0, label: "MRP rate" },
-  gst_percent: {
-    required: false,
-    type: "number",
-    min: 0,
-    label: "GST percent",
-  },
-  discount: { required: false, type: "number", min: 0, label: "Discount" },
-  stock: { required: false, type: "number", min: 0, label: "Stock" },
-  threshold: { required: false, type: "number", min: 0, label: "Threshold" },
-  category_id: { required: false, type: "objectId", label: "Category ID" },
-  brand_id: { required: false, type: "objectId", label: "Brand ID" },
-  contact_id: { required: false, type: "objectId", label: "Contact ID" },
-  is_gst: {
-    required: false,
-    type: "number",
-    enum: [0, 1],
-    label: "GST flag (1=GST, 0=non-GST)",
-  },
-};
-
-const updateStockSchema = {
-  stock: { required: false, type: "number", min: 0, label: "Stock" },
-};
-
 export const getItems = asyncHandler(async (req, res) => {
   const result = await itemService.getItems(req.user._id, req.query);
   res

@@ -1,32 +1,6 @@
 import { transportService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
-const transportSchema = {
-  name: {
-    required: true,
-    type: "string",
-    min: 1,
-    max: 200,
-    label: "Transport name",
-  },
-  address: { required: false, type: "string", max: 500, label: "Address" },
-  city: { required: false, type: "string", max: 100, label: "City" },
-  pincode: { required: false, type: "string", max: 10, label: "Pincode" },
-  phone: {
-    required: false,
-    type: "string",
-    format: "phone",
-    label: "Phone number",
-  },
-  whatsapp: {
-    required: false,
-    type: "string",
-    format: "phone",
-    label: "WhatsApp number",
-  },
-  gstin: { required: false, type: "string", format: "gstin", label: "GSTIN" },
-};
-
 export const getTransports = asyncHandler(async (req, res) => {
   const result = await transportService.getTransports(req.user._id, req.query);
   res

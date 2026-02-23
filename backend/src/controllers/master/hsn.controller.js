@@ -1,33 +1,6 @@
 import { hsnService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
-const hsnSchema = {
-  hsn_code: {
-    required: true,
-    type: "string",
-    min: 1,
-    max: 20,
-    label: "HSN Code",
-  },
-  description: {
-    required: false,
-    type: "string",
-    max: 500,
-    label: "Description",
-  },
-  gst_rate: {
-    required: true,
-    type: "number",
-    min: 0,
-    label: "GST Rate (%)",
-  },
-  is_active: {
-    required: false,
-    type: "boolean",
-    label: "Active status",
-  },
-};
-
 export const getHsns = asyncHandler(async (req, res) => {
   const result = await hsnService.getHsns(req.user._id, req.query);
   res
