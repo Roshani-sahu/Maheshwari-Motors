@@ -1,0 +1,34 @@
+import { Router } from "express";
+import authRoutes from "./auth/auth.routes.js";
+import adminRoutes from "./auth/admin.routes.js";
+import itemRoutes from "./master/item.routes.js";
+import categoryRoutes from "./master/category.routes.js";
+import brandRoutes from "./master/brand.routes.js";
+import hsnRoutes from "./master/hsn.routes.js";
+import contactRoutes from "./master/contact.routes.js";
+import agentRoutes from "./master/agent.routes.js";
+import transportRoutes from "./master/transport.routes.js";
+import areaRoutes from "./master/area.routes.js";
+import challanRoutes from "./transaction/challan.routes.js";
+import billRoutes from "./transaction/bill.routes.js";
+import dashboardRoutes from "./dashboard/dashboard.routes.js";
+import reportRoutes from "./report/report.routes.js";
+
+const router = Router();
+
+router.use("/auth", authRoutes);
+router.use("/admin", adminRoutes);
+router.use("/items", itemRoutes);
+router.use("/categories", categoryRoutes);
+router.use("/brands", brandRoutes);
+router.use("/hsn", hsnRoutes);
+router.use("/contacts", contactRoutes);
+router.use("/agents", agentRoutes);
+router.use("/transports", transportRoutes);
+router.use("/areas", areaRoutes);
+router.use("/challans", challanRoutes);
+router.use("/bills", billRoutes);
+router.use("/dashboard", dashboardRoutes);
+router.use("/reports", reportRoutes);
+
+export default router;
