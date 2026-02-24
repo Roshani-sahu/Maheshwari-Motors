@@ -58,7 +58,7 @@ itemSchema.index({ id: 1, user_id: 1 });
 itemSchema.index({ barcode: 1 }, { unique: true, sparse: true });
 itemSchema.index({ item_id: 1 }, { unique: true, sparse: true });
 
-itemSchema.pre("validate", function (next) {
+itemSchema.pre("validate", function () {
   if (
     (this.physical_stock === undefined || this.physical_stock === null) &&
     typeof this.stock === "number"
@@ -80,8 +80,6 @@ itemSchema.pre("validate", function (next) {
   ) {
     this.invalidate("physical_stock", "Physical stock cannot be negative");
   }
-
-  next();
 });
 
 export default mongoose.model("Item", itemSchema);
