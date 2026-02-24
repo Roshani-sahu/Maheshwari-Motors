@@ -2,43 +2,64 @@ import Item from "../../models/master/item.model.js";
 import { ApiError } from "../../utils/index.js";
 
 class StockService {
-  async deductStock(items, ownerId) {
+  _buildFilter(itemId, ownerId) {
+    const filter = { _id: itemId };
+    if (ownerId) filter.user_id = ownerId;
+    return filter;
+  }
+
+  async deductStock(items, ownerId, challanIsGst = 1) {
     for (const item of items) {
-      const filter = { _id: item.item_id };
-      if (ownerId) filter.user_id = ownerId;
+      const filter = this._buildFilter(item.item_id, ownerId);
+      const quantity = Number(item.quantity) || 0;
 
-      const quantity = item.quantity;
+      if (quantity <= 0) continue;
 
-      const dbItem = await Item.findOneAndUpdate(
-        { ...filter, stock: { $gte: quantity } },
-        { $inc: { stock: -quantity } },
-        { new: true },
-      );
+      if (challanIsGst === 1) {
+        const dbItem = await Item.findOneAndUpdate(
+          { ...filter, physical_stock: { $gte: quantity } },
+          { $inc: { physical_stock: -quantity, stock: -quantity } },
+          { new: true },
+        );
 
-      if (!dbItem) {
-        const existingItem = await Item.findOne(filter)
-          .select("item_name stock")
-          .lean();
-        if (!existingItem) {
+        if (!dbItem) {
+          const existingItem = await Item.findOne(filter)
+            .select("item_name physical_stock")
+            .lean();
+          if (!existingItem) {
+            throw ApiError.notFound(`Item ${item.item_id} not found`);
+          }
+          throw ApiError.badRequest(
+            `Insufficient stock for item "${existingItem.item_name}". Available: ${existingItem.physical_stock || 0}, Required: ${quantity}`,
+          );
+        }
+      } else {
+        const dbItem = await Item.findOneAndUpdate(
+          filter,
+          { $inc: { logical_stock: -quantity } },
+          { new: true },
+        );
+
+        if (!dbItem) {
           throw ApiError.notFound(`Item ${item.item_id} not found`);
         }
-        throw ApiError.badRequest(
-          `Insufficient stock for item "${existingItem.item_name}". Available: ${existingItem.stock}, Required: ${quantity}`,
-        );
       }
     }
   }
 
-  async addStock(items, ownerId) {
+  async addStock(items, ownerId, challanIsGst = 1) {
     for (const item of items) {
-      const filter = { _id: item.item_id };
-      if (ownerId) filter.user_id = ownerId;
+      const filter = this._buildFilter(item.item_id, ownerId);
+      const quantity = Number(item.quantity) || 0;
 
-      const dbItem = await Item.findOneAndUpdate(
-        filter,
-        { $inc: { stock: item.quantity } },
-        { new: true },
-      );
+      if (quantity <= 0) continue;
+
+      const update =
+        challanIsGst === 1 ?
+          { $inc: { physical_stock: quantity, stock: quantity } }
+        : { $inc: { logical_stock: quantity } };
+
+      const dbItem = await Item.findOneAndUpdate(filter, update, { new: true });
 
       if (!dbItem) {
         throw ApiError.notFound(`Item ${item.item_id} not found`);
@@ -46,41 +67,53 @@ class StockService {
     }
   }
 
-  async removeStock(items, ownerId) {
+  async removeStock(items, ownerId, challanIsGst = 1) {
     for (const item of items) {
-      const filter = { _id: item.item_id };
-      if (ownerId) filter.user_id = ownerId;
+      const filter = this._buildFilter(item.item_id, ownerId);
+      const quantity = Number(item.quantity) || 0;
 
-      const dbItem = await Item.findOneAndUpdate(
-        filter,
-        [
-          {
-            $set: {
-              stock: {
-                $max: [0, { $subtract: ["$stock", item.quantity] }],
+      if (quantity <= 0) continue;
+
+      if (challanIsGst === 1) {
+        await Item.findOneAndUpdate(
+          filter,
+          [
+            {
+              $set: {
+                physical_stock: {
+                  $max: [0, { $subtract: ["$physical_stock", quantity] }],
+                },
+                stock: {
+                  $max: [0, { $subtract: ["$stock", quantity] }],
+                },
               },
             },
-          },
-        ],
-        { new: true },
-      );
-
-      if (!dbItem) continue;
+          ],
+          { new: true },
+        );
+      } else {
+        await Item.findOneAndUpdate(
+          filter,
+          { $inc: { logical_stock: -quantity } },
+          { new: true },
+        );
+      }
     }
   }
 
-  async restoreStock(items, ownerId) {
+  async restoreStock(items, ownerId, challanIsGst = 1) {
     for (const item of items) {
-      const filter = { _id: item.item_id };
-      if (ownerId) filter.user_id = ownerId;
+      const filter = this._buildFilter(item.item_id, ownerId);
+      const quantity = Number(item.quantity) || 0;
 
-      const dbItem = await Item.findOneAndUpdate(
-        filter,
-        { $inc: { stock: item.quantity } },
-        { new: true },
-      );
+      if (quantity <= 0) continue;
 
-      if (!dbItem) continue;
+      const update =
+        challanIsGst === 1 ?
+          { $inc: { physical_stock: quantity, stock: quantity } }
+        : { $inc: { logical_stock: quantity } };
+
+      await Item.findOneAndUpdate(filter, update, { new: true });
     }
   }
 }

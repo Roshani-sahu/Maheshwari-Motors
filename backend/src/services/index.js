@@ -14,3 +14,4 @@ export { default as stockService } from "./inventory/stock.service.js";
 export { default as dashboardService } from "./dashboard/dashboard.service.js";
 export { default as reportService } from "./report/report.service.js";
 export { default as s3Service } from "./common/s3.service.js";
+export { default as subscriptionService } from "./subscription/subscription.service.js";

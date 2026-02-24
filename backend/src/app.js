@@ -8,10 +8,20 @@ import asyncHandler from "./utils/asyncHandler.js";
 const health = (res) => {
   res.status(200).json({
     status: "ok",
+    message: "Service is running successfully 🚀",
     timestamp: new Date().toISOString(),
-    Engineers: {
-      Backend: "[Tushar Gour](https://www.linkedin.com/in/tushar-gour/)",
-    },
+    "Backend Engineer": [
+      {
+        name: "Tushar Gour",
+        linkedin: "https://www.linkedin.com/in/tushar-gour/",
+      },
+    ],
+    "Frontend Engineer": [
+      { name: "Shrivanshu Dubey" },
+      { name: "Roshani Sahu" },
+    ],
+    "DevOps Engineer": [{ name: "Avi Tamrakar" }],
+    uptime: process.uptime(),
   });
 };
 

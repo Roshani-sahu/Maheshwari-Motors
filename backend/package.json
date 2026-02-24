@@ -9,6 +9,7 @@
     "seed": "node api/seed.js",
     "seed1": "node api/seed1.js",
     "seed2": "node api/seed2.js",
+    "subscription:job": "node scripts/subscriptionExpiryJob.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

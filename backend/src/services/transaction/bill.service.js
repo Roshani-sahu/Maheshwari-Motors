@@ -1,6 +1,7 @@
 import Bill from "../../models/transaction/bill.model.js";
 import Challan from "../../models/transaction/challan.model.js";
 import Contact from "../../models/master/contact.model.js";
+import Transport from "../../models/master/transport.model.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 
@@ -19,7 +20,13 @@ class BillService {
 
     return Pagination.paginate(Bill, filter, {
       ...query,
-      populate: { path: "contact_id", select: "name phone type balance" },
+      populate: [
+        {
+          path: "contact_id",
+          select: "name phone type balance transport_charge transport_id",
+        },
+        { path: "transport_id", select: "name phone gstin" },
+      ],
       sort: { createdAt: -1 },
     });
   }
@@ -31,6 +38,7 @@ class BillService {
       is_gst: isGst,
     })
       .populate("contact_id")
+      .populate("transport_id")
       .populate({
         path: "challan_ids",
         populate: { path: "items.item_id", select: "item_name" },
@@ -46,6 +54,10 @@ class BillService {
       contact_id,
       apply_balance = false,
       delivered_amount,
+      transport_id,
+      customer_name,
+      vehicle_number,
+      transport_charge,
     } = billData;
 
     if (!challan_ids || challan_ids.length === 0) {
@@ -67,18 +79,39 @@ class BillService {
       );
     }
 
-    let totalAmount = challans.reduce(
-      (sum, challan) => sum + challan.amount,
-      0,
-    );
+    let totalAmount = challans.reduce((sum, challan) => sum + challan.amount, 0);
 
-    const contact = await Contact.findById(contact_id);
+    const contact = await Contact.findOne({ _id: contact_id, user_id: userId }).lean();
     if (!contact) throw ApiError.notFound("Contact not found");
+
+    let resolvedTransportId = null;
+    if (transport_id) {
+      const transportExists = await Transport.exists({
+        _id: transport_id,
+        user_id: userId,
+      });
+      if (!transportExists) {
+        throw ApiError.badRequest(
+          "Transport not found. Please select a valid transport.",
+        );
+      }
+      resolvedTransportId = transport_id;
+    } else if (contact.transport_id) {
+      resolvedTransportId = contact.transport_id;
+    }
+
+    let resolvedTransportCharge = Number(contact.transport_charge || 0);
+    if (transport_charge !== undefined && transport_charge !== null) {
+      resolvedTransportCharge = Number(transport_charge);
+    }
+    if (!Number.isFinite(resolvedTransportCharge) || resolvedTransportCharge < 0) {
+      throw ApiError.badRequest("transport_charge must be a non-negative number");
+    }
 
     let deliveredNum = null;
     if (delivered_amount !== undefined && delivered_amount !== null) {
       deliveredNum = Number(delivered_amount);
-      if (isNaN(deliveredNum) || deliveredNum < 0) {
+      if (!Number.isFinite(deliveredNum) || deliveredNum < 0) {
         throw ApiError.badRequest(
           "Delivered amount must be a non-negative number",
         );
@@ -120,6 +153,14 @@ class BillService {
       id: nextId,
       bill_no,
       contact_id,
+      transport_id: resolvedTransportId,
+      customer_name:
+        typeof customer_name === "string" && customer_name.trim()
+          ? customer_name.trim()
+          : contact.name || "",
+      vehicle_number:
+        typeof vehicle_number === "string" ? vehicle_number.trim() : "",
+      transport_charge: resolvedTransportCharge,
       date: new Date(),
       amount: billAmount,
       return_amount: partialReturnAmount,
@@ -143,7 +184,8 @@ class BillService {
     );
 
     const populatedBill = await Bill.findById(bill._id)
-      .populate("contact_id", "name type balance")
+      .populate("contact_id", "name type balance transport_charge")
+      .populate("transport_id", "name phone")
       .populate({
         path: "challan_ids",
         select: "amount discount sub_total date items",
@@ -275,6 +317,13 @@ class BillService {
     if (query.payment_status) filter.payment_status = query.payment_status;
     return Pagination.paginate(Bill, filter, {
       ...query,
+      populate: [
+        {
+          path: "contact_id",
+          select: "name phone type balance transport_charge transport_id",
+        },
+        { path: "transport_id", select: "name phone" },
+      ],
       sort: { createdAt: -1 },
     });
   }

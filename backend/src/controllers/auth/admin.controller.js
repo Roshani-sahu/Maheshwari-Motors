@@ -1,4 +1,4 @@
-import { adminService } from "../../services/index.js";
+import { adminService, subscriptionService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
 const firmSchema = {
@@ -147,54 +147,135 @@ const updateUserSchema = {
   },
 };
 
-export const createSecondaryUser = asyncHandler(async (req, res) => {
-  const data = validate(req.body, createUserSchema);
-  const result = await adminService.createSecondaryUser(data);
-  res
-    .status(201)
-    .json(new ApiResponse(201, result, "Secondary user created successfully"));
-});
+const subscriptionSchema = {
+  plan_type: {
+    required: false,
+    type: "string",
+    enum: ["demo", "paid"],
+    label: "Plan type",
+  },
+  years: { required: false, type: "number", min: 0, label: "Years" },
+  months: { required: false, type: "number", min: 0, label: "Months" },
+  days: { required: false, type: "number", min: 0, label: "Days" },
+  notes: { required: false, type: "string", label: "Notes" },
+  extend_from_current: {
+    required: false,
+    type: "boolean",
+    label: "Extend from current",
+  },
+};
 
-export const getSecondaryUsers = asyncHandler(async (req, res) => {
-  const result = await adminService.getSecondaryUsers(req.query);
-  res
-    .status(200)
-    .json(new ApiResponse(200, result, "Users fetched successfully"));
-});
+class AdminController {
+  createSecondaryUser = asyncHandler(async (req, res) => {
+    const data = validate(req.body, createUserSchema);
+    const result = await adminService.createSecondaryUser(data);
+    res
+      .status(201)
+      .json(new ApiResponse(201, result, "Secondary user created successfully"));
+  });
 
-export const getSecondaryUserById = asyncHandler(async (req, res) => {
-  const result = await adminService.getSecondaryUserById(req.params.userId);
-  res
-    .status(200)
-    .json(new ApiResponse(200, result, "User fetched successfully"));
-});
+  getSecondaryUsers = asyncHandler(async (req, res) => {
+    const result = await adminService.getSecondaryUsers(req.query);
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Users fetched successfully"));
+  });
 
-export const updateSecondaryUser = asyncHandler(async (req, res) => {
-  const data = validate(req.body, updateUserSchema, { allowPartial: true });
-  const result = await adminService.updateSecondaryUser(
-    req.params.userId,
-    data,
-  );
-  res
-    .status(200)
-    .json(new ApiResponse(200, result, "User updated successfully"));
-});
+  getSecondaryUserById = asyncHandler(async (req, res) => {
+    const result = await adminService.getSecondaryUserById(req.params.userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "User fetched successfully"));
+  });
 
-export const deactivateSecondaryUser = asyncHandler(async (req, res) => {
-  await adminService.deactivateSecondaryUser(req.params.userId);
-  res
-    .status(200)
-    .json(new ApiResponse(200, null, "User deactivated successfully"));
-});
+  updateSecondaryUser = asyncHandler(async (req, res) => {
+    const data = validate(req.body, updateUserSchema, { allowPartial: true });
+    const result = await adminService.updateSecondaryUser(
+      req.params.userId,
+      data,
+    );
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "User updated successfully"));
+  });
 
-export const reactivateSecondaryUser = asyncHandler(async (req, res) => {
-  await adminService.reactivateSecondaryUser(req.params.userId);
-  res
-    .status(200)
-    .json(new ApiResponse(200, null, "User reactivated successfully"));
-});
+  deactivateSecondaryUser = asyncHandler(async (req, res) => {
+    await adminService.deactivateSecondaryUser(req.params.userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, null, "User deactivated successfully"));
+  });
 
-export const deleteSecondaryUser = asyncHandler(async (req, res) => {
-  await adminService.deleteSecondaryUser(req.params.userId);
-  res.status(200).json(new ApiResponse(200, null, "User deleted successfully"));
-});
+  reactivateSecondaryUser = asyncHandler(async (req, res) => {
+    const result = await adminService.reactivateSecondaryUser(req.params.userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "User reactivated successfully"));
+  });
+
+  deleteSecondaryUser = asyncHandler(async (req, res) => {
+    await adminService.deleteSecondaryUser(req.params.userId);
+    res.status(200).json(new ApiResponse(200, null, "User deleted successfully"));
+  });
+
+  getSubscriptions = asyncHandler(async (req, res) => {
+    const result = await subscriptionService.getSubscriptions(req.query);
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Subscriptions fetched successfully"));
+  });
+
+  getSubscriptionByUserId = asyncHandler(async (req, res) => {
+    const result = await subscriptionService.getSubscriptionByUserId(
+      req.params.userId,
+    );
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Subscription fetched successfully"));
+  });
+
+  setSubscription = asyncHandler(async (req, res) => {
+    const data = validate(req.body, subscriptionSchema);
+    const result = await subscriptionService.setSubscription(
+      req.params.userId,
+      data,
+      req.user._id,
+    );
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Subscription updated successfully"));
+  });
+
+  getExpiringToday = asyncHandler(async (_req, res) => {
+    const result = await subscriptionService.getExpiringToday(new Date());
+    res
+      .status(200)
+      .json(
+        new ApiResponse(200, result, "Expiring subscriptions fetched successfully"),
+      );
+  });
+
+  runExpiryCheck = asyncHandler(async (_req, res) => {
+    const result = await subscriptionService.markExpiredSubscriptions(new Date());
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Subscription expiry check completed"));
+  });
+}
+
+const adminController = new AdminController();
+
+export const createSecondaryUser = adminController.createSecondaryUser;
+export const getSecondaryUsers = adminController.getSecondaryUsers;
+export const getSecondaryUserById = adminController.getSecondaryUserById;
+export const updateSecondaryUser = adminController.updateSecondaryUser;
+export const deactivateSecondaryUser = adminController.deactivateSecondaryUser;
+export const reactivateSecondaryUser = adminController.reactivateSecondaryUser;
+export const deleteSecondaryUser = adminController.deleteSecondaryUser;
+export const getSubscriptions = adminController.getSubscriptions;
+export const getSubscriptionByUserId = adminController.getSubscriptionByUserId;
+export const setSubscription = adminController.setSubscription;
+export const getExpiringToday = adminController.getExpiringToday;
+export const runExpiryCheck = adminController.runExpiryCheck;
+
+export default adminController;

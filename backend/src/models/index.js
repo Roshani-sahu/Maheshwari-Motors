@@ -13,3 +13,4 @@ export { default as Bill } from "./transaction/bill.model.js";
 export { default as Challan } from "./transaction/challan.model.js";
 export { default as Counter } from "./common/counter.model.js";
 export { default as Report } from "./common/report.model.js";
+export { default as Subscription } from "./common/subscription.model.js";
