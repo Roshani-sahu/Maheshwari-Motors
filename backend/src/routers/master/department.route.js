@@ -10,4 +10,9 @@ router
   .get(departmentController.getDepartmants)
   .post(departmentController.createDepartment);
 
+router
+  .route("/:departmentId")
+  .put(departmentController.updateDepartment)
+  .delete(departmentController.deleteDepartment);
+
 export default router;

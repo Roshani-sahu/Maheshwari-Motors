@@ -414,7 +414,6 @@ class ChallanService {
     }
 
     const supplierIsGst = supplier.is_gst ?? 1;
-
     const challanNoSeq = await getNextId(
       `PurchaseNo_${challanIsGst === 1 ? "GST" : "NONGST"}`,
       userId,

@@ -1,7 +1,8 @@
 import { billService } from "../../services/index.js";
 import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
 
-const createBillSchema = {
+/* Schema for convert‑challan‑to‑bill flow */
+const challanToBillSchema = {
   contact_id: { required: true, type: "objectId", label: "Contact ID" },
   challan_ids: {
     required: true,
@@ -20,6 +21,29 @@ const createBillSchema = {
     type: "number",
     min: 0,
     label: "Delivered amount (partial delivery)",
+  },
+};
+
+/* Schema for direct‑bill flow (items create a challan first) */
+const directBillSchema = {
+  contact_id: { required: true, type: "objectId", label: "Contact ID" },
+  apply_balance: {
+    required: false,
+    type: "boolean",
+    label: "Apply party balance",
+  },
+  delivered_amount: {
+    required: false,
+    type: "number",
+    min: 0,
+    label: "Delivered amount (partial delivery)",
+  },
+  date: { required: false, type: "date", label: "Bill date" },
+  discount: {
+    required: false,
+    type: "number",
+    min: 0,
+    label: "Challan discount %",
   },
 };
 
@@ -58,7 +82,20 @@ export const getBillById = asyncHandler(async (req, res) => {
 });
 
 export const createBill = asyncHandler(async (req, res) => {
-  const data = validate(req.body, createBillSchema);
+  const { items, discount } = req.body;
+  const isDirectBill = Array.isArray(items) && items.length > 0;
+
+  const data = validate(
+    req.body,
+    isDirectBill ? directBillSchema : challanToBillSchema,
+  );
+
+  // Pass raw items & discount through for the service to forward to challanService
+  if (isDirectBill) {
+    data.items = items;
+    if (discount !== undefined) data.discount = Number(discount);
+  }
+
   const result = await billService.createBill(data, req.user._id, req.isGst);
   res
     .status(201)

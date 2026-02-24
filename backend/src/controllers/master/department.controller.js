@@ -30,6 +30,27 @@ class DepartmentController {
         .json(new ApiResponse(500, null, "Failed to create department"));
     }
   });
+
+  updateDepartment = asyncHandler(async (req, res) => {
+    const result = await departmentService.updateDepartment(
+      req.params.departmentId,
+      req.body,
+      req.user._id,
+    );
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Department updated successfully"));
+  });
+
+  deleteDepartment = asyncHandler(async (req, res) => {
+    await departmentService.deleteDepartment(
+      req.params.departmentId,
+      req.user._id,
+    );
+    res
+      .status(200)
+      .json(new ApiResponse(200, null, "Department deleted successfully"));
+  });
 }
 
 export default new DepartmentController();

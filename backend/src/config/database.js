@@ -18,7 +18,7 @@ class Database {
         socketTimeoutMS: 45000,
       };
 
-      this.connection = await mongoose.connect(env.Database_URI, options);
+      this.connection = await mongoose.connect(env.MONGODB_URI, options);
 
       console.log(`Database connected`);
 
