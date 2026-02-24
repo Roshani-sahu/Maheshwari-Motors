@@ -19,6 +19,7 @@ import {
   Category,
   Counter,
   Department,
+  Subscription,
 } from "../src/models/index.js";
 
 const SALT = 10;
@@ -27,38 +28,37 @@ const SALT = 10;
    Guaranteed minimums per variant / type in every collection
    ═══════════════════════════════════════════════════════════ */
 const C = {
-  secondaryUsers: 10,
+  secondaryUsers: 30,
 
   hsnActive: 15,
   hsnInactive: 5, // total 20
 
   categories: 12,
   brands: 20,
-  transports: 10,
+  transports: 25,
 
-  gstParties: 10, // contact type=party, is_gst=1
-  nongstParties: 10, // contact type=party, is_gst=0
-  gstSuppliers: 10, // contact type=supplier, is_gst=1
-  nongstSuppliers: 10, // contact type=supplier, is_gst=0
+  gstParties: 45, // contact type=party, is_gst=1
+  nongstParties: 45, // contact type=party, is_gst=0
+  gstSuppliers: 35, // contact type=supplier, is_gst=1
+  nongstSuppliers: 35, // contact type=supplier, is_gst=0
 
-  agents: 10,
-  areas: 10,
+  agents: 30,
+  areas: 30,
   departments: 10,
 
-  gstItems: 10,
-  nongstItems: 10,
+  gstItems: 140,
+  nongstItems: 140,
 
-  // challans — at least 10 per (is_gst × challan_type)
-  // first 10 sale challans per GST type → billed; remaining 5 stay unbilled
-  gstSale: 15,
-  gstPurchase: 10,
-  nongstSale: 15,
-  nongstPurchase: 10,
+  // first N sale challans per GST type are billed
+  gstSale: 180,
+  gstPurchase: 120,
+  nongstSale: 180,
+  nongstPurchase: 120,
 
-  gstBills: 10, // from first 10 GST sale challans
-  nongstBills: 10, // from first 10 non-GST sale challans
+  gstBills: 130,
+  nongstBills: 130,
 
-  reportsPerType: 10, // × 5 report_types = 50 total
+  reportsPerType: 40, // × 5 report_types = 200 total
 };
 
 /* ═══════════ Reference data ═══════════ */
@@ -363,6 +363,7 @@ async function seed() {
     Hsn,
     Report,
     Counter,
+    Subscription,
     User,
   ];
   for (const M of dropOrder) await M.deleteMany({});
@@ -472,6 +473,51 @@ async function seed() {
     `✓ Users: ${users.length} (1 main + ${staff.length} secondary, 8 active + 2 inactive)`,
   );
 
+  /* ── 1B. SUBSCRIPTIONS (demo + paid mix for secondary users) ── */
+  const subDocs = staff.map((u, i) => {
+    const now = new Date();
+    const isDemo = i < Math.ceil(staff.length / 3);
+    const timeline =
+      isDemo
+        ? { years: 0, months: 0, days: 30 }
+        : { years: ri(0, 2), months: ri(0, 11), days: ri(0, 20) };
+
+    const start = dta(now, -ri(10, 120), 0);
+    const expiry = new Date(start);
+    expiry.setFullYear(expiry.getFullYear() + timeline.years);
+    expiry.setMonth(expiry.getMonth() + timeline.months);
+    expiry.setDate(expiry.getDate() + timeline.days);
+
+    const status =
+      !u.is_active ?
+        "cancelled"
+      : expiry < now ?
+        "expired"
+      : "active";
+
+    return {
+      user_id: u._id,
+      plan_type: isDemo ? "demo" : "paid",
+      status,
+      timeline,
+      start_date: start,
+      expiry_date: expiry,
+      activated_by: main._id,
+      activated_at: dta(start, 0, 6),
+      last_extended_at: dta(start, 0, 8),
+      notes:
+        isDemo ?
+          "Auto demo plan from seed data"
+        : "Admin activated paid plan (seed data)",
+      history: [],
+      createdAt: dta(start, 0, 2),
+      updatedAt: dta(start, 0, 9),
+    };
+  });
+
+  await Subscription.insertMany(subDocs);
+  console.log(`✓ Subscriptions: ${subDocs.length}`);
+
   /* ── 2. SESSIONS ── */
   const sessionDocs = [];
   const pushS = (id, role, ft) =>
@@ -541,8 +587,28 @@ async function seed() {
   );
   const brandIds = brands.map((b) => b._id);
   for (const c of cats) {
+    const selectedBrandIds = smp(brandIds, ri(4, 8));
+    const mkLabel = (labelName) => ({
+      name: labelName,
+      description: `${labelName} pricing for ${c.name}`,
+      is_active: true,
+      brand_discounts: selectedBrandIds.map((brandId) => {
+        const d1n = rd(ri(0, 300) / 100);
+        const d1s = rd(ri(0, 200) / 100);
+        const d2n = rd(ri(0, 300) / 100);
+        const d2s = rd(ri(0, 200) / 100);
+        return {
+          brand_id: brandId,
+          item_ids: [],
+          disc1: { normal: d1n, special: d1s },
+          disc2: { normal: d2n, special: d2s },
+        };
+      }),
+    });
+
     await Category.findByIdAndUpdate(c._id, {
-      brand_ids: smp(brandIds, ri(4, 8)),
+      brand_ids: selectedBrandIds,
+      labels: [mkLabel("Label A"), mkLabel("Label B")],
     });
   }
   console.log(`✓ Brands: ${brands.length}`);
@@ -617,6 +683,23 @@ async function seed() {
           coin(70) ?
             `${type === "party" ? "PTY" : "SUP"}-${pad(contactSeq, 5)}`
           : undefined,
+        signature:
+          type === "party" && coin(42) ?
+            `https://cdn.maheshwarimotors.dev/signatures/${sl(n)}.png`
+          : null,
+        assigned_label: type === "party" ? p(["Label A", "Label B"]) : null,
+        banks: [
+          {
+            bank_name: bk.n,
+            bank_branch: `${ct} Commercial`,
+            ifsc_code: ifcCode(bk.c, s + 700),
+            account_number: accNo(s + 7000),
+            account_holder: n,
+            upi_id: `${sl(prefix)}${pad(contactSeq, 2)}@upi`,
+            is_default: true,
+          },
+        ],
+        item_discounts: [],
         bank_name: bk.n,
         bank_branch: `${ct} Commercial`,
         ifsc_code: ifcCode(bk.c, s + 700),
@@ -758,6 +841,8 @@ async function seed() {
       const pr = rd(ri(70, 4200) + ri(-20, 90));
       const sr = rd(pr * (1 + ri(12, 45) / 100));
       const mr = rd(sr * (1 + ri(8, 25) / 100));
+      const physicalStock = ri(12, 260);
+      const logicalStock = isGst ? 0 : rd(ri(-220, 320) / 10);
       return {
         id: idx + 1,
         item_name: iname(idx),
@@ -768,7 +853,9 @@ async function seed() {
         mrp_rate: mr,
         gst_percent: gp,
         discount: ri(0, 15),
-        stock: ri(10, 240),
+        stock: physicalStock,
+        physical_stock: physicalStock,
+        logical_stock: logicalStock,
         threshold: ri(4, 30),
         image:
           coin(12) ?
@@ -810,6 +897,37 @@ async function seed() {
     `✓ Items: ${items.length} (${gstItems.length} GST + ${nongstItems.length} non-GST)`,
   );
 
+  // Party-wise item discounts (additional layer over label discounts)
+  const partyDiscountBulk = allParties.map((party, idx) => {
+    const chosen = smp(items, ri(3, 8));
+    const item_discounts = chosen.map((it) => ({
+      item_id: it._id,
+      discount1: {
+        normal: rd(ri(0, 250) / 100),
+        special: rd(ri(0, 150) / 100),
+      },
+      discount2: {
+        normal: rd(ri(0, 220) / 100),
+        special: rd(ri(0, 150) / 100),
+      },
+    }));
+
+    return {
+      updateOne: {
+        filter: { _id: party._id },
+        update: {
+          $set: {
+            item_discounts,
+            assigned_label: idx % 2 === 0 ? "Label A" : "Label B",
+          },
+        },
+      },
+    };
+  });
+
+  if (partyDiscountBulk.length) await Contact.bulkWrite(partyDiscountBulk);
+  console.log("✓ Party item discounts mapped");
+
   /* ── 11. CHALLANS (deterministic type × is_gst) ── */
   let challanSeq = 0;
   let cNoGstSale = 0,
@@ -821,6 +939,11 @@ async function seed() {
     Array.from({ length: count }, (_, idx) => {
       challanSeq++;
       const contact = contactPool[idx % contactPool.length];
+      const firmBank = isGst === 1 ? main.gst_firm : main.nongst_firm;
+      const contactBank =
+        Array.isArray(contact.banks) && contact.banks.length > 0 ?
+          contact.banks[0]
+        : null;
       const numItems = ri(1, Math.min(5, itemPool.length));
       const chosenItems = smp(itemPool, numItems);
 
@@ -886,7 +1009,30 @@ async function seed() {
         challan_no: no,
         challan_type: challanType,
         date: d,
+        label_name: challanType === "sale" ? (contact.assigned_label ?? null) : null,
         contact_id: contact._id,
+        from_bank:
+          firmBank?.bank_name ?
+            {
+              bank_id: null,
+              bank_name: firmBank.bank_name || "",
+              bank_branch: firmBank.bank_branch || "",
+              ifsc_code: firmBank.ifsc_code || "",
+              account_number: firmBank.account_number || "",
+              account_holder: firmBank.name || "",
+            }
+          : null,
+        to_bank:
+          contactBank ?
+            {
+              bank_id: contactBank._id || null,
+              bank_name: contactBank.bank_name || "",
+              bank_branch: contactBank.bank_branch || "",
+              ifsc_code: contactBank.ifsc_code || "",
+              account_number: contactBank.account_number || "",
+              account_holder: contactBank.account_holder || contact.name || "",
+            }
+          : null,
         items: lines,
         gross_total: gr,
         sub_total: sub,
@@ -961,6 +1107,7 @@ async function seed() {
     bNoNongst = 0;
   const gstBills = [];
   const nongstBills = [];
+  const contactMap = new Map(allContacts.map((c) => [String(c._id), c]));
 
   // GST Bills — one challan per bill from first C.gstBills GST sale challans
   for (let idx = 0; idx < C.gstBills && idx < gstSaleChallans.length; idx++) {
@@ -976,6 +1123,7 @@ async function seed() {
 
     chal.converted_to_bill = true;
     chal.bill_id = oid;
+    const contact = contactMap.get(String(chal.contact_id));
 
     gstBills.push({
       _id: oid,
@@ -983,6 +1131,10 @@ async function seed() {
       bill_no: `BL-${pad(bNoGst, 6)}`,
       date: d,
       contact_id: chal.contact_id,
+      transport_id: contact?.transport_id || null,
+      customer_name: contact?.name || "Customer",
+      vehicle_number: `RJ${ri(10, 39)}${String.fromCharCode(65 + ri(0, 25))}${String.fromCharCode(65 + ri(0, 25))}${pad(ri(1000, 9999), 4)}`,
+      transport_charge: rd(contact?.transport_charge || ri(40, 250)),
       amount: finalAmt,
       paid_amount: paid,
       return_amount: ret,
@@ -1014,6 +1166,7 @@ async function seed() {
 
     chal.converted_to_bill = true;
     chal.bill_id = oid;
+    const contact = contactMap.get(String(chal.contact_id));
 
     nongstBills.push({
       _id: oid,
@@ -1021,6 +1174,10 @@ async function seed() {
       bill_no: `BL-${pad(bNoNongst, 6)}`,
       date: d,
       contact_id: chal.contact_id,
+      transport_id: contact?.transport_id || null,
+      customer_name: contact?.name || "Customer",
+      vehicle_number: `RJ${ri(10, 39)}${String.fromCharCode(65 + ri(0, 25))}${String.fromCharCode(65 + ri(0, 25))}${pad(ri(1000, 9999), 4)}`,
+      transport_charge: rd(contact?.transport_charge || ri(40, 250)),
       amount: finalAmt,
       paid_amount: paid,
       return_amount: ret,
@@ -1127,6 +1284,7 @@ async function seed() {
   console.log(
     `  Users           : ${users.length} (1 main + ${staff.length} secondary [8 active, 2 inactive])`,
   );
+  console.log(`  Subscriptions   : ${subDocs.length}`);
   console.log(`  Sessions        : ${sessionDocs.length}`);
   console.log(
     `  HSN             : ${hsns.length} (${activeHsns.length} active + ${hsns.length - activeHsns.length} inactive)`,

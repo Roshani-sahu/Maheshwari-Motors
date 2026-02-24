@@ -1,5 +1,17 @@
 import mongoose from "mongoose";
 
+const challanBankSchema = new mongoose.Schema(
+  {
+    bank_id: { type: mongoose.Schema.Types.ObjectId, default: null },
+    bank_name: { type: String, default: "" },
+    bank_branch: { type: String, default: "" },
+    ifsc_code: { type: String, default: "" },
+    account_number: { type: String, default: "" },
+    account_holder: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
 const challanSchema = new mongoose.Schema(
   {
     id: { type: Number },
@@ -10,11 +22,14 @@ const challanSchema = new mongoose.Schema(
       required: true,
     },
     date: { type: Date, required: true, default: Date.now },
+    label_name: { type: String, trim: true, default: null },
     contact_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Contact",
       required: true,
     },
+    from_bank: { type: challanBankSchema, default: null },
+    to_bank: { type: challanBankSchema, default: null },
     items: [
       {
         item_id: {

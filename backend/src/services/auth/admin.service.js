@@ -1,9 +1,47 @@
 import bcrypt from "bcryptjs";
 import User from "../../models/auth/user.model.js";
 import Session from "../../models/auth/session.model.js";
+import Subscription from "../../models/common/subscription.model.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 
 class AdminService {
+  async _attachSubscriptionSummary(users = []) {
+    if (!users || users.length === 0) return users;
+
+    const userIds = users.map((u) => u._id);
+    const subscriptions = await Subscription.find({
+      user_id: { $in: userIds },
+    })
+      .select("user_id plan_type status start_date expiry_date timeline")
+      .lean();
+
+    const subMap = new Map(
+      subscriptions.map((sub) => [String(sub.user_id), sub]),
+    );
+
+    return users.map((user) => ({
+      ...user,
+      subscription: subMap.get(String(user._id)) || null,
+    }));
+  }
+
+  async _ensureDemoSubscription(userId) {
+    const existing = await Subscription.findOne({ user_id: userId })
+      .select("_id")
+      .lean();
+
+    if (existing) return;
+
+    await Subscription.create({
+      user_id: userId,
+      plan_type: "demo",
+      status: "active",
+      timeline: { years: 0, months: 0, days: 30 },
+      start_date: new Date(),
+      notes: "Auto-created demo subscription",
+    });
+  }
+
   _validateFirmRequired(firm, label) {
     const required = [
       "username",
@@ -38,7 +76,6 @@ class AdminService {
   async createSecondaryUser(data) {
     const { name, email, phone, gst_firm, nongst_firm } = data;
 
-    
     if (!name || typeof name !== "string" || !name.trim()) {
       throw ApiError.badRequest("User name is required");
     }
@@ -49,11 +86,9 @@ class AdminService {
       throw ApiError.badRequest("Non-GST Firm details are required");
     }
 
-    
     this._validateFirmRequired(gst_firm, "GST Firm");
     this._validateFirmRequired(nongst_firm, "Non-GST Firm");
 
-    
     const existingGst = await User.findOne({
       "gst_firm.username": gst_firm.username.trim(),
     });
@@ -67,7 +102,6 @@ class AdminService {
       throw ApiError.conflict("Non-GST Firm username is already taken");
     }
 
-    
     if (email) {
       const existingEmail = await User.findOne({ email: email.trim() });
       if (existingEmail) {
@@ -158,15 +192,22 @@ class AdminService {
       },
     });
 
-    return user.toSafeObject();
+    await this._ensureDemoSubscription(user._id);
+
+    const safeUser = user.toSafeObject();
+    const [withSubscription] = await this._attachSubscriptionSummary([safeUser]);
+    return withSubscription;
   }
 
   async getSecondaryUsers(query) {
-    return Pagination.paginate(
+    const result = await Pagination.paginate(
       User,
       { type: "secondary" },
       { ...query, sort: { createdAt: -1 } },
     );
+
+    result.data = await this._attachSubscriptionSummary(result.data);
+    return result;
   }
 
   async getSecondaryUserById(userId) {
@@ -175,7 +216,12 @@ class AdminService {
       type: "secondary",
     });
     if (!user) throw ApiError.notFound("Secondary user not found");
-    return user.toSafeObject();
+
+    const [withSubscription] = await this._attachSubscriptionSummary([
+      user.toSafeObject(),
+    ]);
+
+    return withSubscription;
   }
 
   _validateFirmUpdate(firm, label) {
@@ -221,7 +267,6 @@ class AdminService {
 
     const { name, email, phone, is_active, gst_firm, nongst_firm } = updateData;
 
-    
     if (
       !name &&
       !email &&
@@ -233,7 +278,6 @@ class AdminService {
       throw ApiError.badRequest("No fields provided to update");
     }
 
-    
     if (name !== undefined) {
       if (typeof name !== "string" || !name.trim()) {
         throw ApiError.badRequest("Name must be a non-empty string");
@@ -255,7 +299,6 @@ class AdminService {
     if (phone !== undefined) user.phone = phone;
     if (is_active !== undefined) user.is_active = is_active;
 
-    
     if (gst_firm) {
       this._validateFirmUpdate(gst_firm, "GST Firm");
 
@@ -301,7 +344,6 @@ class AdminService {
         user.gst_firm.account_number = account_number;
     }
 
-    
     if (nongst_firm) {
       this._validateFirmUpdate(nongst_firm, "Non-GST Firm");
 
@@ -378,7 +420,12 @@ class AdminService {
 
     user.is_active = true;
     await user.save();
-    return user.toSafeObject();
+
+    await this._ensureDemoSubscription(user._id);
+
+    const safeUser = user.toSafeObject();
+    const [withSubscription] = await this._attachSubscriptionSummary([safeUser]);
+    return withSubscription;
   }
 
   async deleteSecondaryUser(userId) {
@@ -389,6 +436,7 @@ class AdminService {
     if (!user) throw ApiError.notFound("Secondary user not found");
 
     await Session.deleteMany({ user_id: userId });
+    await Subscription.findOneAndDelete({ user_id: userId });
     await User.findByIdAndDelete(userId);
   }
 }

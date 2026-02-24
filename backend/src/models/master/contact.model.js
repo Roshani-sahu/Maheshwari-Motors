@@ -1,5 +1,39 @@
 import mongoose from "mongoose";
 
+const discountFieldSchema = new mongoose.Schema(
+  {
+    normal: { type: Number, default: 0, min: 0 },
+    special: { type: Number, default: 0, min: 0 },
+  },
+  { _id: false },
+);
+
+const contactBankSchema = new mongoose.Schema(
+  {
+    bank_name: { type: String, trim: true, required: true },
+    bank_branch: { type: String, trim: true, default: "" },
+    ifsc_code: { type: String, trim: true, default: "" },
+    account_number: { type: String, trim: true, required: true },
+    account_holder: { type: String, trim: true, default: "" },
+    upi_id: { type: String, trim: true, default: "" },
+    is_default: { type: Boolean, default: false },
+  },
+  { _id: true },
+);
+
+const partyItemDiscountSchema = new mongoose.Schema(
+  {
+    item_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Item",
+      required: true,
+    },
+    discount1: { type: discountFieldSchema, default: () => ({}) },
+    discount2: { type: discountFieldSchema, default: () => ({}) },
+  },
+  { _id: false },
+);
+
 const contactSchema = new mongoose.Schema(
   {
     id: { type: Number },
@@ -19,6 +53,10 @@ const contactSchema = new mongoose.Schema(
     gstin: { type: String },
     cin: { type: String },
     reg_number: { type: String },
+    signature: { type: String, default: null },
+    assigned_label: { type: String, trim: true, default: null },
+    banks: { type: [contactBankSchema], default: [] },
+    item_discounts: { type: [partyItemDiscountSchema], default: [] },
     bank_name: { type: String },
     bank_branch: { type: String },
     ifsc_code: { type: String },

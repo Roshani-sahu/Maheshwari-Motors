@@ -1,12 +1,97 @@
 import Challan from "../../models/transaction/challan.model.js";
 import Item from "../../models/master/item.model.js";
 import Brand from "../../models/master/brand.model.js";
+import Category from "../../models/master/category.model.js";
 import Contact from "../../models/master/contact.model.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 import stockService from "../inventory/stock.service.js";
 
 class ChallanService {
+  _normalizeBankPayload(bank) {
+    if (!bank) return null;
+    if (typeof bank !== "object" || Array.isArray(bank)) {
+      throw ApiError.badRequest("Bank payload must be an object");
+    }
+
+    return {
+      bank_id: bank.bank_id || null,
+      bank_name: bank.bank_name || "",
+      bank_branch: bank.bank_branch || "",
+      ifsc_code: bank.ifsc_code || "",
+      account_number: bank.account_number || "",
+      account_holder: bank.account_holder || "",
+    };
+  }
+
+  _buildPartyItemDiscountMap(itemDiscounts = []) {
+    const map = new Map();
+
+    for (const row of itemDiscounts) {
+      if (!row?.item_id) continue;
+      map.set(String(row.item_id), row);
+    }
+
+    return map;
+  }
+
+  async _buildCategoryLabelDiscountMap(itemMasterMap, userId, labelName) {
+    const map = new Map();
+    if (!labelName || typeof labelName !== "string") return map;
+
+    const categoryIds = [
+      ...new Set(
+        Array.from(itemMasterMap.values())
+          .map((item) => item.category_id)
+          .filter(Boolean)
+          .map(String),
+      ),
+    ];
+
+    if (categoryIds.length === 0) return map;
+
+    const escaped = labelName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const categories = await Category.find({
+      _id: { $in: categoryIds },
+      user_id: userId,
+      "labels.name": { $regex: new RegExp(`^${escaped}$`, "i") },
+    })
+      .select("labels")
+      .lean();
+
+    const normalizedLabel = labelName.trim().toLowerCase();
+
+    for (const category of categories) {
+      const label = (category.labels || []).find(
+        (entry) =>
+          entry?.name?.toLowerCase() === normalizedLabel &&
+          entry?.is_active !== false,
+      );
+
+      if (!label) continue;
+
+      for (const entry of label.brand_discounts || []) {
+        if (!entry?.brand_id) continue;
+
+        const key = `${String(category._id)}:${String(entry.brand_id)}`;
+        map.set(key, {
+          disc1: entry.disc1 || { normal: 0, special: 0 },
+          disc2: entry.disc2 || { normal: 0, special: 0 },
+        });
+      }
+    }
+
+    return map;
+  }
+
+  _resolveDiscountSetByFirm(discountSource, saleIsGst) {
+    if (!discountSource) return { normal: 0, special: 0 };
+    return saleIsGst === 1
+      ? discountSource.discount1 || discountSource.disc1 || { normal: 0, special: 0 }
+      : discountSource.discount2 || discountSource.disc2 || { normal: 0, special: 0 };
+  }
+
   async getChallans(userId, isGst, challanType, query) {
     const filter = {
       user_id: userId,
@@ -27,7 +112,7 @@ class ChallanService {
     return Pagination.paginate(Challan, filter, {
       ...query,
       populate: [
-        { path: "contact_id", select: "name phone type" },
+        { path: "contact_id", select: "name alias phone type assigned_label" },
         { path: "items.item_id", select: "item_name" },
       ],
       sort: { createdAt: -1 },
@@ -53,16 +138,33 @@ class ChallanService {
       discount: manualChallanDiscount,
       contact_id,
       date,
+      label_name,
+      from_bank,
+      to_bank,
     } = challanData;
 
     if (!contact_id) {
       throw ApiError.badRequest("Contact ID is required");
     }
 
-    const itemIds = items.map((i) => i.item_id);
-    const dbItems = await Item.find({ _id: { $in: itemIds } })
-      .select("_id is_gst brand_id gst_percent sale_rate mrp_rate stock")
+    if (!Array.isArray(items) || items.length === 0) {
+      throw ApiError.badRequest("At least one item is required");
+    }
+
+    const itemIds = [...new Set(items.map((i) => String(i.item_id)))];
+
+    const dbItems = await Item.find({ _id: { $in: itemIds }, user_id: userId })
+      .select(
+        "_id is_gst brand_id category_id gst_percent sale_rate mrp_rate stock physical_stock logical_stock",
+      )
       .lean();
+
+    if (dbItems.length !== itemIds.length) {
+      throw ApiError.badRequest(
+        "One or more items are invalid or do not belong to your account",
+      );
+    }
+
     const itemMasterMap = new Map(dbItems.map((i) => [i._id.toString(), i]));
 
     const brandIds = [
@@ -71,17 +173,46 @@ class ChallanService {
       ),
     ];
     const brands =
-      brandIds.length > 0 ?
-        await Brand.find({
-          _id: { $in: brandIds },
-          user_id: userId,
-        })
-          .select("_id discount1 discount2")
-          .lean()
-      : [];
+      brandIds.length > 0
+        ? await Brand.find({
+            _id: { $in: brandIds },
+            user_id: userId,
+          })
+            .select("_id discount1 discount2")
+            .lean()
+        : [];
     const discountMap = new Map(brands.map((b) => [b._id.toString(), b]));
 
+    const normalizedFromBank = this._normalizeBankPayload(from_bank);
+    const normalizedToBank = this._normalizeBankPayload(to_bank);
+
     if (challanType === "sale") {
+      const party = await Contact.findOne({
+        _id: contact_id,
+        user_id: userId,
+        type: "party",
+      })
+        .select("assigned_label item_discounts")
+        .lean();
+
+      if (!party) {
+        throw ApiError.badRequest("Party not found for sale challan");
+      }
+
+      const effectiveLabelName =
+        typeof label_name === "string" && label_name.trim()
+          ? label_name.trim()
+          : party.assigned_label || null;
+
+      const partyItemDiscountMap = this._buildPartyItemDiscountMap(
+        party.item_discounts,
+      );
+      const labelDiscountMap = await this._buildCategoryLabelDiscountMap(
+        itemMasterMap,
+        userId,
+        effectiveLabelName,
+      );
+
       return this._createSaleChallan(
         items,
         manualChallanDiscount,
@@ -91,6 +222,11 @@ class ChallanService {
         isGst,
         itemMasterMap,
         discountMap,
+        effectiveLabelName,
+        normalizedFromBank,
+        normalizedToBank,
+        partyItemDiscountMap,
+        labelDiscountMap,
       );
     }
 
@@ -101,6 +237,9 @@ class ChallanService {
       userId,
       challanData.is_gst ?? isGst,
       itemMasterMap,
+      label_name,
+      normalizedFromBank,
+      normalizedToBank,
     );
   }
 
@@ -119,9 +258,7 @@ class ChallanService {
     }
 
     if (updateData.items) {
-      if (challan.is_gst === 1) {
-        await stockService.restoreStock(challan.items, userId);
-      }
+      await stockService.restoreStock(challan.items, userId, challan.is_gst);
 
       const processedItems = this._processItems(
         updateData.items,
@@ -134,9 +271,7 @@ class ChallanService {
       const challanDiscountAmount = subTotal * (discount / 100);
       const totalAmount = subTotal - challanDiscountAmount;
 
-      if (challan.is_gst === 1) {
-        await stockService.deductStock(processedItems, userId);
-      }
+      await stockService.deductStock(processedItems, userId, challan.is_gst);
 
       updateData.items = processedItems;
       updateData.gross_total = grossTotal;
@@ -147,6 +282,18 @@ class ChallanService {
       const challanDiscountAmount =
         challan.sub_total * (updateData.discount / 100);
       updateData.amount = challan.sub_total - challanDiscountAmount;
+    }
+
+    if (updateData.from_bank !== undefined) {
+      updateData.from_bank = this._normalizeBankPayload(updateData.from_bank);
+    }
+
+    if (updateData.to_bank !== undefined) {
+      updateData.to_bank = this._normalizeBankPayload(updateData.to_bank);
+    }
+
+    if (updateData.label_name !== undefined && typeof updateData.label_name === "string") {
+      updateData.label_name = updateData.label_name.trim() || null;
     }
 
     const updatedChallan = await Challan.findByIdAndUpdate(
@@ -174,12 +321,10 @@ class ChallanService {
       throw ApiError.badRequest("Cannot delete challan that is already billed");
     }
 
-    if (challan.is_gst === 1 || challan.challan_type === "purchase") {
-      if (challan.challan_type === "sale") {
-        await stockService.restoreStock(challan.items, userId);
-      } else {
-        await stockService.removeStock(challan.items, userId);
-      }
+    if (challan.challan_type === "sale") {
+      await stockService.restoreStock(challan.items, userId, challan.is_gst);
+    } else {
+      await stockService.removeStock(challan.items, userId, challan.is_gst);
     }
 
     if (challan.linked_challan_id) {
@@ -271,6 +416,11 @@ class ChallanService {
     isGst,
     itemMasterMap,
     discountMap,
+    labelName,
+    fromBank,
+    toBank,
+    partyItemDiscountMap,
+    labelDiscountMap,
   ) {
     const gstItems = [];
     const nonGstItems = [];
@@ -289,14 +439,28 @@ class ChallanService {
       }
 
       const brandId = masterItem?.brand_id?.toString();
-      const brandData = brandId ? discountMap.get(brandId) : null;
+      const categoryId = masterItem?.category_id?.toString();
+      const partyItemDiscount = partyItemDiscountMap.get(
+        String(item.item_id?.toString?.() ?? item.item_id),
+      );
+
+      const labelDiscount =
+        categoryId && brandId
+          ? labelDiscountMap.get(`${categoryId}:${brandId}`)
+          : null;
+      const brandDiscount = brandId ? discountMap.get(brandId) : null;
+
+      const hasManualDiscount =
+        item.discount !== undefined || item.special_discount !== undefined;
 
       let disc = item.discount;
       let spDisc = item.special_discount;
 
-      if (brandData && disc === undefined && spDisc === undefined) {
-        const discountSet =
-          saleIsGst === 1 ? brandData.discount1 : brandData.discount2;
+      if (!hasManualDiscount) {
+        const source =
+          partyItemDiscount || labelDiscount || brandDiscount || null;
+
+        const discountSet = this._resolveDiscountSetByFirm(source, saleIsGst);
         disc = discountSet?.normal ?? 0;
         spDisc = discountSet?.special ?? 0;
       } else {
@@ -348,6 +512,9 @@ class ChallanService {
           challan_type: "sale",
           contact_id,
           date: date || new Date(),
+          label_name: labelName,
+          from_bank: fromBank,
+          to_bank: toBank,
           items: processedItems,
           gross_total: grossTotal,
           sub_total: subTotal,
@@ -365,12 +532,13 @@ class ChallanService {
 
     if (gstItems.length > 0) {
       const { doc, processedItems } = await buildChallanDoc(gstItems, 1);
-      await stockService.deductStock(processedItems, userId);
+      await stockService.deductStock(processedItems, userId, 1);
       gstChallan = await Challan.create(doc);
     }
 
     if (nonGstItems.length > 0) {
-      const { doc } = await buildChallanDoc(nonGstItems, 0);
+      const { doc, processedItems } = await buildChallanDoc(nonGstItems, 0);
+      await stockService.deductStock(processedItems, userId, 0);
       nonGstChallan = await Challan.create(doc);
     }
 
@@ -401,6 +569,9 @@ class ChallanService {
     userId,
     challanIsGst,
     itemMasterMap,
+    labelName,
+    fromBank,
+    toBank,
   ) {
     const supplier = await Contact.findOne({
       _id: contact_id,
@@ -425,9 +596,9 @@ class ChallanService {
     const grossTotal = processedItems.reduce((s, i) => s + i.gross_amount, 0);
     const subTotal = processedItems.reduce((s, i) => s + i.amount, 0);
 
-    await stockService.addStock(items, userId);
+    await stockService.addStock(items, userId, challanIsGst);
 
-    const itemIds = items.map((i) => i.item_id);
+    const itemIds = [...new Set(items.map((i) => String(i.item_id)))];
     await Item.updateMany(
       { _id: { $in: itemIds }, user_id: userId },
       { is_gst: supplierIsGst },
@@ -439,6 +610,9 @@ class ChallanService {
       challan_type: "purchase",
       contact_id,
       date: date || new Date(),
+      label_name: labelName || null,
+      from_bank: fromBank,
+      to_bank: toBank,
       items: processedItems,
       gross_total: grossTotal,
       sub_total: subTotal,
@@ -453,6 +627,7 @@ class ChallanService {
       { path: "items.item_id", select: "item_name" },
     ]);
   }
+
   async getLastSoldItem(itemId, userId) {
     const challan = await Challan.findOne({
       user_id: userId,
@@ -463,7 +638,7 @@ class ChallanService {
       .populate("contact_id", "name phone type")
       .populate(
         "items.item_id",
-        "item_name barcode item_id sale_rate purchase_rate mrp_rate gst_percent stock image is_gst",
+        "item_name barcode item_id sale_rate purchase_rate mrp_rate gst_percent stock physical_stock logical_stock image is_gst",
       )
       .lean();
 
