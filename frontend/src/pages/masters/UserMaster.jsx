@@ -21,8 +21,11 @@ const getSubscriptionStatus = (subscription) => {
   }
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const validityFrom = new Date(subscription.validityFrom);
+  validityFrom.setHours(0, 0, 0, 0);
   const validityTo = new Date(subscription.validityTo);
+  validityTo.setHours(0, 0, 0, 0);
   const oneDay = 1000 * 60 * 60 * 24;
 
   if (Number.isNaN(validityFrom.getTime()) || Number.isNaN(validityTo.getTime())) {
@@ -32,15 +35,22 @@ const getSubscriptionStatus = (subscription) => {
   const daysSinceActive = Math.floor((today - validityFrom) / oneDay);
   const daysUntilExpiry = Math.floor((validityTo - today) / oneDay);
 
-  if (daysSinceActive >= 0 && daysSinceActive <= 7) {
-    return { label: 'Fresh', sort: 3, className: 'bg-green-500 text-white' };
-  }
-  if (daysUntilExpiry > 0 && daysUntilExpiry <= 30) {
-    return { label: 'Expiring Soon', sort: 1, className: 'bg-yellow-400 text-gray-900' };
-  }
-  if (daysUntilExpiry <= 0) {
+  // Expired
+  if (daysUntilExpiry < 0) {
     return { label: 'Expired', sort: 2, className: 'bg-red-500 text-white' };
   }
+  
+  // Fresh (activated within last 7 days and not expiring soon)
+  if (daysSinceActive >= 0 && daysSinceActive <= 7 && daysUntilExpiry > 30) {
+    return { label: 'Fresh', sort: 3, className: 'bg-green-500 text-white' };
+  }
+  
+  // Expiring Soon (30 days or less remaining)
+  if (daysUntilExpiry >= 0 && daysUntilExpiry <= 30) {
+    return { label: 'Expiring Soon', sort: 1, className: 'bg-yellow-400 text-gray-900' };
+  }
+  
+  // Active (more than 30 days remaining)
   return { label: 'Active', sort: 4, className: 'bg-blue-500 text-white' };
 };
 
@@ -64,6 +74,8 @@ const UserMaster = () => {
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, user: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingUser, setViewingUser] = useState(null);
+  const [isTransactionHistoryModalOpen, setIsTransactionHistoryModalOpen] = useState(false);
+  const [selectedUserTransactions, setSelectedUserTransactions] = useState(null);
   const [transactions, setTransactions] = useState(DUMMY_TRANSACTIONS);
   const [newUser, setNewUser] = useState({
     name: '',
@@ -400,6 +412,7 @@ const UserMaster = () => {
                     <th className="px-4 py-2 text-left font-medium text-gray-700">Valid To</th>
                     <th className="px-4 py-2 text-left font-medium text-gray-700">Amount</th>
                     <th className="px-4 py-2 text-left font-medium text-gray-700">Date</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -408,7 +421,7 @@ const UserMaster = () => {
                       validityFrom: txn.validityFrom,
                       validityTo: txn.validityTo
                     });
-                    const showStatusDot = [1, 2, 3].includes(status.sort);
+                    const showStatusDot = [1, 2, 3, 4].includes(status.sort);
 
                     return (
                       <tr key={idx} className="hover:bg-gray-50">
@@ -429,6 +442,17 @@ const UserMaster = () => {
                         <td className="px-4 py-2">{txn.validityTo ? new Date(txn.validityTo).toLocaleDateString() : '-'}</td>
                         <td className="px-4 py-2 font-medium">{'\u20B9'}{txn.amount || '0'}</td>
                         <td className="px-4 py-2">{txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : '-'}</td>
+                        <td className="px-4 py-2">
+                          <button
+                            onClick={() => {
+                              setSelectedUserTransactions(txn.user);
+                              setIsTransactionHistoryModalOpen(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <FaEye size={14} />
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -1041,6 +1065,94 @@ const UserMaster = () => {
         onConfirm={handleConfirmDelete}
         itemName={deleteDialog.user?.username}
       />
+
+      {/* Transaction History Modal */}
+      <Modal 
+        isOpen={isTransactionHistoryModalOpen} 
+        onClose={() => setIsTransactionHistoryModalOpen(false)} 
+        title={`Transaction History - ${selectedUserTransactions}`}
+        size="lg"
+      >
+        <div className="max-h-[70vh] overflow-y-auto">
+          {(() => {
+            const userTxns = transactions.filter(txn => txn.user === selectedUserTransactions).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const totalPurchases = userTxns.length;
+            const totalAmount = userTxns.reduce((sum, txn) => sum + (txn.amount || 0), 0);
+            
+            return (
+              <>
+                <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-100">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-600">Total Purchases</p>
+                      <p className="text-2xl font-bold text-blue-600">{totalPurchases}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600">Total Amount Spent</p>
+                      <p className="text-2xl font-bold text-green-600">₹{totalAmount.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <table className="w-full text-xs sm:text-sm">
+                  <thead className="bg-gray-100 border-b sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">#</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Plan</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Status</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Valid From</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Valid To</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Amount</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {userTxns.map((txn, idx) => {
+                      const status = getSubscriptionStatus({
+                        validityFrom: txn.validityFrom,
+                        validityTo: txn.validityTo
+                      });
+                      const showStatusDot = [1, 2, 3, 4].includes(status.sort);
+
+                      return (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 text-gray-500">{idx + 1}</td>
+                          <td className="px-4 py-2">{txn.plan || '-'}</td>
+                          <td className="px-4 py-2">
+                            {showStatusDot ? (
+                              <span
+                                className={`inline-flex h-4 w-4 rounded-full ring-1 ring-black/10 shadow-sm ${status.className}`}
+                                title={status.label}
+                                aria-label={status.label}
+                              />
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2">{txn.validityFrom ? new Date(txn.validityFrom).toLocaleDateString() : '-'}</td>
+                          <td className="px-4 py-2">{txn.validityTo ? new Date(txn.validityTo).toLocaleDateString() : '-'}</td>
+                          <td className="px-4 py-2 font-medium">₹{txn.amount || '0'}</td>
+                          <td className="px-4 py-2">{txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : '-'}</td>
+                        </tr>
+                      );
+                    })}
+                    {totalPurchases === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          No transactions found for this user
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
+          <div className="flex justify-end pt-4 border-t mt-4 sticky bottom-0 bg-white">
+            <Button variant="outline" onClick={() => setIsTransactionHistoryModalOpen(false)}>Close</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
