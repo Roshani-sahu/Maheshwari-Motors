@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaTimes, FaSave } from "react-icons/fa";
+import { FaTimes, FaSave, FaEye } from "react-icons/fa";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
 import { Modal } from '../../components/common';

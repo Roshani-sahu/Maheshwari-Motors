@@ -29,7 +29,6 @@ const ChallanForm = () => {
   const [itemsPage, setItemsPage] = useState(1);
   const [totalItemsPages, setTotalItemsPages] = useState(1);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
-  const [printOption, setPrintOption] = useState(1);
   const itemDropdownRef = useRef(null);
 
   const [challan, setChallan] = useState({
@@ -39,7 +38,8 @@ const ChallanForm = () => {
     gstType: null,
     date: new Date().toISOString().split('T')[0],
     itemDetails: {},
-    discount: 0
+    discount: 0,
+    printOption: 1
   });
 
   useEffect(() => {
@@ -66,7 +66,8 @@ const ChallanForm = () => {
             ...item,
             id: normalized.id,
             name: normalized.itemName,
-            amount: normalized.amount
+            amount: normalized.amount,
+            barcode: normalized.barcode
           };
         });
 
@@ -112,11 +113,14 @@ const ChallanForm = () => {
             : new Date().toISOString().split('T')[0];
 
           setChallan({
+            contactType: challan.contactType,
             party: normalizedChallan.partyId,
             items: (challanData?.items || []).map((item) => getEntityId(item?.item_id || item)).filter(Boolean),
             gstType: normalizedChallan.gstType,
             date: dateValue,
-            itemDetails
+            itemDetails,
+            discount: challan.discount,
+            printOption: challanData?.print_option || 1
           });
         }
       } catch (err) {
@@ -137,7 +141,8 @@ const ChallanForm = () => {
           ...item,
           id: normalized.id,
           name: normalized.itemName,
-          amount: normalized.amount
+          amount: normalized.amount,
+          barcode: normalized.barcode
         };
       });
 
@@ -164,7 +169,8 @@ const ChallanForm = () => {
             ...item,
             id: normalized.id,
             name: normalized.itemName,
-            amount: normalized.amount
+            amount: normalized.amount,
+            barcode: normalized.barcode
           };
         });
 
@@ -231,11 +237,12 @@ const ChallanForm = () => {
     const rate = parseFloat(details.rate || 0);
     const disPercent = parseFloat(details.disPercent || 0);
     const spDis = parseFloat(details.spDis || 0);
+    const itemDiscount = parseFloat(details.itemDiscount || 0);
     const gstPercent = parseFloat(details.gstPercent || 0);
     const itemType = details.type !== undefined ? details.type : challan.gstType;
 
     const baseAmount = pcs * rate;
-    const discountAmount = (baseAmount * disPercent / 100) + spDis;
+    const discountAmount = (baseAmount * disPercent / 100) + spDis + itemDiscount;
     const afterDiscount = baseAmount - discountAmount;
     const gstAmount = itemType === 1 ? (afterDiscount * gstPercent / 100) : 0;
     const finalAmount = afterDiscount + gstAmount;
@@ -247,6 +254,35 @@ const ChallanForm = () => {
       gstAmount,
       finalAmount
     };
+  };
+
+  const calculateSubtotal = () => {
+    return challan.items.reduce((total, itemId) => {
+      const calc = calculateItemAmount(itemId);
+      return total + calc.baseAmount;
+    }, 0);
+  };
+
+  const calculateTotalDiscount = () => {
+    return challan.items.reduce((total, itemId) => {
+      const calc = calculateItemAmount(itemId);
+      return total + calc.discountAmount;
+    }, 0);
+  };
+
+  const calculateTotalGst = () => {
+    return challan.items.reduce((total, itemId) => {
+      const calc = calculateItemAmount(itemId);
+      return total + calc.gstAmount;
+    }, 0);
+  };
+
+  const calculateNetAmount = () => {
+    const subtotal = calculateSubtotal();
+    const totalDiscount = calculateTotalDiscount();
+    const totalGst = calculateTotalGst();
+    const extraDiscount = parseFloat(challan.discount || 0);
+    return subtotal - totalDiscount - extraDiscount + totalGst;
   };
 
   const updateItemDetail = (itemId, field, value) => {
@@ -276,6 +312,7 @@ const ChallanForm = () => {
         date: challan.date,
         contact_id: challan.party,
         is_gst: challan.gstType,
+        print_option: challan.printOption,
         items: challan.items.map(itemId => {
           const item = loadedItems.find(i => i.id === itemId);
           const details = challan.itemDetails[itemId] || {};
@@ -289,7 +326,7 @@ const ChallanForm = () => {
             is_gst: challan.gstType
           };
         }),
-        discount: 0
+        discount: parseFloat(calculateTotalDiscount().toFixed(2))
       };
 
       if (isEditMode) {
@@ -432,7 +469,7 @@ const ChallanForm = () => {
             <thead>
               <tr>
                 <th>S.No</th>
-                ${printOption === 2 ? '<th>Item Name</th>' : '<th>Barcode</th>'}
+                ${challan.printOption === 2 ? '<th>Item Name</th>' : '<th>Barcode</th>'}
                 <th>Qty</th>
                 <th>Rate</th>
                 <th>Discount %</th>
@@ -448,7 +485,7 @@ const ChallanForm = () => {
                 return `
                   <tr>
                     <td>${index + 1}</td>
-                    ${printOption === 2 
+                    ${challan.printOption === 2 
                       ? `<td>${item?.name || 'Unknown'}</td>` 
                       : `<td>${item?.barcode || '-'}</td>`
                     }
@@ -466,15 +503,15 @@ const ChallanForm = () => {
             <div class="amount-box">
               <div class="amount-row">
                 <span>Subtotal:</span>
-                <span>₹${calculateTotalAmount().toFixed(2)}</span>
+                <span>₹${calculateSubtotal().toFixed(2)}</span>
               </div>
               <div class="amount-row">
                 <span>Discount:</span>
-                <span>₹${challan.discount.toFixed(2)}</span>
+                <span>₹${calculateTotalDiscount().toFixed(2)}</span>
               </div>
               <div class="amount-total">
                 <span>Total Amount:</span>
-                <span>₹${(calculateTotalAmount() - challan.discount).toFixed(2)}</span>
+                <span>₹${calculateNetAmount().toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -826,16 +863,16 @@ const ChallanForm = () => {
               <input
                 type="number"
                 step="0.01"
-                value={challan.discount}
-                onChange={(e) => setChallan(prev => ({ ...prev, discount: parseFloat(e.target.value) || 0 }))}
-                className="flex-1 px-3 py-2 border rounded-md text-sm"
+                value={calculateTotalDiscount().toFixed(2)}
+                readOnly
+                className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50"
               />
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium w-32">Net Amount:</span>
               <input
                 type="number"
-                value={(calculateTotalAmount() - challan.discount).toFixed(2)}
+                value={calculateNetAmount().toFixed(2)}
                 readOnly
                 className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50"
               />
@@ -845,8 +882,8 @@ const ChallanForm = () => {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium w-32">Print Format:</span>
               <select
-                value={printOption}
-                onChange={(e) => setPrintOption(parseInt(e.target.value))}
+                value={challan.printOption}
+                onChange={(e) => setChallan(prev => ({ ...prev, printOption: parseInt(e.target.value) }))}
                 className="flex-1 px-3 py-2 border rounded-md text-sm"
               >
                 <option value={1}>Print 1 - Show Barcode</option>
