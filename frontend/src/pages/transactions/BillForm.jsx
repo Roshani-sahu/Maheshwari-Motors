@@ -19,6 +19,8 @@ const BillForm = () => {
 
   const [loadedParties, setLoadedParties] = useState([]);
   const [loadedSuppliers, setLoadedSuppliers] = useState([]);
+  const [loadedAgents, setLoadedAgents] = useState([]);
+  const [loadedTransports, setLoadedTransports] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
   const [loadedDiscounts, setLoadedDiscounts] = useState({});
   const [itemSearchTerm, setItemSearchTerm] = useState("");
@@ -37,16 +39,24 @@ const BillForm = () => {
     date: new Date().toISOString().split("T")[0],
     itemDetails: {},
     discount: 0,
+    billNumber: `BL${Date.now()}`,
+    transportId: "",
+    transportCharge: 0,
+    agent: "",
+    customerName: "",
+    vehicleNo: "",
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pRes, sRes, iRes, brandRes] = await Promise.all([
+        const [pRes, sRes, iRes, brandRes, aRes, tRes] = await Promise.all([
           api.get("/contacts/parties", { params: { page: 1, limit: 200 } }),
           api.get("/contacts/suppliers", { params: { page: 1, limit: 200 } }),
           api.get("/items", { params: { page: 1, limit: 50, search: "" } }),
           api.get("/brands", { params: { page: 1, limit: 200 } }),
+          api.get("/agents", { params: { page: 1, limit: 200 } }),
+          api.get("/transports", { params: { page: 1, limit: 200 } }),
         ]);
 
         const partiesData = getResponseList(pRes).map((party) => {
@@ -55,6 +65,9 @@ const BillForm = () => {
             id: normalized.id,
             name: normalized.name,
             is_gst: normalized.is_gst,
+            transport_charge: normalized.transport_charge || party.transport_charge || party.transportCharge || 0,
+            transport_id: normalized.transport_id || party.transport_id || party.transportId || null,
+            agent: normalized.agent_id || party.agent || party.agent_id || null,
           };
         });
         const suppliersData = getResponseList(sRes).map((supplier) => {
@@ -64,6 +77,9 @@ const BillForm = () => {
             name: normalized.name,
             is_gst: normalized.is_gst,
             gstin: supplier.gstin || "",
+            transport_charge: normalized.transport_charge || supplier.transport_charge || supplier.transportCharge || 0,
+            transport_id: normalized.transport_id || supplier.transport_id || supplier.transportId || null,
+            agent: normalized.agent_id || supplier.agent || supplier.agent_id || null,
           };
         });
         const itemsData = getResponseList(iRes).map((item) => {
@@ -79,6 +95,19 @@ const BillForm = () => {
         setLoadedParties(partiesData);
         setLoadedSuppliers(suppliersData);
         setLoadedItems(itemsData);
+
+        const agentsData = getResponseList(aRes).map((ag) => ({
+          id: getEntityId(ag) || ag._id || ag.id,
+          name: ag.name || ag.agent_name || ag.fullName || ag.contact_name || "Unknown",
+        }));
+        setLoadedAgents(agentsData);
+
+        const transportsData = getResponseList(tRes).map((tr) => ({
+          id: getEntityId(tr) || tr._id || tr.id,
+          name: tr.name || tr.transport_name || tr.title || "Unknown",
+          charge: tr.charge || tr.transport_charge || tr.transportCharge || 0,
+        }));
+        setLoadedTransports(transportsData);
 
         const brandList = getResponseList(brandRes);
         const discountMap = {};
@@ -285,7 +314,13 @@ const BillForm = () => {
             gst_percent: Math.max(0, parseFloat(details.gstPercent || 0)),
           };
         }),
-        discount: 0,
+          discount: 0,
+          transport_id: bill.transportId || undefined,
+          transport_charge: parseFloat(bill.transportCharge) || 0,
+          agent_id: bill.agent || undefined,
+          customer_name: bill.customerName || undefined,
+          vehicle_no: bill.vehicleNo || undefined,
+          bill_no: bill.billNumber || undefined,
       };
 
       const challanRes = await api.post("/challans", challanPayload);
@@ -302,6 +337,12 @@ const BillForm = () => {
           contact_id: bill.party,
           challan_ids: [challanId],
           delivered_amount: 0,
+          bill_no: bill.billNumber || undefined,
+          transport_id: bill.transportId || undefined,
+          transport_charge: parseFloat(bill.transportCharge) || 0,
+          agent_id: bill.agent || undefined,
+          customer_name: bill.customerName || undefined,
+          vehicle_no: bill.vehicleNo || undefined,
         };
         const res = await api.post("/bills", payload);
         console.log(res);
@@ -321,7 +362,15 @@ const BillForm = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Create Bill</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">Create Bill</h1>
+          <input
+            type="text"
+            value={bill.billNumber}
+            onChange={(e) => setBill((prev) => ({ ...prev, billNumber: e.target.value }))}
+            className="px-3 py-2 border rounded-md text-sm"
+          />
+        </div>
         <Button
           variant="outline"
           onClick={() => navigate("/transactions/bill-list")}
@@ -368,6 +417,10 @@ const BillForm = () => {
                   ...prev,
                   party: selectedId,
                   gstType: selected ? selected.is_gst || 0 : prev.gstType,
+                  transportCharge: selected ? selected.transport_charge || 0 : prev.transportCharge,
+                  transportId: selected ? selected.transport_id || prev.transportId : prev.transportId,
+                  agent: selected ? selected.agent || prev.agent : prev.agent,
+                  customerName: selected ? selected.name || prev.customerName : prev.customerName,
                 }));
               }}
               className="w-full px-3 py-2 border rounded-md text-sm"
@@ -402,38 +455,70 @@ const BillForm = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Type
             </label>
-            <div className="flex gap-4 mt-2">
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="gstType"
-                  value={0}
-                  checked={bill.gstType === 0}
-                  onChange={(e) =>
-                    setBill((prev) => ({
-                      ...prev,
-                      gstType: parseInt(e.target.value),
-                    }))
-                  }
-                />
-                <span className="text-sm">0</span>
-              </label>
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="gstType"
-                  value={1}
-                  checked={bill.gstType === 1}
-                  onChange={(e) =>
-                    setBill((prev) => ({
-                      ...prev,
-                      gstType: parseInt(e.target.value),
-                    }))
-                  }
-                />
-                <span className="text-sm">1</span>
-              </label>
-            </div>
+            <div className="mt-2 text-xs text-gray-600">GST Type is determined from selected contact (non-editable)</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
+            <select
+              value={bill.agent}
+              onChange={(e) => setBill((prev) => ({ ...prev, agent: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">Select Agent</option>
+              {loadedAgents.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Transport</label>
+            <select
+              value={bill.transportId}
+              onChange={(e) => {
+                const tid = e.target.value;
+                const t = loadedTransports.find((x) => x.id === tid);
+                setBill((prev) => ({ ...prev, transportId: tid, transportCharge: t ? t.charge : prev.transportCharge }));
+              }}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">Select Transport</option>
+              {loadedTransports.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
+            <input
+              type="number"
+              step="0.01"
+              value={bill.transportCharge}
+              onChange={(e) => setBill((prev) => ({ ...prev, transportCharge: parseFloat(e.target.value) || 0 }))}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+            <input
+              type="text"
+              value={bill.customerName}
+              onChange={(e) => setBill((prev) => ({ ...prev, customerName: e.target.value }))}
+              placeholder="Enter customer name"
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle No</label>
+            <input
+              type="text"
+              value={bill.vehicleNo}
+              onChange={(e) => setBill((prev) => ({ ...prev, vehicleNo: e.target.value }))}
+              placeholder="Vehicle number"
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            />
           </div>
         </div>
 
