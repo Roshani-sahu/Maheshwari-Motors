@@ -15,7 +15,45 @@ import {
 
 const BillForm = () => {
   const navigate = useNavigate();
-  const { showToast } = useStore();
+  const { showToast, user, selectedFirm } = useStore();
+  console.log("Selected firm in BillForm:", selectedFirm);
+
+  const normalizeFirmType = (value) =>
+    String(value || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[-\s]/g, "_");
+
+  const getFirmTypeFromToken = () => {
+    const token = localStorage.getItem("token");
+    const firm_type = localStorage.getItem("firm_type");
+    if (!token || typeof token !== "string") return "";
+    const parts = token.split(".");
+    if (parts.length < 2) return "";
+
+    try {
+      // JWT payload is base64url encoded JSON
+      const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const padded = base64 + "===".slice((base64.length + 3) % 4);
+      const payload = JSON.parse(atob(padded));
+      return payload?.firm_type || payload?.firmType || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const firmType =
+    selectedFirm?.type ||
+    (selectedFirm?.id === "GST" ? "GST" : selectedFirm?.id === "NON_GST" ? "NON_GST" : "") ||
+    getFirmTypeFromToken() ||
+    user?.current_firm_type ||
+    user?.firm_type ||
+    user?.firmType ||
+    user?.firm_data?.firm_type ||
+    "";
+
+  const isFirmGST =
+    selectedFirm?.id === "gst" || normalizeFirmType(firmType) === "GST";
 
   const [loadedParties, setLoadedParties] = useState([]);
   const [loadedSuppliers, setLoadedSuppliers] = useState([]);
@@ -35,7 +73,7 @@ const BillForm = () => {
     contactType: "party",
     party: "",
     items: [],
-    gstType: 0,
+    gstType: isFirmGST ? 1 : 0,
     date: new Date().toISOString().split("T")[0],
     itemDetails: {},
     discount: 0,
@@ -46,6 +84,20 @@ const BillForm = () => {
     customerName: "",
     vehicleNo: "",
   });
+
+  const effectiveGstType = isFirmGST ? 1 : bill.gstType;
+
+  // Firm type = GST means this bill must always be GST (gstType = 1),
+  // regardless of other state updates (party selection, etc.).
+  useEffect(() => {
+    if (!isFirmGST) return;
+    setBill((prev) => (prev.gstType === 1 ? prev : { ...prev, gstType: 1 }));
+  }, [isFirmGST, bill.gstType]);
+
+  const handleGstToggle = () => {
+    if (isFirmGST) return;
+    setBill((prev) => ({ ...prev, gstType: prev.gstType === 1 ? 0 : 1 }));
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -221,11 +273,11 @@ const BillForm = () => {
 
       if (!prev.items.includes(itemId)) {
         const item = loadedItems.find((i) => i.id === itemId);
-        const brandId =
+      const brandId =
           item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
         const discForBrand = loadedDiscounts[brandId] || {};
         const useDisc =
-          (prev.gstType === 1 ?
+          ((isFirmGST ? 1 : prev.gstType) === 1 ?
             discForBrand.discount1 || {}
           : discForBrand.discount2 || {}) || {};
         prev.itemDetails[itemId] = {
@@ -236,7 +288,7 @@ const BillForm = () => {
           gstPercent: 0,
           itemDiscount: item?.discount || 0,
           stock: item?.stock || 0,
-          type: prev.gstType !== null ? prev.gstType : 0,
+          type: isFirmGST ? 1 : (prev.gstType !== null ? prev.gstType : 0),
         };
       }
 
@@ -251,7 +303,7 @@ const BillForm = () => {
     const disPercent = parseFloat(details.disPercent || 0);
     const spDis = parseFloat(details.spDis || 0);
     const gstPercent = parseFloat(details.gstPercent || 0);
-    const itemType = details.type !== undefined ? details.type : bill.gstType;
+    const itemType = details.type !== undefined ? details.type : effectiveGstType;
 
     const baseAmount = pcs * rate;
     const discountAmount = (baseAmount * disPercent) / 100 + spDis;
@@ -416,7 +468,7 @@ const BillForm = () => {
                 setBill((prev) => ({
                   ...prev,
                   party: selectedId,
-                  gstType: selected ? selected.is_gst || 0 : prev.gstType,
+                  gstType: isFirmGST ? 1 : (selected ? selected.is_gst || 0 : prev.gstType),
                   transportCharge: selected ? selected.transport_charge || 0 : prev.transportCharge,
                   transportId: selected ? selected.transport_id || prev.transportId : prev.transportId,
                   agent: selected ? selected.agent || prev.agent : prev.agent,
@@ -452,10 +504,21 @@ const BillForm = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Type
-            </label>
-            <div className="mt-2 text-xs text-gray-600">GST Type is determined from selected contact (non-editable)</div>
+            <button
+              type="button"
+              disabled={isFirmGST}
+              onClick={handleGstToggle}
+              aria-disabled={isFirmGST}
+              className={`w-14 h-7 mt-5 flex items-center rounded-full p-1 transition-all duration-300 ${
+                effectiveGstType === 1 ? 'bg-green-500' : 'bg-gray-300'
+              } ${!isFirmGST ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+            >
+              <div
+                className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
+                  effectiveGstType === 1 ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
         </div>
 
@@ -554,7 +617,7 @@ const BillForm = () => {
                   const details = bill.itemDetails[itemId] || {};
                   const calc = calculateItemAmount(itemId);
                   const itemType =
-                    details.type !== undefined ? details.type : bill.gstType;
+                    details.type !== undefined ? details.type : effectiveGstType;
 
                   return (
                     <tr key={itemId} className="border-t">
@@ -565,21 +628,25 @@ const BillForm = () => {
                         </span>
                       </td>
                       <td className="px-2 py-2 border-r">
-                        <select
-                          value={itemType !== null ? itemType : ""}
-                          onChange={(e) =>
-                            updateItemDetail(
-                              itemId,
-                              "type",
-                              parseInt(e.target.value),
-                            )
-                          }
-                          className="w-12 px-1 py-1 border rounded text-xs"
-                        >
-                          <option value="">-</option>
-                          <option value={0}>0</option>
-                          <option value={1}>1</option>
-                        </select>
+                        {isFirmGST ? (
+                          <span className="text-xs">1</span>
+                        ) : (
+                          <select
+                            value={itemType !== null ? itemType : ""}
+                            onChange={(e) =>
+                              updateItemDetail(
+                                itemId,
+                                "type",
+                                parseInt(e.target.value),
+                              )
+                            }
+                            className="w-12 px-1 py-1 border rounded text-xs"
+                          >
+                            <option value="">-</option>
+                            <option value={0}>0</option>
+                            <option value={1}>1</option>
+                          </select>
+                        )}
                       </td>
                       <td className="px-2 py-2 border-r">
                         <input

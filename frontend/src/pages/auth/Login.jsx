@@ -55,6 +55,7 @@ const Login = () => {
       const { token: _, ...userData } = payload;
       localStorage.setItem('token', token);
       localStorage.setItem('userRole', userData?.role || '');
+      localStorage.setItem('firm_type', userData.firm_data?.firm_type );
 
       setUser(userData);
       showToast('Login successful', 'success');
