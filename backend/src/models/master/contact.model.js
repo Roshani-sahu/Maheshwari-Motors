@@ -1,0 +1,99 @@
+import mongoose from "mongoose";
+
+const discountFieldSchema = new mongoose.Schema(
+  {
+    normal: { type: Number, default: 0, min: 0 },
+    special: { type: Number, default: 0, min: 0 },
+  },
+  { _id: false },
+);
+
+const contactBankSchema = new mongoose.Schema(
+  {
+    bank_name: { type: String, trim: true, required: true },
+    bank_branch: { type: String, trim: true, default: "" },
+    ifsc_code: { type: String, trim: true, default: "" },
+    account_number: { type: String, trim: true, required: true },
+    account_holder: { type: String, trim: true, default: "" },
+    upi_id: { type: String, trim: true, default: "" },
+    is_default: { type: Boolean, default: false },
+  },
+  { _id: true },
+);
+
+const partyItemDiscountSchema = new mongoose.Schema(
+  {
+    item_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Item",
+      required: true,
+    },
+    discount1: { type: discountFieldSchema, default: () => ({}) },
+    discount2: { type: discountFieldSchema, default: () => ({}) },
+  },
+  { _id: false },
+);
+
+const contactSchema = new mongoose.Schema(
+  {
+    id: { type: Number },
+    name: { type: String, required: true },
+    alias: { type: String, trim: true, default: null },
+    type: {
+      type: String,
+      enum: ["party", "supplier"],
+      required: true,
+    },
+    phone: { type: String },
+    whatsapp_number: { type: String },
+    email: { type: String },
+    address: { type: String },
+    city: { type: String },
+    state: { type: String },
+    gstin: { type: String },
+    cin: { type: String },
+    reg_number: { type: String },
+    signature: { type: String, default: null },
+    assigned_label: { type: String, trim: true, default: null },
+    banks: { type: [contactBankSchema], default: [] },
+    item_discounts: { type: [partyItemDiscountSchema], default: [] },
+    bank_name: { type: String },
+    bank_branch: { type: String },
+    ifsc_code: { type: String },
+    account_number: { type: String },
+    transport_charge: { type: Number, default: 0 },
+    area: { type: String },
+    is_gst: { type: Number, enum: [0, 1], default: 1 },
+    category_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+    },
+    transport_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Transport",
+      default: null,
+    },
+    agent_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Agent",
+      default: null,
+    },
+    area_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Area",
+      default: null,
+    },
+    balance: { type: Number, default: 0 },
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  },
+  { timestamps: true, id: false },
+);
+
+contactSchema.index({ id: 1, user_id: 1 });
+contactSchema.index({ type: 1, user_id: 1 });
+
+export default mongoose.model("Contact", contactSchema);
