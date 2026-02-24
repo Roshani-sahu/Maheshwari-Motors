@@ -71,14 +71,16 @@ const subscriptionSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-subscriptionSchema.pre("validate", function (next) {
+subscriptionSchema.pre("validate", function () {
   if (!this.start_date) this.start_date = new Date();
 
-  if (!this.expiry_date || this.isModified("timeline") || this.isModified("start_date")) {
+  if (
+    !this.expiry_date ||
+    this.isModified("timeline") ||
+    this.isModified("start_date")
+  ) {
     this.expiry_date = addTimeline(this.start_date, this.timeline);
   }
-
-  next();
 });
 
 subscriptionSchema.statics.getExpiringOnDate = function (date = new Date()) {

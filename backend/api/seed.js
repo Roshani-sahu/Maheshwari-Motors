@@ -34,13 +34,14 @@ const C = {
   hsnInactive: 5, // total 20
 
   categories: 12,
+  labelsPerCategory: 2,
   brands: 20,
   transports: 25,
 
-  gstParties: 45, // contact type=party, is_gst=1
-  nongstParties: 45, // contact type=party, is_gst=0
-  gstSuppliers: 35, // contact type=supplier, is_gst=1
-  nongstSuppliers: 35, // contact type=supplier, is_gst=0
+  gstParties: 45,
+  nongstParties: 45,
+  gstSuppliers: 35,
+  nongstSuppliers: 35,
 
   agents: 30,
   areas: 30,
@@ -49,7 +50,6 @@ const C = {
   gstItems: 140,
   nongstItems: 140,
 
-  // first N sale challans per GST type are billed
   gstSale: 180,
   gstPurchase: 120,
   nongstSale: 180,
@@ -58,19 +58,24 @@ const C = {
   gstBills: 130,
   nongstBills: 130,
 
-  reportsPerType: 40, // × 5 report_types = 200 total
+  // Some bills will bundle multiple challans
+  multiBillCount: 20,
+
+  reportsPerType: 40, // ×5 report_types = 200 total
 };
 
-/* ═══════════ Reference data ═══════════ */
+/* ═══════════ Reference data pools ═══════════ */
 const STATES = {
-  Rajasthan: ["Jaipur", "Udaipur", "Jodhpur", "Kota", "Ajmer"],
-  Maharashtra: ["Mumbai", "Pune", "Nagpur", "Nashik"],
-  Gujarat: ["Ahmedabad", "Surat", "Vadodara", "Rajkot"],
-  "Uttar Pradesh": ["Lucknow", "Noida", "Agra", "Kanpur"],
-  Karnataka: ["Bengaluru", "Mysuru", "Hubballi"],
-  Delhi: ["New Delhi", "Dwarka", "Rohini"],
-  Haryana: ["Gurugram", "Faridabad", "Panipat"],
-  Punjab: ["Ludhiana", "Amritsar", "Jalandhar"],
+  Rajasthan: ["Jaipur", "Udaipur", "Jodhpur", "Kota", "Ajmer", "Bikaner"],
+  Maharashtra: ["Mumbai", "Pune", "Nagpur", "Nashik", "Thane"],
+  Gujarat: ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
+  "Uttar Pradesh": ["Lucknow", "Noida", "Agra", "Kanpur", "Varanasi"],
+  Karnataka: ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru"],
+  Delhi: ["New Delhi", "Dwarka", "Rohini", "Saket"],
+  Haryana: ["Gurugram", "Faridabad", "Panipat", "Karnal"],
+  Punjab: ["Ludhiana", "Amritsar", "Jalandhar", "Patiala"],
+  "Madhya Pradesh": ["Bhopal", "Indore", "Gwalior", "Jabalpur"],
+  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Salem"],
 };
 
 const STN = {
@@ -82,6 +87,8 @@ const STN = {
   Delhi: "07",
   Haryana: "06",
   Punjab: "03",
+  "Madhya Pradesh": "23",
+  "Tamil Nadu": "33",
 };
 const STA = {
   Rajasthan: "RJ",
@@ -92,7 +99,10 @@ const STA = {
   Delhi: "DL",
   Haryana: "HR",
   Punjab: "PB",
+  "Madhya Pradesh": "MP",
+  "Tamil Nadu": "TN",
 };
+
 const BNK = [
   { n: "State Bank of India", c: "SBIN" },
   { n: "HDFC Bank", c: "HDFC" },
@@ -100,7 +110,10 @@ const BNK = [
   { n: "Axis Bank", c: "UTIB" },
   { n: "Punjab National Bank", c: "PUNB" },
   { n: "Bank of Baroda", c: "BARB" },
+  { n: "Kotak Mahindra Bank", c: "KKBK" },
+  { n: "IndusInd Bank", c: "INDB" },
 ];
+
 const FIRST = [
   "Aarav",
   "Vivaan",
@@ -122,6 +135,16 @@ const FIRST = [
   "Naveen",
   "Mukesh",
   "Sanjay",
+  "Ashok",
+  "Pradeep",
+  "Mohan",
+  "Dinesh",
+  "Ramesh",
+  "Girish",
+  "Kiran",
+  "Anand",
+  "Vijay",
+  "Yogesh",
 ];
 const LAST = [
   "Sharma",
@@ -144,7 +167,13 @@ const LAST = [
   "Tiwari",
   "Dubey",
   "Maheshwari",
+  "Soni",
+  "Goyal",
+  "Bansal",
+  "Mittal",
+  "Khanna",
 ];
+
 const HSN_DATA = [
   ["8409", "Engine parts", 18],
   ["8421", "Filters and purifiers", 18],
@@ -167,6 +196,7 @@ const HSN_DATA = [
   ["3403", "Lubricants", 18],
   ["2710", "Petroleum preparations", 18],
 ];
+
 const CAT_DATA = [
   ["Engine Components", "Piston, valves, timing parts"],
   ["Fuel and Air", "Carburetor, injector, filters"],
@@ -181,6 +211,7 @@ const CAT_DATA = [
   ["Accessories", "Mirror and guards"],
   ["Service Consumables", "Sealant and cleaners"],
 ];
+
 const BRAND_NAMES = [
   "Royal Enfield Genuine",
   "Hero Genuine",
@@ -203,6 +234,7 @@ const BRAND_NAMES = [
   "Motul India",
   "CEAT Tyres",
 ];
+
 const ADJ = [
   "Front",
   "Rear",
@@ -214,6 +246,8 @@ const ADJ = [
   "OEM",
   "Touring",
   "Racing",
+  "Ultra",
+  "Pro",
 ];
 const PART = [
   "Brake Pad",
@@ -236,6 +270,16 @@ const PART = [
   "Silencer",
   "Starter Relay",
   "Mirror Pair",
+  "Engine Oil",
+  "Brake Fluid",
+  "Chain Lube",
+  "Tyre Tube",
+  "Wiring Harness",
+  "CDI Unit",
+  "Regulator Rectifier",
+  "Speedometer Cable",
+  "Handle Bar Grip",
+  "Foot Rest",
 ];
 const MDL = [
   "Classic 350",
@@ -257,7 +301,23 @@ const MDL = [
   "Duke 200",
   "Duke 390",
 ];
+
+const DEPT_NAMES = [
+  "Service",
+  "Sales",
+  "Spare Parts",
+  "Accounts",
+  "Warehouse",
+  "Purchase",
+  "Quality Control",
+  "Logistics",
+  "Workshop",
+  "Administration",
+];
+
 const REPORT_TYPES = ["challan", "bill", "inventory", "transaction", "other"];
+
+const LABEL_NAMES = ["Label A", "Label B"];
 
 /* ═══════════ Utility helpers ═══════════ */
 const p = (a) => a[Math.floor(Math.random() * a.length)];
@@ -291,8 +351,10 @@ const dt = (d = 365) => {
 };
 const dta = (b, mn = 1, mx = 12) =>
   new Date(b.getTime() + ri(mn, mx) * 86400000);
+const dtBefore = (ref, minDays, maxDays) =>
+  new Date(ref.getTime() - ri(minDays, maxDays) * 86400000);
 const adr = () =>
-  `${ri(1, 499)}, ${p(["Industrial Area", "Transport Nagar", "Civil Lines", "Mansarovar", "MI Road", "Shastri Nagar"])} ${p(["Road", "Marg", "Street", "Avenue", "Lane"])}`;
+  `${ri(1, 499)}, ${p(["Industrial Area", "Transport Nagar", "Civil Lines", "Mansarovar", "MI Road", "Shastri Nagar", "Vaishali Nagar", "Malviya Nagar", "Pratap Nagar"])} ${p(["Road", "Marg", "Street", "Avenue", "Lane"])}`;
 const pan = (i) => {
   const c = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   return `${c[(i + 3) % 26]}${c[(i * 5 + 7) % 26]}${c[(i * 7 + 9) % 26]}${c[(i * 11 + 13) % 26]}${c[(i * 13 + 17) % 26]}${pad((i * 97) % 10000, 4)}${c[(i * 17 + 19) % 26]}`;
@@ -317,7 +379,10 @@ const bc = () => {
   return b;
 };
 const iname = (i) => `${p(ADJ)} ${p(PART)} ${p(MDL)} ${pad(i + 1, 3)}`;
+const vehNo = () =>
+  `RJ${ri(10, 39)}${String.fromCharCode(65 + ri(0, 25))}${String.fromCharCode(65 + ri(0, 25))}${pad(ri(1000, 9999), 4)}`;
 
+/** Compute challan line item financials */
 const calcLine = ({ q, rate, d, s, da, g }) => {
   const gr = rd(q * rate);
   const afterDisc = rd(gr * (1 - d / 100));
@@ -329,7 +394,7 @@ const calcLine = ({ q, rate, d, s, da, g }) => {
   return { gr, tx, ga, am, td };
 };
 
-/** Deterministic payment status spread across a group */
+/** Deterministic payment-status distribution */
 const payStatus = (idx, total, amount) => {
   const third = Math.floor(total / 3);
   if (idx < third) return { status: "paid", paid: amount };
@@ -368,7 +433,9 @@ async function seed() {
   ];
   for (const M of dropOrder) await M.deleteMany({});
 
-  /* ── 1. USERS ── */
+  /* ═══════════════════════════════════════════════════════════
+     1. USERS  (1 main + 30 secondary)
+     ═══════════════════════════════════════════════════════════ */
   const ah = await bcrypt.hash("Admin@1234", SALT);
   const fh = await bcrypt.hash("Test@1234", SALT);
   const staffHash = await bcrypt.hash("Staff@1234", SALT);
@@ -463,39 +530,83 @@ async function seed() {
         ifsc_code: ifcCode(bk.c, i + 300),
         account_number: accNo(i + 3000),
       },
-      is_active: i <= 8, // 8 active, 2 inactive
+      is_active: i <= 8,
     });
   }
   const staff = await User.insertMany(secDocs);
   const users = [main, ...staff];
   const uid = main._id;
   console.log(
-    `✓ Users: ${users.length} (1 main + ${staff.length} secondary, 8 active + 2 inactive)`,
+    `✓ Users: ${users.length} (1 main + ${staff.length} secondary, 8 active + ${C.secondaryUsers - 8} inactive)`,
   );
 
-  /* ── 1B. SUBSCRIPTIONS (demo + paid mix for secondary users) ── */
-  const subDocs = staff.map((u, i) => {
-    const now = new Date();
+  /* ═══════════════════════════════════════════════════════════
+     1B. SUBSCRIPTIONS  (demo + paid mix for all users)
+     ═══════════════════════════════════════════════════════════ */
+  const now = new Date();
+
+  // Main user gets a paid active subscription
+  const mainSubStart = dtBefore(now, 30, 60);
+  const mainSubExpiry = new Date(mainSubStart);
+  mainSubExpiry.setFullYear(mainSubExpiry.getFullYear() + 1);
+  const subDocs = [
+    {
+      user_id: main._id,
+      plan_type: "paid",
+      status: "active",
+      timeline: { years: 1, months: 0, days: 0 },
+      start_date: mainSubStart,
+      expiry_date: mainSubExpiry,
+      activated_by: main._id,
+      activated_at: mainSubStart,
+      last_extended_at: null,
+      notes: "Primary admin paid plan (seed data)",
+      history: [
+        {
+          plan_type: "paid",
+          timeline: { years: 1, months: 0, days: 0 },
+          start_date: mainSubStart,
+          expiry_date: mainSubExpiry,
+          activated_by: main._id,
+          activated_at: mainSubStart,
+          notes: "Initial paid plan activation",
+        },
+      ],
+    },
+  ];
+
+  // Staff subscriptions with a mix of demo/paid and active/expired/cancelled
+  for (let i = 0; i < staff.length; i++) {
+    const u = staff[i];
     const isDemo = i < Math.ceil(staff.length / 3);
     const timeline =
-      isDemo
-        ? { years: 0, months: 0, days: 30 }
-        : { years: ri(0, 2), months: ri(0, 11), days: ri(0, 20) };
+      isDemo ?
+        { years: 0, months: 0, days: 30 }
+      : { years: ri(0, 2), months: ri(0, 11), days: ri(0, 20) };
 
-    const start = dta(now, -ri(10, 120), 0);
+    const start = dtBefore(now, 10, 120);
     const expiry = new Date(start);
-    expiry.setFullYear(expiry.getFullYear() + timeline.years);
-    expiry.setMonth(expiry.getMonth() + timeline.months);
-    expiry.setDate(expiry.getDate() + timeline.days);
+    expiry.setFullYear(expiry.getFullYear() + (timeline.years || 0));
+    expiry.setMonth(expiry.getMonth() + (timeline.months || 0));
+    expiry.setDate(expiry.getDate() + (timeline.days || 0));
 
     const status =
-      !u.is_active ?
-        "cancelled"
-      : expiry < now ?
-        "expired"
+      !u.is_active ? "cancelled"
+      : expiry < now ? "expired"
       : "active";
 
-    return {
+    const histEntry = {
+      plan_type: isDemo ? "demo" : "paid",
+      timeline,
+      start_date: start,
+      expiry_date: expiry,
+      activated_by: main._id,
+      activated_at: dta(start, 0, 3),
+      notes:
+        isDemo ? "Auto demo plan from admin" : "Paid plan activated by admin",
+    };
+
+    subDocs.push({
       user_id: u._id,
       plan_type: isDemo ? "demo" : "paid",
       status,
@@ -504,46 +615,59 @@ async function seed() {
       expiry_date: expiry,
       activated_by: main._id,
       activated_at: dta(start, 0, 6),
-      last_extended_at: dta(start, 0, 8),
+      last_extended_at: !isDemo && coin(40) ? dta(start, 7, 30) : null,
       notes:
         isDemo ?
           "Auto demo plan from seed data"
         : "Admin activated paid plan (seed data)",
-      history: [],
-      createdAt: dta(start, 0, 2),
-      updatedAt: dta(start, 0, 9),
-    };
-  });
+      history: [histEntry],
+    });
+  }
 
   await Subscription.insertMany(subDocs);
-  console.log(`✓ Subscriptions: ${subDocs.length}`);
+  const activeSubs = subDocs.filter((s) => s.status === "active").length;
+  const expiredSubs = subDocs.filter((s) => s.status === "expired").length;
+  const cancelledSubs = subDocs.filter((s) => s.status === "cancelled").length;
+  console.log(
+    `✓ Subscriptions: ${subDocs.length} (${activeSubs} active, ${expiredSubs} expired, ${cancelledSubs} cancelled)`,
+  );
 
-  /* ── 2. SESSIONS ── */
+  /* ═══════════════════════════════════════════════════════════
+     2. SESSIONS  (admin + firm sessions for active users)
+     ═══════════════════════════════════════════════════════════ */
   const sessionDocs = [];
   const pushS = (id, role, ft) =>
     sessionDocs.push({
       user_id: id,
       role,
-      firm_type: ft,
+      firm_type: ft || undefined,
       token: `sess_${crypto.randomBytes(24).toString("hex")}`,
       device_name: `${p(["Chrome", "Firefox", "Edge", "App"])} ${p(["Windows", "Android", "iPhone", "Mac"])}`,
       device_type: p(["web", "android", "ios", "desktop"]),
       ip_address: `103.${ri(10, 240)}.${ri(1, 254)}.${ri(1, 254)}`,
       last_active: dt(14),
     });
+
+  // Main user: admin + both firm sessions
   pushS(main._id, "admin");
-  pushS(main._id, "admin");
+  pushS(main._id, "admin"); // multiple admin sessions
   pushS(main._id, "firm", "GST");
   pushS(main._id, "firm", "NON_GST");
+
+  // Active staff: firm sessions only
   for (const u of staff) {
     if (!u.is_active) continue;
     pushS(u._id, "firm", "GST");
     pushS(u._id, "firm", "NON_GST");
+    // Some staff have old stale sessions too
+    if (coin(40)) pushS(u._id, "firm", "GST");
   }
   await Session.insertMany(sessionDocs);
   console.log(`✓ Sessions: ${sessionDocs.length}`);
 
-  /* ── 3. HSN (${C.hsnActive} active + ${C.hsnInactive} inactive) ── */
+  /* ═══════════════════════════════════════════════════════════
+     3. HSN CODES  (15 active + 5 inactive = 20)
+     ═══════════════════════════════════════════════════════════ */
   const hsnDocs = HSN_DATA.map(([h, d, g], i) => ({
     id: i + 1,
     hsn_code: h,
@@ -558,18 +682,23 @@ async function seed() {
     `✓ HSN: ${hsns.length} (${activeHsns.length} active + ${hsns.length - activeHsns.length} inactive)`,
   );
 
-  /* ── 4. CATEGORIES ── */
-  const cats = await Category.insertMany(
-    CAT_DATA.map(([n, d], i) => ({
-      id: i + 1,
-      name: n,
-      description: d,
-      user_id: uid,
-    })),
-  );
+  /* ═══════════════════════════════════════════════════════════
+     4. CATEGORIES  (12 categories, each with 2 labels)
+     ═══════════════════════════════════════════════════════════ */
+  const catDocs = CAT_DATA.map(([n, d], i) => ({
+    id: i + 1,
+    name: n,
+    description: d,
+    brand_ids: [],
+    labels: [],
+    user_id: uid,
+  }));
+  const cats = await Category.insertMany(catDocs);
   console.log(`✓ Categories: ${cats.length}`);
 
-  /* ── 5. BRANDS ── */
+  /* ═══════════════════════════════════════════════════════════
+     5. BRANDS  (20 brands with disc1/disc2 + hsn_id)
+     ═══════════════════════════════════════════════════════════ */
   const brands = await Brand.insertMany(
     BRAND_NAMES.map((n, i) => {
       const n1 = ri(4, 18),
@@ -586,41 +715,65 @@ async function seed() {
     }),
   );
   const brandIds = brands.map((b) => b._id);
+
+  // Wire categories → brands (+ labels with brand_discounts)
   for (const c of cats) {
-    const selectedBrandIds = smp(brandIds, ri(4, 8));
+    const selectedBrandIds = smp(brandIds, ri(4, 10));
     const mkLabel = (labelName) => ({
       name: labelName,
       description: `${labelName} pricing for ${c.name}`,
       is_active: true,
-      brand_discounts: selectedBrandIds.map((brandId) => {
-        const d1n = rd(ri(0, 300) / 100);
-        const d1s = rd(ri(0, 200) / 100);
-        const d2n = rd(ri(0, 300) / 100);
-        const d2s = rd(ri(0, 200) / 100);
-        return {
-          brand_id: brandId,
-          item_ids: [],
-          disc1: { normal: d1n, special: d1s },
-          disc2: { normal: d2n, special: d2s },
-        };
-      }),
+      brand_discounts: selectedBrandIds.map((brandId) => ({
+        brand_id: brandId,
+        item_ids: [],
+        disc1: { normal: rd(ri(0, 300) / 100), special: rd(ri(0, 200) / 100) },
+        disc2: { normal: rd(ri(0, 300) / 100), special: rd(ri(0, 200) / 100) },
+      })),
     });
 
     await Category.findByIdAndUpdate(c._id, {
       brand_ids: selectedBrandIds,
-      labels: [mkLabel("Label A"), mkLabel("Label B")],
+      labels: LABEL_NAMES.map((ln) => mkLabel(ln)),
     });
   }
-  console.log(`✓ Brands: ${brands.length}`);
+  console.log(
+    `✓ Brands: ${brands.length} (with category label discounts mapped)`,
+  );
 
-  /* ── 6. TRANSPORTS ── */
+  /* ═══════════════════════════════════════════════════════════
+     6. TRANSPORTS  (25 transport companies)
+     ═══════════════════════════════════════════════════════════ */
+  const transportPrefixes = [
+    "Shree",
+    "Rajasthan",
+    "National",
+    "Metro",
+    "Swift",
+    "Prime",
+    "Reliable",
+    "Om",
+    "Jayanti",
+    "Bharat",
+    "Ajmera",
+    "Express",
+    "Jaipur",
+    "Super",
+  ];
+  const transportSuffixes = [
+    "Transport",
+    "Roadways",
+    "Logistics",
+    "Carriers",
+    "Freight",
+    "Movers",
+  ];
   const transports = await Transport.insertMany(
     Array.from({ length: C.transports }, (_, i) => {
       const st = p(Object.keys(STATES));
       const ct = p(STATES[st]);
       return {
         id: i + 1,
-        name: `${p(["Shree", "Rajasthan", "National", "Metro", "Swift", "Prime", "Reliable", "Om"])} ${p(["Transport", "Roadways", "Logistics", "Carriers"])} ${ct}`,
+        name: `${p(transportPrefixes)} ${p(transportSuffixes)} ${ct}`,
         address: adr(),
         city: ct,
         pincode: `${ri(300000, 799999)}`,
@@ -633,8 +786,57 @@ async function seed() {
   );
   console.log(`✓ Transports: ${transports.length}`);
 
-  /* ── 7. CONTACTS (deterministic type × is_gst) ── */
+  /* ═══════════════════════════════════════════════════════════
+     7. CONTACTS  (party × is_gst + supplier × is_gst = 160 total)
+        Each with banks array, proper refs, assigned labels, etc.
+     ═══════════════════════════════════════════════════════════ */
   let contactSeq = 0;
+
+  const partyPrefixes = [
+    "Shiv",
+    "Ganesh",
+    "Balaji",
+    "Sai",
+    "Raj",
+    "Vardhman",
+    "Krishna",
+    "Laxmi",
+    "Bharat",
+    "Arjun",
+    "Mahavir",
+    "Shankar",
+  ];
+  const partySuffixes = [
+    "Auto House",
+    "Automobiles",
+    "Motor Parts",
+    "Spare Centre",
+    "Auto Hub",
+    "Two Wheeler",
+    "Bike Point",
+    "Motor Works",
+  ];
+  const supplierPrefixes = [
+    "Reliable",
+    "National",
+    "Prime",
+    "Western",
+    "Udaan",
+    "Aditya",
+    "Global",
+    "Premier",
+    "Royal",
+    "Supreme",
+  ];
+  const supplierSuffixes = [
+    "Distributors",
+    "Supply Co",
+    "Parts Depot",
+    "Industrial Suppliers",
+    "Bulk Traders",
+    "Trading Corp",
+    "Wholesale",
+  ];
 
   const mkContacts = (count, type, isGst, seedOffset) =>
     Array.from({ length: count }, (_, i) => {
@@ -642,30 +844,39 @@ async function seed() {
       const st = p(Object.keys(STATES));
       const ct = p(STATES[st]);
       const bk = p(BNK);
-      const prefix =
-        type === "party" ?
-          p(["Shiv", "Ganesh", "Balaji", "Sai", "Raj", "Vardhman"])
-        : p(["Reliable", "National", "Prime", "Western", "Udaan", "Aditya"]);
-      const suffix =
-        type === "party" ?
-          p([
-            "Auto House",
-            "Automobiles",
-            "Motor Parts",
-            "Spare Centre",
-            "Auto Hub",
-          ])
-        : p([
-            "Distributors",
-            "Supply Co",
-            "Parts Depot",
-            "Industrial Suppliers",
-            "Bulk Traders",
-          ]);
+      const bk2 = p(BNK);
+      const prefix = type === "party" ? p(partyPrefixes) : p(supplierPrefixes);
+      const suffix = type === "party" ? p(partySuffixes) : p(supplierSuffixes);
       const n = `${prefix} ${suffix} ${ct} ${pad(contactSeq, 2)}`;
       const domain =
         type === "party" ? "dealer.example.in" : "supply.example.in";
       const s = seedOffset + i;
+
+      // Multiple bank accounts for some contacts
+      const banks = [
+        {
+          bank_name: bk.n,
+          bank_branch: `${ct} Commercial`,
+          ifsc_code: ifcCode(bk.c, s + 700),
+          account_number: accNo(s + 7000),
+          account_holder: n,
+          upi_id: `${sl(prefix)}${pad(contactSeq, 2)}@upi`,
+          is_default: true,
+        },
+      ];
+      // ~40% have a second bank account
+      if (coin(40)) {
+        banks.push({
+          bank_name: bk2.n,
+          bank_branch: `${ct} Savings`,
+          ifsc_code: ifcCode(bk2.c, s + 1700),
+          account_number: accNo(s + 17000),
+          account_holder: n,
+          upi_id: "",
+          is_default: false,
+        });
+      }
+
       return {
         id: contactSeq,
         name: n,
@@ -687,18 +898,8 @@ async function seed() {
           type === "party" && coin(42) ?
             `https://cdn.maheshwarimotors.dev/signatures/${sl(n)}.png`
           : null,
-        assigned_label: type === "party" ? p(["Label A", "Label B"]) : null,
-        banks: [
-          {
-            bank_name: bk.n,
-            bank_branch: `${ct} Commercial`,
-            ifsc_code: ifcCode(bk.c, s + 700),
-            account_number: accNo(s + 7000),
-            account_holder: n,
-            upi_id: `${sl(prefix)}${pad(contactSeq, 2)}@upi`,
-            is_default: true,
-          },
-        ],
+        assigned_label: type === "party" ? p(LABEL_NAMES) : null,
+        banks,
         item_discounts: [],
         bank_name: bk.n,
         bank_branch: `${ct} Commercial`,
@@ -713,6 +914,7 @@ async function seed() {
               "Transport Nagar",
               "Main Market",
               "Old City",
+              "Wholesale Market",
             ])
           : undefined,
         is_gst: isGst,
@@ -750,7 +952,9 @@ async function seed() {
     `    GST Suppliers: ${gstSuppliers.length}  |  Non-GST Suppliers: ${nongstSuppliers.length}`,
   );
 
-  /* ── 8. AGENTS ── */
+  /* ═══════════════════════════════════════════════════════════
+     8. AGENTS  (30 agents, each linked to a party)
+     ═══════════════════════════════════════════════════════════ */
   const agents = await Agent.insertMany(
     Array.from({ length: C.agents }, (_, i) => ({
       id: i + 1,
@@ -766,7 +970,9 @@ async function seed() {
   );
   console.log(`✓ Agents: ${agents.length}`);
 
-  /* ── 9. AREAS ── */
+  /* ═══════════════════════════════════════════════════════════
+     9. AREAS  (30 areas, some linked to agents/transports)
+     ═══════════════════════════════════════════════════════════ */
   const areas = await Area.insertMany(
     Array.from({ length: C.areas }, (_, i) => {
       const st = p(Object.keys(STATES));
@@ -785,7 +991,7 @@ async function seed() {
   );
   console.log(`✓ Areas: ${areas.length}`);
 
-  /* Link agents + areas to parties */
+  // Link agents + areas + transports back to parties
   const partyBulk = allParties
     .map((x, i) => {
       const set = {};
@@ -797,20 +1003,13 @@ async function seed() {
     })
     .filter(Boolean);
   if (partyBulk.length) await Contact.bulkWrite(partyBulk);
+  console.log(
+    `  ↳ Linked ${partyBulk.length} parties → agents/areas/transports`,
+  );
 
-  /* ── 10. DEPARTMENTS ── */
-  const DEPT_NAMES = [
-    "Service",
-    "Sales",
-    "Spare Parts",
-    "Accounts",
-    "Warehouse",
-    "Purchase",
-    "Quality Control",
-    "Logistics",
-    "Workshop",
-    "Administration",
-  ];
+  /* ═══════════════════════════════════════════════════════════
+     10. DEPARTMENTS  (10 departments)
+     ═══════════════════════════════════════════════════════════ */
   const departments = await Department.insertMany(
     DEPT_NAMES.slice(0, C.departments).map((name, i) => ({
       id: i + 1,
@@ -820,7 +1019,11 @@ async function seed() {
   );
   console.log(`✓ Departments: ${departments.length}`);
 
-  /* ── 11. ITEMS (deterministic GST / non-GST) ── */
+  /* ═══════════════════════════════════════════════════════════
+     11. ITEMS  (140 GST + 140 non-GST = 280 items)
+         Each linked to: category, brand, supplier (contact), dept
+         Brand.item_ids wired bidirectionally
+     ═══════════════════════════════════════════════════════════ */
   const freshCats = await Category.find({ user_id: uid }).lean();
   const catBrandMap = new Map(
     freshCats.map((c) => [String(c._id), (c.brand_ids || []).map(String)]),
@@ -836,13 +1039,16 @@ async function seed() {
         map.length ?
           brands.find((q) => String(q._id) === p(map))
         : brands[idx % brands.length];
-      const sup = allSuppliers[idx % allSuppliers.length];
+      const sup =
+        isGst ?
+          gstSuppliers[idx % gstSuppliers.length]
+        : nongstSuppliers[idx % nongstSuppliers.length];
       const gp = isGst ? p([5, 12, 18, 28]) : 0;
       const pr = rd(ri(70, 4200) + ri(-20, 90));
       const sr = rd(pr * (1 + ri(12, 45) / 100));
       const mr = rd(sr * (1 + ri(8, 25) / 100));
-      const physicalStock = ri(12, 260);
-      const logicalStock = isGst ? 0 : rd(ri(-220, 320) / 10);
+      const physicalStock = ri(20, 300);
+      const logicalStock = isGst ? 0 : rd(ri(-100, 200) / 10);
       return {
         id: idx + 1,
         item_name: iname(idx),
@@ -858,7 +1064,7 @@ async function seed() {
         logical_stock: logicalStock,
         threshold: ri(4, 30),
         image:
-          coin(12) ?
+          coin(15) ?
             `https://cdn.maheshwarimotors.dev/items/item-${pad(idx + 1, 4)}.jpg`
           : undefined,
         is_gst: isGst,
@@ -875,12 +1081,13 @@ async function seed() {
     ...mkItems(C.nongstItems, 0, C.gstItems),
   ];
   const items = await Item.insertMany(allItemDocs);
-  const gstItems = items.filter((i) => i.is_gst === 1);
-  const nongstItems = items.filter((i) => i.is_gst === 0);
+  const gstItems = items.filter((it) => it.is_gst === 1);
+  const nongstItems = items.filter((it) => it.is_gst === 0);
 
-  // Sync brand → item_ids
+  // Sync brand.item_ids bidirectionally
   const brandItemMap = new Map();
   for (const it of items) {
+    if (!it.brand_id) continue;
     const k = String(it.brand_id);
     if (!brandItemMap.has(k)) brandItemMap.set(k, []);
     brandItemMap.get(k).push(it._id);
@@ -893,42 +1100,83 @@ async function seed() {
       },
     })),
   );
+
+  // Also wire item IDs into category → label → brand_discounts
+  const freshCats2 = await Category.find({ user_id: uid }).lean();
+  const catLabelBulk = [];
+  for (const cat of freshCats2) {
+    if (!cat.labels || !cat.labels.length) continue;
+    let changed = false;
+    const updatedLabels = cat.labels.map((label) => ({
+      ...label,
+      brand_discounts: (label.brand_discounts || []).map((bd) => {
+        const brandItemIds = (
+          brandItemMap.get(String(bd.brand_id)) || []
+        ).filter((itemId) => {
+          const it = items.find((x) => String(x._id) === String(itemId));
+          return it && String(it.category_id) === String(cat._id);
+        });
+        if (brandItemIds.length > 0) changed = true;
+        return { ...bd, item_ids: brandItemIds };
+      }),
+    }));
+    if (changed) {
+      catLabelBulk.push({
+        updateOne: {
+          filter: { _id: cat._id },
+          update: { $set: { labels: updatedLabels } },
+        },
+      });
+    }
+  }
+  if (catLabelBulk.length) await Category.bulkWrite(catLabelBulk);
+
   console.log(
     `✓ Items: ${items.length} (${gstItems.length} GST + ${nongstItems.length} non-GST)`,
   );
+  console.log(`  ↳ Brand.item_ids synced for ${brandItemMap.size} brands`);
+  console.log(
+    `  ↳ Category label item_ids synced for ${catLabelBulk.length} categories`,
+  );
 
-  // Party-wise item discounts (additional layer over label discounts)
+  // Party-wise item discounts (maps specific item → party custom pricing)
   const partyDiscountBulk = allParties.map((party, idx) => {
-    const chosen = smp(items, ri(3, 8));
+    const chosen = smp(items, ri(3, 10));
     const item_discounts = chosen.map((it) => ({
       item_id: it._id,
       discount1: {
-        normal: rd(ri(0, 250) / 100),
-        special: rd(ri(0, 150) / 100),
+        normal: rd(ri(0, 300) / 100),
+        special: rd(ri(0, 200) / 100),
       },
       discount2: {
-        normal: rd(ri(0, 220) / 100),
-        special: rd(ri(0, 150) / 100),
+        normal: rd(ri(0, 250) / 100),
+        special: rd(ri(0, 180) / 100),
       },
     }));
-
     return {
       updateOne: {
         filter: { _id: party._id },
         update: {
           $set: {
             item_discounts,
-            assigned_label: idx % 2 === 0 ? "Label A" : "Label B",
+            assigned_label: LABEL_NAMES[idx % LABEL_NAMES.length],
           },
         },
       },
     };
   });
-
   if (partyDiscountBulk.length) await Contact.bulkWrite(partyDiscountBulk);
-  console.log("✓ Party item discounts mapped");
+  console.log(`✓ Party item discounts mapped for ${allParties.length} parties`);
 
-  /* ── 11. CHALLANS (deterministic type × is_gst) ── */
+  /* ═══════════════════════════════════════════════════════════
+     12. CHALLANS
+         Sale:     GST 180 + Non-GST 180 = 360
+         Purchase: GST 120 + Non-GST 120 = 240
+         Total:    600 challans
+         - First N sale challans → converted to bill
+         - Linked challans (GST ↔ Non-GST) for some
+         - Payment status spread: paid / due / overpaid
+     ═══════════════════════════════════════════════════════════ */
   let challanSeq = 0;
   let cNoGstSale = 0,
     cNoNongstSale = 0,
@@ -944,11 +1192,11 @@ async function seed() {
         Array.isArray(contact.banks) && contact.banks.length > 0 ?
           contact.banks[0]
         : null;
-      const numItems = ri(1, Math.min(5, itemPool.length));
+      const numItems = ri(1, Math.min(6, itemPool.length));
       const chosenItems = smp(itemPool, numItems);
 
       const lines = chosenItems.map((it) => {
-        const q = challanType === "sale" ? ri(1, 8) : ri(3, 24);
+        const q = challanType === "sale" ? ri(1, 10) : ri(2, 30);
         const base = challanType === "sale" ? it.sale_rate : it.purchase_rate;
         const rate = rd(Math.max(1, base * (1 + ri(-8, 8) / 100)));
         const d = challanType === "sale" ? ri(0, 12) : ri(0, 4);
@@ -1009,7 +1257,8 @@ async function seed() {
         challan_no: no,
         challan_type: challanType,
         date: d,
-        label_name: challanType === "sale" ? (contact.assigned_label ?? null) : null,
+        label_name:
+          challanType === "sale" ? (contact.assigned_label ?? null) : null,
         contact_id: contact._id,
         from_bank:
           firmBank?.bank_name ?
@@ -1079,8 +1328,8 @@ async function seed() {
     C.nongstPurchase,
   );
 
-  // Link some GST ↔ non-GST sale challans
-  const linkN = Math.min(5, gstSaleChallans.length, nongstSaleChallans.length);
+  // Link some GST ↔ Non-GST sale challans bidirectionally
+  const linkN = Math.min(15, gstSaleChallans.length, nongstSaleChallans.length);
   for (let i = 0; i < linkN; i++) {
     gstSaleChallans[i].linked_challan_id = nongstSaleChallans[i]._id;
     nongstSaleChallans[i].linked_challan_id = gstSaleChallans[i]._id;
@@ -1100,127 +1349,263 @@ async function seed() {
   console.log(
     `    GST Purchase: ${gstPurchaseChallans.length}  |  Non-GST Purchase: ${nongstPurchaseChallans.length}`,
   );
+  console.log(`    Linked pairs: ${linkN}`);
 
-  /* ── 12. BILLS (first N sale challans → billed) ── */
+  /* ═══════════════════════════════════════════════════════════
+     13. BILLS  (130 GST + 130 non-GST = 260 bills)
+         - First 110 GST/non-GST bills: 1 challan each
+         - Next 20: multi-challan bills (2-3 challans each from same contact)
+         - Payment status spread: paid / due / overpaid
+         - Some bills have returns, transport charges, vehicle numbers
+         - Challan.converted_to_bill = true + bill_id set
+     ═══════════════════════════════════════════════════════════ */
   let billSeq = 0,
     bNoGst = 0,
     bNoNongst = 0;
-  const gstBills = [];
-  const nongstBills = [];
+  const gstBillDocs = [];
+  const nongstBillDocs = [];
   const contactMap = new Map(allContacts.map((c) => [String(c._id), c]));
 
-  // GST Bills — one challan per bill from first C.gstBills GST sale challans
-  for (let idx = 0; idx < C.gstBills && idx < gstSaleChallans.length; idx++) {
+  // Helper: create a bill from an array of challans
+  const makeBill = (challans, isGst, idx, totalBills) => {
     billSeq++;
-    const chal = gstSaleChallans[idx];
-    const ret = idx % 5 === 4 ? rd(chal.amount * (ri(2, 12) / 100)) : 0;
-    const finalAmt = rd(Math.max(1, chal.amount - ret));
-    const { status, paid } = payStatus(idx, C.gstBills, finalAmt);
+    const totalAmount = rd(challans.reduce((s, c) => s + c.amount, 0));
+    const ret = idx % 5 === 4 ? rd(totalAmount * (ri(2, 12) / 100)) : 0;
+    const finalAmt = rd(Math.max(1, totalAmount - ret));
+    const { status, paid } = payStatus(idx, totalBills, finalAmt);
 
-    bNoGst++;
-    const d = dta(new Date(chal.date), 1, 15);
+    if (isGst === 1) bNoGst++;
+    else bNoNongst++;
+
+    const billNo =
+      isGst === 1 ? `BL-${pad(bNoGst, 6)}` : `BL-${pad(bNoNongst, 6)}`;
+
+    const firstChal = challans[0];
+    const d = dta(new Date(firstChal.date), 1, 15);
     const oid = new mongoose.Types.ObjectId();
 
-    chal.converted_to_bill = true;
-    chal.bill_id = oid;
-    const contact = contactMap.get(String(chal.contact_id));
+    // Mark all challans as converted
+    for (const ch of challans) {
+      ch.converted_to_bill = true;
+      ch.bill_id = oid;
+    }
 
-    gstBills.push({
+    const contact = contactMap.get(String(firstChal.contact_id));
+
+    return {
       _id: oid,
       id: billSeq,
-      bill_no: `BL-${pad(bNoGst, 6)}`,
+      bill_no: billNo,
       date: d,
-      contact_id: chal.contact_id,
-      transport_id: contact?.transport_id || null,
+      contact_id: firstChal.contact_id,
+      transport_id:
+        contact?.transport_id || (coin(40) ? p(transports)._id : null),
       customer_name: contact?.name || "Customer",
-      vehicle_number: `RJ${ri(10, 39)}${String.fromCharCode(65 + ri(0, 25))}${String.fromCharCode(65 + ri(0, 25))}${pad(ri(1000, 9999), 4)}`,
-      transport_charge: rd(contact?.transport_charge || ri(40, 250)),
+      vehicle_number: coin(70) ? vehNo() : "",
+      transport_charge: rd(contact?.transport_charge || ri(40, 350)),
       amount: finalAmt,
       paid_amount: paid,
       return_amount: ret,
       payment_status: status,
-      challan_ids: [chal._id],
-      skip_stock_calculation: false,
-      is_gst: 1,
+      challan_ids: challans.map((c) => c._id),
+      skip_stock_calculation: isGst === 0,
+      is_gst: isGst,
       user_id: uid,
       createdAt: d,
       updatedAt: d,
-    });
-  }
+    };
+  };
 
-  // Non-GST Bills
+  // ── Single-challan GST bills ──
+  const singleGstBillCount = C.gstBills - C.multiBillCount;
   for (
     let idx = 0;
-    idx < C.nongstBills && idx < nongstSaleChallans.length;
+    idx < singleGstBillCount && idx < gstSaleChallans.length;
     idx++
   ) {
-    billSeq++;
-    const chal = nongstSaleChallans[idx];
-    const ret = idx % 5 === 4 ? rd(chal.amount * (ri(2, 12) / 100)) : 0;
-    const finalAmt = rd(Math.max(1, chal.amount - ret));
-    const { status, paid } = payStatus(idx, C.nongstBills, finalAmt);
-
-    bNoNongst++;
-    const d = dta(new Date(chal.date), 1, 15);
-    const oid = new mongoose.Types.ObjectId();
-
-    chal.converted_to_bill = true;
-    chal.bill_id = oid;
-    const contact = contactMap.get(String(chal.contact_id));
-
-    nongstBills.push({
-      _id: oid,
-      id: billSeq,
-      bill_no: `BL-${pad(bNoNongst, 6)}`,
-      date: d,
-      contact_id: chal.contact_id,
-      transport_id: contact?.transport_id || null,
-      customer_name: contact?.name || "Customer",
-      vehicle_number: `RJ${ri(10, 39)}${String.fromCharCode(65 + ri(0, 25))}${String.fromCharCode(65 + ri(0, 25))}${pad(ri(1000, 9999), 4)}`,
-      transport_charge: rd(contact?.transport_charge || ri(40, 250)),
-      amount: finalAmt,
-      paid_amount: paid,
-      return_amount: ret,
-      payment_status: status,
-      challan_ids: [chal._id],
-      skip_stock_calculation: true,
-      is_gst: 0,
-      user_id: uid,
-      createdAt: d,
-      updatedAt: d,
-    });
+    gstBillDocs.push(makeBill([gstSaleChallans[idx]], 1, idx, C.gstBills));
   }
 
-  const allBills = [...gstBills, ...nongstBills];
+  // ── Multi-challan GST bills (bundle 2-3 challans from same contact) ──
+  const gstUnbilled = gstSaleChallans.filter((c) => !c.converted_to_bill);
+  const gstByContact = new Map();
+  for (const ch of gstUnbilled) {
+    const k = String(ch.contact_id);
+    if (!gstByContact.has(k)) gstByContact.set(k, []);
+    gstByContact.get(k).push(ch);
+  }
+  let gstMultiCount = 0;
+  for (const [, chs] of gstByContact) {
+    if (gstMultiCount >= C.multiBillCount) break;
+    if (chs.length < 2) continue;
+    const bundle = chs.slice(0, ri(2, Math.min(3, chs.length)));
+    gstBillDocs.push(
+      makeBill(bundle, 1, singleGstBillCount + gstMultiCount, C.gstBills),
+    );
+    gstMultiCount++;
+  }
 
+  // ── Single-challan Non-GST bills ──
+  const singleNongstBillCount = C.nongstBills - C.multiBillCount;
+  for (
+    let idx = 0;
+    idx < singleNongstBillCount && idx < nongstSaleChallans.length;
+    idx++
+  ) {
+    nongstBillDocs.push(
+      makeBill([nongstSaleChallans[idx]], 0, idx, C.nongstBills),
+    );
+  }
+
+  // ── Multi-challan Non-GST bills ──
+  const nongstUnbilled = nongstSaleChallans.filter((c) => !c.converted_to_bill);
+  const nongstByContact = new Map();
+  for (const ch of nongstUnbilled) {
+    const k = String(ch.contact_id);
+    if (!nongstByContact.has(k)) nongstByContact.set(k, []);
+    nongstByContact.get(k).push(ch);
+  }
+  let nongstMultiCount = 0;
+  for (const [, chs] of nongstByContact) {
+    if (nongstMultiCount >= C.multiBillCount) break;
+    if (chs.length < 2) continue;
+    const bundle = chs.slice(0, ri(2, Math.min(3, chs.length)));
+    nongstBillDocs.push(
+      makeBill(
+        bundle,
+        0,
+        singleNongstBillCount + nongstMultiCount,
+        C.nongstBills,
+      ),
+    );
+    nongstMultiCount++;
+  }
+
+  const allBills = [...gstBillDocs, ...nongstBillDocs];
+
+  // Insert challans first (with converted_to_bill flags set), then bills
   await Challan.insertMany(allChallans);
   await Bill.insertMany(allBills);
 
+  const billedGstChallans = gstSaleChallans.filter(
+    (c) => c.converted_to_bill,
+  ).length;
+  const billedNongstChallans = nongstSaleChallans.filter(
+    (c) => c.converted_to_bill,
+  ).length;
+
   console.log(
-    `✓ Bills: ${allBills.length} (${gstBills.length} GST + ${nongstBills.length} non-GST)`,
+    `✓ Bills: ${allBills.length} (${gstBillDocs.length} GST + ${nongstBillDocs.length} non-GST)`,
+  );
+  console.log(
+    `    Single-challan: ${singleGstBillCount + singleNongstBillCount}  |  Multi-challan: ${gstMultiCount + nongstMultiCount}`,
+  );
+  console.log(
+    `    GST Sale billed: ${billedGstChallans}/${gstSaleChallans.length}  |  Non-GST Sale billed: ${billedNongstChallans}/${nongstSaleChallans.length}`,
   );
 
-  /* ── 13. CONTACT BALANCES ── */
+  /* ═══════════════════════════════════════════════════════════
+     14. STOCK ADJUSTMENTS
+         Simulate real stock changes from challans:
+         - Sale challans  → deduct from physical_stock/stock (GST)
+                            or logical_stock (non-GST)
+         - Purchase challans → add to physical_stock/stock (GST)
+                               or logical_stock (non-GST)
+     ═══════════════════════════════════════════════════════════ */
+  const stockAdj = new Map(); // itemId → { physical: delta, logical: delta }
+
+  const initAdj = (id) => {
+    const k = String(id);
+    if (!stockAdj.has(k)) stockAdj.set(k, { physical: 0, logical: 0 });
+    return stockAdj.get(k);
+  };
+
+  // Sale challans deduct stock
+  for (const ch of [...gstSaleChallans, ...nongstSaleChallans]) {
+    for (const line of ch.items) {
+      const adj = initAdj(line.item_id);
+      if (ch.is_gst === 1) {
+        adj.physical -= line.quantity;
+      } else {
+        adj.logical -= line.quantity;
+      }
+    }
+  }
+
+  // Purchase challans add stock
+  for (const ch of [...gstPurchaseChallans, ...nongstPurchaseChallans]) {
+    for (const line of ch.items) {
+      const adj = initAdj(line.item_id);
+      if (ch.is_gst === 1) {
+        adj.physical += line.quantity;
+      } else {
+        adj.logical += line.quantity;
+      }
+    }
+  }
+
+  // Apply stock adjustments to items
+  const stockBulk = [];
+  for (const [itemIdStr, adj] of stockAdj) {
+    const item = items.find((it) => String(it._id) === itemIdStr);
+    if (!item) continue;
+
+    const newPhysical = Math.max(0, item.physical_stock + adj.physical);
+    const newLogical = item.logical_stock + adj.logical;
+    stockBulk.push({
+      updateOne: {
+        filter: { _id: item._id },
+        update: {
+          $set: {
+            physical_stock: newPhysical,
+            stock: newPhysical,
+            logical_stock: rd(newLogical),
+          },
+        },
+      },
+    });
+  }
+  if (stockBulk.length) await Item.bulkWrite(stockBulk);
+  console.log(
+    `✓ Stock adjusted for ${stockBulk.length} items (from ${allChallans.length} challans)`,
+  );
+
+  /* ═══════════════════════════════════════════════════════════
+     15. CONTACT BALANCES
+         Compute realistic balances from bills + purchase challans:
+         - Bill overpayment → positive balance (credit)
+         - Bill underpayment → negative balance (due)
+         - Purchase challan partial payment → negative balance
+     ═══════════════════════════════════════════════════════════ */
   const balMap = new Map();
   const addBal = (id, delta) => {
     const k = String(id);
     balMap.set(k, rd((balMap.get(k) || 0) + delta));
   };
+
+  // From bills: paid - amount = excess (or deficit)
   for (const b of allBills) {
     addBal(b.contact_id, rd(b.paid_amount - b.amount));
     if (b.return_amount > 0) addBal(b.contact_id, b.return_amount);
   }
+
+  // From purchase challans: paid - amount
   for (const c of [...gstPurchaseChallans, ...nongstPurchaseChallans]) {
     addBal(c.contact_id, rd(c.paid_amount - c.amount));
   }
+
+  // Apply balances; add some randomness for contacts without transactions
   await Contact.bulkWrite(
     allContacts.map((c) => {
       let bal = balMap.get(String(c._id)) || 0;
+      // Contacts with near-zero computed balance get random values for testing
       if (Math.abs(bal) < 5) {
-        const roll = ri(0, 2);
-        if (roll === 0) bal = rd(ri(-9000, -300) / 10);
-        else if (roll === 1) bal = rd(ri(300, 7000) / 10);
-        else bal = 0;
+        const roll = ri(0, 3);
+        if (roll === 0)
+          bal = rd(ri(-9000, -300) / 10); // owes money
+        else if (roll === 1)
+          bal = rd(ri(300, 7000) / 10); // credit balance
+        else bal = 0; // zero balance
       }
       return {
         updateOne: {
@@ -1232,7 +1617,10 @@ async function seed() {
   );
   console.log("✓ Contact balances updated");
 
-  /* ── 14. REPORTS (10 per type × 5 types = 50, half GST / half non-GST) ── */
+  /* ═══════════════════════════════════════════════════════════
+     16. REPORTS  (40 per type × 5 types = 200)
+         Mix of GST/non-GST, spread across last year
+     ═══════════════════════════════════════════════════════════ */
   const reportDocs = [];
   for (const rt of REPORT_TYPES) {
     for (let i = 0; i < C.reportsPerType; i++) {
@@ -1241,7 +1629,7 @@ async function seed() {
       reportDocs.push({
         pdf_link: `https://reports.maheshwarimotors.dev/${d.getFullYear()}/${pad(d.getMonth() + 1, 2)}/report-${rt}-${pad(i + 1, 4)}.pdf`,
         date_created: d,
-        user_id: ri(0, 3) === 0 && staff.length ? p(staff)._id : uid,
+        user_id: ri(0, 4) === 0 && staff.length ? p(staff)._id : uid,
         is_gst: isGst,
         report_type: rt,
         createdAt: d,
@@ -1254,7 +1642,11 @@ async function seed() {
     `✓ Reports: ${reportDocs.length} (${C.reportsPerType} per type × ${REPORT_TYPES.length} types)`,
   );
 
-  /* ── 15. COUNTERS ── */
+  /* ═══════════════════════════════════════════════════════════
+     17. COUNTERS
+         Sync all counter sequences to match inserted data
+         so that the app's getNextId() continues correctly
+     ═══════════════════════════════════════════════════════════ */
   await Counter.insertMany([
     { model_name: "Category", user_id: uid, seq: cats.length },
     { model_name: "Brand", user_id: uid, seq: brands.length },
@@ -1275,49 +1667,76 @@ async function seed() {
     { model_name: "BillNo_GST", user_id: uid, seq: bNoGst },
     { model_name: "BillNo_NONGST", user_id: uid, seq: bNoNongst },
   ]);
-  console.log("✓ Counters synced");
+  console.log("✓ Counters synced (18 sequences)");
 
-  /* ── SUMMARY ── */
+  /* ═══════════════════════════════════════════════════════════
+     SUMMARY
+     ═══════════════════════════════════════════════════════════ */
+  const unbilledGstSale = gstSaleChallans.filter(
+    (c) => !c.converted_to_bill,
+  ).length;
+  const unbilledNongstSale = nongstSaleChallans.filter(
+    (c) => !c.converted_to_bill,
+  ).length;
+  const paidBills = allBills.filter((b) => b.payment_status === "paid").length;
+  const dueBills = allBills.filter((b) => b.payment_status === "due").length;
+  const overpaidBills = allBills.filter(
+    (b) => b.payment_status === "overpaid",
+  ).length;
+
   console.log("\n══════════════════════════════════════════════════════════");
-  console.log("  SEED COMPLETE — Type breakdown per collection");
+  console.log("  SEED COMPLETE — Full breakdown");
   console.log("══════════════════════════════════════════════════════════");
   console.log(
-    `  Users           : ${users.length} (1 main + ${staff.length} secondary [8 active, 2 inactive])`,
-  );
-  console.log(`  Subscriptions   : ${subDocs.length}`);
-  console.log(`  Sessions        : ${sessionDocs.length}`);
-  console.log(
-    `  HSN             : ${hsns.length} (${activeHsns.length} active + ${hsns.length - activeHsns.length} inactive)`,
-  );
-  console.log(`  Categories      : ${cats.length}`);
-  console.log(`  Brands          : ${brands.length}`);
-  console.log(`  Transports      : ${transports.length}`);
-  console.log(`  Contacts        : ${allContacts.length}`);
-  console.log(`    GST Parties     : ${gstParties.length}`);
-  console.log(`    Non-GST Parties : ${nongstParties.length}`);
-  console.log(`    GST Suppliers   : ${gstSuppliers.length}`);
-  console.log(`    Non-GST Suppliers: ${nongstSuppliers.length}`);
-  console.log(`  Agents          : ${agents.length}`);
-  console.log(`  Areas           : ${areas.length}`);
-  console.log(`  Departments     : ${departments.length}`);
-  console.log(
-    `  Items           : ${items.length} (${gstItems.length} GST + ${nongstItems.length} non-GST)`,
-  );
-  console.log(`  Challans        : ${allChallans.length}`);
-  console.log(
-    `    GST Sale        : ${gstSaleChallans.length} (${gstBills.length} billed + ${gstSaleChallans.length - gstBills.length} unbilled)`,
+    `  Users             : ${users.length} (1 main + ${staff.length} secondary [8 active, ${C.secondaryUsers - 8} inactive])`,
   );
   console.log(
-    `    Non-GST Sale    : ${nongstSaleChallans.length} (${nongstBills.length} billed + ${nongstSaleChallans.length - nongstBills.length} unbilled)`,
+    `  Subscriptions     : ${subDocs.length} (${activeSubs} active, ${expiredSubs} expired, ${cancelledSubs} cancelled)`,
   );
-  console.log(`    GST Purchase    : ${gstPurchaseChallans.length}`);
-  console.log(`    Non-GST Purchase: ${nongstPurchaseChallans.length}`);
+  console.log(`  Sessions          : ${sessionDocs.length}`);
   console.log(
-    `  Bills           : ${allBills.length} (${gstBills.length} GST + ${nongstBills.length} non-GST)`,
+    `  HSN               : ${hsns.length} (${activeHsns.length} active + ${hsns.length - activeHsns.length} inactive)`,
   );
   console.log(
-    `  Reports         : ${reportDocs.length} (${C.reportsPerType}/type × ${REPORT_TYPES.length} types)`,
+    `  Categories        : ${cats.length} (${C.labelsPerCategory} labels each)`,
   );
+  console.log(`  Brands            : ${brands.length}`);
+  console.log(`  Transports        : ${transports.length}`);
+  console.log(`  Contacts          : ${allContacts.length}`);
+  console.log(`    GST Parties       : ${gstParties.length}`);
+  console.log(`    Non-GST Parties   : ${nongstParties.length}`);
+  console.log(`    GST Suppliers     : ${gstSuppliers.length}`);
+  console.log(`    Non-GST Suppliers : ${nongstSuppliers.length}`);
+  console.log(`  Agents            : ${agents.length}`);
+  console.log(`  Areas             : ${areas.length}`);
+  console.log(`  Departments       : ${departments.length}`);
+  console.log(
+    `  Items             : ${items.length} (${gstItems.length} GST + ${nongstItems.length} non-GST)`,
+  );
+  console.log(`  Challans          : ${allChallans.length}`);
+  console.log(
+    `    GST Sale          : ${gstSaleChallans.length} (${billedGstChallans} billed + ${unbilledGstSale} unbilled)`,
+  );
+  console.log(
+    `    Non-GST Sale      : ${nongstSaleChallans.length} (${billedNongstChallans} billed + ${unbilledNongstSale} unbilled)`,
+  );
+  console.log(`    GST Purchase      : ${gstPurchaseChallans.length}`);
+  console.log(`    Non-GST Purchase  : ${nongstPurchaseChallans.length}`);
+  console.log(
+    `  Bills             : ${allBills.length} (${gstBillDocs.length} GST + ${nongstBillDocs.length} non-GST)`,
+  );
+  console.log(
+    `    Single-challan    : ${singleGstBillCount + singleNongstBillCount}`,
+  );
+  console.log(`    Multi-challan     : ${gstMultiCount + nongstMultiCount}`);
+  console.log(
+    `    Paid              : ${paidBills}  |  Due: ${dueBills}  |  Overpaid: ${overpaidBills}`,
+  );
+  console.log(
+    `  Reports           : ${reportDocs.length} (${C.reportsPerType}/type × ${REPORT_TYPES.length} types)`,
+  );
+  console.log(`  Counters          : 18 sequences`);
+  console.log(`  Stock adjustments : ${stockBulk.length} items updated`);
   console.log("══════════════════════════════════════════════════════════");
   console.log("  Login credentials:");
   console.log("    Admin   : admin_user / Admin@1234");
