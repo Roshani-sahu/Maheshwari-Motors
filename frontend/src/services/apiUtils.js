@@ -77,6 +77,7 @@ export const normalizeContact = (contact = {}) => ({
 export const normalizeItem = (item = {}) => ({
   id: getEntityId(item),
   itemName: item?.item_name || item?.name || "",
+  barcode: item?.barcode || item?.barcode_no || item?.barcodeNumber || item?.barcode_value || "",
   amount: toNumber(item?.sale_rate ?? item?.amount ?? item?.rate, 0),
   purchase_rate: toNumber(item?.purchase_rate, 0),
   mrp_rate: toNumber(item?.mrp_rate, 0),
@@ -117,6 +118,7 @@ export const normalizeChallan = (challan = {}) => ({
   gstType: toNumber(challan?.is_gst, 0) === 1 ? 1 : 0,
   converted_to_bill: Boolean(challan?.converted_to_bill),
   payment_status: challan?.payment_status || "",
+  printOption: challan?.print_option || 1,
   raw: challan,
 });
 
