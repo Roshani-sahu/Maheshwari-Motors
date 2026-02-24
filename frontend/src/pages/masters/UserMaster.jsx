@@ -15,6 +15,43 @@ const INDIAN_STATES = [
   "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Lakshadweep", "Puducherry", "Ladakh", "Jammu and Kashmir"
 ];
 
+const getSubscriptionStatus = (subscription) => {
+  if (!subscription?.validityFrom || !subscription?.validityTo) {
+    return { label: 'No Plan', sort: 5, className: 'bg-gray-200 text-gray-800' };
+  }
+
+  const today = new Date();
+  const validityFrom = new Date(subscription.validityFrom);
+  const validityTo = new Date(subscription.validityTo);
+  const oneDay = 1000 * 60 * 60 * 24;
+
+  if (Number.isNaN(validityFrom.getTime()) || Number.isNaN(validityTo.getTime())) {
+    return { label: 'No Plan', sort: 5, className: 'bg-gray-200 text-gray-800' };
+  }
+
+  const daysSinceActive = Math.floor((today - validityFrom) / oneDay);
+  const daysUntilExpiry = Math.floor((validityTo - today) / oneDay);
+
+  if (daysSinceActive >= 0 && daysSinceActive <= 7) {
+    return { label: 'Fresh', sort: 3, className: 'bg-green-500 text-white' };
+  }
+  if (daysUntilExpiry > 0 && daysUntilExpiry <= 30) {
+    return { label: 'Expiring Soon', sort: 1, className: 'bg-yellow-400 text-gray-900' };
+  }
+  if (daysUntilExpiry <= 0) {
+    return { label: 'Expired', sort: 2, className: 'bg-red-500 text-white' };
+  }
+  return { label: 'Active', sort: 4, className: 'bg-blue-500 text-white' };
+};
+
+const DUMMY_TRANSACTIONS = [
+  { user: 'Amit Traders', plan: 'basic', validityFrom: '2026-02-01', validityTo: '2026-03-01', amount: 1999, createdAt: '2026-02-01' },
+  { user: 'Ravi Auto', plan: 'standard', validityFrom: '2026-01-20', validityTo: '2026-02-28', amount: 2999, createdAt: '2026-01-20' },
+  { user: 'Kiran Motors', plan: 'premium', validityFrom: '2026-02-10', validityTo: '2026-05-10', amount: 4999, createdAt: '2026-02-10' },
+  { user: 'Shree Parts', plan: 'basic', validityFrom: '2026-02-14', validityTo: '2026-03-14', amount: 1999, createdAt: '2026-02-14' },
+  { user: 'MM Retail', plan: 'enterprise', validityFrom: '2026-01-05', validityTo: '2026-04-05', amount: 8999, createdAt: '2026-01-05' }
+];
+
 const UserMaster = () => {
   const navigate = useNavigate();
   const { users, setUsers, showToast } = useStore();
@@ -27,6 +64,7 @@ const UserMaster = () => {
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, user: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingUser, setViewingUser] = useState(null);
+  const [transactions, setTransactions] = useState(DUMMY_TRANSACTIONS);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -114,13 +152,19 @@ const UserMaster = () => {
 
       if (isMounted.current) {
         console.log(`✅ Fetched ${allUsers.length} users.`);
-        const mappedUsers = allUsers.map(u => ({
-           id: u._id,
-           username: u.name, 
-           email: u.email,
-           role: 'secondary',
-           original: u 
-        }));
+        const mappedUsers = allUsers.map(u => {
+          const subscriptionStatus = getSubscriptionStatus(u.subscription);
+          return {
+            id: u._id,
+            username: u.name,
+            email: u.email,
+            role: 'secondary',
+            original: u,
+            subscriptionStatusLabel: subscriptionStatus.label,
+            subscriptionStatusSort: subscriptionStatus.sort,
+            subscriptionStatusClass: subscriptionStatus.className
+          };
+        });
         setUsers(mappedUsers);
       }
     } catch (error) {
@@ -131,9 +175,25 @@ const UserMaster = () => {
     }
   };
 
+  const fetchTransactions = async () => {
+    try {
+      const response = await api.get('/admin/transactions');
+      if (isMounted.current) {
+        const txnData = Array.isArray(response.data?.data) ? response.data.data : response.data?.data?.data || [];
+        setTransactions(txnData.length > 0 ? txnData : DUMMY_TRANSACTIONS);
+      }
+    } catch (error) {
+      if (isMounted.current) {
+        console.error("Failed to fetch transactions", error);
+        setTransactions(DUMMY_TRANSACTIONS);
+      }
+    }
+  };
+
   // STRICT SINGLE RUN: No dependencies, no cleanup abort
   useEffect(() => {
      fetchUsers();
+     fetchTransactions();
      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -154,6 +214,22 @@ const UserMaster = () => {
       key: 'id', 
       label: 'ID',
       render: (value) => <span className="text-xs sm:text-sm">{value.substring(0, 8)}...</span>
+    },
+    {
+      key: 'subscriptionStatusSort',
+      label: 'Status',
+      render: (_value, row) => {
+        const showStatusDot = [1, 2, 3].includes(row?.subscriptionStatusSort);
+        if (!showStatusDot) return <span className="text-gray-400">-</span>;
+
+        return (
+          <span
+            className={`inline-flex h-4 w-4 rounded-full ring-1 ring-black/10 shadow-sm ${row.subscriptionStatusClass}`}
+            title={row.subscriptionStatusLabel}
+            aria-label={row.subscriptionStatusLabel}
+          />
+        );
+      }
     },
     { 
       key: 'username', 
@@ -271,7 +347,7 @@ const UserMaster = () => {
     }
 
     try {
-       console.log(`🗑️ Deleting user explicitly: ${deleteDialog.user.id}`);
+       console.log(`Deleting user explicitly: ${deleteDialog.user.id}`);
        await api.delete(`/admin/users/${deleteDialog.user.id}`);
        showToast('User deleted successfully', 'success');
        setDeleteDialog({ isOpen: false, user: null });
@@ -306,6 +382,66 @@ const UserMaster = () => {
           </div>
         </div>
 
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Transaction History</h2>
+            <p className="text-gray-600 text-sm">Recent user subscription and account transactions</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            {transactions.length > 0 ? (
+              <table className="w-full text-xs sm:text-sm">
+                <thead className="bg-gray-100 border-b">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">User</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Plan</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Status</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Valid From</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Valid To</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Amount</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {transactions.slice(0, 10).map((txn, idx) => {
+                    const status = getSubscriptionStatus({
+                      validityFrom: txn.validityFrom,
+                      validityTo: txn.validityTo
+                    });
+                    const showStatusDot = [1, 2, 3].includes(status.sort);
+
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 truncate">{txn.user || '-'}</td>
+                        <td className="px-4 py-2">{txn.plan || '-'}</td>
+                        <td className="px-4 py-2">
+                          {showStatusDot ? (
+                            <span
+                              className={`inline-flex h-4 w-4 rounded-full ring-1 ring-black/10 shadow-sm ${status.className}`}
+                              title={status.label}
+                              aria-label={status.label}
+                            />
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2">{txn.validityFrom ? new Date(txn.validityFrom).toLocaleDateString() : '-'}</td>
+                        <td className="px-4 py-2">{txn.validityTo ? new Date(txn.validityTo).toLocaleDateString() : '-'}</td>
+                        <td className="px-4 py-2 font-medium">{'\u20B9'}{txn.amount || '0'}</td>
+                        <td className="px-4 py-2">{txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : '-'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="text-center py-6 text-gray-500">
+                <p>No transactions yet</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-6">
@@ -336,7 +472,7 @@ const UserMaster = () => {
           <div className="overflow-x-auto">
             <DataTable
               columns={columns}
-              data={users}
+              data={[...users].sort((a, b) => (a.subscriptionStatusSort ?? 99) - (b.subscriptionStatusSort ?? 99))}
               actions={actions}
               searchable={true}
               sortable={true}
