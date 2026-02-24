@@ -223,7 +223,8 @@ const ChallanForm = () => {
           gstPercent: 0,
           itemDiscount: item?.discount || 0,
           stock: item?.stock || 0,
-          type: prev.gstType !== null ? prev.gstType : 0
+          type: prev.gstType !== null ? prev.gstType : 0,
+          remark: item?.name || '',
         };
       }
 
@@ -625,6 +626,7 @@ const ChallanForm = () => {
                 <tr>
                   <th className="px-2 py-2 text-left border-r">SNo</th>
                   <th className="px-2 py-2 text-left border-r">ItemName</th>
+                  <th className="px-2 py-2 text-left border-r">Remark</th>
                   <th className="px-2 py-2 text-left border-r">Type</th>
                   <th className="px-2 py-2 text-left border-r">Stock</th>
                   <th className="px-2 py-2 text-left border-r">PCS</th>
@@ -650,6 +652,14 @@ const ChallanForm = () => {
                       <td className="px-2 py-2 border-r">{index + 1}</td>
                       <td className="px-2 py-2 border-r">
                         <span className="text-xs">{item?.name || 'Unknown Item'}</span>
+                      </td>
+                      <td className="px-2 py-2 border-r">
+                        <input
+                          type="text"
+                          value={details.remark || ''}
+                          onChange={(e) => updateItemDetail(itemId, 'remark', e.target.value)}
+                          className="w-32 px-1 py-1 border rounded text-xs"
+                        />
                       </td>
                       <td className="px-2 py-2 border-r">
                         <select
@@ -751,7 +761,7 @@ const ChallanForm = () => {
                 })}
                 {challan.items.length === 0 && (
                   <tr>
-                    <td colSpan={13} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
                       No items selected. Use the search below to add items.
                     </td>
                   </tr>

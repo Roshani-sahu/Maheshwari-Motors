@@ -290,6 +290,7 @@ const BillForm = () => {
           itemDiscount: item?.discount || 0,
           stock: item?.stock || 0,
           type: isFirmGST ? 1 : (prev.gstType !== null ? prev.gstType : 0),
+          remark: item?.name || '',
         };
       }
 
@@ -347,17 +348,27 @@ const BillForm = () => {
   };
 
   const handleViewLastSold = async (itemId) => {
-    try {
-      const res = await api.get(`/items/${itemId}/last-sold`);
-      if (res.data?.success && res.data?.data) {
-        setViewItemModal({ isOpen: true, data: res.data.data });
-      } else {
-        showToast("No previous sale found", "info");
+    const item = loadedItems.find((i) => i.id === itemId);
+    const party = (bill.contactType === 'party' ? loadedParties : loadedSuppliers).find(c => c.id === bill.party);
+    
+    // Dummy data
+    const dummyData = {
+      challan_no: `CH${Math.floor(Math.random() * 10000)}`,
+      challan_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      contact: {
+        name: party?.name || 'Sample Party',
+        phone: '9876543210'
+      },
+      is_gst: effectiveGstType,
+      item: {
+        quantity: Math.floor(Math.random() * 10) + 1,
+        rate: (item?.amount || 100) + (Math.random() * 50 - 25),
+        discount: Math.floor(Math.random() * 15),
+        gst_percent: effectiveGstType === 1 ? [5, 12, 18, 28][Math.floor(Math.random() * 4)] : 0
       }
-    } catch (err) {
-      console.error("Failed to fetch last sold:", err);
-      showToast("Failed to fetch last sold details", "error");
-    }
+    };
+    
+    setViewItemModal({ isOpen: true, data: dummyData });
   };
 
   const handlePrint = () => {
@@ -825,6 +836,7 @@ const BillForm = () => {
                 <tr>
                   <th className="px-2 py-2 text-left border-r">SNo</th>
                   <th className="px-2 py-2 text-left border-r">ItemName</th>
+                  <th className="px-2 py-2 text-left border-r">Remark</th>
                   <th className="px-2 py-2 text-left border-r">Type</th>
                   <th className="px-2 py-2 text-left border-r">Stock</th>
                   <th className="px-2 py-2 text-left border-r">PCS</th>
@@ -853,6 +865,16 @@ const BillForm = () => {
                         <span className="text-xs">
                           {item?.name || "Unknown Item"}
                         </span>
+                      </td>
+                      <td className="px-2 py-2 border-r">
+                        <input
+                          type="text"
+                          value={details.remark || ''}
+                          onChange={(e) =>
+                            updateItemDetail(itemId, "remark", e.target.value)
+                          }
+                          className="w-32 px-1 py-1 border rounded text-xs"
+                        />
                       </td>
                       <td className="px-2 py-2 border-r">
                         {isFirmGST ? (
@@ -1002,7 +1024,7 @@ const BillForm = () => {
                 {bill.items.length === 0 && (
                   <tr>
                     <td
-                      colSpan={13}
+                      colSpan={14}
                       className="px-4 py-8 text-center text-gray-500"
                     >
                       No items selected. Use the search below to add items.
@@ -1232,7 +1254,7 @@ const BillForm = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Rate:</p>
-                  <p className="text-sm">₹{viewItemModal.data.item?.rate}</p>
+                  <p className="text-sm">₹{viewItemModal.data.item?.rate?.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Discount:</p>
