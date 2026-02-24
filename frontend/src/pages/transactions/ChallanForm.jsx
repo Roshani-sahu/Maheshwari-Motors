@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaTimes, FaSave } from 'react-icons/fa';
+import { FaTimes, FaSave, FaPrint } from 'react-icons/fa';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
@@ -29,6 +29,7 @@ const ChallanForm = () => {
   const [itemsPage, setItemsPage] = useState(1);
   const [totalItemsPages, setTotalItemsPages] = useState(1);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [printOption, setPrintOption] = useState(1);
   const itemDropdownRef = useRef(null);
 
   const [challan, setChallan] = useState({
@@ -304,6 +305,199 @@ const ChallanForm = () => {
       console.error(error);
       showToast(`Failed to ${isEditMode ? 'update' : 'create'} challan`, 'error');
     }
+  };
+
+  const handlePrint = () => {
+    if (challan.party === '' || challan.items.length === 0) {
+      showToast('Please select a party and add items before printing', 'error');
+      return;
+    }
+
+    const party = (challan.contactType === 'party' ? loadedParties : loadedSuppliers).find(c => c.id === challan.party);
+    
+    const printContent = `
+      <html>
+        <head>
+          <title>Challan</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 40px; 
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #000;
+              padding-bottom: 10px;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+            }
+            .header p {
+              margin: 5px 0;
+              font-size: 11px;
+            }
+            .info-section {
+              margin-bottom: 20px;
+            }
+            .info-row {
+              display: flex;
+              margin-bottom: 5px;
+            }
+            .info-label {
+              font-weight: bold;
+              width: 100px;
+            }
+            .info-value {
+              flex: 1;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            th, td {
+              border: 1px solid #000;
+              padding: 8px;
+              text-align: left;
+              font-size: 11px;
+            }
+            th {
+              background-color: #f0f0f0;
+              font-weight: bold;
+            }
+            .amount-section {
+              margin-top: 20px;
+              display: flex;
+              justify-content: flex-end;
+            }
+            .amount-box {
+              width: 250px;
+            }
+            .amount-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 5px 0;
+              border-bottom: 1px solid #ccc;
+            }
+            .amount-total {
+              display: flex;
+              justify-content: space-between;
+              padding: 8px 0;
+              border-top: 2px solid #000;
+              font-weight: bold;
+              font-size: 13px;
+            }
+            .footer {
+              margin-top: 40px;
+              display: flex;
+              justify-content: space-between;
+            }
+            .signature {
+              width: 180px;
+              text-align: center;
+              border-top: 1px solid #000;
+              padding-top: 40px;
+              margin-top: 20px;
+            }
+            @media print {
+              body { margin: 20px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>CHALLAN</h1>
+            <p>${selectedFirm?.name || 'Company Name'}</p>
+          </div>
+
+          <div class="info-section">
+            <div class="info-row">
+              <div class="info-label">Date:</div>
+              <div class="info-value">${new Date(challan.date).toLocaleDateString('en-IN')}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Party:</div>
+              <div class="info-value">${party?.name || ''}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Type:</div>
+              <div class="info-value">${challan.gstType === 1 ? 'GST' : 'Non-GST'}</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>S.No</th>
+                ${printOption === 2 ? '<th>Item Name</th>' : '<th>Barcode</th>'}
+                <th>Qty</th>
+                <th>Rate</th>
+                <th>Discount %</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${challan.items.map((itemId, index) => {
+                const item = loadedItems.find(i => i.id === itemId);
+                const details = challan.itemDetails[itemId] || {};
+                const calc = calculateItemAmount(itemId);
+                
+                return `
+                  <tr>
+                    <td>${index + 1}</td>
+                    ${printOption === 2 
+                      ? `<td>${item?.name || 'Unknown'}</td>` 
+                      : `<td>${item?.barcode || '-'}</td>`
+                    }
+                    <td>${details.pcs || 1}</td>
+                    <td>₹${parseFloat(details.rate || 0).toFixed(2)}</td>
+                    <td>${details.disPercent || 0}%</td>
+                    <td>₹${calc.afterDiscount.toFixed(2)}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <div class="amount-section">
+            <div class="amount-box">
+              <div class="amount-row">
+                <span>Subtotal:</span>
+                <span>₹${calculateTotalAmount().toFixed(2)}</span>
+              </div>
+              <div class="amount-row">
+                <span>Discount:</span>
+                <span>₹${challan.discount.toFixed(2)}</span>
+              </div>
+              <div class="amount-total">
+                <span>Total Amount:</span>
+                <span>₹${(calculateTotalAmount() - challan.discount).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="signature">
+              <p>Authorized Signature</p>
+            </div>
+            <div class="signature">
+              <p>Party Signature</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   };
 
   return (
@@ -647,6 +841,19 @@ const ChallanForm = () => {
               />
             </div>
           </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium w-32">Print Format:</span>
+              <select
+                value={printOption}
+                onChange={(e) => setPrintOption(parseInt(e.target.value))}
+                className="flex-1 px-3 py-2 border rounded-md text-sm"
+              >
+                <option value={1}>Print 1 - Show Barcode</option>
+                <option value={2}>Print 2 - Show Item Name</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-3 pt-4 border-t">
@@ -657,6 +864,14 @@ const ChallanForm = () => {
           >
             <FaSave />
             {isEditMode ? 'Update' : 'Save'} Challan
+          </Button>
+          <Button
+            onClick={handlePrint}
+            disabled={!challan.party || challan.items.length === 0}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+          >
+            <FaPrint />
+            Print Preview
           </Button>
           <Button
             variant="outline"
