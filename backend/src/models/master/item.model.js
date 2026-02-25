@@ -7,20 +7,21 @@ const itemSchema = new mongoose.Schema(
     barcode: {
       type: String,
       trim: true,
-      match: [
-        /^[A-Za-z0-9]{10}$/,
-        "Barcode must be exactly 10 alphanumeric characters",
-      ],
+      // match: [
+      //   /^[A-Za-z0-9]{10}$/,
+      //   "Barcode must be exactly 10 alphanumeric characters",
+      // ],
     },
     item_id: {
       type: Number,
     },
+    alias: { type: String, trim: true },
+    description: { type: String, trim: true },
     sale_rate: { type: Number, required: true },
     purchase_rate: { type: Number, default: 0 },
     mrp_rate: { type: Number, default: 0 },
     gst_percent: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
-    // Backward-compatible stock field (mirrors GST/physical stock)
     stock: { type: Number, default: 0 },
     physical_stock: { type: Number, default: 0, min: 0 },
     logical_stock: { type: Number, default: 0 },
@@ -49,6 +50,10 @@ const itemSchema = new mongoose.Schema(
     dept_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
+    },
+    hsn_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hsn",
     },
   },
   { timestamps: true, id: false },

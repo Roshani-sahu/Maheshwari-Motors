@@ -105,6 +105,23 @@ class BillController {
       .status(200)
       .json(new ApiResponse(200, result, "Bill summary fetched successfully"));
   });
+
+  getLastSoldItemsForParty = asyncHandler(async (req, res) => {
+    const result = await billService.getLastSoldItemsForParty(
+      req.body,
+      req.user._id,
+      req.isGst,
+    );
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          result,
+          "Last sold item entries fetched successfully",
+        ),
+      );
+  });
 }
 
 const billController = new BillController();
@@ -119,5 +136,6 @@ export const deleteBill = billController.deleteBill;
 export const getBillsByStatus = billController.getBillsByStatus;
 export const getBillsForContact = billController.getBillsForContact;
 export const getBillSummary = billController.getBillSummary;
+export const getLastSoldItemsForParty = billController.getLastSoldItemsForParty;
 
 export default billController;

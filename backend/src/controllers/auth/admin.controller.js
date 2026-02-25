@@ -108,6 +108,26 @@ class AdminController {
         new ApiResponse(200, result, "Subscription expiry check completed"),
       );
   });
+
+  uploadSignature = asyncHandler(async (req, res) => {
+    const result = await adminService.uploadSignature(
+      req.params.userId,
+      req.file,
+    );
+    res
+      .status(201)
+      .json(new ApiResponse(201, result, "Signature uploaded successfully"));
+  });
+
+  updateSignature = asyncHandler(async (req, res) => {
+    const result = await adminService.updateSignature(
+      req.params.userId,
+      req.file,
+    );
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Signature updated successfully"));
+  });
 }
 
 const adminController = new AdminController();
@@ -124,5 +144,7 @@ export const getSubscriptionByUserId = adminController.getSubscriptionByUserId;
 export const setSubscription = adminController.setSubscription;
 export const getExpiringToday = adminController.getExpiringToday;
 export const runExpiryCheck = adminController.runExpiryCheck;
+export const uploadSignature = adminController.uploadSignature;
+export const updateSignature = adminController.updateSignature;
 
 export default adminController;

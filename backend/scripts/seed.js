@@ -1049,9 +1049,13 @@ async function seed() {
       const mr = rd(sr * (1 + ri(8, 25) / 100));
       const physicalStock = ri(20, 300);
       const logicalStock = isGst ? 0 : rd(ri(-100, 200) / 10);
+      const itemName = iname(idx);
+      const itemAlias = `${(br?.name || "ITEM").split(" ")[0]}-${pad(idx + 1, 4)}`;
       return {
         id: idx + 1,
-        item_name: iname(idx),
+        item_name: itemName,
+        alias: itemAlias,
+        description: `${itemName} for ${cat.name}${br?.name ? ` by ${br.name}` : ""}`,
         barcode: bc(),
         item_id: itemIdSeq++,
         sale_rate: sr,
@@ -1071,6 +1075,7 @@ async function seed() {
         user_id: uid,
         category_id: cat._id,
         brand_id: br?._id,
+        hsn_id: br?.hsn_id,
         contact_id: sup._id,
         dept_id: departments[idx % departments.length]._id,
       };

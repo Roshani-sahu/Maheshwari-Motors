@@ -34,7 +34,8 @@ const categoryLabelSchema = new mongoose.Schema(
     is_active: { type: Boolean, default: true },
     brand_discounts: { type: [labelBrandDiscountSchema], default: [] },
   },
-  { _id: false },
+  // _id kept enabled (default) so each label gets its own ObjectId
+  // Contact.label_id references this subdocument _id
 );
 
 const categorySchema = new mongoose.Schema(

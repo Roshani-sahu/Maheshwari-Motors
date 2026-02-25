@@ -38,10 +38,8 @@ class ContactService {
       throw ApiError.badRequest(`${label} must be an object`);
     }
 
-    const normal =
-      value.normal === undefined ? 0 : Number(value.normal);
-    const special =
-      value.special === undefined ? 0 : Number(value.special);
+    const normal = value.normal === undefined ? 0 : Number(value.normal);
+    const special = value.special === undefined ? 0 : Number(value.special);
 
     if (!Number.isFinite(normal) || normal < 0 || normal > 100) {
       throw ApiError.badRequest(`${label}.normal must be between 0 and 100`);
@@ -80,7 +78,9 @@ class ContactService {
       }
 
       if (!entry.item_id) {
-        throw ApiError.badRequest(`item_discounts[${index}].item_id is required`);
+        throw ApiError.badRequest(
+          `item_discounts[${index}].item_id is required`,
+        );
       }
 
       return entry.item_id;
@@ -133,6 +133,35 @@ class ContactService {
     return normalized;
   }
 
+  async _validateLabelId(labelId, categoryId, userId) {
+    if (labelId === undefined) return undefined;
+    if (labelId === null || labelId === "") return null;
+
+    if (!mongoose.Types.ObjectId.isValid(labelId)) {
+      throw ApiError.badRequest("Invalid label_id");
+    }
+
+    if (!categoryId) {
+      throw ApiError.badRequest(
+        "category_id is required when assigning a label_id",
+      );
+    }
+
+    const category = await Category.findOne({
+      _id: categoryId,
+      user_id: userId,
+      "labels._id": labelId,
+    });
+
+    if (!category) {
+      throw ApiError.badRequest(
+        "Label not found in the selected category. Ensure label_id belongs to the contact's category.",
+      );
+    }
+
+    return labelId;
+  }
+
   async _validateRelations(type, userId, data) {
     const { category_id, transport_id, area_id, agent_id } = data;
 
@@ -149,7 +178,8 @@ class ContactService {
     }
 
     if (type === "party" && transport_id) {
-      const { default: Transport } = await import("../../models/master/transport.model.js");
+      const { default: Transport } =
+        await import("../../models/master/transport.model.js");
       const transportExists = await Transport.exists({
         _id: transport_id,
         user_id: userId,
@@ -162,24 +192,30 @@ class ContactService {
     }
 
     if (type === "party" && area_id) {
-      const { default: Area } = await import("../../models/master/area.model.js");
+      const { default: Area } =
+        await import("../../models/master/area.model.js");
       const areaExists = await Area.exists({
         _id: area_id,
         user_id: userId,
       });
       if (!areaExists) {
-        throw ApiError.badRequest("Area not found. Please select a valid area.");
+        throw ApiError.badRequest(
+          "Area not found. Please select a valid area.",
+        );
       }
     }
 
     if (type === "party" && agent_id) {
-      const { default: Agent } = await import("../../models/master/agent.model.js");
+      const { default: Agent } =
+        await import("../../models/master/agent.model.js");
       const agentExists = await Agent.exists({
         _id: agent_id,
         user_id: userId,
       });
       if (!agentExists) {
-        throw ApiError.badRequest("Agent not found. Please select a valid agent.");
+        throw ApiError.badRequest(
+          "Agent not found. Please select a valid agent.",
+        );
       }
     }
   }
@@ -200,18 +236,25 @@ class ContactService {
     if (query.balance_status === "due") filter.balance = { $lt: 0 };
     if (query.balance_status === "overpaid") filter.balance = { $gt: 0 };
 
-    return Pagination.paginate(Contact, filter, {
+    const contacts = await Pagination.paginate(Contact, filter, {
       ...query,
       sort: { createdAt: -1 },
+      populate: {
+        path: "bank_id",
+        match: { user_id: userId },
+      },
     });
+
+    return contacts;
   }
 
   async getContactById(contactId, userId) {
     const contact = await Contact.findOne({
       _id: contactId,
       user_id: userId,
-    });
+    }).populate("bank_id");
     if (!contact) throw ApiError.notFound("Contact not found");
+
     return contact;
   }
 
@@ -229,8 +272,8 @@ class ContactService {
       gstin,
       cin,
       reg_number,
-      signature,
       assigned_label,
+      label_id,
       bank_id,
       item_discounts,
       transport_charge,
@@ -276,13 +319,23 @@ class ContactService {
       }
 
       normalizedTransportCharge = Number(transport_charge);
-      if (!Number.isFinite(normalizedTransportCharge) || normalizedTransportCharge < 0) {
-        throw ApiError.badRequest("transport_charge must be a non-negative number");
+      if (
+        !Number.isFinite(normalizedTransportCharge) ||
+        normalizedTransportCharge < 0
+      ) {
+        throw ApiError.badRequest(
+          "transport_charge must be a non-negative number",
+        );
       }
     } else if (transport_charge !== undefined && transport_charge !== null) {
       normalizedTransportCharge = Number(transport_charge);
-      if (!Number.isFinite(normalizedTransportCharge) || normalizedTransportCharge < 0) {
-        throw ApiError.badRequest("transport_charge must be a non-negative number");
+      if (
+        !Number.isFinite(normalizedTransportCharge) ||
+        normalizedTransportCharge < 0
+      ) {
+        throw ApiError.badRequest(
+          "transport_charge must be a non-negative number",
+        );
       }
     }
 
@@ -295,9 +348,12 @@ class ContactService {
     }
 
     let normalizedAssignedLabel = null;
+    let normalizedLabelId = null;
     if (type === "party") {
       normalizedAssignedLabel =
         (await this._validateAssignedLabel(assigned_label, userId)) ?? null;
+      normalizedLabelId =
+        (await this._validateLabelId(label_id, category_id, userId)) ?? null;
     }
 
     const normalizedAlias =
@@ -317,8 +373,8 @@ class ContactService {
       gstin,
       cin,
       reg_number,
-      signature: this._normalizeOptionalString(signature) ?? null,
       assigned_label: normalizedAssignedLabel,
+      label_id: normalizedLabelId,
       bank_id: normalizedBankId ?? null,
       item_discounts: normalizedItemDiscounts,
       transport_charge: normalizedTransportCharge,
@@ -330,7 +386,7 @@ class ContactService {
       area_id: type === "party" ? area_id || null : undefined,
       user_id: userId,
     });
-    return contact;
+    return contact.populate("bank_id");
   }
 
   async updateContact(contactId, userId, updateData) {
@@ -352,8 +408,8 @@ class ContactService {
       gstin,
       cin,
       reg_number,
-      signature,
       assigned_label,
+      label_id,
       bank_id,
       item_discounts,
       transport_charge,
@@ -393,12 +449,21 @@ class ContactService {
     let normalizedTransportCharge;
     if (transport_charge !== undefined) {
       normalizedTransportCharge = Number(transport_charge);
-      if (!Number.isFinite(normalizedTransportCharge) || normalizedTransportCharge < 0) {
-        throw ApiError.badRequest("transport_charge must be a non-negative number");
+      if (
+        !Number.isFinite(normalizedTransportCharge) ||
+        normalizedTransportCharge < 0
+      ) {
+        throw ApiError.badRequest(
+          "transport_charge must be a non-negative number",
+        );
       }
     }
 
-    if (contact.type === "party" && contact.transport_charge === undefined && normalizedTransportCharge === undefined) {
+    if (
+      contact.type === "party" &&
+      contact.transport_charge === undefined &&
+      normalizedTransportCharge === undefined
+    ) {
       normalizedTransportCharge = 0;
     }
 
@@ -423,9 +488,27 @@ class ContactService {
         await this._validateAssignedLabel(assigned_label, userId)
       : undefined;
 
+    const effectiveCategoryId =
+      category_id !== undefined ? category_id : contact.category_id;
+
+    let normalizedLabelId;
+    if (contact.type === "party") {
+      if (label_id !== undefined) {
+        normalizedLabelId = await this._validateLabelId(
+          label_id,
+          effectiveCategoryId,
+          userId,
+        );
+      } else if (category_id !== undefined) {
+        // Category changed without updating label_id — auto-clear it
+        normalizedLabelId = null;
+      }
+    }
+
     const fields = {};
     if (name !== undefined) fields.name = name.trim();
-    if (alias !== undefined) fields.alias = this._normalizeOptionalString(alias);
+    if (alias !== undefined)
+      fields.alias = this._normalizeOptionalString(alias);
     if (phone !== undefined) fields.phone = phone;
     if (whatsapp_number !== undefined) fields.whatsapp_number = whatsapp_number;
     if (email !== undefined) fields.email = email;
@@ -435,9 +518,6 @@ class ContactService {
     if (gstin !== undefined) fields.gstin = gstin;
     if (cin !== undefined) fields.cin = cin;
     if (reg_number !== undefined) fields.reg_number = reg_number;
-    if (signature !== undefined) {
-      fields.signature = this._normalizeOptionalString(signature);
-    }
     if (normalizedBankId !== undefined) fields.bank_id = normalizedBankId;
     if (normalizedTransportCharge !== undefined) {
       fields.transport_charge = normalizedTransportCharge;
@@ -450,6 +530,9 @@ class ContactService {
       if (normalizedAssignedLabel !== undefined) {
         fields.assigned_label = normalizedAssignedLabel;
       }
+      if (normalizedLabelId !== undefined) {
+        fields.label_id = normalizedLabelId;
+      }
       if (normalizedItemDiscounts !== undefined) {
         fields.item_discounts = normalizedItemDiscounts;
       }
@@ -461,7 +544,7 @@ class ContactService {
 
     const updatedContact = await Contact.findByIdAndUpdate(contactId, fields, {
       new: true,
-    });
+    }).populate("bank_id");
     return updatedContact;
   }
 

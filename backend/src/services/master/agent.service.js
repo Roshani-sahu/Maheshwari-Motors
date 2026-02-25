@@ -72,7 +72,7 @@ class AgentService {
       user_id: userId,
     });
 
-    return agent;
+    return agent.populate("party_id", "name type phone");
   }
 
   async updateAgent(agentId, userId, updateData) {
