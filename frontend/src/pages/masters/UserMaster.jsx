@@ -68,6 +68,14 @@ const UserMaster = () => {
   const isMounted = useRef(true);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState({
+    plan: '',
+    validityFrom: '',
+    validityTo: '',
+    amount: '',
+    createdAt: new Date().toISOString().split('T')[0]
+  });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editingForm, setEditingForm] = useState(null);
@@ -483,7 +491,7 @@ const UserMaster = () => {
                 Refresh
                 </Button>
                 <Button 
-                onClick={() => setIsAddModalOpen(true)} 
+                onClick={() => setIsSubscriptionModalOpen(true)} 
                 className="flex items-center gap-2 text-xs sm:text-sm"
                 >
                 <FaPlus className="text-sm sm:text-base" />
@@ -507,6 +515,53 @@ const UserMaster = () => {
           </div>
         </div>
       </div>
+
+      {/* Subscription Modal */}
+      <Modal isOpen={isSubscriptionModalOpen} onClose={() => setIsSubscriptionModalOpen(false)} title="Add Subscription" size="md">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">User Name *</label>
+            <Input value={newUser.name} onChange={(v) => setNewUser({...newUser, name: v})} placeholder="Enter user name" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Plan *</label>
+            <select value={subscriptionData.plan} onChange={(e) => setSubscriptionData({...subscriptionData, plan: e.target.value})} className="w-full px-3 py-2 border rounded-md">
+              <option value="">Select Plan</option>
+              <option value="basic">Basic</option>
+              <option value="standard">Standard</option>
+              <option value="premium">Premium</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Validity From *</label>
+            <input type="date" value={subscriptionData.validityFrom} onChange={(e) => setSubscriptionData({...subscriptionData, validityFrom: e.target.value})} className="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Validity To *</label>
+            <input type="date" value={subscriptionData.validityTo} onChange={(e) => setSubscriptionData({...subscriptionData, validityTo: e.target.value})} className="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
+            <Input type="number" value={subscriptionData.amount} onChange={(v) => setSubscriptionData({...subscriptionData, amount: v})} placeholder="Enter amount" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Created At *</label>
+            <input type="date" value={subscriptionData.createdAt} onChange={(e) => setSubscriptionData({...subscriptionData, createdAt: e.target.value})} className="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button onClick={() => {
+              if (!newUser.name || !subscriptionData.plan || !subscriptionData.validityFrom || !subscriptionData.validityTo || !subscriptionData.amount || !subscriptionData.createdAt) {
+                showToast('Please fill all subscription fields', 'error');
+                return;
+              }
+              setIsSubscriptionModalOpen(false);
+              setIsAddModalOpen(true);
+            }}>Continue to User Details</Button>
+            <Button variant="outline" onClick={() => setIsSubscriptionModalOpen(false)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Add User Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add User" size="lg">

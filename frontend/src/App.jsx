@@ -29,6 +29,7 @@ import AgentMaster from "./pages/masters/AgentMaster";
 import TransportMaster from "./pages/masters/TransportMaster";
 import HsnMaster from "./pages/masters/HsnMaster";
 import AreaMaster from "./pages/masters/AreaMaster";
+import BankMaster from "./pages/masters/BankMaster";
 
 // Inventory Pages
 import ItemMaster from "./pages/inventory/ItemMaster";
@@ -132,6 +133,7 @@ const App = () => {
           <Route path="/masters/hsn-master" element={<HsnMaster />} />
           <Route path="/masters/area-master" element={<AreaMaster />} />
           <Route path="/inventory/department-master" element={<DepartmentMaster />} />
+          <Route path="/masters/bank-master" element={<BankMaster />} />
 
           {/* 3. Transactions */}
           <Route path="/transactions/challan-list" element={<ChallanList />} />

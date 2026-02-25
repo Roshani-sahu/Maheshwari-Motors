@@ -28,16 +28,14 @@ const INITIAL_FORM = {
   is_gst: 0,
   cin: '',
   reg_number: '',
-  bank_name: '',
-  bank_branch: '',
-  ifsc_code: '',
-  account_number: ''
+  bank_id: ''
 };
 
 const AddSupplier = () => {
   const { showToast } = useStore();
   const [suppliers, setSuppliers] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [banks, setBanks] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, supplier: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -53,6 +51,7 @@ const AddSupplier = () => {
 
   const mapSupplier = (contact) => {
     const normalized = normalizeContact(contact);
+    const bankId = typeof contact.bank_id === 'object' ? getEntityId(contact.bank_id) : contact.bank_id;
     return {
       id: normalized.id,
       name: normalized.name,
@@ -68,10 +67,8 @@ const AddSupplier = () => {
       category: normalized.category_id,
       cin: normalized.cin,
       reg_number: normalized.reg_number,
-      bank_name: normalized.bank_name,
-      bank_branch: normalized.bank_branch,
-      ifsc_code: normalized.ifsc_code,
-      account_number: normalized.account_number
+      bank_id: bankId,
+      bank_details: typeof contact.bank_id === 'object' ? contact.bank_id : null
     };
   };
 
@@ -97,6 +94,18 @@ const AddSupplier = () => {
       }
     };
     fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    const fetchBanks = async () => {
+      try {
+        const response = await api.get('/banks');
+        setBanks(getResponseList(response));
+      } catch (error) {
+        console.error("Failed to fetch banks", error);
+      }
+    };
+    fetchBanks();
   }, []);
 
   const columns = [
@@ -157,10 +166,7 @@ const AddSupplier = () => {
       category_id: formData.category || undefined,
       cin: formData.cin || undefined,
       reg_number: formData.reg_number || undefined,
-      bank_name: formData.bank_name || undefined,
-      bank_branch: formData.bank_branch || undefined,
-      ifsc_code: formData.ifsc_code || undefined,
-      account_number: formData.account_number || undefined
+      bank_id: formData.bank_id || undefined
     };
 
     try {
@@ -256,10 +262,10 @@ const AddSupplier = () => {
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">PAN Number</label><p className="text-sm text-gray-900 font-mono">{extractPAN(selectedSupplier.gstin) || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">CIN</label><p className="text-sm text-gray-900">{selectedSupplier.cin || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Reg Number</label><p className="text-sm text-gray-900">{selectedSupplier.reg_number || 'N/A'}</p></div>
-              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Name</label><p className="text-sm text-gray-900">{selectedSupplier.bank_name || 'N/A'}</p></div>
-              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Branch</label><p className="text-sm text-gray-900">{selectedSupplier.bank_branch || 'N/A'}</p></div>
-              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">IFSC Code</label><p className="text-sm text-gray-900">{selectedSupplier.ifsc_code || 'N/A'}</p></div>
-              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Account Number</label><p className="text-sm text-gray-900">{selectedSupplier.account_number || 'N/A'}</p></div>
+              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Name</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.bank_name || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.bank_name || 'N/A'}</p></div>
+              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Branch</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.bank_branch || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.bank_branch || 'N/A'}</p></div>
+              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">IFSC Code</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.ifsc_code || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.ifsc_code || 'N/A'}</p></div>
+              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Account Number</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.account_number || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.account_number || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label><p className="text-sm text-gray-900">{categories.find(c => getEntityId(c) === selectedSupplier.category)?.name || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label><p className="text-sm text-gray-900">{selectedSupplier.city || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">State</label><p className="text-sm text-gray-900">{selectedSupplier.state || 'N/A'}</p></div>
@@ -294,17 +300,7 @@ const AddSupplier = () => {
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Reg Number</label><input type="text" name="reg_number" value={formData.reg_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Registration Number" /></div>
           </div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Category *</label><select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Category</option>{categories.map(cat => <option className='text-black' key={getEntityId(cat)} value={getEntityId(cat)}>{cat.name}</option>)}</select></div>
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Bank Details</h3>
-            <div className="space-y-4">
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label><input type="text" name="bank_name" value={formData.bank_name} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Bank Name" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Bank Branch</label><input type="text" name="bank_branch" value={formData.bank_branch} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Branch" /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label><input type="text" name="ifsc_code" value={formData.ifsc_code} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="IFSC Code" /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label><input type="text" name="account_number" value={formData.account_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Account Number" /></div>
-              </div>
-            </div>
-          </div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Bank</label><select name="bank_id" value={formData.bank_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Bank</option>{banks.map(bank => <option key={getEntityId(bank)} value={getEntityId(bank)}>{bank.bank_name} - {bank.account_number}</option>)}</select></div>
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedSupplier(null); setFormData(INITIAL_FORM); }}>Cancel</Button>
             <Button type="submit">{isEditModalOpen ? 'Update Supplier' : 'Add Supplier'}</Button>

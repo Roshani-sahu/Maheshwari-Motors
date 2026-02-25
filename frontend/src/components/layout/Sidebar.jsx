@@ -223,6 +223,21 @@ const Sidebar = ({ onClose }) => {
               Department Master
             </NavLink>
             
+            <NavLink
+              to="/masters/bank-master"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaBuilding className="w-4 h-4" />
+              Bank Master
+            </NavLink>
+            
 
               <NavLink
               to="/inventory/stock-alert-master"

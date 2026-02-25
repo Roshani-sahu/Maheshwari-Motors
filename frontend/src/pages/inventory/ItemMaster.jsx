@@ -30,6 +30,7 @@ const ItemMaster = () => {
   const [brands, setBrands] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [hsns, setHsns] = useState([]);
+  const [departments, setDepartments] = useState([]);
 
   const mapItemRecord = (item) => {
     const normalized = normalizeItem(item);
@@ -76,11 +77,12 @@ const ItemMaster = () => {
   useEffect(() => {
       const fetchCategories = async () => {
           try {
-              const [catRes, brandRes, supplierRes, hsnRes] = await Promise.all([
+              const [catRes, brandRes, supplierRes, hsnRes, deptRes] = await Promise.all([
                   api.get('/categories'),
                   api.get('/brands'),
                   api.get('/contacts/suppliers', { params: { page: 1, limit: 200 } }),
                   api.get('/hsn', { params: { page: 1, limit: 200 } }),
+                  api.get('/departments'),
               ]);
               setCategories(getResponseList(catRes).map((category) => {
                 const normalized = normalizeCategory(category);
@@ -103,6 +105,10 @@ const ItemMaster = () => {
                     gst_percentage: toNumber(hsn?.gst_rate, 0)
                   })),
               );
+              setDepartments(getResponseList(deptRes).map((dept) => ({
+                id: getEntityId(dept),
+                name: dept?.department_name || dept?.name
+              })));
           } catch (e) { console.error(e); }
       };
       fetchCategories();
@@ -239,6 +245,7 @@ const ItemMaster = () => {
         if (editingItem.categoryId) formData.append('category_id', editingItem.categoryId);
         if (editingItem.brandId) formData.append('brand_id', editingItem.brandId);
         if (editingItem.supplierId) formData.append('contact_id', editingItem.supplierId);
+        if (editingItem.departmentId) formData.append('dept_id', editingItem.departmentId);
         if (editingItem.hsn_code) formData.append('hsn_code', editingItem.hsn_code);
         if (editingItem.description) formData.append('description', editingItem.description);
         
@@ -404,6 +411,20 @@ const ItemMaster = () => {
                   <option value="">Select Supplier</option>
                   {suppliers.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Department</label>
+                <select
+                  value={editingItem.departmentId || ''}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, departmentId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                >
+                  <option value="">Select Department</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
               </div>
@@ -579,12 +600,10 @@ const ItemMaster = () => {
                 <label className="block text-xs font-medium text-gray-500">Item Name</label>
                 <p className="text-sm font-medium text-gray-900">{viewingItem.itemName}</p>
               </div>
-              {viewingItem.alias && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-500">Alias</label>
-                  <p className="text-sm text-gray-900">{viewingItem.alias}</p>
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Alias</label>
+                <p className="text-sm text-gray-900">{viewingItem.alias || '-'}</p>
+              </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500">Category</label>
                 <p className="text-sm text-gray-900">{categories.find(c => c.id === viewingItem.categoryId)?.name || '-'}</p>
@@ -596,6 +615,10 @@ const ItemMaster = () => {
               <div>
                 <label className="block text-xs font-medium text-gray-500">Supplier</label>
                 <p className="text-sm text-gray-900">{suppliers.find(s => s.id === viewingItem.supplierId)?.name || '-'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Department</label>
+                <p className="text-sm text-gray-900">{departments.find(d => d.id === viewingItem.departmentId)?.name || '-'}</p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500">HSN Code</label>
@@ -633,12 +656,10 @@ const ItemMaster = () => {
                 <label className="block text-xs font-medium text-gray-500">Type</label>
                 <p className="text-sm text-gray-900">{viewingItem.type === 1 ? 'GST' : 'Non-GST'}</p>
               </div>
-              {viewingItem.description && (
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-gray-500">Description</label>
-                  <p className="text-sm text-gray-900">{viewingItem.description}</p>
-                </div>
-              )}
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-500">Description</label>
+                <p className="text-sm text-gray-900">{viewingItem.description || '-'}</p>
+              </div>
               {viewingItem.itemMedia && (
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-medium text-gray-500 mb-2">Image</label>
