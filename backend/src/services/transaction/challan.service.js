@@ -136,6 +136,8 @@ class ChallanService {
       from_bank,
       to_bank,
     } = challanData;
+    const printOption =
+      Number(challanData?.print_option ?? challanData?.printOption ?? 2) === 1 ? 1 : 2;
 
     if (!contact_id) {
       throw ApiError.badRequest("Contact ID is required");
@@ -219,6 +221,7 @@ class ChallanService {
         effectiveLabelName,
         normalizedFromBank,
         normalizedToBank,
+        printOption,
         partyItemDiscountMap,
         labelDiscountMap,
       );
@@ -234,6 +237,7 @@ class ChallanService {
       label_name,
       normalizedFromBank,
       normalizedToBank,
+      printOption,
     );
   }
 
@@ -415,6 +419,7 @@ class ChallanService {
     labelName,
     fromBank,
     toBank,
+    printOption,
     partyItemDiscountMap,
     labelDiscountMap,
   ) {
@@ -509,6 +514,7 @@ class ChallanService {
           contact_id,
           date: date || new Date(),
           label_name: labelName,
+          print_option: printOption,
           from_bank: fromBank,
           to_bank: toBank,
           items: processedItems,
@@ -568,6 +574,7 @@ class ChallanService {
     labelName,
     fromBank,
     toBank,
+    printOption,
   ) {
     const supplier = await Contact.findOne({
       _id: contact_id,
@@ -607,6 +614,7 @@ class ChallanService {
       contact_id,
       date: date || new Date(),
       label_name: labelName || null,
+      print_option: printOption,
       from_bank: fromBank,
       to_bank: toBank,
       items: processedItems,
