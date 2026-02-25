@@ -14,11 +14,13 @@ import { DataTable, Modal, DeleteConfirmDialog } from "../../components/common";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
 import api from "../../services/axiosInstance"; //
-import { getResponseList, normalizeBill } from "../../services/apiUtils";
+import { getResponseData, getResponseList, normalizeBill } from "../../services/apiUtils";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const BillList = () => {
   const navigate = useNavigate();
-  const { showToast } = useStore();
+  const { showToast, selectedFirm } = useStore();
   const [bills, setBills] = useState([]);
 
   useEffect(() => {
@@ -47,13 +49,166 @@ const BillList = () => {
     bill: null,
   });
 
+  const generateBillPDF = async (bill) => {
+    if (!bill?.id) {
+      showToast("Invalid bill selected", "error");
+      return;
+    }
+
+    let billData = bill?.raw || {};
+    try {
+      const res = await api.get(`/bills/${bill.id}`);
+      billData = getResponseData(res) || billData;
+    } catch (err) {
+      console.error("Failed to fetch bill details for PDF:", err);
+      showToast("Failed to load bill details for PDF", "error");
+      return;
+    }
+
+    const challan = Array.isArray(billData?.challan_ids) ? billData.challan_ids[0] : null;
+    if (!challan) {
+      showToast("No challan found in this bill", "error");
+      return;
+    }
+
+    const firmName = selectedFirm?.name || "MAHESHWARI MOTORS";
+    const firmAddress =
+      selectedFirm?.address || "52, KHOTODRA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.";
+
+    const partyName =
+      billData?.contact_id?.name || bill?.party || challan?.contact_id?.name || "CASH BOOK";
+    const billNo = billData?.bill_no || billData?.billNo || bill?.billNo || "";
+    const billDate = billData?.date ? new Date(billData.date) : new Date();
+    const printOption = Number(challan?.print_option ?? 2) || 2;
+    const totalAmount = Number(billData?.amount ?? challan?.amount ?? 0) || 0;
+
+    const items = Array.isArray(challan?.items) ? challan.items : [];
+    const rowsFromItems = items.map((item, index) => {
+      const itemRef = item?.item_id || {};
+      const itemName = itemRef?.item_name || itemRef?.name || item?.item_name || "Item";
+      const barcode =
+        itemRef?.barcode ||
+        itemRef?.barcode_no ||
+        itemRef?.barcodeNumber ||
+        itemRef?.barcode_value ||
+        item?.barcode ||
+        "";
+
+      const description = printOption === 2
+        ? String(itemName).trim() || "Item"
+        : String(barcode).trim() || "-";
+      const quantity = Number(item?.quantity ?? 0) || 0;
+      const rate = Number(item?.rate ?? 0) || 0;
+      const discount = Number(item?.discount ?? 0) || 0;
+      const specialDiscount = Number(item?.special_discount ?? 0) || 0;
+      const amount = Number(item?.amount ?? 0) || 0;
+
+      return [
+        String(index + 1),
+        description,
+        quantity ? String(quantity) : "",
+        rate.toFixed(2),
+        discount.toFixed(2),
+        specialDiscount.toFixed(2),
+        amount.toFixed(2),
+      ];
+    });
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 10;
+
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(firmName.toUpperCase(), pageWidth / 2, margin + 8, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(firmAddress, pageWidth / 2, margin + 13, { align: "center" });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("BILL", pageWidth / 2, margin + 20, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Bill No.: ${billNo}`, margin + 4, margin + 28);
+    doc.text(`Date: ${billDate.toLocaleDateString("en-IN")}`, pageWidth - margin - 4, margin + 28, {
+      align: "right",
+    });
+    doc.text(`Party: ${partyName}`, margin + 4, margin + 35);
+    doc.text(
+      `Challan No.: ${challan?.challan_no || challan?.challanNo || ""}`,
+      pageWidth - margin - 4,
+      margin + 35,
+      { align: "right" },
+    );
+
+    const head = [
+      [
+        "Sr.",
+        printOption === 2 ? "Item Name" : "Barcode",
+        "Qty.",
+        "Rate",
+        "Disc (%)",
+        "Sp.Dis (%)",
+        "Amount",
+      ],
+    ];
+
+    autoTable(doc, {
+      head,
+      body: rowsFromItems.length ? rowsFromItems : [["", "", "", "", "", "", ""]],
+      startY: margin + 42,
+      margin: { left: margin },
+      tableWidth: pageWidth - margin * 2,
+      theme: "grid",
+      styles: {
+        font: "helvetica",
+        fontSize: 9,
+        lineColor: [0, 0, 0],
+        lineWidth: 0.25,
+        cellPadding: 2,
+      },
+      headStyles: {
+        fillColor: [230, 230, 230],
+        textColor: [0, 0, 0],
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 72 },
+        2: { cellWidth: 12, halign: "right" },
+        3: { cellWidth: 18, halign: "right" },
+        4: { cellWidth: 16, halign: "right" },
+        5: { cellWidth: 18, halign: "right" },
+        6: { cellWidth: 20, halign: "right" },
+      },
+    });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(`Total Amount: ₹${totalAmount.toFixed(2)}`, pageWidth - margin - 4, pageHeight - margin - 8, {
+      align: "right",
+    });
+
+    const fileSafeBillNo = String(billNo || bill?.billNo || bill?.id).replace(/\s+/g, "_");
+    doc.save(
+      `${firmName.replace(/\s+/g, "_")}_Bill_${fileSafeBillNo}_${new Date().toISOString().split("T")[0]}.pdf`,
+    );
+  };
+
   const columns = [
     {
       key: "billNo",
       label: "Bill No",
-      render: (value, row, index) => (
-        <span className="text-xs sm:text-sm font-medium">{index + 1}</span>
-      ),
+      render: (value) => <span className="text-xs sm:text-sm font-medium">{value}</span>,
     },
     {
       key: "date",
@@ -123,6 +278,8 @@ const BillList = () => {
     {
       label: <FaDownload size={10} className="sm:size-3 md:size-4" />,
       onClick: (bill) => {
+        generateBillPDF(bill);
+        /* Legacy print preview
         // Generate PDF
         const printWindow = window.open("", "", "width=800,height=600");
         printWindow.document.write(`
@@ -159,6 +316,7 @@ const BillList = () => {
         `);
         printWindow.document.close();
         printWindow.print();
+        */
       },
       className:
         "bg-green-600 text-white hover:bg-green-700 p-1 sm:p-1.5 md:p-2 text-xs",

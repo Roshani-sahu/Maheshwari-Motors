@@ -4,6 +4,8 @@ import { FaTimes, FaSave, FaPrint } from 'react-icons/fa';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   getResponseData,
   getResponseList,
@@ -34,6 +36,7 @@ const ChallanForm = () => {
   const [challan, setChallan] = useState({
     contactType: 'party',
     party: '',
+    challanNo: '',
     items: [],
     gstType: null,
     date: new Date().toISOString().split('T')[0],
@@ -99,12 +102,21 @@ const ChallanForm = () => {
           (challanData?.items || []).forEach((item) => {
             const itemId = getEntityId(item?.item_id || item);
             if (!itemId) return;
+            const itemRef = item?.item_id || {};
             itemDetails[itemId] = {
               pcs: item?.quantity || 1,
               rate: item?.rate || 0,
               disPercent: item?.discount || 0,
               spDis: item?.special_discount || 0,
-              gstPercent: item?.gst_percent || 0
+              gstPercent: item?.gst_percent || 0,
+              itemName: itemRef?.item_name || itemRef?.name || '',
+              barcode:
+                itemRef?.barcode ||
+                itemRef?.barcode_no ||
+                itemRef?.barcodeNumber ||
+                itemRef?.barcode_value ||
+                itemRef?.part_no ||
+                ''
             };
           });
 
@@ -115,6 +127,7 @@ const ChallanForm = () => {
           setChallan({
             contactType: challan.contactType,
             party: normalizedChallan.partyId,
+            challanNo: normalizedChallan.challanNo || '',
             items: (challanData?.items || []).map((item) => getEntityId(item?.item_id || item)).filter(Boolean),
             gstType: normalizedChallan.gstType,
             date: dateValue,
@@ -225,6 +238,14 @@ const ChallanForm = () => {
           stock: item?.stock || 0,
           type: prev.gstType !== null ? prev.gstType : 0,
           remark: item?.name || '',
+          itemName: item?.name || '',
+          barcode:
+            item?.barcode ||
+            item?.barcode_no ||
+            item?.barcodeNumber ||
+            item?.barcode_value ||
+            item?.part_no ||
+            '',
         };
       }
 
@@ -299,7 +320,7 @@ const ChallanForm = () => {
     }));
   };
 
-  const calculateTotalAmount = () => {
+  const CALCULATE_TOTAL_AMOUNT = () => {
     return challan.items.reduce((total, itemId) => {
       const calc = calculateItemAmount(itemId);
       return total + calc.afterDiscount;
@@ -345,7 +366,7 @@ const ChallanForm = () => {
     }
   };
 
-  const handlePrint = () => {
+  const LEGACY_handlePrint = () => {
     if (challan.party === '' || challan.items.length === 0) {
       showToast('Please select a party and add items before printing', 'error');
       return;
@@ -538,6 +559,201 @@ const ChallanForm = () => {
     }, 250);
   };
 
+  const handlePrint = () => {
+    if (challan.party === '' || challan.items.length === 0) {
+      showToast('Please select a party and add items before printing', 'error');
+      return;
+    }
+
+    const party = (challan.contactType === 'party' ? loadedParties : loadedSuppliers).find((contact) => contact.id === challan.party);
+    const firmName = selectedFirm?.name || 'MAHESHWARI MOTORS';
+    const firmAddress = selectedFirm?.address || '52, KHOTODRA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.';
+    const firmCity = selectedFirm?.city || 'SURAT';
+    const firmContact = selectedFirm?.phone || '';
+
+    const formatDateDDMMYYYY = (value) => {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) return '';
+      const dd = String(date.getDate()).padStart(2, '0');
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yyyy = String(date.getFullYear());
+      return `${dd}-${mm}-${yyyy}`;
+    };
+
+    const challanNo = String(challan.challanNo || '').trim();
+    const challanDate = formatDateDDMMYYYY(challan.date) || formatDateDDMMYYYY(new Date());
+    const printOption = Number(challan.printOption ?? 2) || 2;
+    const partyName = String(party?.name || 'CASH BOOK');
+
+    const parsedItems = challan.items.map((itemId, index) => {
+      const item = loadedItems.find((loadedItem) => loadedItem.id === itemId) || {};
+      const details = challan.itemDetails[itemId] || {};
+      const calc = calculateItemAmount(itemId);
+
+      const itemName = details.itemName || item?.name || item?.item_name || 'Item';
+      const barcode =
+        details.barcode ||
+        item?.barcode ||
+        item?.barcode_no ||
+        item?.barcodeNumber ||
+        item?.barcode_value ||
+        item?.part_no ||
+        '';
+      const description = printOption === 2
+        ? String(itemName).trim() || 'Item'
+        : String(barcode).trim() || '-';
+
+      const quantity = Number(details.pcs || 1) || 0;
+      const rate = Number(details.rate ?? item.amount ?? 0) || 0;
+      const discount = Number(details.disPercent || 0) || 0;
+      const specialDiscount = Number(details.spDis || 0) || 0;
+      const lineAmount = Number(calc.finalAmount || 0) || 0;
+
+      return {
+        row: [
+          String(index + 1),
+          description,
+          quantity ? String(quantity) : '',
+          rate.toFixed(2),
+          discount.toFixed(2),
+          specialDiscount.toFixed(2),
+        ],
+        lineAmount,
+      };
+    });
+
+    const rowsFromItems = parsedItems.map((entry) => entry.row);
+    const totalFromItems = parsedItems.reduce((sum, entry) => sum + entry.lineAmount, 0);
+    const totalAmount = Number(calculateNetAmount() || 0) || totalFromItems;
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const blue = [0, 0, 255];
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 8;
+    const copyWidth = pageWidth - margin * 2;
+    const copyHeight = pageHeight - margin * 2;
+    const topY = margin;
+    const leftX = margin;
+
+    const drawChallanCopy = (originX) => {
+      const originY = topY;
+      const headerHeight = 18;
+      const detailsHeight = 42;
+      const headerY = originY;
+      const detailsY = originY + headerHeight;
+      const tableY = detailsY + detailsHeight + 1.5;
+
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.3);
+      doc.rect(originX, originY, copyWidth, copyHeight);
+
+      doc.rect(originX, headerY, copyWidth, headerHeight);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(...blue);
+      doc.text(`* ${firmName.toUpperCase()} *`, originX + copyWidth / 2, headerY + 7, { align: 'center' });
+      doc.setFontSize(7.5);
+      doc.text(firmAddress, originX + copyWidth / 2, headerY + 13, { align: 'center' });
+
+      doc.setTextColor(0, 0, 0);
+      doc.rect(originX, detailsY, copyWidth, detailsHeight);
+      const leftBoxWidth = Math.round(copyWidth * 0.63 * 10) / 10;
+      doc.line(originX + leftBoxWidth, detailsY, originX + leftBoxWidth, detailsY + detailsHeight);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(...blue);
+      doc.text(`M/s. : ${partyName.toUpperCase()}`, originX + 2.5, detailsY + 9);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      const contactLine = `City ${firmCity}. Contact No.,${firmContact ? ` ${firmContact}` : ''}`;
+      doc.text(contactLine, originX + 2.5, detailsY + 22);
+      doc.text('AREA--', originX + 2.5, detailsY + 32);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.text(`Challan No.  :  ${challanNo}`, originX + leftBoxWidth + 3, detailsY + 12);
+      doc.text(`Date          :  ${challanDate}`, originX + leftBoxWidth + 3, detailsY + 24);
+
+      const head = [['Sr.', printOption === 2 ? 'Item Name' : 'Barcode', 'Qty.', 'Rate', 'Disc (%)', 'Sp.Dis (%)']];
+      const fillerRow = ['', '', '', '', '', ''];
+      const body = [...(rowsFromItems.length ? rowsFromItems : [['', '', '', '', '', '']]), fillerRow];
+
+      const bottomPadding = 16;
+      const availableHeight = originY + copyHeight - bottomPadding - tableY;
+      const estimatedRowHeight = 5.2;
+      const estimatedHeadHeight = 7;
+      const estimatedBodyHeight = rowsFromItems.length * estimatedRowHeight;
+      const fillerHeight = Math.max(20, availableHeight - estimatedHeadHeight - estimatedBodyHeight);
+
+      const srW = 8;
+      const qtyW = 14;
+      const rateW = 18;
+      const discW = 14;
+      const spDiscW = 14;
+      const descW = Math.max(40, copyWidth - (srW + qtyW + rateW + discW + spDiscW));
+
+      autoTable(doc, {
+        head,
+        body,
+        startY: tableY,
+        margin: { left: originX },
+        tableWidth: copyWidth,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 8.5,
+          textColor: [0, 0, 0],
+          cellPadding: { top: 1.2, right: 1.5, bottom: 1.2, left: 1.5 },
+          lineColor: [0, 0, 0],
+          lineWidth: 0.25,
+          overflow: 'linebreak',
+          valign: 'top',
+        },
+        headStyles: {
+          fillColor: [230, 230, 230],
+          textColor: blue,
+          fontStyle: 'bold',
+          halign: 'center',
+          valign: 'middle',
+        },
+        columnStyles: {
+          0: { cellWidth: srW, halign: 'left' },
+          1: { cellWidth: descW, halign: 'left' },
+          2: { cellWidth: qtyW, halign: 'right' },
+          3: { cellWidth: rateW, halign: 'right' },
+          4: { cellWidth: discW, halign: 'right' },
+          5: { cellWidth: spDiscW, halign: 'right' },
+        },
+        didParseCell: (data) => {
+          if (data.section !== 'body') return;
+          const fillerIndex = rowsFromItems.length ? rowsFromItems.length : 1;
+          if (data.row.index === fillerIndex) {
+            data.cell.styles.minCellHeight = fillerHeight;
+          }
+        },
+      });
+    };
+
+    drawChallanCopy(leftX);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total Amount: Rs. ${totalAmount.toFixed(2)}`, leftX + copyWidth - 2.5, topY + copyHeight - 6, {
+      align: 'right',
+    });
+
+    const previewUrl = doc.output('bloburl');
+    const previewWindow = window.open(previewUrl, '_blank');
+    if (!previewWindow) {
+      showToast('Popup blocked. Please allow popups for print preview.', 'error');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -646,12 +862,13 @@ const ChallanForm = () => {
                   const details = challan.itemDetails[itemId] || {};
                   const calc = calculateItemAmount(itemId);
                   const itemType = details.type !== undefined ? details.type : challan.gstType;
+                  const displayItemName = details.itemName || item?.name || 'Unknown Item';
 
                   return (
                     <tr key={itemId} className="border-t">
                       <td className="px-2 py-2 border-r">{index + 1}</td>
                       <td className="px-2 py-2 border-r">
-                        <span className="text-xs">{item?.name || 'Unknown Item'}</span>
+                        <span className="text-xs">{displayItemName}</span>
                       </td>
                       <td className="px-2 py-2 border-r">
                         <input
@@ -850,9 +1067,11 @@ const ChallanForm = () => {
             <div className="flex flex-wrap gap-2 mt-2">
               {challan.items.map(itemId => {
                 const item = loadedItems.find(i => i.id === itemId);
+                const details = challan.itemDetails[itemId] || {};
+                const displayItemName = details.itemName || item?.name || 'Unknown Item';
                 return (
                   <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
-                    {item?.name}
+                    {displayItemName}
                     <button
                       onClick={() => toggleItemSelection(itemId)}
                       className="text-blue-600 hover:text-blue-800"
