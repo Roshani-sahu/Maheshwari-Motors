@@ -74,13 +74,13 @@ const Header = ({ onMenuClick }) => {
     }
   };
   return (
-    <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between h-auto sm:h-16 px-4 sm:px-6 py-2 sm:py-0 bg-white border-b border-neutral-200">
+    <header className="flex flex-col  sm:flex-row sm:items-center sm:justify-between h-auto sm:h-16 px-4 sm:px-6 py-4 sm:py-0 bg-white border-b border-neutral-200">
       {/* Top row on mobile, left section on desktop */}
       <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
-        {/* Mobile menu button */}
+        {/* Menu toggle button - visible on all screens */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-md hover:bg-neutral-100"
+          className="p-2 rounded-md hover:bg-neutral-100"
         >
           <FaBars className="text-neutral-700" />
         </button>

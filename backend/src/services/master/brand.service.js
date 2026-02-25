@@ -45,7 +45,10 @@ class BrandService {
       user_id: userId,
     })
       .populate("hsn_id", "hsn_code description gst_rate")
-      .populate("item_ids", "item_name barcode item_id sale_rate stock")
+      .populate(
+        "item_ids",
+        "item_name alias description barcode item_id sale_rate stock hsn_id",
+      )
       .lean();
     if (!brand) throw ApiError.notFound("Brand not found");
 
@@ -114,7 +117,7 @@ class BrandService {
       );
     }
 
-    return brand;
+    return brand.populate("hsn_id", "hsn_code description gst_rate");
   }
 
   async updateBrand(brandId, userId, updateData) {
@@ -217,7 +220,7 @@ class BrandService {
 
     const updatedBrand = await Brand.findByIdAndUpdate(brandId, fields, {
       new: true,
-    });
+    }).populate("hsn_id", "hsn_code description gst_rate");
     return updatedBrand;
   }
 
@@ -230,10 +233,16 @@ class BrandService {
     const validateDiscountField = (field, label) => {
       if (!field) return;
       if (field.normal !== undefined) {
-        field.normal = toNumber(field.normal, `${label} normal %`, { min: 0, max: 100 });
+        field.normal = toNumber(field.normal, `${label} normal %`, {
+          min: 0,
+          max: 100,
+        });
       }
       if (field.special !== undefined) {
-        field.special = toNumber(field.special, `${label} special %`, { min: 0, max: 100 });
+        field.special = toNumber(field.special, `${label} special %`, {
+          min: 0,
+          max: 100,
+        });
       }
     };
     validateDiscountField(discount1, "Discount 1");
@@ -245,7 +254,7 @@ class BrandService {
 
     const updatedBrand = await Brand.findByIdAndUpdate(brandId, fields, {
       new: true,
-    });
+    }).populate("hsn_id", "hsn_code description gst_rate");
     return updatedBrand;
   }
 

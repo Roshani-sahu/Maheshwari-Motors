@@ -1,10 +1,23 @@
 import { Router } from "express";
+import multer from "multer";
 import * as adminController from "../../controllers/auth/admin.controller.js";
 import authMiddleware, {
   requireAdmin,
 } from "../../middlewares/auth.middleware.js";
 
 const router = Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed for signature"), false);
+    }
+  },
+});
 
 router.use(authMiddleware);
 router.use(requireAdmin);
@@ -21,6 +34,17 @@ router.post(
 router.post(
   "/users/:userId/reactivate",
   adminController.reactivateSecondaryUser,
+);
+
+router.post(
+  "/users/:userId/signature",
+  upload.single("signature"),
+  adminController.uploadSignature,
+);
+router.put(
+  "/users/:userId/signature",
+  upload.single("signature"),
+  adminController.updateSignature,
 );
 
 router.get("/subscriptions", adminController.getSubscriptions);

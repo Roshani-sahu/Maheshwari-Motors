@@ -102,10 +102,7 @@ const UserMaster = () => {
       GSTIN: '',
       CIN: '',
       reg_number: '',
-      bank_name: '',
-      bank_branch: '',
-      ifsc_code: '',
-      account_number: ''
+      banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]
     },
     nongst_firm: {
       username: '',
@@ -120,10 +117,7 @@ const UserMaster = () => {
       GSTIN: '',
       CIN: '',
       reg_number: '',
-      bank_name: '',
-      bank_branch: '',
-      ifsc_code: '',
-      account_number: ''
+      banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]
     }
   });
   const [newPassword, setNewPassword] = useState('');
@@ -302,17 +296,20 @@ const UserMaster = () => {
             return;
         }
 
+        // console.log('📤 Creating user with data:', JSON.stringify(newUser, null, 2));
         await api.post('/admin/users', newUser);
+        // console.log('✅ User created successfully');
         showToast('User added successfully', 'success');
         setIsAddModalOpen(false);
         setNewUser({
            name: '', email: '', phone: '',
-           gst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' },
-           nongst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }
+           gst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }] },
+           nongst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }] }
         });
         fetchUsers(); 
     } catch (error) {
-        console.error("User submit error:", error);
+        // console.error("❌ User submit error:", error);
+        // console.error("Error response:", error.response?.data);
         const msg = error.response?.data?.message || 'Failed to add user';
         const details = Array.isArray(error.response?.data?.errors) 
             ? error.response.data.errors.join(', ') 
@@ -327,7 +324,9 @@ const UserMaster = () => {
         if (newPassword) {
           updatedUser.password = newPassword;
         }
+        // console.log('📤 Updating user with data:', JSON.stringify(updatedUser, null, 2));
         await api.put(`/admin/users/${editingUser.id}`, updatedUser);
+        // console.log('✅ User updated successfully');
         
         setIsEditModalOpen(false);
         setNewPassword('');
@@ -336,7 +335,8 @@ const UserMaster = () => {
         showToast('User updated successfully', 'success');
         fetchUsers();
       } catch (error) {
-        console.error("User update error:", error);
+        console.error("❌ User update error:", error);
+        console.error("Error response:", error.response?.data);
         const msg = error.response?.data?.message || 'Failed to update user';
         const details = Array.isArray(error.response?.data?.errors) 
             ? error.response.data.errors.join(', ') 
@@ -649,21 +649,57 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={newUser.gst_firm.reg_number} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, reg_number: v}})} placeholder="Registration Number" className="mt-1" />
                </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={newUser.gst_firm.bank_name} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, bank_name: v}})} placeholder="Bank Name" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={newUser.gst_firm.bank_branch} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, bank_branch: v}})} placeholder="Bank Branch" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={newUser.gst_firm.ifsc_code} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, ifsc_code: v}})} placeholder="IFSC Code" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={newUser.gst_firm.account_number} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, account_number: v}})} placeholder="Account Number" className="mt-1" />
+
+               {/* Bank Details */}
+               <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {newUser.gst_firm.banks.map((bank, idx) => (
+                    <div key={idx} className="border rounded p-3 mb-2 bg-white">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-600">Bank Name</label>
+                          <Input value={bank.bank_name} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].bank_name = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="Bank Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Branch</label>
+                          <Input value={bank.bank_branch} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].bank_branch = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="Branch" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">IFSC Code</label>
+                          <Input value={bank.ifsc_code} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].ifsc_code = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="IFSC Code" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Number</label>
+                          <Input value={bank.account_number} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].account_number = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="Account Number" className="mt-1" />
+                        </div>
+                      </div>
+                      {newUser.gst_firm.banks.length > 1 && (
+                        <button onClick={() => {
+                          const banks = newUser.gst_firm.banks.filter((_, i) => i !== idx);
+                          setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                        }} className="text-red-600 text-xs mt-2">Remove Bank</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => {
+                    setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks: [...newUser.gst_firm.banks, { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]}});
+                  }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                </div>
             </div>
           </div>
@@ -731,21 +767,57 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={newUser.nongst_firm.reg_number} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, reg_number: v}})} placeholder="Registration Number" className="mt-1" />
                </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={newUser.nongst_firm.bank_name} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, bank_name: v}})} placeholder="Bank Name" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={newUser.nongst_firm.bank_branch} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, bank_branch: v}})} placeholder="Bank Branch" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={newUser.nongst_firm.ifsc_code} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, ifsc_code: v}})} placeholder="IFSC Code" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={newUser.nongst_firm.account_number} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, account_number: v}})} placeholder="Account Number" className="mt-1" />
+
+               {/* Bank Details */}
+               <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {newUser.nongst_firm.banks.map((bank, idx) => (
+                    <div key={idx} className="border rounded p-3 mb-2 bg-white">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-600">Bank Name</label>
+                          <Input value={bank.bank_name} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].bank_name = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="Bank Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Branch</label>
+                          <Input value={bank.bank_branch} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].bank_branch = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="Branch" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">IFSC Code</label>
+                          <Input value={bank.ifsc_code} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].ifsc_code = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="IFSC Code" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Number</label>
+                          <Input value={bank.account_number} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].account_number = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="Account Number" className="mt-1" />
+                        </div>
+                      </div>
+                      {newUser.nongst_firm.banks.length > 1 && (
+                        <button onClick={() => {
+                          const banks = newUser.nongst_firm.banks.filter((_, i) => i !== idx);
+                          setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                        }} className="text-red-600 text-xs mt-2">Remove Bank</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => {
+                    setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks: [...newUser.nongst_firm.banks, { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]}});
+                  }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                </div>
             </div>
           </div>
@@ -826,22 +898,35 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={viewingUser.original?.gst_firm?.reg_number || ''} disabled className="mt-1" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={viewingUser.original?.gst_firm?.bank_name || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={viewingUser.original?.gst_firm?.bank_branch || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={viewingUser.original?.gst_firm?.ifsc_code || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={viewingUser.original?.gst_firm?.account_number || ''} disabled className="mt-1" />
-                </div>
+
+                {/* Bank Details */}
+                {viewingUser.original?.gst_firm?.banks && viewingUser.original.gst_firm.banks.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                    {viewingUser.original.gst_firm.banks.map((bank, idx) => (
+                      <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-gray-600">Bank Name</label>
+                            <Input value={bank.bank_name || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Branch</label>
+                            <Input value={bank.bank_branch || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">IFSC Code</label>
+                            <Input value={bank.ifsc_code || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Account Number</label>
+                            <Input value={bank.account_number || ''} disabled className="mt-1" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -892,22 +977,35 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={viewingUser.original?.nongst_firm?.reg_number || ''} disabled className="mt-1" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={viewingUser.original?.nongst_firm?.bank_name || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={viewingUser.original?.nongst_firm?.bank_branch || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={viewingUser.original?.nongst_firm?.ifsc_code || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={viewingUser.original?.nongst_firm?.account_number || ''} disabled className="mt-1" />
-                </div>
+
+                {/* Bank Details */}
+                {viewingUser.original?.nongst_firm?.banks && viewingUser.original.nongst_firm.banks.length > 0 && (
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                    {viewingUser.original.nongst_firm.banks.map((bank, idx) => (
+                      <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-gray-600">Bank Name</label>
+                            <Input value={bank.bank_name || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Branch</label>
+                            <Input value={bank.bank_branch || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">IFSC Code</label>
+                            <Input value={bank.ifsc_code || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Account Number</label>
+                            <Input value={bank.account_number || ''} disabled className="mt-1" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -998,21 +1096,58 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={editingForm.gst_firm?.reg_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), reg_number: v } }))} className="mt-1" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={editingForm.gst_firm?.bank_name || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_name: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={editingForm.gst_firm?.bank_branch || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_branch: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={editingForm.gst_firm?.ifsc_code || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), ifsc_code: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={editingForm.gst_firm?.account_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), account_number: v } }))} className="mt-1" />
+
+                {/* Bank Details */}
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {(editingForm.gst_firm?.banks || [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]).map((bank, idx) => (
+                    <div key={idx} className="border rounded p-3 mb-2 bg-white">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-600">Bank Name</label>
+                          <Input value={bank.bank_name || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], bank_name: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="Bank Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Branch</label>
+                          <Input value={bank.bank_branch || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], bank_branch: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="Branch" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">IFSC Code</label>
+                          <Input value={bank.ifsc_code || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], ifsc_code: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="IFSC Code" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Number</label>
+                          <Input value={bank.account_number || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], account_number: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="Account Number" className="mt-1" />
+                        </div>
+                      </div>
+                      {(editingForm.gst_firm?.banks || []).length > 1 && (
+                        <button onClick={() => {
+                          const banks = (editingForm.gst_firm?.banks || []).filter((_, i) => i !== idx);
+                          setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                        }} className="text-red-600 text-xs mt-2">Remove Bank</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => {
+                    const banks = [...(editingForm.gst_firm?.banks || []), { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }];
+                    setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                  }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                 </div>
               </div>
             </div>
@@ -1075,21 +1210,58 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={editingForm.nongst_firm?.reg_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), reg_number: v } }))} className="mt-1" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={editingForm.nongst_firm?.bank_name || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_name: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={editingForm.nongst_firm?.bank_branch || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_branch: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={editingForm.nongst_firm?.ifsc_code || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), ifsc_code: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={editingForm.nongst_firm?.account_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), account_number: v } }))} className="mt-1" />
+
+                {/* Bank Details */}
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {(editingForm.nongst_firm?.banks || [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]).map((bank, idx) => (
+                    <div key={idx} className="border rounded p-3 mb-2 bg-white">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-600">Bank Name</label>
+                          <Input value={bank.bank_name || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], bank_name: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="Bank Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Branch</label>
+                          <Input value={bank.bank_branch || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], bank_branch: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="Branch" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">IFSC Code</label>
+                          <Input value={bank.ifsc_code || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], ifsc_code: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="IFSC Code" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Number</label>
+                          <Input value={bank.account_number || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], account_number: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="Account Number" className="mt-1" />
+                        </div>
+                      </div>
+                      {(editingForm.nongst_firm?.banks || []).length > 1 && (
+                        <button onClick={() => {
+                          const banks = (editingForm.nongst_firm?.banks || []).filter((_, i) => i !== idx);
+                          setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                        }} className="text-red-600 text-xs mt-2">Remove Bank</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => {
+                    const banks = [...(editingForm.nongst_firm?.banks || []), { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }];
+                    setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                  }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                 </div>
               </div>
             </div>

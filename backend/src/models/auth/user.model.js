@@ -46,6 +46,8 @@ const userSchema = new Schema(
 
     admin: { type: adminSubSchema, default: null },
 
+    signature: { type: String, default: null },
+
     is_active: { type: Boolean, default: true },
   },
   { timestamps: true },

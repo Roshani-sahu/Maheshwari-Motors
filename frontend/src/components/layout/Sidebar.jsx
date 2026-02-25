@@ -61,7 +61,7 @@ const Sidebar = ({ onClose }) => {
   return (
     <aside className="flex flex-col w-60 min-h-screen max-h-full fixed border-r pb-3 border-neutral-200 bg-[#0F172A] ">
       {/* Header */}
-      <div className="flex items-center h-16 px-4 border-b border-neutral-200">
+      <div className="flex items-center h-16 px-4 py-4 border-b border-neutral-200">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 flex items-center justify-center bg-neutral-900 rounded-md">
             <FaBookOpen className="text-white text-sm" />
@@ -296,7 +296,7 @@ const Sidebar = ({ onClose }) => {
           </SidebarSection>
 
 {/* 2. Inventory */}
-          <SidebarSection title="Inventory" defaultOpen={false}>
+          <SidebarSection title="Inventory" defaultOpen={true}>
 
              <NavLink
               to="/inventory/item-view"
@@ -385,7 +385,7 @@ const Sidebar = ({ onClose }) => {
           </SidebarSection>
 
           {/* 3. Transactions */}
-          <SidebarSection title="Transactions" defaultOpen={false}>
+          <SidebarSection title="Transactions" defaultOpen={true}>
             <NavLink
               to="/transactions/challan-list"
               onClick={onClose}

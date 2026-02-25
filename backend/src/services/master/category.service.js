@@ -55,11 +55,10 @@ class CategoryService {
       }
       seenLabelNames.add(lower);
 
-      const rawBrandDiscounts = Array.isArray(label.brand_discounts)
-        ? label.brand_discounts
-        : Array.isArray(label.brands)
-          ? label.brands
-          : [];
+      const rawBrandDiscounts =
+        Array.isArray(label.brand_discounts) ? label.brand_discounts
+        : Array.isArray(label.brands) ? label.brands
+        : [];
 
       const brandSeen = new Set();
       const brandDiscounts = rawBrandDiscounts.map((entry, entryIndex) => {
@@ -102,6 +101,7 @@ class CategoryService {
       });
 
       return {
+        ...(label._id ? { _id: label._id } : {}),
         name,
         description:
           typeof label.description === "string" ? label.description.trim() : "",
@@ -143,12 +143,18 @@ class CategoryService {
     }
 
     if (normalized.length > 1) {
-      const canonical = [...new Set(normalized[0].brand_discounts.map((entry) => String(entry.brand_id)))].sort();
+      const canonical = [
+        ...new Set(
+          normalized[0].brand_discounts.map((entry) => String(entry.brand_id)),
+        ),
+      ].sort();
 
       for (let i = 1; i < normalized.length; i++) {
         const current = [
           ...new Set(
-            normalized[i].brand_discounts.map((entry) => String(entry.brand_id)),
+            normalized[i].brand_discounts.map((entry) =>
+              String(entry.brand_id),
+            ),
           ),
         ].sort();
 
@@ -247,7 +253,10 @@ class CategoryService {
       labels: normalizedLabels,
       user_id: userId,
     });
-    return category;
+    return category.populate([
+      { path: "brand_ids", select: "name" },
+      { path: "labels.brand_discounts.brand_id", select: "name" },
+    ]);
   }
 
   async updateCategory(categoryId, userId, updateData) {
@@ -294,7 +303,9 @@ class CategoryService {
     }
 
     const effectiveBrandIds =
-      normalizedBrandIds !== undefined ? normalizedBrandIds : category.brand_ids;
+      normalizedBrandIds !== undefined ? normalizedBrandIds : (
+        category.brand_ids
+      );
 
     const normalizedLabels = await this._sanitizeLabels(
       labels,
@@ -303,10 +314,14 @@ class CategoryService {
     );
 
     if (labels === undefined && normalizedBrandIds !== undefined) {
-      const currentLabelBrandIds = this._extractLabelBrandIds(category.labels || []);
+      const currentLabelBrandIds = this._extractLabelBrandIds(
+        category.labels || [],
+      );
       if (currentLabelBrandIds.length > 0) {
         const allowedSet = new Set(effectiveBrandIds.map(String));
-        const invalid = currentLabelBrandIds.filter((id) => !allowedSet.has(id));
+        const invalid = currentLabelBrandIds.filter(
+          (id) => !allowedSet.has(id),
+        );
         if (invalid.length > 0) {
           throw ApiError.badRequest(
             "Cannot remove brands that are used in existing labels. Update labels first.",
@@ -325,7 +340,10 @@ class CategoryService {
       categoryId,
       fields,
       { new: true },
-    );
+    ).populate([
+      { path: "brand_ids", select: "name" },
+      { path: "labels.brand_discounts.brand_id", select: "name" },
+    ]);
     return updatedCategory;
   }
 

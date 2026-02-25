@@ -176,7 +176,10 @@ class BillService {
       .populate("transport_id")
       .populate({
         path: "challan_ids",
-        populate: { path: "items.item_id", select: "item_name barcode item_id sale_rate gst_percent" },
+        populate: {
+          path: "items.item_id",
+          select: "item_name alias description hsn_id",
+        },
       })
       .populate("payment_entries.bank_id", "bank_name account_number ifsc_code");
 
@@ -705,6 +708,127 @@ class BillService {
       ],
       sort: { createdAt: -1 },
     });
+  }
+
+  async getLastSoldItemsForParty(payload, userId, isGst) {
+    const partyId = payload?.party_id;
+    const itemId = payload?.item_id;
+
+    if (!partyId) {
+      throw ApiError.badRequest("party_id is required");
+    }
+    if (!itemId) {
+      throw ApiError.badRequest("item_id is required");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(partyId)) {
+      throw ApiError.badRequest("Invalid party_id");
+    }
+    if (!mongoose.Types.ObjectId.isValid(itemId)) {
+      throw ApiError.badRequest("Invalid item_id");
+    }
+
+    const party = await Contact.findOne({
+      _id: partyId,
+      user_id: userId,
+      type: "party",
+    })
+      .select("_id name type")
+      .lean();
+    if (!party) {
+      throw ApiError.notFound("Party not found");
+    }
+
+    const bills = await Bill.find({
+      user_id: userId,
+      is_gst: isGst,
+      contact_id: partyId,
+    })
+      .select("_id bill_no date amount payment_status challan_ids")
+      .sort({ date: -1, createdAt: -1, _id: -1 })
+      .lean();
+
+    if (bills.length === 0) {
+      return [];
+    }
+
+    const billMap = new Map(bills.map((bill) => [String(bill._id), bill]));
+    const challanIds = [
+      ...new Set(
+        bills
+          .flatMap((bill) => bill.challan_ids || [])
+          .filter(Boolean)
+          .map((id) => String(id)),
+      ),
+    ];
+
+    if (challanIds.length === 0) {
+      return [];
+    }
+
+    const challans = await Challan.find({
+      _id: { $in: challanIds },
+      user_id: userId,
+      is_gst: isGst,
+      challan_type: "sale",
+      contact_id: partyId,
+      "items.item_id": itemId,
+    })
+      .select("bill_id challan_no date items")
+      .populate(
+        "items.item_id",
+        "item_name alias description hsn_id barcode item_id sale_rate mrp_rate gst_percent image",
+      )
+      .lean();
+
+    const normalizedItemId = String(itemId);
+    const entries = [];
+
+    for (const challan of challans) {
+      const mappedBill = challan.bill_id ? billMap.get(String(challan.bill_id)) : null;
+      if (!mappedBill) continue;
+
+      for (const line of challan.items || []) {
+        const lineItem = line?.item_id;
+        const lineItemId =
+          typeof lineItem === "object" && lineItem?._id ? String(lineItem._id)
+          : String(lineItem);
+
+        if (lineItemId !== normalizedItemId) continue;
+
+        entries.push({
+          bill_id: mappedBill._id,
+          bill_no: mappedBill.bill_no,
+          bill_date: mappedBill.date,
+          bill_amount: mappedBill.amount,
+          bill_payment_status: mappedBill.payment_status,
+          challan_no: challan.challan_no,
+          challan_date: challan.date,
+          item: lineItem,
+          quantity: line.quantity,
+          rate: line.rate,
+          discount: line.discount,
+          special_discount: line.special_discount,
+          discount_amount: line.discount_amount,
+          gst_percent: line.gst_percent,
+          gst_amount: line.gst_amount,
+          taxable_amount: line.taxable_amount,
+          amount: line.amount,
+          is_gst: line.is_gst,
+        });
+      }
+    }
+
+    entries.sort((a, b) => {
+      const billDateDiff =
+        new Date(b.bill_date).getTime() - new Date(a.bill_date).getTime();
+      if (billDateDiff !== 0) return billDateDiff;
+      return (
+        new Date(b.challan_date).getTime() - new Date(a.challan_date).getTime()
+      );
+    });
+
+    return entries.slice(0, 4);
   }
 }
 

@@ -52,6 +52,8 @@ const initializeApp = asyncHandler(() => {
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
   app.get("/", (_, res) => health(res));
+  app.get("/avi", (_, res) => health(res));
+
   app.use("/api/v1", routes);
   app.use(notFoundHandler);
   app.use(errorHandler);

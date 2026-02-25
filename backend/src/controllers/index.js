@@ -14,3 +14,4 @@ export * as dashboardController from "./dashboard/dashboard.controller.js";
 export * as reportController from "./report/report.controller.js";
 export { default as departmentController } from "./master/department.controller.js";
 export { default as bankController } from "./master/bank.controller.js";
+export * as returnController from "./transaction/return.controller.js";
