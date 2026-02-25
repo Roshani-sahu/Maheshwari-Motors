@@ -3,25 +3,19 @@ import Item from "../../models/master/item.model.js";
 import Brand from "../../models/master/brand.model.js";
 import Category from "../../models/master/category.model.js";
 import Contact from "../../models/master/contact.model.js";
-import { ApiError, Pagination } from "../../utils/index.js";
+import bankService from "../master/bank.service.js";
+import { ApiError, Pagination, toNumber } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 import stockService from "../inventory/stock.service.js";
 
 class ChallanService {
-  _normalizeBankPayload(bank) {
-    if (!bank) return null;
-    if (typeof bank !== "object" || Array.isArray(bank)) {
-      throw ApiError.badRequest("Bank payload must be an object");
-    }
+  async _normalizeBankPayload(bankIdOrObj, userId) {
+    if (!bankIdOrObj) return null;
 
-    return {
-      bank_id: bank.bank_id || null,
-      bank_name: bank.bank_name || "",
-      bank_branch: bank.bank_branch || "",
-      ifsc_code: bank.ifsc_code || "",
-      account_number: bank.account_number || "",
-      account_holder: bank.account_holder || "",
-    };
+    const bankId = typeof bankIdOrObj === "object" ? bankIdOrObj.bank_id : bankIdOrObj;
+    if (!bankId) return null;
+
+    return bankService.getBankSnapshot(bankId, userId);
   }
 
   _buildPartyItemDiscountMap(itemDiscounts = []) {
@@ -183,8 +177,8 @@ class ChallanService {
         : [];
     const discountMap = new Map(brands.map((b) => [b._id.toString(), b]));
 
-    const normalizedFromBank = this._normalizeBankPayload(from_bank);
-    const normalizedToBank = this._normalizeBankPayload(to_bank);
+    const normalizedFromBank = await this._normalizeBankPayload(from_bank, userId);
+    const normalizedToBank = await this._normalizeBankPayload(to_bank, userId);
 
     if (challanType === "sale") {
       const party = await Contact.findOne({
@@ -285,11 +279,11 @@ class ChallanService {
     }
 
     if (updateData.from_bank !== undefined) {
-      updateData.from_bank = this._normalizeBankPayload(updateData.from_bank);
+      updateData.from_bank = await this._normalizeBankPayload(updateData.from_bank, userId);
     }
 
     if (updateData.to_bank !== undefined) {
-      updateData.to_bank = this._normalizeBankPayload(updateData.to_bank);
+      updateData.to_bank = await this._normalizeBankPayload(updateData.to_bank, userId);
     }
 
     if (updateData.label_name !== undefined && typeof updateData.label_name === "string") {
@@ -376,11 +370,13 @@ class ChallanService {
 
   _processItems(items, challanIsGst) {
     return items.map((item) => {
-      const grossAmount = item.quantity * item.rate;
-      const disc = item.discount ?? 0;
-      const spDisc = item.special_discount ?? 0;
-      const manualDiscAmt = item.discount_amount ?? 0;
-      const gstPct = item.gst_percent ?? 0;
+      const qty = toNumber(item.quantity ?? 1, "Item quantity", { min: 1 });
+      const rate = toNumber(item.rate, "Item rate");
+      const grossAmount = qty * rate;
+      const disc = toNumber(item.discount ?? 0, "Item discount", { min: 0, max: 100 });
+      const spDisc = toNumber(item.special_discount ?? 0, "Item special discount", { min: 0, max: 100 });
+      const manualDiscAmt = toNumber(item.discount_amount ?? 0, "Item discount amount");
+      const gstPct = toNumber(item.gst_percent ?? 0, "Item GST percent", { min: 0, max: 100 });
 
       const afterDisc = grossAmount * (1 - disc / 100);
       const afterSpDisc = afterDisc * (1 - spDisc / 100);
@@ -391,8 +387,8 @@ class ChallanService {
 
       return {
         item_id: item.item_id,
-        quantity: item.quantity,
-        rate: item.rate,
+        quantity: qty,
+        rate,
         discount: disc,
         special_discount: spDisc,
         discount_amount: manualDiscAmt,

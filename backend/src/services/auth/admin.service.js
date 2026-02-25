@@ -1,10 +1,56 @@
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import User from "../../models/auth/user.model.js";
 import Session from "../../models/auth/session.model.js";
 import Subscription from "../../models/common/subscription.model.js";
+import Bank from "../../models/master/bank.model.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 
 class AdminService {
+  _normalizeBankIds(bankIds, label) {
+    if (bankIds === undefined) return undefined;
+
+    if (!Array.isArray(bankIds)) {
+      throw ApiError.badRequest(`${label}: bank_ids must be an array`);
+    }
+
+    const normalized = [];
+    const seen = new Set();
+
+    for (const bankId of bankIds) {
+      if (!mongoose.Types.ObjectId.isValid(bankId)) {
+        throw ApiError.badRequest(`${label}: invalid bank_id provided`);
+      }
+
+      const key = String(bankId);
+      if (!seen.has(key)) {
+        seen.add(key);
+        normalized.push(bankId);
+      }
+    }
+
+    return normalized;
+  }
+
+  async _validateUserBankIds(userId, bankIds, label) {
+    const normalized = this._normalizeBankIds(bankIds, label);
+    if (normalized === undefined) return undefined;
+    if (normalized.length === 0) return [];
+
+    const count = await Bank.countDocuments({
+      _id: { $in: normalized },
+      user_id: userId,
+    });
+
+    if (count !== normalized.length) {
+      throw ApiError.badRequest(
+        `${label}: one or more bank_ids are invalid or do not belong to this user`,
+      );
+    }
+
+    return normalized;
+  }
+
   async _attachSubscriptionSummary(users = []) {
     if (!users || users.length === 0) return users;
 
@@ -124,10 +170,7 @@ class AdminService {
       GSTIN: gstGSTIN,
       CIN: gstCIN,
       reg_number: gstRegNumber,
-      bank_name: gstBankName,
-      bank_branch: gstBankBranch,
-      ifsc_code: gstIfscCode,
-      account_number: gstAccountNumber,
+      bank_ids: gstBankIds,
     } = gst_firm;
 
     const {
@@ -142,11 +185,23 @@ class AdminService {
       GSTIN: nongstGSTIN,
       CIN: nongstCIN,
       reg_number: nongstRegNumber,
-      bank_name: nongstBankName,
-      bank_branch: nongstBankBranch,
-      ifsc_code: nongstIfscCode,
-      account_number: nongstAccountNumber,
+      bank_ids: nongstBankIds,
     } = nongst_firm;
+
+    const normalizedGstBankIds = this._normalizeBankIds(
+      gstBankIds,
+      "GST Firm",
+    ) || [];
+    const normalizedNongstBankIds = this._normalizeBankIds(
+      nongstBankIds,
+      "Non-GST Firm",
+    ) || [];
+
+    if (normalizedGstBankIds.length > 0 || normalizedNongstBankIds.length > 0) {
+      throw ApiError.badRequest(
+        "bank_ids can be assigned after user creation, once banks are created for that user",
+      );
+    }
 
     const user = await User.create({
       type: "secondary",
@@ -167,10 +222,7 @@ class AdminService {
         GSTIN: gstGSTIN,
         CIN: gstCIN,
         reg_number: gstRegNumber,
-        bank_name: gstBankName,
-        bank_branch: gstBankBranch,
-        ifsc_code: gstIfscCode,
-        account_number: gstAccountNumber,
+        bank_ids: [],
       },
       nongst_firm: {
         username: nongstUsername,
@@ -185,10 +237,7 @@ class AdminService {
         GSTIN: nongstGSTIN,
         CIN: nongstCIN,
         reg_number: nongstRegNumber,
-        bank_name: nongstBankName,
-        bank_branch: nongstBankBranch,
-        ifsc_code: nongstIfscCode,
-        account_number: nongstAccountNumber,
+        bank_ids: [],
       },
     });
 
@@ -315,11 +364,14 @@ class AdminService {
         GSTIN,
         CIN,
         reg_number,
-        bank_name,
-        bank_branch,
-        ifsc_code,
-        account_number,
+        bank_ids,
       } = gst_firm;
+
+      const validatedGstBankIds = await this._validateUserBankIds(
+        userId,
+        bank_ids,
+        "GST Firm",
+      );
 
       if (username !== undefined) {
         await this._checkFirmUsernameUniqueness("gst_firm", username, userId);
@@ -337,11 +389,8 @@ class AdminService {
       if (GSTIN !== undefined) user.gst_firm.GSTIN = GSTIN;
       if (CIN !== undefined) user.gst_firm.CIN = CIN;
       if (reg_number !== undefined) user.gst_firm.reg_number = reg_number;
-      if (bank_name !== undefined) user.gst_firm.bank_name = bank_name;
-      if (bank_branch !== undefined) user.gst_firm.bank_branch = bank_branch;
-      if (ifsc_code !== undefined) user.gst_firm.ifsc_code = ifsc_code;
-      if (account_number !== undefined)
-        user.gst_firm.account_number = account_number;
+      if (validatedGstBankIds !== undefined)
+        user.gst_firm.bank_ids = validatedGstBankIds;
     }
 
     if (nongst_firm) {
@@ -360,11 +409,14 @@ class AdminService {
         GSTIN,
         CIN,
         reg_number,
-        bank_name,
-        bank_branch,
-        ifsc_code,
-        account_number,
+        bank_ids,
       } = nongst_firm;
+
+      const validatedNonGstBankIds = await this._validateUserBankIds(
+        userId,
+        bank_ids,
+        "Non-GST Firm",
+      );
 
       if (username !== undefined) {
         await this._checkFirmUsernameUniqueness(
@@ -386,11 +438,8 @@ class AdminService {
       if (GSTIN !== undefined) user.nongst_firm.GSTIN = GSTIN;
       if (CIN !== undefined) user.nongst_firm.CIN = CIN;
       if (reg_number !== undefined) user.nongst_firm.reg_number = reg_number;
-      if (bank_name !== undefined) user.nongst_firm.bank_name = bank_name;
-      if (bank_branch !== undefined) user.nongst_firm.bank_branch = bank_branch;
-      if (ifsc_code !== undefined) user.nongst_firm.ifsc_code = ifsc_code;
-      if (account_number !== undefined)
-        user.nongst_firm.account_number = account_number;
+      if (validatedNonGstBankIds !== undefined)
+        user.nongst_firm.bank_ids = validatedNonGstBankIds;
     }
 
     await user.save();

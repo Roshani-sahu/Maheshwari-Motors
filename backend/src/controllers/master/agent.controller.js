@@ -1,15 +1,5 @@
 import { agentService } from "../../services/index.js";
-import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
-
-const agentSchema = {
-  name: { required: true, type: "string", min: 1, label: "Agent name" },
-  address: { required: false, type: "string", label: "Address" },
-  city: { required: false, type: "string", label: "City" },
-  pincode: { required: false, type: "string", label: "Pincode" },
-  phone: { required: false, type: "string", label: "Phone" },
-  whatsapp: { required: false, type: "string", label: "WhatsApp" },
-  party_id: { required: true, type: "objectId", label: "Party" },
-};
+import { asyncHandler, ApiResponse } from "../../utils/index.js";
 
 class AgentController {
   getAgents = asyncHandler(async (req, res) => {
@@ -30,19 +20,17 @@ class AgentController {
   });
 
   createAgent = asyncHandler(async (req, res) => {
-    const data = validate(req.body, agentSchema);
-    const agent = await agentService.createAgent(data, req.user._id);
+    const agent = await agentService.createAgent(req.body, req.user._id);
     res
       .status(201)
       .json(new ApiResponse(201, agent, "Agent created successfully"));
   });
 
   updateAgent = asyncHandler(async (req, res) => {
-    const data = validate(req.body, agentSchema, { allowPartial: true });
     const agent = await agentService.updateAgent(
       req.params.agentId,
       req.user._id,
-      data,
+      req.body,
     );
     res
       .status(200)

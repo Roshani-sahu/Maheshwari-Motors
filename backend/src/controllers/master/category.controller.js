@@ -1,54 +1,5 @@
 import { categoryService } from "../../services/index.js";
-import { asyncHandler, ApiResponse, validate, ApiError } from "../../utils/index.js";
-
-const discountFieldSchema = {
-  required: false,
-  type: "object",
-  fields: {
-    normal: { required: false, type: "number", min: 0, max: 100, label: "Normal discount" },
-    special: { required: false, type: "number", min: 0, max: 100, label: "Special discount" },
-  },
-};
-
-const labelBrandSchema = {
-  required: false,
-  type: "array",
-  items: {
-    brand_id: { required: true, type: "objectId", label: "Brand" },
-    item_ids: {
-      required: false,
-      type: "array",
-      arrayType: "objectId",
-      label: "Items",
-    },
-    disc1: discountFieldSchema,
-    disc2: discountFieldSchema,
-  },
-};
-
-const categorySchema = {
-  category_name: { required: false, type: "string", min: 1, label: "Category name" },
-  name: { required: false, type: "string", min: 1, label: "Category name" },
-  description: { required: false, type: "string", label: "Description" },
-  brands: {
-    required: false,
-    type: "array",
-    arrayType: "objectId",
-    label: "Brands",
-  },
-  labels: {
-    required: false,
-    type: "array",
-    label: "Labels",
-    items: {
-      name: { required: true, type: "string", min: 1, label: "Label name" },
-      description: { required: false, type: "string", label: "Label description" },
-      is_active: { required: false, type: "boolean", label: "Label active" },
-      brand_discounts: labelBrandSchema,
-      brands: labelBrandSchema,
-    },
-  },
-};
+import { asyncHandler, ApiResponse, ApiError } from "../../utils/index.js";
 
 class CategoryController {
   getCategories = asyncHandler(async (req, res) => {
@@ -69,7 +20,7 @@ class CategoryController {
   });
 
   createCategory = asyncHandler(async (req, res) => {
-    const data = validate(req.body, categorySchema);
+    const data = req.body;
     const resolvedName = data.category_name ?? data.name;
     if (!resolvedName) {
       throw ApiError.badRequest("Category name is required");
@@ -90,11 +41,12 @@ class CategoryController {
   });
 
   updateCategory = asyncHandler(async (req, res) => {
-    const data = validate(req.body, categorySchema, { allowPartial: true });
+    const data = req.body;
     const updateData = {};
     if (data.category_name !== undefined) updateData.name = data.category_name;
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.description !== undefined) updateData.description = data.description;
+    if (data.description !== undefined)
+      updateData.description = data.description;
     if (data.brands !== undefined) updateData.brand_ids = data.brands;
     if (data.labels !== undefined) updateData.labels = data.labels;
 

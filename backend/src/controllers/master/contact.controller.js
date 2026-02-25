@@ -1,75 +1,5 @@
 import { contactService } from "../../services/index.js";
-import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
-
-const discountFieldSchema = {
-  required: false,
-  type: "object",
-  fields: {
-    normal: { required: false, type: "number", min: 0, max: 100, label: "Normal discount" },
-    special: { required: false, type: "number", min: 0, max: 100, label: "Special discount" },
-  },
-};
-
-const bankSchema = {
-  required: false,
-  type: "array",
-  label: "Banks",
-  items: {
-    bank_name: { required: true, type: "string", min: 1, label: "Bank name" },
-    bank_branch: { required: false, type: "string", label: "Bank branch" },
-    ifsc_code: { required: false, type: "string", label: "IFSC" },
-    account_number: { required: true, type: "string", min: 1, label: "Account number" },
-    account_holder: { required: false, type: "string", label: "Account holder" },
-    upi_id: { required: false, type: "string", label: "UPI ID" },
-    is_default: { required: false, type: "boolean", label: "Default bank" },
-  },
-};
-
-const itemDiscountSchema = {
-  required: false,
-  type: "array",
-  label: "Item discounts",
-  items: {
-    item_id: { required: true, type: "objectId", label: "Item" },
-    discount1: discountFieldSchema,
-    discount2: discountFieldSchema,
-  },
-};
-
-const contactSchema = {
-  name: { required: true, type: "string", min: 1, label: "Name" },
-  alias: { required: false, type: "string", label: "Alias" },
-  type: { required: true, type: "string", enum: ["party", "supplier"], label: "Type" },
-  phone: { required: false, type: "string", label: "Phone" },
-  whatsapp_number: { required: false, type: "string", label: "WhatsApp number" },
-  email: { required: false, type: "string", format: "email", label: "Email" },
-  address: { required: false, type: "string", label: "Address" },
-  city: { required: false, type: "string", label: "City" },
-  state: { required: false, type: "string", label: "State" },
-  gstin: { required: false, type: "string", label: "GSTIN" },
-  cin: { required: false, type: "string", label: "CIN" },
-  reg_number: { required: false, type: "string", label: "Registration number" },
-  signature: { required: false, type: "string", label: "Signature image" },
-  assigned_label: { required: false, type: "string", label: "Assigned label" },
-  banks: bankSchema,
-  item_discounts: itemDiscountSchema,
-  bank_name: { required: false, type: "string", label: "Bank name" },
-  bank_branch: { required: false, type: "string", label: "Bank branch" },
-  ifsc_code: { required: false, type: "string", label: "IFSC" },
-  account_number: { required: false, type: "string", label: "Account number" },
-  transport_charge: { required: false, type: "number", min: 0, label: "Transport charge" },
-  area: { required: false, type: "string", label: "Area" },
-  is_gst: { required: false, type: "number", enum: [0, 1], label: "GST flag" },
-  category_id: { required: false, type: "objectId", label: "Category" },
-  transport_id: { required: false, type: "objectId", label: "Transport" },
-  agent_id: { required: false, type: "objectId", label: "Agent" },
-  area_id: { required: false, type: "objectId", label: "Area master" },
-};
-
-const updateBalanceSchema = {
-  amount: { required: true, type: "number", min: 0.01, label: "Amount" },
-  operation: { required: true, type: "string", enum: ["add", "subtract"], label: "Operation" },
-};
+import { asyncHandler, ApiResponse } from "../../utils/index.js";
 
 class ContactController {
   getContacts = asyncHandler(async (req, res) => {
@@ -110,19 +40,17 @@ class ContactController {
   });
 
   createContact = asyncHandler(async (req, res) => {
-    const data = validate(req.body, contactSchema);
-    const contact = await contactService.createContact(data, req.user._id);
+    const contact = await contactService.createContact(req.body, req.user._id);
     res
       .status(201)
       .json(new ApiResponse(201, contact, "Contact created successfully"));
   });
 
   updateContact = asyncHandler(async (req, res) => {
-    const data = validate(req.body, contactSchema, { allowPartial: true });
     const contact = await contactService.updateContact(
       req.params.contactId,
       req.user._id,
-      data,
+      req.body,
     );
     res
       .status(200)
@@ -144,12 +72,16 @@ class ContactController {
     res
       .status(200)
       .json(
-        new ApiResponse(200, { balance }, "Contact balance fetched successfully"),
+        new ApiResponse(
+          200,
+          { balance },
+          "Contact balance fetched successfully",
+        ),
       );
   });
 
   updateContactBalance = asyncHandler(async (req, res) => {
-    const { amount, operation } = validate(req.body, updateBalanceSchema);
+    const { amount, operation } = req.body;
     const balance = await contactService.updateBalance(
       req.params.contactId,
       req.user._id,
@@ -159,7 +91,11 @@ class ContactController {
     res
       .status(200)
       .json(
-        new ApiResponse(200, { balance }, "Contact balance updated successfully"),
+        new ApiResponse(
+          200,
+          { balance },
+          "Contact balance updated successfully",
+        ),
       );
   });
 
@@ -208,6 +144,7 @@ export const deleteContact = contactController.deleteContact;
 export const getContactBalance = contactController.getContactBalance;
 export const updateContactBalance = contactController.updateContactBalance;
 export const getContactsWithDue = contactController.getContactsWithDue;
-export const getContactsWithOverpaid = contactController.getContactsWithOverpaid;
+export const getContactsWithOverpaid =
+  contactController.getContactsWithOverpaid;
 
 export default contactController;

@@ -14,6 +14,7 @@ import billRoutes from "./transaction/bill.routes.js";
 import dashboardRoutes from "./dashboard/dashboard.routes.js";
 import reportRoutes from "./report/report.routes.js";
 import departmentRoutes from "./master/department.route.js";
+import bankRoutes from "./master/bank.routes.js";
 
 const router = Router();
 
@@ -32,5 +33,6 @@ router.use("/bills", billRoutes);
 router.use("/dashboard", dashboardRoutes);
 router.use("/reports", reportRoutes);
 router.use("/departments", departmentRoutes);
+router.use("/banks", bankRoutes);
 
 export default router;

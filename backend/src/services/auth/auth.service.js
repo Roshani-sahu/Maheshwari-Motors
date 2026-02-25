@@ -1,9 +1,47 @@
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import User from "../../models/auth/user.model.js";
 import Session from "../../models/auth/session.model.js";
+import Bank from "../../models/master/bank.model.js";
 import { ApiError } from "../../utils/index.js";
 
 class AuthService {
+  _normalizeBankIds(bankIds, label) {
+    if (bankIds === undefined || bankIds === null) return [];
+    if (!Array.isArray(bankIds)) {
+      throw ApiError.badRequest(`${label} bank_ids must be an array`);
+    }
+
+    const normalized = [];
+    const seen = new Set();
+
+    for (const id of bankIds) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw ApiError.badRequest(`${label} contains an invalid bank_id`);
+      }
+
+      const key = String(id);
+      if (!seen.has(key)) {
+        seen.add(key);
+        normalized.push(id);
+      }
+    }
+
+    return normalized;
+  }
+
+  async _resolveFirmBanks(userId, firmObj) {
+    const configuredBankIds = Array.isArray(firmObj.bank_ids)
+      ? firmObj.bank_ids
+      : [];
+
+    if (configuredBankIds.length > 0) {
+      return Bank.find({ _id: { $in: configuredBankIds }, user_id: userId }).lean();
+    }
+
+    return Bank.find({ user_id: userId }).lean();
+  }
+
   async registerMainUser(data) {
     const { name, email, phone, admin, gst_firm, nongst_firm } = data;
 
@@ -16,14 +54,27 @@ class AuthService {
     const gstPwHash = await bcrypt.hash(gst_firm.password, 10);
     const nongstPwHash = await bcrypt.hash(nongst_firm.password, 10);
 
+    const gstBankIds = this._normalizeBankIds(
+      gst_firm?.bank_ids,
+      "GST firm",
+    );
+    const nongstBankIds = this._normalizeBankIds(
+      nongst_firm?.bank_ids,
+      "Non-GST firm",
+    );
+
     const user = await User.create({
       type: "main",
       name,
       email,
       phone,
       admin: { ...admin, password: adminPwHash },
-      gst_firm: { ...gst_firm, password: gstPwHash },
-      nongst_firm: { ...nongst_firm, password: nongstPwHash },
+      gst_firm: { ...gst_firm, password: gstPwHash, bank_ids: gstBankIds },
+      nongst_firm: {
+        ...nongst_firm,
+        password: nongstPwHash,
+        bank_ids: nongstBankIds,
+      },
     });
 
     const token = user.generateAdminToken();
@@ -87,6 +138,9 @@ class AuthService {
       });
 
       const firmObj = firmType === "GST" ? user.gst_firm : user.nongst_firm;
+
+      const banks = await this._resolveFirmBanks(user._id, firmObj);
+
       const firmData = {
         firm_type: firmType,
         name: firmObj.name,
@@ -100,10 +154,8 @@ class AuthService {
         GSTIN: firmObj.GSTIN || null,
         CIN: firmObj.CIN || null,
         reg_number: firmObj.reg_number || null,
-        bank_name: firmObj.bank_name || null,
-        bank_branch: firmObj.bank_branch || null,
-        ifsc_code: firmObj.ifsc_code || null,
-        account_number: firmObj.account_number || null,
+        bank_ids: Array.isArray(firmObj.bank_ids) ? firmObj.bank_ids : [],
+        banks,
       };
 
       return {

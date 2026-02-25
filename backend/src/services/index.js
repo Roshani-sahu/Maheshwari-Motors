@@ -10,6 +10,7 @@ export { default as transportService } from "./master/transport.service.js";
 export { default as areaService } from "./master/area.service.js";
 export { default as billService } from "./transaction/bill.service.js";
 export { default as challanService } from "./transaction/challan.service.js";
+export { default as bankService } from "./master/bank.service.js";
 export { default as stockService } from "./inventory/stock.service.js";
 export { default as dashboardService } from "./dashboard/dashboard.service.js";
 export { default as reportService } from "./report/report.service.js";

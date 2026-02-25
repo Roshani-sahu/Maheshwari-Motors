@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Brand from "../../models/master/brand.model.js";
 import Category from "../../models/master/category.model.js";
 import Item from "../../models/master/item.model.js";
-import { ApiError, Pagination } from "../../utils/index.js";
+import { ApiError, Pagination, toNumber } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 
 class BrandService {
@@ -230,26 +230,10 @@ class BrandService {
     const validateDiscountField = (field, label) => {
       if (!field) return;
       if (field.normal !== undefined) {
-        if (
-          typeof field.normal !== "number" ||
-          field.normal < 0 ||
-          field.normal > 100
-        ) {
-          throw ApiError.badRequest(
-            `${label} normal % must be between 0 and 100`,
-          );
-        }
+        field.normal = toNumber(field.normal, `${label} normal %`, { min: 0, max: 100 });
       }
       if (field.special !== undefined) {
-        if (
-          typeof field.special !== "number" ||
-          field.special < 0 ||
-          field.special > 100
-        ) {
-          throw ApiError.badRequest(
-            `${label} special % must be between 0 and 100`,
-          );
-        }
+        field.special = toNumber(field.special, `${label} special %`, { min: 0, max: 100 });
       }
     };
     validateDiscountField(discount1, "Discount 1");

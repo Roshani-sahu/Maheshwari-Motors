@@ -1,5 +1,35 @@
 import mongoose from "mongoose";
 
+const paymentEntrySchema = new mongoose.Schema(
+  {
+    amount: { type: Number, required: true, min: 0 },
+    payment_type: {
+      type: String,
+      enum: [
+        "bank_transaction_received_amount",
+        "cash_payment_received_amount",
+        "bank_transfer_payment_given",
+        "cash_payment_given",
+      ],
+      required: true,
+    },
+    bank_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bank",
+      default: null,
+    },
+    reference_no: { type: String, default: "" },
+    note: { type: String, default: "" },
+    settled_to: {
+      type: String,
+      enum: ["bill", "unsettled_balance"],
+      default: "bill",
+    },
+    date: { type: Date, default: Date.now },
+  },
+  { _id: false },
+);
+
 const billSchema = new mongoose.Schema(
   {
     id: { type: Number },
@@ -26,6 +56,7 @@ const billSchema = new mongoose.Schema(
       enum: ["due", "paid", "overpaid"],
       default: "due",
     },
+    payment_entries: { type: [paymentEntrySchema], default: [] },
     challan_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: "Challan" }],
 
     skip_stock_calculation: { type: Boolean, default: false },

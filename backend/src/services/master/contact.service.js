@@ -1,9 +1,11 @@
+import mongoose from "mongoose";
 import Contact from "../../models/master/contact.model.js";
 import Challan from "../../models/transaction/challan.model.js";
 import Bill from "../../models/transaction/bill.model.js";
 import Item from "../../models/master/item.model.js";
 import Category from "../../models/master/category.model.js";
-import { ApiError, Pagination } from "../../utils/index.js";
+import Bank from "../../models/master/bank.model.js";
+import { ApiError, Pagination, toNumber } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 
 class ContactService {
@@ -52,74 +54,17 @@ class ContactService {
     return { normal, special };
   }
 
-  _sanitizeBanks(banks) {
-    if (banks === undefined) return undefined;
-    if (!Array.isArray(banks)) {
-      throw ApiError.badRequest("Banks must be an array");
+  async _validateBankId(bankId, userId) {
+    if (bankId === undefined) return undefined;
+    if (bankId === null || bankId === "") return null;
+    if (!mongoose.Types.ObjectId.isValid(bankId)) {
+      throw ApiError.badRequest("Invalid bank_id");
     }
-
-    const sanitized = banks.map((bank, index) => {
-      if (!bank || typeof bank !== "object" || Array.isArray(bank)) {
-        throw ApiError.badRequest(`banks[${index}] must be an object`);
-      }
-
-      const bankName = this._normalizeString(bank.bank_name || "");
-      const accountNumber = this._normalizeString(bank.account_number || "");
-
-      if (!bankName) {
-        throw ApiError.badRequest(`banks[${index}].bank_name is required`);
-      }
-
-      if (!accountNumber) {
-        throw ApiError.badRequest(`banks[${index}].account_number is required`);
-      }
-
-      return {
-        bank_name: bankName,
-        bank_branch: this._normalizeString(bank.bank_branch || ""),
-        ifsc_code: this._normalizeString(bank.ifsc_code || ""),
-        account_number: accountNumber,
-        account_holder: this._normalizeString(bank.account_holder || ""),
-        upi_id: this._normalizeString(bank.upi_id || ""),
-        is_default: Boolean(bank.is_default),
-      };
-    });
-
-    const defaultCount = sanitized.filter((b) => b.is_default).length;
-    if (defaultCount > 1) {
-      throw ApiError.badRequest("Only one default bank is allowed per contact");
+    const bank = await Bank.exists({ _id: bankId, user_id: userId });
+    if (!bank) {
+      throw ApiError.badRequest("Bank not found. Please select a valid bank.");
     }
-
-    if (sanitized.length === 1 && defaultCount === 0) {
-      sanitized[0].is_default = true;
-    }
-
-    return sanitized;
-  }
-
-  _sanitizeLegacyBankAsArray(data) {
-    const bankName = this._normalizeString(data.bank_name || "");
-    const accountNumber = this._normalizeString(data.account_number || "");
-
-    if (!bankName && !accountNumber) return [];
-
-    if (!bankName || !accountNumber) {
-      throw ApiError.badRequest(
-        "Both bank_name and account_number are required when providing legacy bank fields",
-      );
-    }
-
-    return [
-      {
-        bank_name: bankName,
-        bank_branch: this._normalizeString(data.bank_branch || ""),
-        ifsc_code: this._normalizeString(data.ifsc_code || ""),
-        account_number: accountNumber,
-        account_holder: this._normalizeString(data.name || ""),
-        upi_id: "",
-        is_default: true,
-      },
-    ];
+    return bankId;
   }
 
   async _sanitizeItemDiscounts(itemDiscounts, userId) {
@@ -286,12 +231,8 @@ class ContactService {
       reg_number,
       signature,
       assigned_label,
-      banks,
+      bank_id,
       item_discounts,
-      bank_name,
-      bank_branch,
-      ifsc_code,
-      account_number,
       transport_charge,
       area,
       is_gst,
@@ -345,16 +286,7 @@ class ContactService {
       }
     }
 
-    let normalizedBanks = this._sanitizeBanks(banks);
-    if (normalizedBanks === undefined) {
-      normalizedBanks = this._sanitizeLegacyBankAsArray({
-        bank_name,
-        bank_branch,
-        ifsc_code,
-        account_number,
-        name,
-      });
-    }
+    const normalizedBankId = await this._validateBankId(bank_id, userId);
 
     let normalizedItemDiscounts = [];
     if (type === "party") {
@@ -387,12 +319,8 @@ class ContactService {
       reg_number,
       signature: this._normalizeOptionalString(signature) ?? null,
       assigned_label: normalizedAssignedLabel,
-      banks: normalizedBanks,
+      bank_id: normalizedBankId ?? null,
       item_discounts: normalizedItemDiscounts,
-      bank_name,
-      bank_branch,
-      ifsc_code,
-      account_number,
       transport_charge: normalizedTransportCharge,
       area,
       is_gst: is_gst ?? 1,
@@ -426,12 +354,8 @@ class ContactService {
       reg_number,
       signature,
       assigned_label,
-      banks,
+      bank_id,
       item_discounts,
-      bank_name,
-      bank_branch,
-      ifsc_code,
-      account_number,
       transport_charge,
       area,
       is_gst,
@@ -478,10 +402,7 @@ class ContactService {
       normalizedTransportCharge = 0;
     }
 
-    let normalizedBanks = this._sanitizeBanks(banks);
-    if (normalizedBanks === undefined && banks !== undefined) {
-      normalizedBanks = [];
-    }
+    const normalizedBankId = await this._validateBankId(bank_id, userId);
 
     let normalizedItemDiscounts = await this._sanitizeItemDiscounts(
       item_discounts,
@@ -517,18 +438,13 @@ class ContactService {
     if (signature !== undefined) {
       fields.signature = this._normalizeOptionalString(signature);
     }
-    if (bank_name !== undefined) fields.bank_name = bank_name;
-    if (bank_branch !== undefined) fields.bank_branch = bank_branch;
-    if (ifsc_code !== undefined) fields.ifsc_code = ifsc_code;
-    if (account_number !== undefined) fields.account_number = account_number;
+    if (normalizedBankId !== undefined) fields.bank_id = normalizedBankId;
     if (normalizedTransportCharge !== undefined) {
       fields.transport_charge = normalizedTransportCharge;
     }
     if (area !== undefined) fields.area = area;
     if (is_gst !== undefined) fields.is_gst = is_gst;
     if (category_id !== undefined) fields.category_id = category_id;
-
-    if (normalizedBanks !== undefined) fields.banks = normalizedBanks;
 
     if (contact.type === "party") {
       if (normalizedAssignedLabel !== undefined) {

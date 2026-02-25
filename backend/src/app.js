@@ -4,23 +4,24 @@ import routes from "./routers/index.js";
 import { errorHandler, notFoundHandler } from "./middlewares/index.js";
 import env from "./config/env.js";
 import asyncHandler from "./utils/asyncHandler.js";
+import { startSubscriptionCron } from "./jobs/subscriptionExpiry.cron.js";
 
 const health = (res) => {
   res.status(200).json({
     status: "ok",
     message: "Service is running successfully 🚀",
     timestamp: new Date().toISOString(),
-    "Backend Engineer": [
-      {
+    "Development Team": {
+      "Backend Engineer": {
         name: "Tushar Gour",
         linkedin: "https://www.linkedin.com/in/tushar-gour/",
       },
-    ],
-    "Frontend Engineer": [
-      { name: "Shrivanshu Dubey" },
-      { name: "Roshani Sahu" },
-    ],
-    "DevOps Engineer": [{ name: "Avi Tamrakar" }],
+      "Frontend Engineer": [
+        { name: "Shrivanshu Dubey" },
+        { name: "Roshani Sahu" },
+      ],
+      "DevOps Engineer": { name: "Avi Tamrakar" },
+    },
     uptime: process.uptime(),
   });
 };
@@ -57,6 +58,7 @@ const initializeApp = asyncHandler(() => {
 
   app.listen(env.PORT, () => {
     console.log(`🚀 Server running on port ${env.PORT}`);
+    startSubscriptionCron();
   });
 });
 

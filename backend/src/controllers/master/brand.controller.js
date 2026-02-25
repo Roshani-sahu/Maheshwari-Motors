@@ -1,32 +1,5 @@
 import { brandService } from "../../services/index.js";
-import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
-
-const discountFieldSchema = {
-  required: false,
-  type: "object",
-  fields: {
-    normal: { required: false, type: "number", min: 0, max: 100, label: "Normal discount" },
-    special: { required: false, type: "number", min: 0, max: 100, label: "Special discount" },
-  },
-};
-
-const brandSchema = {
-  brand_name: { required: true, type: "string", min: 1, label: "Brand name" },
-  discount1: discountFieldSchema,
-  discount2: discountFieldSchema,
-  hsn_id: { required: false, type: "objectId", label: "HSN" },
-  item_ids: {
-    required: false,
-    type: "array",
-    arrayType: "objectId",
-    label: "Item IDs",
-  },
-};
-
-const discountSchema = {
-  discount1: discountFieldSchema,
-  discount2: discountFieldSchema,
-};
+import { asyncHandler, ApiResponse } from "../../utils/index.js";
 
 class BrandController {
   getBrands = asyncHandler(async (req, res) => {
@@ -47,7 +20,7 @@ class BrandController {
   });
 
   createBrand = asyncHandler(async (req, res) => {
-    const data = validate(req.body, brandSchema);
+    const data = req.body;
     const brand = await brandService.createBrand(
       {
         name: data.brand_name,
@@ -64,7 +37,7 @@ class BrandController {
   });
 
   updateBrand = asyncHandler(async (req, res) => {
-    const data = validate(req.body, brandSchema, { allowPartial: true });
+    const data = req.body;
     const updateData = {};
     if (data.brand_name !== undefined) updateData.name = data.brand_name;
     if (data.discount1 !== undefined) updateData.discount1 = data.discount1;
@@ -90,11 +63,10 @@ class BrandController {
   });
 
   updateDiscount = asyncHandler(async (req, res) => {
-    const data = validate(req.body, discountSchema, { allowPartial: true });
     const brand = await brandService.updateDiscount(
       req.params.brandId,
       req.user._id,
-      data,
+      req.body,
     );
     res
       .status(200)

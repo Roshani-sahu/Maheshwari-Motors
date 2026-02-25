@@ -9,6 +9,7 @@ router.use(requireFirm);
 
 router.get("/", billController.getBills);
 router.post("/", billController.createBill);
+router.post("/settlements", billController.settleBills);
 router.get("/summary", billController.getBillSummary);
 router.get("/status/:status", billController.getBillsByStatus);
 router.get("/contact/:contactId", billController.getBillsForContact);

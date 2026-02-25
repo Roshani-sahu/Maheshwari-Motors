@@ -1,5 +1,5 @@
 import Hsn from "../../models/master/hsn.model.js";
-import { ApiError, Pagination } from "../../utils/index.js";
+import { ApiError, Pagination, toNumber, toNumberIfDefined } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 
 class HsnService {
@@ -40,6 +40,7 @@ class HsnService {
     if (gst_rate === undefined || gst_rate === null) {
       throw ApiError.badRequest("GST rate is required");
     }
+    const parsedGstRate = toNumber(gst_rate, "GST rate", { min: 0, max: 100 });
 
     const escapedCode = hsn_code.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const duplicate = await Hsn.findOne({
@@ -54,7 +55,7 @@ class HsnService {
       id: await getNextId("Hsn", userId),
       hsn_code: hsn_code.trim(),
       description: description || "",
-      gst_rate,
+      gst_rate: parsedGstRate,
       is_active: is_active ?? true,
       user_id: userId,
     });
@@ -88,7 +89,7 @@ class HsnService {
     const fields = {};
     if (hsn_code !== undefined) fields.hsn_code = hsn_code.trim();
     if (description !== undefined) fields.description = description;
-    if (gst_rate !== undefined) fields.gst_rate = gst_rate;
+    if (gst_rate !== undefined) fields.gst_rate = toNumberIfDefined(gst_rate, "GST rate", { min: 0, max: 100 });
     if (is_active !== undefined) fields.is_active = is_active;
 
     const updatedHsn = await Hsn.findByIdAndUpdate(hsnId, fields, {

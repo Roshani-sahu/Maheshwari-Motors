@@ -3,7 +3,7 @@ import Brand from "../../models/master/brand.model.js";
 import Category from "../../models/master/category.model.js";
 import Contact from "../../models/master/contact.model.js";
 import Department from "../../models/master/department.model.js";
-import { ApiError, Pagination } from "../../utils/index.js";
+import { ApiError, Pagination, toNumber, toNumberIfDefined } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 import {
   generateUniqueBarcode,
@@ -13,15 +13,8 @@ import {
 import s3Service from "../common/s3.service.js";
 
 class ItemService {
-  _toNumber(value, fieldLabel, { allowNegative = false } = {}) {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric)) {
-      throw ApiError.badRequest(`${fieldLabel} must be a valid number`);
-    }
-    if (!allowNegative && numeric < 0) {
-      throw ApiError.badRequest(`${fieldLabel} must be a non-negative number`);
-    }
-    return numeric;
+  _toNumber(value, fieldLabel, opts) {
+    return toNumber(value, fieldLabel, opts);
   }
 
   _resolveVisibleStock(item, isGst) {
@@ -108,9 +101,7 @@ class ItemService {
     if (sale_rate === undefined || sale_rate === null) {
       throw ApiError.badRequest("Sale rate is required");
     }
-    if (typeof sale_rate !== "number" || sale_rate < 0) {
-      throw ApiError.badRequest("Sale rate must be a non-negative number");
-    }
+    const parsedSaleRate = toNumber(sale_rate, "Sale rate");
 
     let finalBarcode;
     if (barcode !== undefined && barcode !== null && barcode !== "") {
@@ -147,49 +138,24 @@ class ItemService {
       finalItemId = await generateUniqueItemId(userId);
     }
 
-    if (
-      purchase_rate !== undefined &&
-      (typeof purchase_rate !== "number" || purchase_rate < 0)
-    ) {
-      throw ApiError.badRequest("Purchase rate must be a non-negative number");
-    }
-    if (
-      mrp_rate !== undefined &&
-      (typeof mrp_rate !== "number" || mrp_rate < 0)
-    ) {
-      throw ApiError.badRequest("MRP rate must be a non-negative number");
-    }
-    if (
-      gst_percent !== undefined &&
-      (typeof gst_percent !== "number" || gst_percent < 0 || gst_percent > 100)
-    ) {
-      throw ApiError.badRequest("GST percent must be between 0 and 100");
-    }
-    if (
-      discount !== undefined &&
-      (typeof discount !== "number" || discount < 0 || discount > 100)
-    ) {
-      throw ApiError.badRequest("Discount must be between 0 and 100");
-    }
+    const parsedPurchaseRate = toNumberIfDefined(purchase_rate, "Purchase rate");
+    const parsedMrpRate = toNumberIfDefined(mrp_rate, "MRP rate");
+    const parsedGstPercent = toNumberIfDefined(gst_percent, "GST percent", { min: 0, max: 100 });
+    const parsedDiscount = toNumberIfDefined(discount, "Discount", { min: 0, max: 100 });
 
     const finalPhysicalStock =
       physical_stock !== undefined ?
-        this._toNumber(physical_stock, "Physical stock")
+        toNumber(physical_stock, "Physical stock")
       : stock !== undefined ?
-        this._toNumber(stock, "Stock")
+        toNumber(stock, "Stock")
       : 0;
 
     const finalLogicalStock =
       logical_stock !== undefined ?
-        this._toNumber(logical_stock, "Logical stock", { allowNegative: true })
+        toNumber(logical_stock, "Logical stock", { allowNegative: true })
       : 0;
 
-    if (
-      threshold !== undefined &&
-      (typeof threshold !== "number" || threshold < 0)
-    ) {
-      throw ApiError.badRequest("Threshold must be a non-negative number");
-    }
+    const parsedThreshold = toNumberIfDefined(threshold, "Threshold");
 
     const escapedName = item_name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const duplicate = await Item.findOne({
@@ -263,15 +229,15 @@ class ItemService {
       item_name: item_name.trim(),
       barcode: finalBarcode,
       item_id: finalItemId,
-      sale_rate,
-      purchase_rate,
-      mrp_rate,
-      gst_percent,
-      discount,
+      sale_rate: parsedSaleRate,
+      purchase_rate: parsedPurchaseRate,
+      mrp_rate: parsedMrpRate,
+      gst_percent: parsedGstPercent,
+      discount: parsedDiscount,
       stock: finalPhysicalStock,
       physical_stock: finalPhysicalStock,
       logical_stock: finalLogicalStock,
-      threshold,
+      threshold: parsedThreshold,
       is_gst,
       category_id,
       brand_id,
@@ -366,43 +332,13 @@ class ItemService {
         );
       }
     }
-    if (
-      sale_rate !== undefined &&
-      (typeof sale_rate !== "number" || sale_rate < 0)
-    ) {
-      throw ApiError.badRequest("Sale rate must be a non-negative number");
-    }
-    if (
-      purchase_rate !== undefined &&
-      (typeof purchase_rate !== "number" || purchase_rate < 0)
-    ) {
-      throw ApiError.badRequest("Purchase rate must be a non-negative number");
-    }
-    if (
-      mrp_rate !== undefined &&
-      (typeof mrp_rate !== "number" || mrp_rate < 0)
-    ) {
-      throw ApiError.badRequest("MRP rate must be a non-negative number");
-    }
-    if (
-      gst_percent !== undefined &&
-      (typeof gst_percent !== "number" || gst_percent < 0 || gst_percent > 100)
-    ) {
-      throw ApiError.badRequest("GST percent must be between 0 and 100");
-    }
-    if (
-      discount !== undefined &&
-      (typeof discount !== "number" || discount < 0 || discount > 100)
-    ) {
-      throw ApiError.badRequest("Discount must be between 0 and 100");
-    }
+    const parsedSaleRate = toNumberIfDefined(sale_rate, "Sale rate");
+    const parsedPurchaseRate = toNumberIfDefined(purchase_rate, "Purchase rate");
+    const parsedMrpRate = toNumberIfDefined(mrp_rate, "MRP rate");
+    const parsedGstPercent = toNumberIfDefined(gst_percent, "GST percent", { min: 0, max: 100 });
+    const parsedDiscount = toNumberIfDefined(discount, "Discount", { min: 0, max: 100 });
 
-    if (
-      threshold !== undefined &&
-      (typeof threshold !== "number" || threshold < 0)
-    ) {
-      throw ApiError.badRequest("Threshold must be a non-negative number");
-    }
+    const parsedThreshold = toNumberIfDefined(threshold, "Threshold");
 
     if (category_id !== undefined && category_id !== null) {
       const categoryExists = await Category.exists({
@@ -457,30 +393,30 @@ class ItemService {
     if (item_id !== undefined && item_id !== null && item_id !== "") {
       fields.item_id = Number(item_id);
     }
-    if (sale_rate !== undefined) fields.sale_rate = sale_rate;
-    if (purchase_rate !== undefined) fields.purchase_rate = purchase_rate;
-    if (mrp_rate !== undefined) fields.mrp_rate = mrp_rate;
-    if (gst_percent !== undefined) fields.gst_percent = gst_percent;
-    if (discount !== undefined) fields.discount = discount;
+    if (sale_rate !== undefined) fields.sale_rate = parsedSaleRate;
+    if (purchase_rate !== undefined) fields.purchase_rate = parsedPurchaseRate;
+    if (mrp_rate !== undefined) fields.mrp_rate = parsedMrpRate;
+    if (gst_percent !== undefined) fields.gst_percent = parsedGstPercent;
+    if (discount !== undefined) fields.discount = parsedDiscount;
 
     if (physical_stock !== undefined) {
-      fields.physical_stock = this._toNumber(physical_stock, "Physical stock");
+      fields.physical_stock = toNumber(physical_stock, "Physical stock");
       fields.stock = fields.physical_stock;
     }
 
     if (logical_stock !== undefined) {
-      fields.logical_stock = this._toNumber(logical_stock, "Logical stock", {
+      fields.logical_stock = toNumber(logical_stock, "Logical stock", {
         allowNegative: true,
       });
     }
 
     if (stock !== undefined) {
-      const numericStock = this._toNumber(stock, "Stock");
+      const numericStock = toNumber(stock, "Stock");
       fields.physical_stock = numericStock;
       fields.stock = numericStock;
     }
 
-    if (threshold !== undefined) fields.threshold = threshold;
+    if (threshold !== undefined) fields.threshold = parsedThreshold;
     if (is_gst !== undefined) fields.is_gst = is_gst;
     if (category_id !== undefined) fields.category_id = category_id;
     if (brand_id !== undefined) fields.brand_id = brand_id;
@@ -550,13 +486,13 @@ class ItemService {
     }
 
     if (stockData.physical_stock !== undefined) {
-      const physical = this._toNumber(stockData.physical_stock, "Physical stock");
+      const physical = toNumber(stockData.physical_stock, "Physical stock");
       item.physical_stock = physical;
       item.stock = physical;
     }
 
     if (stockData.logical_stock !== undefined) {
-      item.logical_stock = this._toNumber(
+      item.logical_stock = toNumber(
         stockData.logical_stock,
         "Logical stock",
         { allowNegative: true },
@@ -564,7 +500,7 @@ class ItemService {
     }
 
     if (stockData.stock !== undefined) {
-      const numericStock = this._toNumber(stockData.stock, "Stock");
+      const numericStock = toNumber(stockData.stock, "Stock");
       if (isGst === 0) {
         const physical =
           typeof item.physical_stock === "number" ? item.physical_stock : (item.stock || 0);

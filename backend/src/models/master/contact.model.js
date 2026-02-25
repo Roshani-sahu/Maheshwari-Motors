@@ -8,19 +8,6 @@ const discountFieldSchema = new mongoose.Schema(
   { _id: false },
 );
 
-const contactBankSchema = new mongoose.Schema(
-  {
-    bank_name: { type: String, trim: true, required: true },
-    bank_branch: { type: String, trim: true, default: "" },
-    ifsc_code: { type: String, trim: true, default: "" },
-    account_number: { type: String, trim: true, required: true },
-    account_holder: { type: String, trim: true, default: "" },
-    upi_id: { type: String, trim: true, default: "" },
-    is_default: { type: Boolean, default: false },
-  },
-  { _id: true },
-);
-
 const partyItemDiscountSchema = new mongoose.Schema(
   {
     item_id: {
@@ -55,12 +42,12 @@ const contactSchema = new mongoose.Schema(
     reg_number: { type: String },
     signature: { type: String, default: null },
     assigned_label: { type: String, trim: true, default: null },
-    banks: { type: [contactBankSchema], default: [] },
+    bank_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bank",
+      default: null,
+    },
     item_discounts: { type: [partyItemDiscountSchema], default: [] },
-    bank_name: { type: String },
-    bank_branch: { type: String },
-    ifsc_code: { type: String },
-    account_number: { type: String },
     transport_charge: { type: Number, default: 0 },
     area: { type: String },
     is_gst: { type: Number, enum: [0, 1], default: 1 },

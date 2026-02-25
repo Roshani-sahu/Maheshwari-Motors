@@ -21,10 +21,7 @@ const firmSubSchema = new Schema(
     GSTIN: { type: String },
     CIN: { type: String },
     reg_number: { type: String },
-    bank_name: { type: String },
-    bank_branch: { type: String },
-    ifsc_code: { type: String },
-    account_number: { type: String },
+    bank_ids: [{ type: ObjectId, ref: "Bank" }],
   },
   { _id: false },
 );

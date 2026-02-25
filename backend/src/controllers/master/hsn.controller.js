@@ -1,12 +1,5 @@
 import { hsnService } from "../../services/index.js";
-import { asyncHandler, ApiResponse, validate } from "../../utils/index.js";
-
-const hsnSchema = {
-  hsn_code: { required: true, type: "string", min: 1, label: "HSN code" },
-  description: { required: false, type: "string", label: "Description" },
-  gst_rate: { required: true, type: "number", min: 0, label: "GST rate" },
-  is_active: { required: false, type: "boolean", label: "Is active" },
-};
+import { asyncHandler, ApiResponse } from "../../utils/index.js";
 
 class HsnController {
   getHsns = asyncHandler(async (req, res) => {
@@ -24,16 +17,18 @@ class HsnController {
   });
 
   createHsn = asyncHandler(async (req, res) => {
-    const data = validate(req.body, hsnSchema);
-    const hsn = await hsnService.createHsn(data, req.user._id);
+    const hsn = await hsnService.createHsn(req.body, req.user._id);
     res
       .status(201)
       .json(new ApiResponse(201, hsn, "HSN code created successfully"));
   });
 
   updateHsn = asyncHandler(async (req, res) => {
-    const data = validate(req.body, hsnSchema, { allowPartial: true });
-    const hsn = await hsnService.updateHsn(req.params.hsnId, req.user._id, data);
+    const hsn = await hsnService.updateHsn(
+      req.params.hsnId,
+      req.user._id,
+      req.body,
+    );
     res
       .status(200)
       .json(new ApiResponse(200, hsn, "HSN code updated successfully"));
