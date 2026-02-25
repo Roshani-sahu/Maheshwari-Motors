@@ -42,6 +42,12 @@ const contactSchema = new mongoose.Schema(
     reg_number: { type: String },
     signature: { type: String, default: null },
     assigned_label: { type: String, trim: true, default: null },
+    // References the _id of a label subdocument inside the contact's category.
+    // Only relevant for type=party. Always null for suppliers.
+    label_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
     bank_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Bank",
