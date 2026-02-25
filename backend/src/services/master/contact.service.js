@@ -236,18 +236,25 @@ class ContactService {
     if (query.balance_status === "due") filter.balance = { $lt: 0 };
     if (query.balance_status === "overpaid") filter.balance = { $gt: 0 };
 
-    return Pagination.paginate(Contact, filter, {
+    const contacts = await Pagination.paginate(Contact, filter, {
       ...query,
       sort: { createdAt: -1 },
+      populate: {
+        path: "bank_id",
+        match: { user_id: userId },
+      },
     });
+
+    return contacts;
   }
 
   async getContactById(contactId, userId) {
     const contact = await Contact.findOne({
       _id: contactId,
       user_id: userId,
-    });
+    }).populate("bank_id");
     if (!contact) throw ApiError.notFound("Contact not found");
+
     return contact;
   }
 
@@ -265,7 +272,6 @@ class ContactService {
       gstin,
       cin,
       reg_number,
-      signature,
       assigned_label,
       label_id,
       bank_id,
@@ -367,7 +373,6 @@ class ContactService {
       gstin,
       cin,
       reg_number,
-      signature: this._normalizeOptionalString(signature) ?? null,
       assigned_label: normalizedAssignedLabel,
       label_id: normalizedLabelId,
       bank_id: normalizedBankId ?? null,
@@ -381,7 +386,7 @@ class ContactService {
       area_id: type === "party" ? area_id || null : undefined,
       user_id: userId,
     });
-    return contact;
+    return contact.populate("bank_id");
   }
 
   async updateContact(contactId, userId, updateData) {
@@ -403,7 +408,6 @@ class ContactService {
       gstin,
       cin,
       reg_number,
-      signature,
       assigned_label,
       label_id,
       bank_id,
@@ -514,9 +518,6 @@ class ContactService {
     if (gstin !== undefined) fields.gstin = gstin;
     if (cin !== undefined) fields.cin = cin;
     if (reg_number !== undefined) fields.reg_number = reg_number;
-    if (signature !== undefined) {
-      fields.signature = this._normalizeOptionalString(signature);
-    }
     if (normalizedBankId !== undefined) fields.bank_id = normalizedBankId;
     if (normalizedTransportCharge !== undefined) {
       fields.transport_charge = normalizedTransportCharge;
@@ -543,7 +544,7 @@ class ContactService {
 
     const updatedContact = await Contact.findByIdAndUpdate(contactId, fields, {
       new: true,
-    });
+    }).populate("bank_id");
     return updatedContact;
   }
 

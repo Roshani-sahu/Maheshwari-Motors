@@ -3,7 +3,13 @@ import Brand from "../../models/master/brand.model.js";
 import Category from "../../models/master/category.model.js";
 import Contact from "../../models/master/contact.model.js";
 import Department from "../../models/master/department.model.js";
-import { ApiError, Pagination, toNumber, toNumberIfDefined } from "../../utils/index.js";
+import Hsn from "../../models/master/hsn.model.js";
+import {
+  ApiError,
+  Pagination,
+  toNumber,
+  toNumberIfDefined,
+} from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 import {
   generateUniqueBarcode,
@@ -12,6 +18,14 @@ import {
 } from "../../helpers/identifierGenerator.js";
 import s3Service from "../common/s3.service.js";
 
+const ITEM_POPULATE = [
+  { path: "category_id", select: "category_name" },
+  { path: "brand_id", select: "brand_name" },
+  { path: "contact_id", select: "contact_name" },
+  { path: "dept_id", select: "dept_name" },
+  { path: "hsn_id", select: "hsn_code description gst_rate" },
+];
+
 class ItemService {
   _toNumber(value, fieldLabel, opts) {
     return toNumber(value, fieldLabel, opts);
@@ -19,8 +33,11 @@ class ItemService {
 
   _resolveVisibleStock(item, isGst) {
     const physical =
-      typeof item.physical_stock === "number" ? item.physical_stock : (item.stock || 0);
-    const logical = typeof item.logical_stock === "number" ? item.logical_stock : 0;
+      typeof item.physical_stock === "number" ?
+        item.physical_stock
+      : item.stock || 0;
+    const logical =
+      typeof item.logical_stock === "number" ? item.logical_stock : 0;
 
     if (isGst === 0) return physical + logical;
     return physical;
@@ -33,14 +50,14 @@ class ItemService {
       typeof item.toObject === "function" ? item.toObject() : { ...item };
 
     const physical =
-      typeof normalized.physical_stock === "number" ?
-        normalized.physical_stock
-      : typeof normalized.stock === "number" ?
-        normalized.stock
+      typeof normalized.physical_stock === "number" ? normalized.physical_stock
+      : typeof normalized.stock === "number" ? normalized.stock
       : 0;
 
     const logical =
-      typeof normalized.logical_stock === "number" ? normalized.logical_stock : 0;
+      typeof normalized.logical_stock === "number" ?
+        normalized.logical_stock
+      : 0;
 
     normalized.physical_stock = physical;
     normalized.logical_stock = logical;
@@ -53,20 +70,29 @@ class ItemService {
     const filter = { user_id: userId };
     if (query.search) {
       const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.item_name = { $regex: escaped, $options: "i" };
+      filter.$or = [
+        { item_name: { $regex: escaped, $options: "i" } },
+        { alias: { $regex: escaped, $options: "i" } },
+        { description: { $regex: escaped, $options: "i" } },
+      ];
     }
 
     const result = await Pagination.paginate(Item, filter, {
       ...query,
+      populate: ITEM_POPULATE,
       sort: { createdAt: -1 },
     });
 
-    result.data = result.data.map((item) => this._normalizeStockForResponse(item, isGst));
+    result.data = result.data.map((item) =>
+      this._normalizeStockForResponse(item, isGst),
+    );
     return result;
   }
 
   async getItemById(itemId, userId, isGst) {
-    const item = await Item.findOne({ _id: itemId, user_id: userId }).lean();
+    const item = await Item.findOne({ _id: itemId, user_id: userId })
+      .populate(ITEM_POPULATE)
+      .lean();
     if (!item) {
       throw ApiError.notFound("Item not found");
     }
@@ -79,6 +105,8 @@ class ItemService {
       item_name,
       barcode,
       item_id,
+      alias,
+      description,
       sale_rate,
       purchase_rate,
       mrp_rate,
@@ -93,6 +121,7 @@ class ItemService {
       brand_id,
       contact_id,
       dept_id,
+      hsn_id,
     } = itemData;
 
     if (!item_name || typeof item_name !== "string" || !item_name.trim()) {
@@ -110,7 +139,9 @@ class ItemService {
           "Barcode must be exactly 10 alphanumeric characters",
         );
       }
-      const barcodeExists = await Item.exists({ barcode: barcode.toUpperCase() });
+      const barcodeExists = await Item.exists({
+        barcode: barcode.toUpperCase(),
+      });
       if (barcodeExists) {
         throw ApiError.conflict(
           `Barcode '${barcode}' is already in use by another item`,
@@ -138,16 +169,23 @@ class ItemService {
       finalItemId = await generateUniqueItemId(userId);
     }
 
-    const parsedPurchaseRate = toNumberIfDefined(purchase_rate, "Purchase rate");
+    const parsedPurchaseRate = toNumberIfDefined(
+      purchase_rate,
+      "Purchase rate",
+    );
     const parsedMrpRate = toNumberIfDefined(mrp_rate, "MRP rate");
-    const parsedGstPercent = toNumberIfDefined(gst_percent, "GST percent", { min: 0, max: 100 });
-    const parsedDiscount = toNumberIfDefined(discount, "Discount", { min: 0, max: 100 });
+    const parsedGstPercent = toNumberIfDefined(gst_percent, "GST percent", {
+      min: 0,
+      max: 100,
+    });
+    const parsedDiscount = toNumberIfDefined(discount, "Discount", {
+      min: 0,
+      max: 100,
+    });
 
     const finalPhysicalStock =
-      physical_stock !== undefined ?
-        toNumber(physical_stock, "Physical stock")
-      : stock !== undefined ?
-        toNumber(stock, "Stock")
+      physical_stock !== undefined ? toNumber(physical_stock, "Physical stock")
+      : stock !== undefined ? toNumber(stock, "Stock")
       : 0;
 
     const finalLogicalStock =
@@ -211,6 +249,32 @@ class ItemService {
       }
     }
 
+    if (hsn_id !== undefined && hsn_id !== null && hsn_id !== "") {
+      const hsnExists = await Hsn.exists({
+        _id: hsn_id,
+        user_id: userId,
+      });
+      if (!hsnExists) {
+        throw ApiError.badRequest("HSN not found. Please select a valid HSN.");
+      }
+    }
+
+    let normalizedAlias;
+    if (alias !== undefined) {
+      if (alias !== null && typeof alias !== "string") {
+        throw ApiError.badRequest("Alias must be a string");
+      }
+      normalizedAlias = alias?.trim() || undefined;
+    }
+
+    let normalizedDescription;
+    if (description !== undefined) {
+      if (description !== null && typeof description !== "string") {
+        throw ApiError.badRequest("Description must be a string");
+      }
+      normalizedDescription = description?.trim() || undefined;
+    }
+
     let imageUrl = null;
 
     if (file) {
@@ -229,6 +293,10 @@ class ItemService {
       item_name: item_name.trim(),
       barcode: finalBarcode,
       item_id: finalItemId,
+      ...(normalizedAlias !== undefined ? { alias: normalizedAlias } : {}),
+      ...(normalizedDescription !== undefined ?
+        { description: normalizedDescription }
+      : {}),
       sale_rate: parsedSaleRate,
       purchase_rate: parsedPurchaseRate,
       mrp_rate: parsedMrpRate,
@@ -243,6 +311,9 @@ class ItemService {
       brand_id,
       contact_id,
       dept_id,
+      ...(hsn_id !== undefined && hsn_id !== null && hsn_id !== "" ?
+        { hsn_id }
+      : {}),
       image: imageUrl,
       user_id: userId,
     });
@@ -253,6 +324,7 @@ class ItemService {
       });
     }
 
+    await item.populate(ITEM_POPULATE);
     return this._normalizeStockForResponse(item, isGst);
   }
 
@@ -266,6 +338,8 @@ class ItemService {
       item_name,
       barcode,
       item_id,
+      alias,
+      description,
       sale_rate,
       purchase_rate,
       mrp_rate,
@@ -280,6 +354,7 @@ class ItemService {
       brand_id,
       contact_id,
       dept_id,
+      hsn_id,
     } = updateData;
 
     if (item_name !== undefined) {
@@ -333,10 +408,19 @@ class ItemService {
       }
     }
     const parsedSaleRate = toNumberIfDefined(sale_rate, "Sale rate");
-    const parsedPurchaseRate = toNumberIfDefined(purchase_rate, "Purchase rate");
+    const parsedPurchaseRate = toNumberIfDefined(
+      purchase_rate,
+      "Purchase rate",
+    );
     const parsedMrpRate = toNumberIfDefined(mrp_rate, "MRP rate");
-    const parsedGstPercent = toNumberIfDefined(gst_percent, "GST percent", { min: 0, max: 100 });
-    const parsedDiscount = toNumberIfDefined(discount, "Discount", { min: 0, max: 100 });
+    const parsedGstPercent = toNumberIfDefined(gst_percent, "GST percent", {
+      min: 0,
+      max: 100,
+    });
+    const parsedDiscount = toNumberIfDefined(discount, "Discount", {
+      min: 0,
+      max: 100,
+    });
 
     const parsedThreshold = toNumberIfDefined(threshold, "Threshold");
 
@@ -385,6 +469,17 @@ class ItemService {
       }
     }
 
+    const normalizedHsnId = hsn_id === "" || hsn_id === null ? null : hsn_id;
+    if (hsn_id !== undefined && normalizedHsnId !== null) {
+      const hsnExists = await Hsn.exists({
+        _id: normalizedHsnId,
+        user_id: userId,
+      });
+      if (!hsnExists) {
+        throw ApiError.badRequest("HSN not found. Please select a valid HSN.");
+      }
+    }
+
     const fields = {};
     if (item_name !== undefined) fields.item_name = item_name.trim();
     if (barcode !== undefined && barcode !== null && barcode !== "") {
@@ -422,6 +517,22 @@ class ItemService {
     if (brand_id !== undefined) fields.brand_id = brand_id;
     if (contact_id !== undefined) fields.contact_id = contact_id;
     if (dept_id !== undefined) fields.dept_id = dept_id;
+    if (hsn_id !== undefined) fields.hsn_id = normalizedHsnId;
+
+    if (alias !== undefined) {
+      if (alias !== null && typeof alias !== "string") {
+        throw ApiError.badRequest("Alias must be a string");
+      }
+      fields.alias = alias === null ? null : alias.trim() || null;
+    }
+
+    if (description !== undefined) {
+      if (description !== null && typeof description !== "string") {
+        throw ApiError.badRequest("Description must be a string");
+      }
+      fields.description =
+        description === null ? null : description.trim() || null;
+    }
 
     if (brand_id !== undefined) {
       const oldBrandId = item.brand_id ? String(item.brand_id) : null;
@@ -455,7 +566,9 @@ class ItemService {
 
     const updatedItem = await Item.findByIdAndUpdate(itemId, fields, {
       new: true,
-    }).lean();
+    })
+      .populate(ITEM_POPULATE)
+      .lean();
 
     return this._normalizeStockForResponse(updatedItem, isGst);
   }
@@ -492,18 +605,18 @@ class ItemService {
     }
 
     if (stockData.logical_stock !== undefined) {
-      item.logical_stock = toNumber(
-        stockData.logical_stock,
-        "Logical stock",
-        { allowNegative: true },
-      );
+      item.logical_stock = toNumber(stockData.logical_stock, "Logical stock", {
+        allowNegative: true,
+      });
     }
 
     if (stockData.stock !== undefined) {
       const numericStock = toNumber(stockData.stock, "Stock");
       if (isGst === 0) {
         const physical =
-          typeof item.physical_stock === "number" ? item.physical_stock : (item.stock || 0);
+          typeof item.physical_stock === "number" ?
+            item.physical_stock
+          : item.stock || 0;
         item.logical_stock = numericStock - physical;
       } else {
         item.physical_stock = numericStock;
@@ -529,7 +642,11 @@ class ItemService {
 
     if (query.search) {
       const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      baseMatch.item_name = { $regex: escaped, $options: "i" };
+      baseMatch.$or = [
+        { item_name: { $regex: escaped, $options: "i" } },
+        { alias: { $regex: escaped, $options: "i" } },
+        { description: { $regex: escaped, $options: "i" } },
+      ];
     }
 
     if (isGst === 0) {
@@ -541,7 +658,9 @@ class ItemService {
             _logical: { $ifNull: ["$logical_stock", 0] },
           },
         },
-        { $addFields: { visible_stock: { $add: ["$_physical", "$_logical"] } } },
+        {
+          $addFields: { visible_stock: { $add: ["$_physical", "$_logical"] } },
+        },
         { $match: { $expr: { $lte: ["$visible_stock", "$threshold"] } } },
         { $sort: { visible_stock: 1, createdAt: -1 } },
         {
@@ -573,7 +692,11 @@ class ItemService {
 
     if (query.search) {
       const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.item_name = { $regex: escaped, $options: "i" };
+      filter.$or = [
+        { item_name: { $regex: escaped, $options: "i" } },
+        { alias: { $regex: escaped, $options: "i" } },
+        { description: { $regex: escaped, $options: "i" } },
+      ];
     }
 
     const result = await Pagination.paginate(Item, filter, {
@@ -581,7 +704,9 @@ class ItemService {
       sort: { physical_stock: 1, createdAt: -1 },
     });
 
-    result.data = result.data.map((item) => this._normalizeStockForResponse(item, isGst));
+    result.data = result.data.map((item) =>
+      this._normalizeStockForResponse(item, isGst),
+    );
     return result;
   }
 }

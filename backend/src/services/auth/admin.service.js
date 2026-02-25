@@ -4,6 +4,7 @@ import User from "../../models/auth/user.model.js";
 import Session from "../../models/auth/session.model.js";
 import Subscription from "../../models/common/subscription.model.js";
 import Bank from "../../models/master/bank.model.js";
+import s3Service from "../common/s3.service.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 
 class AdminService {
@@ -188,14 +189,10 @@ class AdminService {
       bank_ids: nongstBankIds,
     } = nongst_firm;
 
-    const normalizedGstBankIds = this._normalizeBankIds(
-      gstBankIds,
-      "GST Firm",
-    ) || [];
-    const normalizedNongstBankIds = this._normalizeBankIds(
-      nongstBankIds,
-      "Non-GST Firm",
-    ) || [];
+    const normalizedGstBankIds =
+      this._normalizeBankIds(gstBankIds, "GST Firm") || [];
+    const normalizedNongstBankIds =
+      this._normalizeBankIds(nongstBankIds, "Non-GST Firm") || [];
 
     if (normalizedGstBankIds.length > 0 || normalizedNongstBankIds.length > 0) {
       throw ApiError.badRequest(
@@ -244,7 +241,9 @@ class AdminService {
     await this._ensureDemoSubscription(user._id);
 
     const safeUser = user.toSafeObject();
-    const [withSubscription] = await this._attachSubscriptionSummary([safeUser]);
+    const [withSubscription] = await this._attachSubscriptionSummary([
+      safeUser,
+    ]);
     return withSubscription;
   }
 
@@ -473,7 +472,9 @@ class AdminService {
     await this._ensureDemoSubscription(user._id);
 
     const safeUser = user.toSafeObject();
-    const [withSubscription] = await this._attachSubscriptionSummary([safeUser]);
+    const [withSubscription] = await this._attachSubscriptionSummary([
+      safeUser,
+    ]);
     return withSubscription;
   }
 
@@ -484,9 +485,65 @@ class AdminService {
     });
     if (!user) throw ApiError.notFound("Secondary user not found");
 
+    if (user.signature) {
+      await s3Service.deleteFile(user.signature);
+    }
+
     await Session.deleteMany({ user_id: userId });
     await Subscription.findOneAndDelete({ user_id: userId });
     await User.findByIdAndDelete(userId);
+  }
+
+  async uploadSignature(userId, file) {
+    if (!file) {
+      throw ApiError.badRequest("Signature image file is required");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) throw ApiError.notFound("User not found");
+
+    if (user.signature) {
+      throw ApiError.badRequest(
+        "Signature already exists. Use the update endpoint to replace it.",
+      );
+    }
+
+    const signatureUrl = await s3Service.uploadFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      "users/signatures",
+    );
+
+    user.signature = signatureUrl;
+    await user.save();
+
+    return user.toSafeObject();
+  }
+
+  async updateSignature(userId, file) {
+    if (!file) {
+      throw ApiError.badRequest("Signature image file is required");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) throw ApiError.notFound("User not found");
+
+    if (user.signature) {
+      await s3Service.deleteFile(user.signature);
+    }
+
+    const signatureUrl = await s3Service.uploadFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      "users/signatures",
+    );
+
+    user.signature = signatureUrl;
+    await user.save();
+
+    return user.toSafeObject();
   }
 }
 

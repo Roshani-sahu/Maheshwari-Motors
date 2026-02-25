@@ -107,7 +107,10 @@ class ChallanService {
       ...query,
       populate: [
         { path: "contact_id", select: "name alias phone type assigned_label" },
-        { path: "items.item_id", select: "item_name" },
+        {
+          path: "items.item_id",
+          select: "item_name alias description hsn_id",
+        },
       ],
       sort: { createdAt: -1 },
     });
@@ -296,7 +299,7 @@ class ChallanService {
       { new: true },
     ).populate([
       { path: "contact_id", select: "name type" },
-      { path: "items.item_id", select: "item_name" },
+      { path: "items.item_id", select: "item_name alias description hsn_id" },
     ]);
 
     return updatedChallan;
@@ -338,7 +341,7 @@ class ChallanService {
       challan_type: "sale",
       converted_to_bill: false,
     })
-      .populate("items.item_id", "item_name")
+      .populate("items.item_id", "item_name alias description hsn_id")
       .sort({ createdAt: -1 });
 
     return challans;
@@ -554,7 +557,7 @@ class ChallanService {
 
     return returnChallan.populate([
       { path: "contact_id", select: "name type" },
-      { path: "items.item_id", select: "item_name" },
+      { path: "items.item_id", select: "item_name alias description hsn_id" },
     ]);
   }
 
@@ -620,7 +623,7 @@ class ChallanService {
 
     return challan.populate([
       { path: "contact_id", select: "name type" },
-      { path: "items.item_id", select: "item_name" },
+      { path: "items.item_id", select: "item_name alias description hsn_id" },
     ]);
   }
 
@@ -634,7 +637,7 @@ class ChallanService {
       .populate("contact_id", "name phone type")
       .populate(
         "items.item_id",
-        "item_name barcode item_id sale_rate purchase_rate mrp_rate gst_percent stock physical_stock logical_stock image is_gst",
+        "item_name alias description hsn_id barcode item_id sale_rate purchase_rate mrp_rate gst_percent stock physical_stock logical_stock image is_gst",
       )
       .lean();
 

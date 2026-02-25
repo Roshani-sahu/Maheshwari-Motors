@@ -253,7 +253,10 @@ class CategoryService {
       labels: normalizedLabels,
       user_id: userId,
     });
-    return category;
+    return category.populate([
+      { path: "brand_ids", select: "name" },
+      { path: "labels.brand_discounts.brand_id", select: "name" },
+    ]);
   }
 
   async updateCategory(categoryId, userId, updateData) {
@@ -337,7 +340,10 @@ class CategoryService {
       categoryId,
       fields,
       { new: true },
-    );
+    ).populate([
+      { path: "brand_ids", select: "name" },
+      { path: "labels.brand_discounts.brand_id", select: "name" },
+    ]);
     return updatedCategory;
   }
 
