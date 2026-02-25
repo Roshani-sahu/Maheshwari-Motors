@@ -50,7 +50,15 @@ const ItemMaster = () => {
     let hasMore = true;
 
     while (hasMore) {
-      const response = await api.get('/items', { params: { page, limit: 100 } });
+      let response;
+      try {
+        response = await api.get('/items', { params: { page, limit: 100 } });
+      } catch (error) {
+        console.log('Error fetching items on page', page, error);
+      }
+
+      console.log(response);
+
       const pageItems = getResponseList(response);
       const meta = getResponseMeta(response);
 

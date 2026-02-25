@@ -28,7 +28,8 @@ const INITIAL_FORM = {
   is_gst: 0,
   cin: '',
   reg_number: '',
-  bank_id: ''
+  bank_id: '',
+  signature: null
 };
 
 const AddSupplier = () => {
@@ -43,6 +44,7 @@ const AddSupplier = () => {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [validationModal, setValidationModal] = useState({ isOpen: false, errors: [] });
+  const [signatureFile, setSignatureFile] = useState(null);
 
   const extractPAN = (gstin) => {
     if (!gstin || gstin.length < 15) return '';
@@ -68,7 +70,8 @@ const AddSupplier = () => {
       cin: normalized.cin,
       reg_number: normalized.reg_number,
       bank_id: bankId,
-      bank_details: typeof contact.bank_id === 'object' ? contact.bank_id : null
+      bank_details: typeof contact.bank_id === 'object' ? contact.bank_id : null,
+      signature: contact.signature
     };
   };
 
@@ -127,6 +130,11 @@ const AddSupplier = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleSignatureChange = (e) => {
+    const file = e.target.files[0];
+    setSignatureFile(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -151,30 +159,49 @@ const AddSupplier = () => {
       return;
     }
 
-    const payload = {
-      name: formData.name,
-      alias: formData.alias || undefined,
-      type: 'supplier',
-      is_gst: Number(formData.is_gst) === 1 ? 1 : 0,
-      phone: cleanPhone || undefined,
-      whatsapp_number: formData.whatsapp_number || undefined,
-      email: formData.email || undefined,
-      address: formData.address || undefined,
-      city: formData.city || undefined,
-      state: formData.state || undefined,
-      gstin: formData.gstin ? formData.gstin.toUpperCase() : undefined,
-      category_id: formData.category || undefined,
-      cin: formData.cin || undefined,
-      reg_number: formData.reg_number || undefined,
-      bank_id: formData.bank_id || undefined
-    };
+    const payload = new FormData();
+    payload.append('name', formData.name);
+    payload.append('type', 'supplier');
+    payload.append('is_gst', Number(formData.is_gst) === 1 ? 1 : 0);
+    if (formData.alias) payload.append('alias', formData.alias);
+    if (cleanPhone) payload.append('phone', cleanPhone);
+    if (formData.whatsapp_number) payload.append('whatsapp_number', formData.whatsapp_number);
+    if (formData.email) payload.append('email', formData.email);
+    if (formData.address) payload.append('address', formData.address);
+    if (formData.city) payload.append('city', formData.city);
+    if (formData.state) payload.append('state', formData.state);
+    if (formData.gstin) payload.append('gstin', formData.gstin.toUpperCase());
+    if (formData.category) payload.append('category_id', formData.category);
+    if (formData.cin) payload.append('cin', formData.cin);
+    if (formData.reg_number) payload.append('reg_number', formData.reg_number);
+    if (formData.bank_id) payload.append('bank_id', formData.bank_id);
+    if (signatureFile) payload.append('signature', signatureFile);
 
     try {
       if (isEditModalOpen) {
-        await api.put(`/contacts/${selectedSupplier.id}`, payload);
+        const jsonPayload = {
+          name: formData.name,
+          type: 'supplier',
+          is_gst: Number(formData.is_gst) === 1 ? 1 : 0
+        };
+        if (formData.alias) jsonPayload.alias = formData.alias;
+        if (cleanPhone) jsonPayload.phone = cleanPhone;
+        if (formData.whatsapp_number) jsonPayload.whatsapp_number = formData.whatsapp_number;
+        if (formData.email) jsonPayload.email = formData.email;
+        if (formData.address) jsonPayload.address = formData.address;
+        if (formData.city) jsonPayload.city = formData.city;
+        if (formData.state) jsonPayload.state = formData.state;
+        if (formData.gstin) jsonPayload.gstin = formData.gstin.toUpperCase();
+        if (formData.category) jsonPayload.category_id = formData.category;
+        if (formData.cin) jsonPayload.cin = formData.cin;
+        if (formData.reg_number) jsonPayload.reg_number = formData.reg_number;
+        if (formData.bank_id) jsonPayload.bank_id = formData.bank_id;
+        await api.put(`/contacts/${selectedSupplier.id}`, jsonPayload);
         showToast('Supplier updated successfully', 'success');
       } else {
-        await api.post('/contacts', payload);
+        await api.post('/contacts', payload, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         showToast('Supplier created successfully', 'success');
       }
       
@@ -185,6 +212,7 @@ const AddSupplier = () => {
       setIsEditModalOpen(false);
       setFormData(INITIAL_FORM);
       setSelectedSupplier(null);
+      setSignatureFile(null);
     } catch (error) {
       const msg = error.response?.data?.message || 'Operation failed';
       const details = Array.isArray(error.response?.data?.errors) ? error.response.data.errors.join(', ') : '';
@@ -271,6 +299,12 @@ const AddSupplier = () => {
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">State</label><p className="text-sm text-gray-900">{selectedSupplier.state || 'N/A'}</p></div>
             </div>
             <div className="md:col-span-2"><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Address</label><p className="text-sm text-gray-900">{selectedSupplier.address}</p></div>
+            {selectedSupplier.signature && (
+              <div className="md:col-span-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Signature</label>
+                <img src={selectedSupplier.signature} alt="Signature" className="w-32 h-16 object-contain border rounded" />
+              </div>
+            )}
             <div className="flex gap-3 pt-4"><Button variant="outline" onClick={() => { setIsViewModalOpen(false); setSelectedSupplier(null); }}>Close</Button></div>
           </div>
         )}
@@ -301,6 +335,15 @@ const AddSupplier = () => {
           </div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Category *</label><select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Category</option>{categories.map(cat => <option className='text-black' key={getEntityId(cat)} value={getEntityId(cat)}>{cat.name}</option>)}</select></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Bank</label><select name="bank_id" value={formData.bank_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Bank</option>{banks.map(bank => <option key={getEntityId(bank)} value={getEntityId(bank)}>{bank.bank_name} - {bank.account_number}</option>)}</select></div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Signature</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleSignatureChange}
+              className="w-full text-xs sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-1.5 file:px-2 sm:file:px-4 file:rounded-md file:border-0 file:text-xs sm:file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+          </div>
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedSupplier(null); setFormData(INITIAL_FORM); }}>Cancel</Button>
             <Button type="submit">{isEditModalOpen ? 'Update Supplier' : 'Add Supplier'}</Button>

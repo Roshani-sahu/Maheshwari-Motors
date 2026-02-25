@@ -34,7 +34,8 @@ const INITIAL_FORM = {
   transport_charge: '',
   transport_id: '',
   area_id: '',
-  agent: ''
+  agent: '',
+  signature: null
 };
 
 const PartyMaster = () => {
@@ -52,6 +53,7 @@ const PartyMaster = () => {
   const [selectedParty, setSelectedParty] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [validationModal, setValidationModal] = useState({ isOpen: false, errors: [] });
+  const [signatureFile, setSignatureFile] = useState(null);
 
   // Extract PAN from GSTIN (characters 3-12)
   const extractPAN = (gstin) => {
@@ -83,7 +85,8 @@ const PartyMaster = () => {
       transport_charge: normalized.transport_charge,
       transport_id: normalized.transport_id,
       area_id: normalized.area_id,
-      agent: normalized.agent_id
+      agent: normalized.agent_id,
+      signature: contact.signature
     };
   };
 
@@ -268,34 +271,57 @@ const PartyMaster = () => {
       return;
     }
 
-    const payload = {
-       name: formData.name,
-       alias: formData.alias || undefined,
-       type: 'party',
-       is_gst: Number(formData.is_gst) === 1 ? 1 : 0,
-       phone: cleanPhone || undefined,
-       whatsapp_number: formData.whatsapp_number || undefined,
-       email: formData.email || undefined,
-       address: formData.address || undefined,
-       city: formData.city || undefined,
-       state: formData.state || undefined,
-       gstin: formData.gstin ? formData.gstin.toUpperCase() : undefined,
-       category_id: formData.category || undefined,
-       cin: formData.cin || undefined,
-       reg_number: formData.reg_number || undefined,
-       bank_id: formData.bank_id || undefined,
-       transport_charge: formData.transport_charge || undefined,
-       transport_id: formData.transport_id || undefined,
-       area_id: formData.area_id || undefined,
-       agent_id: formData.agent || undefined
-    };
+    const payload = new FormData();
+    payload.append('name', formData.name);
+    payload.append('type', 'party');
+    payload.append('is_gst', Number(formData.is_gst) === 1 ? 1 : 0);
+    if (formData.alias) payload.append('alias', formData.alias);
+    if (cleanPhone) payload.append('phone', cleanPhone);
+    if (formData.whatsapp_number) payload.append('whatsapp_number', formData.whatsapp_number);
+    if (formData.email) payload.append('email', formData.email);
+    if (formData.address) payload.append('address', formData.address);
+    if (formData.city) payload.append('city', formData.city);
+    if (formData.state) payload.append('state', formData.state);
+    if (formData.gstin) payload.append('gstin', formData.gstin.toUpperCase());
+    if (formData.category) payload.append('category_id', formData.category);
+    if (formData.cin) payload.append('cin', formData.cin);
+    if (formData.reg_number) payload.append('reg_number', formData.reg_number);
+    if (formData.bank_id) payload.append('bank_id', formData.bank_id);
+    if (formData.transport_charge) payload.append('transport_charge', formData.transport_charge);
+    if (formData.transport_id) payload.append('transport_id', formData.transport_id);
+    if (formData.area_id) payload.append('area_id', formData.area_id);
+    if (formData.agent) payload.append('agent_id', formData.agent);
+    if (signatureFile) payload.append('signature', signatureFile);
 
     try {
       if (isEditModalOpen) {
-        await api.put(`/contacts/${selectedParty.id}`, payload);
+        const jsonPayload = {
+          name: formData.name,
+          type: 'party',
+          is_gst: Number(formData.is_gst) === 1 ? 1 : 0
+        };
+        if (formData.alias) jsonPayload.alias = formData.alias;
+        if (cleanPhone) jsonPayload.phone = cleanPhone;
+        if (formData.whatsapp_number) jsonPayload.whatsapp_number = formData.whatsapp_number;
+        if (formData.email) jsonPayload.email = formData.email;
+        if (formData.address) jsonPayload.address = formData.address;
+        if (formData.city) jsonPayload.city = formData.city;
+        if (formData.state) jsonPayload.state = formData.state;
+        if (formData.gstin) jsonPayload.gstin = formData.gstin.toUpperCase();
+        if (formData.category) jsonPayload.category_id = formData.category;
+        if (formData.cin) jsonPayload.cin = formData.cin;
+        if (formData.reg_number) jsonPayload.reg_number = formData.reg_number;
+        if (formData.bank_id) jsonPayload.bank_id = formData.bank_id;
+        if (formData.transport_charge) jsonPayload.transport_charge = formData.transport_charge;
+        if (formData.transport_id) jsonPayload.transport_id = formData.transport_id;
+        if (formData.area_id) jsonPayload.area_id = formData.area_id;
+        if (formData.agent) jsonPayload.agent_id = formData.agent;
+        await api.put(`/contacts/${selectedParty.id}`, jsonPayload);
         showToast('Party updated successfully', 'success');
       } else {
-        await api.post('/contacts', payload);
+        await api.post('/contacts', payload, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
         showToast('Party created successfully', 'success');
       }
       
@@ -307,6 +333,7 @@ const PartyMaster = () => {
       setIsEditModalOpen(false);
       setFormData(INITIAL_FORM);
       setSelectedParty(null);
+      setSignatureFile(null);
     } catch (error) {
       console.error("Party submit error:", error);
       const msg = error.response?.data?.message || 'Operation failed';
@@ -336,7 +363,13 @@ const PartyMaster = () => {
 
   const openAddModal = () => {
     setFormData(INITIAL_FORM);
+    setSignatureFile(null);
     setIsAddModalOpen(true);
+  };
+
+  const handleSignatureChange = (e) => {
+    const file = e.target.files[0];
+    setSignatureFile(file);
   };
 
   return (
@@ -491,6 +524,12 @@ const PartyMaster = () => {
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Address</label>
               <p className="text-sm text-gray-900">{selectedParty.address}</p>
             </div>
+            {selectedParty.signature && (
+              <div className="md:col-span-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Signature</label>
+                <img src={selectedParty.signature} alt="Signature" className="w-32 h-16 object-contain border rounded" />
+              </div>
+            )}
             <div className="flex gap-3 pt-4">
               <Button 
                 variant="outline" 
@@ -692,8 +731,15 @@ const PartyMaster = () => {
             </select>
           </div>
 
-
-          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Signature</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleSignatureChange}
+              className="w-full text-xs sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-1.5 file:px-2 sm:file:px-4 file:rounded-md file:border-0 file:text-xs sm:file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+          </div>
 
           <div className="flex gap-3 pt-4">
             <Button
