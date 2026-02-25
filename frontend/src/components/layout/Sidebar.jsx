@@ -61,7 +61,7 @@ const Sidebar = ({ onClose }) => {
   return (
     <aside className="flex flex-col w-60 min-h-screen max-h-full fixed border-r pb-3 border-neutral-200 bg-[#0F172A] ">
       {/* Header */}
-      <div className="flex items-center h-16 px-4 border-b border-neutral-200">
+      <div className="flex items-center h-16 px-4 py-4 border-b border-neutral-200">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 flex items-center justify-center bg-neutral-900 rounded-md">
             <FaBookOpen className="text-white text-sm" />
