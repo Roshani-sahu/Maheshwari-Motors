@@ -35,7 +35,7 @@ const INITIAL_FORM = {
   transport_id: '',
   area_id: '',
   agent: '',
-  signature: null
+  label_id: ''
 };
 
 const PartyMaster = () => {
@@ -46,6 +46,7 @@ const PartyMaster = () => {
   const [transports, setTransports] = useState([]);
   const [areas, setAreas] = useState([]);
   const [banks, setBanks] = useState([]);
+  const [labels, setLabels] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, party: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -53,7 +54,6 @@ const PartyMaster = () => {
   const [selectedParty, setSelectedParty] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [validationModal, setValidationModal] = useState({ isOpen: false, errors: [] });
-  const [signatureFile, setSignatureFile] = useState(null);
 
   // Extract PAN from GSTIN (characters 3-12)
   const extractPAN = (gstin) => {
@@ -86,7 +86,7 @@ const PartyMaster = () => {
       transport_id: normalized.transport_id,
       area_id: normalized.area_id,
       agent: normalized.agent_id,
-      signature: contact.signature
+      label_id: normalized.label_id
     };
   };
 
@@ -167,6 +167,19 @@ const PartyMaster = () => {
       }
     };
     fetchBanks();
+  }, []);
+
+  // Fetch labels
+  useEffect(() => {
+    const fetchLabels = async () => {
+      try {
+        const response = await api.get('/labels');
+        setLabels(getResponseList(response));
+      } catch (error) {
+        console.error("Failed to fetch labels", error);
+      }
+    };
+    fetchLabels();
   }, []);
 
   const columns = [
@@ -291,7 +304,7 @@ const PartyMaster = () => {
     if (formData.transport_id) payload.append('transport_id', formData.transport_id);
     if (formData.area_id) payload.append('area_id', formData.area_id);
     if (formData.agent) payload.append('agent_id', formData.agent);
-    if (signatureFile) payload.append('signature', signatureFile);
+    if (formData.label_id) payload.append('label_id', formData.label_id);
 
     try {
       if (isEditModalOpen) {
@@ -316,6 +329,7 @@ const PartyMaster = () => {
         if (formData.transport_id) jsonPayload.transport_id = formData.transport_id;
         if (formData.area_id) jsonPayload.area_id = formData.area_id;
         if (formData.agent) jsonPayload.agent_id = formData.agent;
+        if (formData.label_id) jsonPayload.label_id = formData.label_id;
         await api.put(`/contacts/${selectedParty.id}`, jsonPayload);
         showToast('Party updated successfully', 'success');
       } else {
@@ -333,7 +347,6 @@ const PartyMaster = () => {
       setIsEditModalOpen(false);
       setFormData(INITIAL_FORM);
       setSelectedParty(null);
-      setSignatureFile(null);
     } catch (error) {
       console.error("Party submit error:", error);
       const msg = error.response?.data?.message || 'Operation failed';
@@ -363,13 +376,7 @@ const PartyMaster = () => {
 
   const openAddModal = () => {
     setFormData(INITIAL_FORM);
-    setSignatureFile(null);
     setIsAddModalOpen(true);
-  };
-
-  const handleSignatureChange = (e) => {
-    const file = e.target.files[0];
-    setSignatureFile(file);
   };
 
   return (
@@ -512,6 +519,10 @@ const PartyMaster = () => {
                 <p className="text-sm text-gray-900">{agents.find(a => getEntityId(a) === selectedParty.agent)?.name || 'N/A'}</p>
               </div>
               <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Label</label>
+                <p className="text-sm text-gray-900">{labels.find(l => getEntityId(l) === selectedParty.label_id)?.name || 'N/A'}</p>
+              </div>
+              <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label>
                 <p className="text-sm text-gray-900">{selectedParty.city || 'N/A'}</p>
               </div>
@@ -524,12 +535,6 @@ const PartyMaster = () => {
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Address</label>
               <p className="text-sm text-gray-900">{selectedParty.address}</p>
             </div>
-            {selectedParty.signature && (
-              <div className="md:col-span-2">
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Signature</label>
-                <img src={selectedParty.signature} alt="Signature" className="w-32 h-16 object-contain border rounded" />
-              </div>
-            )}
             <div className="flex gap-3 pt-4">
               <Button 
                 variant="outline" 
@@ -584,6 +589,8 @@ const PartyMaster = () => {
         size="md"
       >
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
+
+                  <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Party Name *</label>
             <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter party name" />
@@ -594,6 +601,8 @@ const PartyMaster = () => {
             <input type="text" name="alias" value={formData.alias} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter alias (optional)" />
           </div>
           
+          </div>
+
           <div>
             {/* <label className="block text-sm font-medium text-gray-700 mb-1">GST Type</label> */}
             <div className="flex items-center gap-3">
@@ -625,9 +634,18 @@ const PartyMaster = () => {
             </div>
           </div>
 
+                  <div className="grid grid-cols-2 gap-4">
+
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
             <input type="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="contact@example.com" />
+          </div>
+
+           <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
+              <input type="number" name="transport_charge" value={formData.transport_charge} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0" />
+          </div>
           </div>
           
           <div>
@@ -666,10 +684,7 @@ const PartyMaster = () => {
             </div>
           </div>
 
-          <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
-              <input type="number" name="transport_charge" value={formData.transport_charge} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0" />
-          </div>
+         
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -707,6 +722,8 @@ const PartyMaster = () => {
             </div>
           </div>
 
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
             <select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -722,6 +739,9 @@ const PartyMaster = () => {
               {agents.map(agent => <option key={getEntityId(agent)} value={getEntityId(agent)}>{agent.name}</option>)}
             </select>
           </div>
+</div>
+
+        <div className="grid grid-cols-2 gap-4">
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Bank</label>
@@ -732,15 +752,13 @@ const PartyMaster = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Signature</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleSignatureChange}
-              className="w-full text-xs sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-1 sm:file:py-1.5 file:px-2 sm:file:px-4 file:rounded-md file:border-0 file:text-xs sm:file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+            <select name="label_id" value={formData.label_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">Select Label</option>
+              {labels.map(label => <option key={getEntityId(label)} value={getEntityId(label)}>{label.name}</option>)}
+            </select>
           </div>
-
+</div>
           <div className="flex gap-3 pt-4">
             <Button
               type="button"

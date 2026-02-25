@@ -296,7 +296,7 @@ const Sidebar = ({ onClose }) => {
           </SidebarSection>
 
 {/* 2. Inventory */}
-          <SidebarSection title="Inventory" defaultOpen={false}>
+          <SidebarSection title="Inventory" defaultOpen={true}>
 
              <NavLink
               to="/inventory/item-view"
@@ -385,7 +385,7 @@ const Sidebar = ({ onClose }) => {
           </SidebarSection>
 
           {/* 3. Transactions */}
-          <SidebarSection title="Transactions" defaultOpen={false}>
+          <SidebarSection title="Transactions" defaultOpen={true}>
             <NavLink
               to="/transactions/challan-list"
               onClick={onClose}
