@@ -43,7 +43,9 @@ class BillController {
     );
     res
       .status(200)
-      .json(new ApiResponse(200, result, "Bill settlement recorded successfully"));
+      .json(
+        new ApiResponse(200, result, "Bill settlement recorded successfully"),
+      );
   });
 
   recordPayment = asyncHandler(async (req, res) => {

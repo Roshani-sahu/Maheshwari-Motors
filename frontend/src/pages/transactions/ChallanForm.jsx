@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaTimes, FaSave, FaPrint } from 'react-icons/fa';
+import { FaChevronDown, FaChevronUp, FaTimes, FaSave, FaPrint } from 'react-icons/fa';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
@@ -31,6 +31,8 @@ const ChallanForm = () => {
   const [itemsPage, setItemsPage] = useState(1);
   const [totalItemsPages, setTotalItemsPages] = useState(1);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
+  const [expandedItemId, setExpandedItemId] = useState(null);
+  const [itemHistoryMap, setItemHistoryMap] = useState({});
   const itemDropdownRef = useRef(null);
 
   const [challan, setChallan] = useState({
@@ -70,7 +72,8 @@ const ChallanForm = () => {
             id: normalized.id,
             name: normalized.itemName,
             amount: normalized.amount,
-            barcode: normalized.barcode
+            barcode: normalized.barcode,
+            is_gst: normalized.type
           };
         });
 
@@ -144,6 +147,87 @@ const ChallanForm = () => {
     fetchData();
   }, [selectedFirm?.id, id, isEditMode]);
 
+  const formatHistoryDate = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('en-IN');
+  };
+
+  const getDaysSince = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    const today = new Date();
+    const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffDays = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+    return diffDays < 0 ? 0 : diffDays;
+  };
+
+  const fetchItemHistory = async (itemId) => {
+    if (challan.contactType !== 'party') {
+      setItemHistoryMap(prev => ({
+        ...prev,
+        [itemId]: {
+          loading: false,
+          rows: [],
+          error: 'History available only for Party challans'
+        }
+      }));
+      return;
+    }
+
+    if (!challan.party) {
+      const errorMsg = 'Please select party before loading history';
+      showToast(errorMsg, 'error');
+      setItemHistoryMap(prev => ({
+        ...prev,
+        [itemId]: { loading: false, rows: [], error: errorMsg }
+      }));
+      return;
+    }
+
+    setItemHistoryMap(prev => ({
+      ...prev,
+      [itemId]: { loading: true, rows: [], error: null }
+    }));
+
+    try {
+      const response = await api.post('/bills/last-sold-items', {
+        contact_id: challan.party,
+        party_id: challan.party,
+        include_all_gst: 1,
+        item_id: itemId
+      });
+      const rows = getResponseList(response);
+
+      setItemHistoryMap(prev => ({
+        ...prev,
+        [itemId]: { loading: false, rows, error: null }
+      }));
+    } catch (error) {
+      console.error('Failed to load item history:', error);
+      const errorMsg = error?.response?.data?.message || 'Failed to load item history';
+      showToast(errorMsg, 'error');
+      setItemHistoryMap(prev => ({
+        ...prev,
+        [itemId]: { loading: false, rows: [], error: errorMsg }
+      }));
+    }
+  };
+
+  const handleToggleHistory = async (itemId) => {
+    if (expandedItemId === itemId) {
+      setExpandedItemId(null);
+      return;
+    }
+    setExpandedItemId(itemId);
+    if (!itemHistoryMap[itemId]?.rows?.length && !itemHistoryMap[itemId]?.loading) {
+      await fetchItemHistory(itemId);
+    }
+  };
+
   const loadItemsPage = async (page) => {
     setIsLoadingItems(true);
     try {
@@ -155,7 +239,8 @@ const ChallanForm = () => {
           id: normalized.id,
           name: normalized.itemName,
           amount: normalized.amount,
-          barcode: normalized.barcode
+          barcode: normalized.barcode,
+          is_gst: normalized.type
         };
       });
 
@@ -183,7 +268,8 @@ const ChallanForm = () => {
             id: normalized.id,
             name: normalized.itemName,
             amount: normalized.amount,
-            barcode: normalized.barcode
+            barcode: normalized.barcode,
+            is_gst: normalized.type
           };
         });
 
@@ -218,6 +304,9 @@ const ChallanForm = () => {
   const filteredItems = loadedItems.filter(item => !challan.items.includes(item.id));
 
   const toggleItemSelection = (itemId) => {
+    if (challan.items.includes(itemId) && expandedItemId === itemId) {
+      setExpandedItemId(null);
+    }
     setChallan(prev => {
       const items = prev.items.includes(itemId)
         ? prev.items.filter(i => i !== itemId)
@@ -225,6 +314,7 @@ const ChallanForm = () => {
 
       if (!prev.items.includes(itemId)) {
         const item = loadedItems.find(i => i.id === itemId);
+        const masterIsGst = item?.is_gst ?? 1;
         const brandId = item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
         const discForBrand = loadedDiscounts[brandId] || {};
         const useDisc = (prev.gstType === 1 ? (discForBrand.discount1 || {}) : (discForBrand.discount2 || {})) || {};
@@ -236,7 +326,7 @@ const ChallanForm = () => {
           gstPercent: 0,
           itemDiscount: item?.discount || 0,
           stock: item?.stock || 0,
-          type: prev.gstType !== null ? prev.gstType : 0,
+          type: masterIsGst === 0 ? 0 : (prev.gstType !== null ? prev.gstType : 0),
           remark: item?.name || '',
           itemName: item?.name || '',
           barcode:
@@ -329,15 +419,32 @@ const ChallanForm = () => {
 
   const handleSave = async () => {
     try {
+      if (!challan.party) {
+        showToast(`Please select ${challan.contactType === 'supplier' ? 'supplier' : 'party'}`, 'error');
+        return;
+      }
+      if (challan.items.length === 0) {
+        showToast('Please add at least one item', 'error');
+        return;
+      }
+
+      const challanType = challan.contactType === 'supplier' ? 'purchase' : 'sale';
+      const challanIsGst = challan.gstType !== null ? challan.gstType : 0;
+
       const payload = {
-        challan_type: 'sale',
+        challan_type: challanType,
         date: challan.date,
         contact_id: challan.party,
-        is_gst: challan.gstType,
+        is_gst: challanIsGst,
         print_option: challan.printOption,
         items: challan.items.map(itemId => {
           const item = loadedItems.find(i => i.id === itemId);
           const details = challan.itemDetails[itemId] || {};
+          const itemType =
+            details.type !== undefined && details.type !== null
+              ? details.type
+              : challanIsGst;
+          const masterIsGst = item?.is_gst ?? 1;
           return {
             item_id: itemId,
             quantity: parseFloat(details.pcs || 1),
@@ -345,7 +452,7 @@ const ChallanForm = () => {
             discount: parseFloat(details.disPercent || 0),
             special_discount: parseFloat(details.spDis || 0),
             gst_percent: parseFloat(details.gstPercent || 0),
-            is_gst: challan.gstType
+            is_gst: masterIsGst === 0 ? 0 : itemType
           };
         }),
         discount: parseFloat(calculateTotalDiscount().toFixed(2))
@@ -362,7 +469,11 @@ const ChallanForm = () => {
       navigate('/transactions/challan-list');
     } catch (error) {
       console.error(error);
-      showToast(`Failed to ${isEditMode ? 'update' : 'create'} challan`, 'error');
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        `Failed to ${isEditMode ? 'update' : 'create'} challan`;
+      showToast(message, 'error');
     }
   };
 
@@ -793,6 +904,8 @@ const ChallanForm = () => {
                   party: selectedId,
                   gstType: selected ? (selected.is_gst || 0) : prev.gstType
                 }));
+                setExpandedItemId(null);
+                setItemHistoryMap({});
               }}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
@@ -861,119 +974,207 @@ const ChallanForm = () => {
                   const item = loadedItems.find(i => i.id === itemId);
                   const details = challan.itemDetails[itemId] || {};
                   const calc = calculateItemAmount(itemId);
-                  const itemType = details.type !== undefined ? details.type : challan.gstType;
+                  const masterIsGst = item?.is_gst ?? 1;
+                  const itemType =
+                    masterIsGst === 0
+                      ? 0
+                      : (details.type !== undefined ? details.type : challan.gstType);
                   const displayItemName = details.itemName || item?.name || 'Unknown Item';
+                  const historyState = itemHistoryMap[itemId] || { loading: false, rows: [], error: null };
+                  const historyRows = Array.isArray(historyState.rows) ? historyState.rows.slice(0, 4) : [];
+                  const historyOpen = expandedItemId === itemId;
 
                   return (
-                    <tr key={itemId} className="border-t">
-                      <td className="px-2 py-2 border-r">{index + 1}</td>
+                    <Fragment key={itemId}>
+                      <tr className="border-t">
+                        <td className="px-2 py-2 border-r">
+                          <div className="flex items-center gap-1">
+                            <span>{index + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleHistory(itemId)}
+                              className="text-gray-500 hover:text-gray-700"
+                              title="View last 4 entries"
+                            >
+                              {historyOpen ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <span className="text-xs">{displayItemName}</span>
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="text"
+                            value={details.remark || ''}
+                            onChange={(e) => updateItemDetail(itemId, 'remark', e.target.value)}
+                            className="w-32 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
                       <td className="px-2 py-2 border-r">
-                        <span className="text-xs">{displayItemName}</span>
+                        {masterIsGst === 0 ? (
+                          <span className="text-xs">0</span>
+                        ) : (
+                          <select
+                            value={itemType !== null ? itemType : ''}
+                            onChange={(e) => updateItemDetail(itemId, 'type', parseInt(e.target.value))}
+                            className="w-12 px-1 py-1 border rounded text-xs"
+                          >
+                            <option value="">-</option>
+                            <option value={0}>0</option>
+                            <option value={1}>1</option>
+                          </select>
+                        )}
                       </td>
-                      <td className="px-2 py-2 border-r">
-                        <input
-                          type="text"
-                          value={details.remark || ''}
-                          onChange={(e) => updateItemDetail(itemId, 'remark', e.target.value)}
-                          className="w-32 px-1 py-1 border rounded text-xs"
-                        />
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <select
-                          value={itemType !== null ? itemType : ''}
-                          onChange={(e) => updateItemDetail(itemId, 'type', parseInt(e.target.value))}
-                          className="w-12 px-1 py-1 border rounded text-xs"
-                        >
-                          <option value="">-</option>
-                          <option value={0}>0</option>
-                          <option value={1}>1</option>
-                        </select>
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          value={details.stock || 0}
-                          onChange={(e) => updateItemDetail(itemId, 'stock', e.target.value)}
-                          className="w-12 px-1 py-1 border rounded text-xs"
-                        />
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          value={details.pcs || 1}
-                          onChange={(e) => updateItemDetail(itemId, 'pcs', e.target.value)}
-                          className="w-12 px-1 py-1 border rounded text-xs"
-                        />
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          value={details.rate || item?.amount || 0}
-                          onChange={(e) => updateItemDetail(itemId, 'rate', e.target.value)}
-                          className="w-16 px-1 py-1 border rounded text-xs"
-                        />
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          value={details.disPercent || 0}
-                          onChange={(e) => updateItemDetail(itemId, 'disPercent', e.target.value)}
-                          className="w-16 px-1 py-1 border rounded text-xs"
-                        />
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          value={details.spDis || 0}
-                          onChange={(e) => updateItemDetail(itemId, 'spDis', e.target.value)}
-                          className="w-16 px-1 py-1 border rounded text-xs"
-                        />
-                      </td>
-                      <td className="px-2 py-2 border-r">
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={details.itemDiscount || 0}
-                          onChange={(e) => updateItemDetail(itemId, 'itemDiscount', e.target.value)}
-                          className="w-16 px-1 py-1 border rounded text-xs"
-                        />
-                      </td>
-                      {itemType === 1 ? (
-                        <>
-                          <td className="px-2 py-2 border-r">
-                            <input
-                              type="number"
-                              value={details.gstPercent || 0}
-                              onChange={(e) => updateItemDetail(itemId, 'gstPercent', e.target.value)}
-                              className="w-16 px-1 py-1 border rounded text-xs"
-                            />
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={details.stock || 0}
+                            onChange={(e) => updateItemDetail(itemId, 'stock', e.target.value)}
+                            className="w-12 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={details.pcs || 1}
+                            onChange={(e) => updateItemDetail(itemId, 'pcs', e.target.value)}
+                            className="w-12 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={details.rate || item?.amount || 0}
+                            onChange={(e) => updateItemDetail(itemId, 'rate', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={details.disPercent || 0}
+                            onChange={(e) => updateItemDetail(itemId, 'disPercent', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={details.spDis || 0}
+                            onChange={(e) => updateItemDetail(itemId, 'spDis', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={details.itemDiscount || 0}
+                            onChange={(e) => updateItemDetail(itemId, 'itemDiscount', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        {itemType === 1 ? (
+                          <>
+                            <td className="px-2 py-2 border-r">
+                              <input
+                                type="number"
+                                value={details.gstPercent || 0}
+                                onChange={(e) => updateItemDetail(itemId, 'gstPercent', e.target.value)}
+                                className="w-16 px-1 py-1 border rounded text-xs"
+                              />
+                            </td>
+                            <td className="px-2 py-2 border-r">
+                              <span className="text-xs">{calc.gstAmount.toFixed(2)}</span>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-2 py-2 border-r">
+                              <span className="text-xs">-</span>
+                            </td>
+                            <td className="px-2 py-2 border-r">
+                              <span className="text-xs">-</span>
+                            </td>
+                          </>
+                        )}
+                        <td className="px-2 py-2 border-r">
+                          <span className="text-xs font-medium">{calc.afterDiscount.toFixed(2)}</span>
+                        </td>
+                        <td className="px-2 py-2">
+                          <button
+                            onClick={() => toggleItemSelection(itemId)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <FaTimes size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                      {historyOpen && (
+                        <tr className="border-t bg-gray-50">
+                          <td colSpan={14} className="px-3 py-3">
+                            <div className="text-xs font-medium text-gray-700 mb-2">
+                              Last 4 Entries
+                            </div>
+                            {historyState.loading ? (
+                              <div className="text-xs text-gray-500">Loading history...</div>
+                            ) : historyState.error ? (
+                              <div className="text-xs text-red-600">{historyState.error}</div>
+                            ) : historyRows.length === 0 ? (
+                              <div className="text-xs text-gray-500">No history found.</div>
+                            ) : (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="bg-white">
+                                      <th className="px-2 py-1 text-left border">Date</th>
+                                      <th className="px-2 py-1 text-left border">Bill No</th>
+                                      <th className="px-2 py-1 text-left border">Rate</th>
+                                      <th className="px-2 py-1 text-left border">Qty</th>
+                                      <th className="px-2 py-1 text-left border">Amount</th>
+                                      <th className="px-2 py-1 text-left border">Days</th>
+                                      <th className="px-2 py-1 text-left border">Disc%</th>
+                                      <th className="px-2 py-1 text-left border">Sp Disc</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {historyRows.map((row, rowIndex) => (
+                                      <tr key={`${itemId}-history-${rowIndex}`} className="bg-white">
+                                        <td className="px-2 py-1 border">
+                                          {formatHistoryDate(row?.bill_date || row?.challan_date)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {row?.bill_no || row?.challan_no || '-'}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.rate || 0).toFixed(2)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.quantity || 0)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.amount || 0).toFixed(2)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {getDaysSince(row?.bill_date || row?.challan_date)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.discount || 0).toFixed(2)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.special_discount || 0).toFixed(2)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </td>
-                          <td className="px-2 py-2 border-r">
-                            <span className="text-xs">{calc.gstAmount.toFixed(2)}</span>
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-2 py-2 border-r">
-                            <span className="text-xs">-</span>
-                          </td>
-                          <td className="px-2 py-2 border-r">
-                            <span className="text-xs">-</span>
-                          </td>
-                        </>
+                        </tr>
                       )}
-                      <td className="px-2 py-2 border-r">
-                        <span className="text-xs font-medium">{calc.afterDiscount.toFixed(2)}</span>
-                      </td>
-                      <td className="px-2 py-2">
-                        <button
-                          onClick={() => toggleItemSelection(itemId)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <FaTimes size={12} />
-                        </button>
-                      </td>
-                    </tr>
+                    </Fragment>
                   );
                 })}
                 {challan.items.length === 0 && (

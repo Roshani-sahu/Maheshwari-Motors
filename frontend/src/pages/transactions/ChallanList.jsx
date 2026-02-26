@@ -19,15 +19,52 @@ const ChallanList = () => {
   const [validationError, setValidationError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const fetchAllPagesByType = useCallback(async (challanType) => {
-    const firstResponse = await api.get(`/challans/${challanType}`, {
-      params: { page: 1, limit: 200 }
+  const defaultFilters = {
+    type: 'all',
+    search: '',
+    contactId: '',
+    paymentStatus: '',
+    fromDate: '',
+    toDate: ''
+  };
+
+  const [filterDraft, setFilterDraft] = useState(defaultFilters);
+  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
+
+  const resolveEndpoint = useCallback((type) => {
+    if (type === 'sale') return '/challans/sale';
+    if (type === 'purchase') return '/challans/purchase';
+    return '/challans';
+  }, []);
+
+  const buildParams = useCallback((page, filters) => {
+    const limit = filters.type === 'all' ? 10 : 20;
+    const params = {
+      page,
+      limit,
+      search: filters.search?.trim() || undefined,
+      contact_id: filters.contactId?.trim() || undefined,
+      payment_status: filters.paymentStatus || undefined,
+      from_date: filters.fromDate || undefined,
+      to_date: filters.toDate || undefined
+    };
+
+    return Object.fromEntries(Object.entries(params).filter(([, value]) => value !== undefined));
+  }, []);
+
+  const fetchAllPages = useCallback(async () => {
+    const endpoint = resolveEndpoint(appliedFilters.type);
+    const firstResponse = await api.get(endpoint, {
+      params: buildParams(1, appliedFilters)
     });
 
-    const firstPageRows = getResponseList(firstResponse).map((challan) => ({
-      ...normalizeChallan(challan),
-      challanType: challan?.challan_type || challanType
-    }));
+    const firstPageRows = getResponseList(firstResponse).map((challan) => {
+      const normalized = normalizeChallan(challan);
+      return {
+        ...normalized,
+        challanType: challan?.challan_type || normalized.challanType || ''
+      };
+    });
     const meta = getResponseMeta(firstResponse);
     const totalPages = meta?.totalPages || 1;
 
@@ -38,33 +75,32 @@ const ChallanList = () => {
     const requests = [];
     for (let page = 2; page <= totalPages; page += 1) {
       requests.push(
-        api.get(`/challans/${challanType}`, {
-          params: { page, limit: 200 }
+        api.get(endpoint, {
+          params: buildParams(page, appliedFilters)
         })
       );
     }
 
     const responses = await Promise.all(requests);
     const remainingRows = responses.flatMap((response) =>
-      getResponseList(response).map((challan) => ({
-        ...normalizeChallan(challan),
-        challanType: challan?.challan_type || challanType
-      }))
+      getResponseList(response).map((challan) => {
+        const normalized = normalizeChallan(challan);
+        return {
+          ...normalized,
+          challanType: challan?.challan_type || normalized.challanType || ''
+        };
+      })
     );
 
     return [...firstPageRows, ...remainingRows];
-  }, []);
+  }, [appliedFilters, buildParams, resolveEndpoint]);
 
   const loadAllChallans = useCallback(async () => {
-    const [saleChallans, purchaseChallans] = await Promise.all([
-      fetchAllPagesByType('sale'),
-      fetchAllPagesByType('purchase')
-    ]);
-
-    return [...saleChallans, ...purchaseChallans].sort(
+    const allChallans = await fetchAllPages();
+    return [...allChallans].sort(
       (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
     );
-  }, [fetchAllPagesByType]);
+  }, [fetchAllPages]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -539,6 +575,15 @@ const ChallanList = () => {
     }
   ];
 
+  const handleApplyFilters = () => {
+    setAppliedFilters({ ...filterDraft });
+  };
+
+  const handleResetFilters = () => {
+    setFilterDraft(defaultFilters);
+    setAppliedFilters(defaultFilters);
+  };
+
   const handleConvertToBill = async () => {
     if (selectedChallans.length === 0) {
       alert('Please select challans to convert');
@@ -603,12 +648,88 @@ const ChallanList = () => {
         </div>
       </div>
 
+      <div className="border rounded-lg bg-white p-3 sm:p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+            <select
+              value={filterDraft.type}
+              onChange={(e) => setFilterDraft((prev) => ({ ...prev, type: e.target.value }))}
+              className="w-full px-2 py-2 border rounded-md text-xs sm:text-sm"
+            >
+              <option value="all">All</option>
+              <option value="sale">Sale</option>
+              <option value="purchase">Purchase</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Payment Status</label>
+            <select
+              value={filterDraft.paymentStatus}
+              onChange={(e) => setFilterDraft((prev) => ({ ...prev, paymentStatus: e.target.value }))}
+              className="w-full px-2 py-2 border rounded-md text-xs sm:text-sm"
+            >
+              <option value="">All</option>
+              <option value="due">Due</option>
+              <option value="paid">Paid</option>
+              <option value="overpaid">Overpaid</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">From Date</label>
+            <input
+              type="date"
+              value={filterDraft.fromDate}
+              onChange={(e) => setFilterDraft((prev) => ({ ...prev, fromDate: e.target.value }))}
+              className="w-full px-2 py-2 border rounded-md text-xs sm:text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">To Date</label>
+            <input
+              type="date"
+              value={filterDraft.toDate}
+              onChange={(e) => setFilterDraft((prev) => ({ ...prev, toDate: e.target.value }))}
+              className="w-full px-2 py-2 border rounded-md text-xs sm:text-sm"
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Search</label>
+            <input
+              type="text"
+              placeholder="Search challan..."
+              value={filterDraft.search}
+              onChange={(e) => setFilterDraft((prev) => ({ ...prev, search: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-md text-xs sm:text-sm"
+            />
+          </div>
+          <div className="lg:col-span-2">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Contact ID</label>
+            <input
+              type="text"
+              placeholder="Contact ID"
+              value={filterDraft.contactId}
+              onChange={(e) => setFilterDraft((prev) => ({ ...prev, contactId: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-md text-xs sm:text-sm"
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <Button onClick={handleApplyFilters} className="text-xs sm:text-sm">
+            Apply Filters
+          </Button>
+          <Button variant="outline" onClick={handleResetFilters} className="text-xs sm:text-sm">
+            Reset
+          </Button>
+        </div>
+      </div>
+
       <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
         <DataTable
           columns={columns}
           data={challans}
           actions={actions}
-          searchable={true}
+          searchable={false}
           sortable={true}
           pagination={true}
           selectable={true}

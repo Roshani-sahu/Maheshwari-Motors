@@ -20,6 +20,8 @@ import {
   Counter,
   Department,
   Subscription,
+  Label,
+  Bank,
 } from "../src/models/index.js";
 
 const SALT = 10;
@@ -423,12 +425,14 @@ async function seed() {
     Area,
     Department,
     Transport,
+    Label,
     Brand,
     Category,
     Hsn,
     Report,
     Counter,
     Subscription,
+    Bank,
     User,
   ];
   for (const M of dropOrder) await M.deleteMany({});
@@ -459,10 +463,7 @@ async function seed() {
       GSTIN: gstin("Rajasthan", 1),
       CIN: cinNo("Rajasthan", 1),
       reg_number: "MM-GST-001",
-      bank_name: BNK[0].n,
-      bank_branch: "MI Road Branch",
-      ifsc_code: ifcCode(BNK[0].c, 101),
-      account_number: accNo(1001),
+      bank_ids: [],
     },
     nongst_firm: {
       username: "nongst_user",
@@ -476,13 +477,44 @@ async function seed() {
       state: "Rajasthan",
       CIN: cinNo("Rajasthan", 2),
       reg_number: "MM-NGST-001",
-      bank_name: BNK[1].n,
-      bank_branch: "Tonk Road Branch",
-      ifsc_code: ifcCode(BNK[1].c, 102),
-      account_number: accNo(1002),
+      bank_ids: [],
     },
     is_active: true,
   });
+
+  // Create Bank documents for main user and wire bank_ids
+  let bankSeq = 0;
+  const mainGstBank = await Bank.create({
+    id: ++bankSeq,
+    bank_name: BNK[0].n,
+    bank_branch: "MI Road Branch",
+    ifsc_code: ifcCode(BNK[0].c, 101),
+    account_number: accNo(1001),
+    account_holder: "Maheshwari Motors Pvt Ltd",
+    upi_id: "",
+    is_default: true,
+    user_id: main._id,
+  });
+  const mainNongstBank = await Bank.create({
+    id: ++bankSeq,
+    bank_name: BNK[1].n,
+    bank_branch: "Tonk Road Branch",
+    ifsc_code: ifcCode(BNK[1].c, 102),
+    account_number: accNo(1002),
+    account_holder: "Maheshwari Motors",
+    upi_id: "",
+    is_default: true,
+    user_id: main._id,
+  });
+  await User.findByIdAndUpdate(main._id, {
+    "gst_firm.bank_ids": [mainGstBank._id],
+    "nongst_firm.bank_ids": [mainNongstBank._id],
+  });
+  // Keep bank details accessible for challan from_bank
+  main.gst_firm.bank_ids = [mainGstBank._id];
+  main.nongst_firm.bank_ids = [mainNongstBank._id];
+  const mainGstBankDoc = mainGstBank;
+  const mainNongstBankDoc = mainNongstBank;
 
   const secDocs = [];
   for (let i = 1; i <= C.secondaryUsers; i++) {
@@ -508,10 +540,7 @@ async function seed() {
         GSTIN: gstin(st, i + 10),
         CIN: cinNo(st, i + 10),
         reg_number: `REG-GST-${pad(i, 4)}`,
-        bank_name: bk.n,
-        bank_branch: `${ct} Main`,
-        ifsc_code: ifcCode(bk.c, i + 200),
-        account_number: accNo(i + 2000),
+        bank_ids: [],
       },
       nongst_firm: {
         username: `nongst_staff_${pad(i, 3)}`,
@@ -525,15 +554,45 @@ async function seed() {
         state: st,
         CIN: cinNo(st, i + 200),
         reg_number: `REG-NGST-${pad(i, 4)}`,
-        bank_name: bk.n,
-        bank_branch: `${ct} Trade`,
-        ifsc_code: ifcCode(bk.c, i + 300),
-        account_number: accNo(i + 3000),
+        bank_ids: [],
       },
       is_active: i <= 8,
+      _bankMeta: { bk, ct, i, st }, // temp metadata for bank creation
     });
   }
-  const staff = await User.insertMany(secDocs);
+  const staff = await User.insertMany(secDocs.map(({ _bankMeta, ...rest }) => rest));
+
+  // Create Bank documents for secondary users and wire bank_ids
+  for (let si = 0; si < staff.length; si++) {
+    const { bk, ct, i } = secDocs[si]._bankMeta;
+    const gstBank = await Bank.create({
+      id: ++bankSeq,
+      bank_name: bk.n,
+      bank_branch: `${ct} Main`,
+      ifsc_code: ifcCode(bk.c, i + 200),
+      account_number: accNo(i + 2000),
+      account_holder: staff[si].gst_firm.name,
+      upi_id: "",
+      is_default: true,
+      user_id: staff[si]._id,
+    });
+    const nongstBank = await Bank.create({
+      id: ++bankSeq,
+      bank_name: bk.n,
+      bank_branch: `${ct} Trade`,
+      ifsc_code: ifcCode(bk.c, i + 300),
+      account_number: accNo(i + 3000),
+      account_holder: staff[si].nongst_firm.name,
+      upi_id: "",
+      is_default: true,
+      user_id: staff[si]._id,
+    });
+    await User.findByIdAndUpdate(staff[si]._id, {
+      "gst_firm.bank_ids": [gstBank._id],
+      "nongst_firm.bank_ids": [nongstBank._id],
+    });
+  }
+
   const users = [main, ...staff];
   const uid = main._id;
   console.log(
@@ -690,7 +749,7 @@ async function seed() {
     name: n,
     description: d,
     brand_ids: [],
-    labels: [],
+    label_ids: [],
     user_id: uid,
   }));
   const cats = await Category.insertMany(catDocs);
@@ -716,24 +775,35 @@ async function seed() {
   );
   const brandIds = brands.map((b) => b._id);
 
-  // Wire categories → brands (+ labels with brand_discounts)
+  // Wire categories → brands (+ create standalone Label documents)
+  let labelSeq = 0;
+  const allLabels = [];
   for (const c of cats) {
     const selectedBrandIds = smp(brandIds, ri(4, 10));
-    const mkLabel = (labelName) => ({
-      name: labelName,
-      description: `${labelName} pricing for ${c.name}`,
-      is_active: true,
-      brand_discounts: selectedBrandIds.map((brandId) => ({
-        brand_id: brandId,
-        item_ids: [],
-        disc1: { normal: rd(ri(0, 300) / 100), special: rd(ri(0, 200) / 100) },
-        disc2: { normal: rd(ri(0, 300) / 100), special: rd(ri(0, 200) / 100) },
-      })),
-    });
+    const labelIds = [];
+
+    for (const labelName of LABEL_NAMES) {
+      labelSeq++;
+      const label = await Label.create({
+        id: labelSeq,
+        name: labelName,
+        description: `${labelName} pricing for ${c.name}`,
+        is_active: true,
+        category_id: c._id,
+        brand_discounts: selectedBrandIds.map((brandId) => ({
+          brand_id: brandId,
+          disc1: { normal: rd(ri(0, 300) / 100), special: rd(ri(0, 200) / 100) },
+          disc2: { normal: rd(ri(0, 300) / 100), special: rd(ri(0, 200) / 100) },
+        })),
+        user_id: uid,
+      });
+      labelIds.push(label._id);
+      allLabels.push(label);
+    }
 
     await Category.findByIdAndUpdate(c._id, {
       brand_ids: selectedBrandIds,
-      labels: LABEL_NAMES.map((ln) => mkLabel(ln)),
+      label_ids: labelIds,
     });
   }
   console.log(
@@ -877,6 +947,18 @@ async function seed() {
         });
       }
 
+      // Pick a category and resolve label_id from standalone Label documents
+      const chosenCat = p(cats);
+      const chosenLabelName = type === "party" ? p(LABEL_NAMES) : null;
+      const matchedLabel =
+        type === "party"
+          ? allLabels.find(
+              (l) =>
+                l.name === chosenLabelName &&
+                String(l.category_id) === String(chosenCat._id),
+            )
+          : null;
+
       return {
         id: contactSeq,
         name: n,
@@ -898,7 +980,8 @@ async function seed() {
           type === "party" && coin(42) ?
             `https://cdn.maheshwarimotors.dev/signatures/${sl(n)}.png`
           : null,
-        assigned_label: type === "party" ? p(LABEL_NAMES) : null,
+        assigned_label: chosenLabelName,
+        label_id: matchedLabel?._id || null,
         banks,
         item_discounts: [],
         bank_name: bk.n,
@@ -918,7 +1001,7 @@ async function seed() {
             ])
           : undefined,
         is_gst: isGst,
-        category_id: p(cats)._id,
+        category_id: chosenCat._id,
         transport_id: type === "party" && coin(68) ? p(transports)._id : null,
         agent_id: null,
         area_id: null,
@@ -1106,43 +1189,10 @@ async function seed() {
     })),
   );
 
-  // Also wire item IDs into category → label → brand_discounts
-  const freshCats2 = await Category.find({ user_id: uid }).lean();
-  const catLabelBulk = [];
-  for (const cat of freshCats2) {
-    if (!cat.labels || !cat.labels.length) continue;
-    let changed = false;
-    const updatedLabels = cat.labels.map((label) => ({
-      ...label,
-      brand_discounts: (label.brand_discounts || []).map((bd) => {
-        const brandItemIds = (
-          brandItemMap.get(String(bd.brand_id)) || []
-        ).filter((itemId) => {
-          const it = items.find((x) => String(x._id) === String(itemId));
-          return it && String(it.category_id) === String(cat._id);
-        });
-        if (brandItemIds.length > 0) changed = true;
-        return { ...bd, item_ids: brandItemIds };
-      }),
-    }));
-    if (changed) {
-      catLabelBulk.push({
-        updateOne: {
-          filter: { _id: cat._id },
-          update: { $set: { labels: updatedLabels } },
-        },
-      });
-    }
-  }
-  if (catLabelBulk.length) await Category.bulkWrite(catLabelBulk);
-
   console.log(
     `✓ Items: ${items.length} (${gstItems.length} GST + ${nongstItems.length} non-GST)`,
   );
   console.log(`  ↳ Brand.item_ids synced for ${brandItemMap.size} brands`);
-  console.log(
-    `  ↳ Category label item_ids synced for ${catLabelBulk.length} categories`,
-  );
 
   // Party-wise item discounts (maps specific item → party custom pricing)
   const partyDiscountBulk = allParties.map((party, idx) => {
@@ -1158,13 +1208,19 @@ async function seed() {
         special: rd(ri(0, 180) / 100),
       },
     }));
+    const labelName = LABEL_NAMES[idx % LABEL_NAMES.length];
+    const catId = party.category_id;
+    const matchedLabel = allLabels.find(
+      (l) => l.name === labelName && String(l.category_id) === String(catId),
+    );
     return {
       updateOne: {
         filter: { _id: party._id },
         update: {
           $set: {
             item_discounts,
-            assigned_label: LABEL_NAMES[idx % LABEL_NAMES.length],
+            assigned_label: labelName,
+            label_id: matchedLabel?._id || null,
           },
         },
       },
@@ -1192,7 +1248,8 @@ async function seed() {
     Array.from({ length: count }, (_, idx) => {
       challanSeq++;
       const contact = contactPool[idx % contactPool.length];
-      const firmBank = isGst === 1 ? main.gst_firm : main.nongst_firm;
+      const firmBankDoc = isGst === 1 ? mainGstBankDoc : mainNongstBankDoc;
+      const firmName = isGst === 1 ? main.gst_firm.name : main.nongst_firm.name;
       const contactBank =
         Array.isArray(contact.banks) && contact.banks.length > 0 ?
           contact.banks[0]
@@ -1266,14 +1323,14 @@ async function seed() {
           challanType === "sale" ? (contact.assigned_label ?? null) : null,
         contact_id: contact._id,
         from_bank:
-          firmBank?.bank_name ?
+          firmBankDoc ?
             {
-              bank_id: null,
-              bank_name: firmBank.bank_name || "",
-              bank_branch: firmBank.bank_branch || "",
-              ifsc_code: firmBank.ifsc_code || "",
-              account_number: firmBank.account_number || "",
-              account_holder: firmBank.name || "",
+              bank_id: firmBankDoc._id,
+              bank_name: firmBankDoc.bank_name || "",
+              bank_branch: firmBankDoc.bank_branch || "",
+              ifsc_code: firmBankDoc.ifsc_code || "",
+              account_number: firmBankDoc.account_number || "",
+              account_holder: firmName || "",
             }
           : null,
         to_bank:
@@ -1665,6 +1722,8 @@ async function seed() {
     { model_name: "ItemId", user_id: uid, seq: itemIdSeq - 1 },
     { model_name: "Challan", user_id: uid, seq: allChallans.length },
     { model_name: "Bill", user_id: uid, seq: allBills.length },
+    { model_name: "Label", user_id: uid, seq: allLabels.length },
+    { model_name: "Bank", user_id: uid, seq: bankSeq },
     { model_name: "ChallanNo_GST", user_id: uid, seq: cNoGstSale },
     { model_name: "ChallanNo_NONGST", user_id: uid, seq: cNoNongstSale },
     { model_name: "PurchaseNo_GST", user_id: uid, seq: cNoGstPurchase },
@@ -1672,7 +1731,7 @@ async function seed() {
     { model_name: "BillNo_GST", user_id: uid, seq: bNoGst },
     { model_name: "BillNo_NONGST", user_id: uid, seq: bNoNongst },
   ]);
-  console.log("✓ Counters synced (18 sequences)");
+  console.log("✓ Counters synced (20 sequences)");
 
   /* ═══════════════════════════════════════════════════════════
      SUMMARY
@@ -1705,7 +1764,9 @@ async function seed() {
   console.log(
     `  Categories        : ${cats.length} (${C.labelsPerCategory} labels each)`,
   );
+  console.log(`  Labels            : ${allLabels.length} (standalone)`);
   console.log(`  Brands            : ${brands.length}`);
+  console.log(`  Banks             : ${bankSeq}`);
   console.log(`  Transports        : ${transports.length}`);
   console.log(`  Contacts          : ${allContacts.length}`);
   console.log(`    GST Parties       : ${gstParties.length}`);
@@ -1740,7 +1801,7 @@ async function seed() {
   console.log(
     `  Reports           : ${reportDocs.length} (${C.reportsPerType}/type × ${REPORT_TYPES.length} types)`,
   );
-  console.log(`  Counters          : 18 sequences`);
+  console.log(`  Counters          : 20 sequences`);
   console.log(`  Stock adjustments : ${stockBulk.length} items updated`);
   console.log("══════════════════════════════════════════════════════════");
   console.log("  Login credentials:");

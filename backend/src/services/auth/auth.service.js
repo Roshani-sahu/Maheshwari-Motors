@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import User from "../../models/auth/user.model.js";
 import Session from "../../models/auth/session.model.js";
 import Bank from "../../models/master/bank.model.js";
+import s3Service from "../common/s3.service.js";
 import { ApiError } from "../../utils/index.js";
 
 class AuthService {
@@ -31,12 +32,14 @@ class AuthService {
   }
 
   async _resolveFirmBanks(userId, firmObj) {
-    const configuredBankIds = Array.isArray(firmObj.bank_ids)
-      ? firmObj.bank_ids
-      : [];
+    const configuredBankIds =
+      Array.isArray(firmObj.bank_ids) ? firmObj.bank_ids : [];
 
     if (configuredBankIds.length > 0) {
-      return Bank.find({ _id: { $in: configuredBankIds }, user_id: userId }).lean();
+      return Bank.find({
+        _id: { $in: configuredBankIds },
+        user_id: userId,
+      }).lean();
     }
 
     return Bank.find({ user_id: userId }).lean();
@@ -54,10 +57,7 @@ class AuthService {
     const gstPwHash = await bcrypt.hash(gst_firm.password, 10);
     const nongstPwHash = await bcrypt.hash(nongst_firm.password, 10);
 
-    const gstBankIds = this._normalizeBankIds(
-      gst_firm?.bank_ids,
-      "GST firm",
-    );
+    const gstBankIds = this._normalizeBankIds(gst_firm?.bank_ids, "GST firm");
     const nongstBankIds = this._normalizeBankIds(
       nongst_firm?.bank_ids,
       "Non-GST firm",
@@ -243,6 +243,58 @@ class AuthService {
     const query = { user_id: userId, token: { $ne: currentToken }, role };
     if (role === "firm" && firmType) query.firm_type = firmType;
     await Session.deleteMany(query);
+  }
+
+  async uploadSignature(userId, file) {
+    if (!file) {
+      throw ApiError.badRequest("Signature image file is required");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) throw ApiError.notFound("User not found");
+
+    if (user.signature) {
+      throw ApiError.badRequest(
+        "Signature already exists. Use the update endpoint to replace it.",
+      );
+    }
+
+    const signatureUrl = await s3Service.uploadFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      "users/signatures",
+    );
+
+    user.signature = signatureUrl;
+    await user.save();
+
+    return user.toSafeObject();
+  }
+
+  async updateSignature(userId, file) {
+    if (!file) {
+      throw ApiError.badRequest("Signature image file is required");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) throw ApiError.notFound("User not found");
+
+    if (user.signature) {
+      await s3Service.deleteFile(user.signature);
+    }
+
+    const signatureUrl = await s3Service.uploadFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      "users/signatures",
+    );
+
+    user.signature = signatureUrl;
+    await user.save();
+
+    return user.toSafeObject();
   }
 }
 

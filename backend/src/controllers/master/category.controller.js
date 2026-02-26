@@ -31,7 +31,6 @@ class CategoryController {
         name: resolvedName,
         description: data.description,
         brand_ids: data.brands,
-        labels: data.labels,
       },
       req.user._id,
     );
@@ -48,7 +47,6 @@ class CategoryController {
     if (data.description !== undefined)
       updateData.description = data.description;
     if (data.brands !== undefined) updateData.brand_ids = data.brands;
-    if (data.labels !== undefined) updateData.labels = data.labels;
 
     const category = await categoryService.updateCategory(
       req.params.categoryId,
