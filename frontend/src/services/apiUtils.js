@@ -77,6 +77,7 @@ export const normalizeContact = (contact = {}) => ({
 export const normalizeItem = (item = {}) => ({
   id: getEntityId(item),
   itemName: item?.item_name || item?.name || "",
+  barcode: item?.barcode || item?.barcode_no || item?.barcodeNumber || item?.barcode_value || "",
   amount: toNumber(item?.sale_rate ?? item?.amount ?? item?.rate, 0),
   purchase_rate: toNumber(item?.purchase_rate, 0),
   mrp_rate: toNumber(item?.mrp_rate, 0),
@@ -117,10 +118,74 @@ export const normalizeChallan = (challan = {}) => ({
   gstType: toNumber(challan?.is_gst, 0) === 1 ? 1 : 0,
   converted_to_bill: Boolean(challan?.converted_to_bill),
   payment_status: challan?.payment_status || "",
+  printOption: challan?.print_option || 1,
   raw: challan,
 });
 
 export const normalizeBill = (bill = {}) => ({
+  ...(() => {
+    const party = bill?.contact_id || bill?.party_id || {};
+    const gstin = party?.gstin || "";
+    const panCandidates = [party?.pan_number, party?.pan, party?.reg_number];
+    const resolvedPan =
+      panCandidates
+        .map((value) => String(value || "").trim().toUpperCase())
+        .find((value) => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(value)) ||
+      (gstin && gstin.length >= 12 ? gstin.slice(2, 12).toUpperCase() : "");
+
+    const pinCandidates = [
+      party?.pincode,
+      party?.pin,
+      party?.zip,
+      party?.postal_code,
+      party?.area_id?.pincode,
+      party?.area?.pincode,
+      party?.area,
+      party?.address,
+    ];
+    const resolvedPin =
+      pinCandidates
+        .map((value) => {
+          const text = String(value || "").trim();
+          const matched = text.match(/\b\d{6}\b/);
+          return matched ? matched[0] : "";
+        })
+        .find(Boolean) || "";
+
+    const linkedBillItems = (bill?.challan_ids || []).flatMap((challan) =>
+      (challan?.items || []).map((item) => {
+        const itemRef = item?.item_id || {};
+        return {
+          itemId: getEntityId(itemRef),
+          itemName: itemRef?.item_name || itemRef?.name || item?.item_name || "",
+          barcode:
+            itemRef?.barcode ||
+            itemRef?.barcode_no ||
+            itemRef?.barcodeNumber ||
+            itemRef?.barcode_value ||
+            itemRef?.part_no ||
+            item?.barcode ||
+            item?.part_no ||
+            "",
+          quantity: toNumber(item?.quantity, 0),
+          rate: toNumber(item?.rate, 0),
+          discount: toNumber(item?.discount, 0),
+          specialDiscount: toNumber(item?.special_discount, 0),
+          gstPercent: toNumber(item?.gst_percent, 0),
+          gstAmount: toNumber(item?.gst_amount, 0),
+          amount: toNumber(item?.amount, 0),
+          challanNo: challan?.challan_no || challan?.challanNo || "",
+        };
+      }),
+    );
+
+    return {
+      partyGstin: gstin || "",
+      partyPan: resolvedPan,
+      partyPincode: resolvedPin,
+      items: linkedBillItems,
+    };
+  })(),
   id: getEntityId(bill),
   billNo: bill?.bill_no || bill?.billNo || "",
   date: bill?.date || null,

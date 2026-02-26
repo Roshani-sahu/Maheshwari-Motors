@@ -26,6 +26,7 @@ const AddItem = () => {
 
   const [formData, setFormData] = useState({
     name: '',
+    alias: '',
     item_id: '',
     stock: '',
     category: '',
@@ -55,7 +56,7 @@ const AddItem = () => {
           api.get('/categories', { params: { page: 1, limit: 200 }, signal: controller.signal }),
           api.get('/brands', { params: { page: 1, limit: 200 }, signal: controller.signal }),
           api.get('/contacts/suppliers', { params: { page: 1, limit: 200 }, signal: controller.signal }),
-          api.get('/categories', { params: { page: 1, limit: 200 }, signal: controller.signal }),
+          api.get('/departments', { params: { page: 1, limit: 200 }, signal: controller.signal }),
           api.get('/hsn', { params: { page: 1, limit: 200 }, signal: controller.signal })
         ]);
 
@@ -166,6 +167,7 @@ const AddItem = () => {
       appendOptional(payload, 'contact_id', formData.supplier);
       appendOptional(payload, 'dept_id', formData.department);
       appendOptional(payload, 'description', formData.description);
+      appendOptional(payload, 'alias', formData.alias);
       appendOptional(payload, 'item_id', formData.item_id);
       if (formData.image) payload.append('image', formData.image);
 
@@ -196,6 +198,10 @@ const AddItem = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
               <Input name="name" value={formData.name} onChange={(value) => handleChange('name', value)} placeholder="Enter item name" />
               {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Alias</label>
+              <Input name="alias" value={formData.alias} onChange={(value) => handleChange('alias', value)} placeholder="Enter alias" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Item ID</label>

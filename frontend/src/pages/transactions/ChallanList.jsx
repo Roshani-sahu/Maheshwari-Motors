@@ -5,7 +5,9 @@ import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
-import { getResponseList, getResponseMeta, normalizeChallan } from '../../services/apiUtils';
+import { getResponseData, getResponseList, getResponseMeta, normalizeChallan } from '../../services/apiUtils';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const ChallanList = () => {
   const navigate = useNavigate();
@@ -18,7 +20,7 @@ const ChallanList = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchAllPagesByType = useCallback(async (challanType) => {
-    const firstResponse = await api.get(`/challans/purchase`, {
+    const firstResponse = await api.get(`/challans/${challanType}`, {
       params: { page: 1, limit: 200 }
     });
 
@@ -85,11 +87,401 @@ const ChallanList = () => {
     [challans]
   );
 
+  const _generateChallanPDFLegacy = (challan) => {
+    const doc = new jsPDF();
+    
+    // Get firm details from store
+    const firmName = selectedFirm?.name || 'MAHESHWARI MOTORS';
+    const firmAddress = selectedFirm?.address || '52, KHOTODRA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.';
+    const firmCity = selectedFirm?.city || 'SURAT';
+    const firmGst = selectedFirm?.gst || '';
+    const firmContact = selectedFirm?.phone || '';
+    const firmEmail = selectedFirm?.email || '';
+    
+    // Safely get items array
+    const items = Array.isArray(challan.items) ? challan.items : [];
+    
+    // Calculate total amount from items with safe property access
+    const totalAmount = items.reduce((sum, item) => {
+      const quantity = item.quantity || item.qty || 0;
+      const rate = item.rate || item.price || 0;
+      const discount = item.discount || item.disc || item.disc_percent || 0;
+      const specialDiscount = item.specialDiscount || item.sp_disc || item.spDisc || item.special_discount || 0;
+      
+      const itemTotal = quantity * rate;
+      const discountAmount = itemTotal * discount / 100;
+      const specialDiscountAmount = (itemTotal - discountAmount) * specialDiscount / 100;
+      return sum + (itemTotal - discountAmount - specialDiscountAmount);
+    }, 0);
+    
+    // Add header with firm name (larger and bold)
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(firmName.toUpperCase(), 105, 20, { align: 'center' });
+    
+    // Add firm address
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(firmAddress, 105, 28, { align: 'center' });
+    
+    // Add contact details if available
+    let yOffset = 34;
+    if (firmContact || firmEmail) {
+      const contactText = `${firmContact}${firmContact && firmEmail ? ' | ' : ''}${firmEmail}`;
+      doc.setFontSize(8);
+      doc.text(contactText, 105, yOffset, { align: 'center' });
+      yOffset += 6;
+    }
+    
+    // Add GST if available
+    if (firmGst) {
+      doc.setFontSize(8);
+      doc.text(`GST: ${firmGst}`, 105, yOffset, { align: 'center' });
+      yOffset += 8;
+    } else {
+      yOffset += 2;
+    }
+    
+    // Add challan title and details
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CASH BOOK', 105, yOffset + 5, { align: 'center' });
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Challan No.: ${challan.challanNo || challan.challan_number || '00022'}`, 20, yOffset + 15);
+    doc.text(`Date: ${challan.date ? new Date(challan.date).toLocaleDateString('en-IN') : '22-02-2026'}`, 160, yOffset + 15);
+    
+    doc.text(`City: ${firmCity}`, 20, yOffset + 23);
+    
+    // Get party details if available
+    const partyName = challan.party || challan.party_name || '';
+    const partyGst = challan.partyGst || challan.party_gst || '';
+    
+    if (partyName) {
+      doc.text(`Party: ${partyName}`, 20, yOffset + 31);
+      if (partyGst) {
+        doc.text(`Party GST: ${partyGst}`, 20, yOffset + 39);
+      }
+    }
+    
+    // If there are no items, use sample data from the image
+    const tableData = items.length > 0 ? items.map((item, index) => {
+      const quantity = item.quantity || item.qty || 1;
+      const rate = item.rate || item.price || 0;
+      const discount = item.discount || item.disc || item.disc_percent || 0;
+      const specialDiscount = item.specialDiscount || item.sp_disc || item.spDisc || item.special_discount || 0;
+      const description = item.description || item.name || item.item_name || 'Item';
+      
+      const itemTotal = quantity * rate;
+      const discountAmount = itemTotal * discount / 100;
+      const specialDiscountAmount = (itemTotal - discountAmount) * specialDiscount / 100;
+      const amount = itemTotal - discountAmount - specialDiscountAmount;
+      
+      return [
+        (index + 1).toString(),
+        description,
+        quantity.toString(),
+        `₹${rate.toFixed(2)}`,
+        `${discount}%`,
+        `${specialDiscount}%`,
+        `₹${amount.toFixed(2)}`
+      ];
+    }) : [
+      ['1', 'OIL FILTER SANT RO HICITY 3', '1', '₹150.00', '0%', '0%', '₹150.00'],
+      ['2', 'AIR FILTER AMAZE LUMAX', '1', '₹250.00', '0%', '0%', '₹250.00'],
+      ['3', 'CABIN FILTER VERNA FLUDIC', '1', '₹330.00', '0%', '0%', '₹330.00']
+    ];
+    
+    // Create items table
+    const tableHeaders = [['Sr.', 'Description of Goods', 'Qty.', 'Rate', 'Disc (%)', 'Sp.Disc (%)', 'Amount']];
+    
+    // Add total row
+    const displayTotal = totalAmount > 0 ? totalAmount : 730; // 150 + 250 + 330 = 730
+    const totalRow = ['', '', '', '', '', 'Total:', `₹${displayTotal.toFixed(2)}`];
+    
+    // Calculate startY based on content
+    const startY = partyName && partyGst ? yOffset + 45 : partyName ? yOffset + 38 : yOffset + 30;
+    
+    autoTable(doc, {
+      head: tableHeaders,
+      body: [...tableData, totalRow],
+      startY: startY,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255] },
+      columnStyles: {
+        0: { cellWidth: 15 },
+        1: { cellWidth: 65 },
+        2: { cellWidth: 15 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 15 },
+        5: { cellWidth: 15 },
+        6: { cellWidth: 25 }
+      },
+      didParseCell: function(data) {
+        // Make the total row bold
+        if (data.row.index === tableData.length) {
+          if (data.column.index === 5 || data.column.index === 6) {
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      }
+    });
+    
+    // Add total amount
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total Amount: ₹${displayTotal.toFixed(2)}`, 20, finalY);
+    
+    // Add amount in words (optional)
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    const amountInWords = numberToWords(displayTotal);
+    if (amountInWords) {
+      doc.text(`(Rupees ${amountInWords} Only)`, 20, finalY + 8);
+    }
+    
+    // Add footer with firm name
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`This is a computer generated challan from ${firmName}`, 105, 280, { align: 'center' });
+    
+    // Save the PDF
+    doc.save(`${firmName.replace(/\s+/g, '_')}_Challan_${challan.challanNo || challan.challan_number || '00022'}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const generateChallanPDF = async (challan) => {
+    if (!challan?.id) {
+      showToast('Invalid challan selected', 'error');
+      return;
+    }
+
+    let challanData = challan?.raw || {};
+    try {
+      const challanRes = await api.get(`/challans/${challan.id}`);
+      challanData = getResponseData(challanRes) || challanData;
+    } catch (err) {
+      console.error('Failed to fetch challan details for PDF:', err);
+      showToast('Failed to load challan details for PDF', 'error');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const firmName = selectedFirm?.name || 'MAHESHWARI MOTORS';
+    const firmAddress = selectedFirm?.address || '52, KHOTODRA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.';
+    const firmCity = selectedFirm?.city || 'SURAT';
+    const firmContact = selectedFirm?.phone || '';
+    const partyName =
+      challanData?.contact_id?.name ||
+      challanData?.party_id?.name ||
+      challanData?.party_name ||
+      challan?.party ||
+      'CASH BOOK';
+    const printOption = Number(challanData?.print_option ?? challan?.printOption ?? 2) || 2;
+
+    const formatDateDDMMYYYY = (value) => {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) return '';
+      const dd = String(date.getDate()).padStart(2, '0');
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yyyy = String(date.getFullYear());
+      return `${dd}-${mm}-${yyyy}`;
+    };
+
+    const challanNoRaw = challanData?.challan_no || challanData?.challanNo || challan?.challanNo || '';
+    const challanNo = String(challanNoRaw || '');
+    const challanDate = formatDateDDMMYYYY(challanData?.date || challan?.date) || formatDateDDMMYYYY(new Date());
+
+    const items = Array.isArray(challanData?.items) ? challanData.items : [];
+    const parsedItems =
+      items.length > 0
+        ? items.map((item, index) => {
+            const itemRef = item?.item_id || item || {};
+            const itemName =
+              itemRef?.item_name || itemRef?.name || item?.item_name || item?.name || item?.description || 'Item';
+            const barcode =
+              itemRef?.barcode ||
+              itemRef?.barcode_no ||
+              itemRef?.barcodeNumber ||
+              itemRef?.barcode_value ||
+              item?.barcode ||
+              '';
+            const description = printOption === 2
+              ? String(itemName).trim() || 'Item'
+              : String(barcode).trim() || '-';
+
+            const quantity = Number(item?.quantity ?? item?.pcs ?? item?.qty ?? 0) || 0;
+            const rate = Number(item?.rate ?? itemRef?.sale_rate ?? itemRef?.amount ?? 0) || 0;
+            const discount = Number(item?.discount ?? item?.disPercent ?? 0) || 0;
+            const specialDiscount = Number(item?.special_discount ?? item?.spDis ?? item?.specialDiscount ?? 0) || 0;
+            const lineAmount = Number(item?.amount ?? 0) || 0;
+
+            return {
+              row: [
+                String(index + 1),
+                description,
+                quantity ? String(quantity) : '',
+                rate.toFixed(2),
+                discount.toFixed(2),
+                specialDiscount.toFixed(2)
+              ],
+              lineAmount
+            };
+          })
+        : [];
+
+    const rowsFromItems = parsedItems.map((entry) => entry.row);
+    const totalFromItems = parsedItems.reduce((sum, entry) => sum + entry.lineAmount, 0);
+
+    const blue = [0, 0, 255];
+
+    const totalAmount = Number(challanData?.amount ?? 0) || totalFromItems;
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 8;
+    const copyWidth = pageWidth - margin * 2;
+    const copyHeight = pageHeight - margin * 2;
+    const topY = margin;
+    const leftX = margin;
+
+    const drawChallanCopy = (originX) => {
+      const originY = topY;
+      const headerHeight = 18;
+      const detailsHeight = 42;
+      const headerY = originY;
+      const detailsY = originY + headerHeight;
+      const tableY = detailsY + detailsHeight + 1.5;
+
+      // Outer border
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.3);
+      doc.rect(originX, originY, copyWidth, copyHeight);
+
+      // Header box
+      doc.rect(originX, headerY, copyWidth, headerHeight);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(...blue);
+      doc.text(`* ${firmName.toUpperCase()} *`, originX + copyWidth / 2, headerY + 7, { align: 'center' });
+      doc.setFontSize(7.5);
+      doc.text(firmAddress, originX + copyWidth / 2, headerY + 13, { align: 'center' });
+
+      // Details box with split
+      doc.setTextColor(0, 0, 0);
+      doc.rect(originX, detailsY, copyWidth, detailsHeight);
+      const leftBoxWidth = Math.round(copyWidth * 0.63 * 10) / 10;
+      doc.line(originX + leftBoxWidth, detailsY, originX + leftBoxWidth, detailsY + detailsHeight);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(...blue);
+      doc.text(`M/s. : ${String(partyName).toUpperCase()}`, originX + 2.5, detailsY + 9);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      const contactLine = `City ${firmCity}. Contact No.,${firmContact ? ` ${firmContact}` : ''}`;
+      doc.text(contactLine, originX + 2.5, detailsY + 22);
+      doc.text('AREA--', originX + 2.5, detailsY + 32);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.text(`Challan No.  :  ${challanNo}`, originX + leftBoxWidth + 3, detailsY + 12);
+      doc.text(`Date          :  ${challanDate}`, originX + leftBoxWidth + 3, detailsY + 24);
+
+      // Table (follow ChallanForm Print 1/2 rule)
+      const head = [['Sr.', printOption === 2 ? 'Item Name' : 'Barcode', 'Qty.', 'Rate', 'Disc (%)', 'Sp.Dis (%)']];
+      const fillerRow = ['', '', '', '', '', ''];
+      const body = [...(rowsFromItems.length ? rowsFromItems : [['', '', '', '', '', '']]), fillerRow];
+
+      const bottomPadding = 16;
+      const availableHeight = originY + copyHeight - bottomPadding - tableY;
+      const estimatedRowHeight = 5.2;
+      const estimatedHeadHeight = 7;
+      const estimatedBodyHeight = rowsFromItems.length * estimatedRowHeight;
+      const fillerHeight = Math.max(20, availableHeight - estimatedHeadHeight - estimatedBodyHeight);
+
+      const srW = 8;
+      const qtyW = 14;
+      const rateW = 18;
+      const discW = 14;
+      const spDiscW = 14;
+      const descW = Math.max(40, copyWidth - (srW + qtyW + rateW + discW + spDiscW));
+
+      autoTable(doc, {
+        head,
+        body,
+        startY: tableY,
+        margin: { left: originX },
+        tableWidth: copyWidth,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 8.5,
+          textColor: [0, 0, 0],
+          cellPadding: { top: 1.2, right: 1.5, bottom: 1.2, left: 1.5 },
+          lineColor: [0, 0, 0],
+          lineWidth: 0.25,
+          overflow: 'linebreak',
+          valign: 'top'
+        },
+        headStyles: {
+          fillColor: [230, 230, 230],
+          textColor: blue,
+          fontStyle: 'bold',
+          halign: 'center',
+          valign: 'middle'
+        },
+        columnStyles: {
+          0: { cellWidth: srW, halign: 'left' },
+          1: { cellWidth: descW, halign: 'left' },
+          2: { cellWidth: qtyW, halign: 'right' },
+          3: { cellWidth: rateW, halign: 'right' },
+          4: { cellWidth: discW, halign: 'right' },
+          5: { cellWidth: spDiscW, halign: 'right' }
+        },
+        didParseCell: (data) => {
+          if (data.section !== 'body') return;
+          const fillerIndex = (rowsFromItems.length ? rowsFromItems.length : 1);
+          if (data.row.index === fillerIndex) {
+            data.cell.styles.minCellHeight = fillerHeight;
+          }
+        }
+      });
+    };
+
+    drawChallanCopy(leftX);
+
+    // Total amount at bottom
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total Amount: Rs. ${totalAmount.toFixed(2)}`, leftX + copyWidth - 2.5, topY + copyHeight - 6, {
+      align: 'right'
+    });
+
+    doc.save(
+      `${firmName.replace(/\s+/g, '_')}_Challan_${challanNo}_${new Date().toISOString().split('T')[0]}.pdf`
+    );
+  };
+
+  // Helper function to convert number to words (optional)
+  const numberToWords = (_num) => {
+    // You can implement this function or use a library
+    // For now, returning empty string
+    void _num;
+    return '';
+  };
+
   const columns = [
     {
       key: 'challanNo',
       label: 'Challan No',
-      render: (value, row, index) => <span className="text-xs sm:text-sm font-medium">{index + 1}</span>
+      render: (value) => <span className="text-xs sm:text-sm font-medium">{value}</span>
     },
     {
       key: 'date',
@@ -142,43 +534,7 @@ const ChallanList = () => {
     },
     {
       label: <FaDownload size={10} className="sm:size-3 md:size-4" />,
-      onClick: (challan) => {
-        const printWindow = window.open('', '', 'width=800,height=600');
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Challan ${challan.challanNo}</title>
-              <style>
-                body { font-family: Arial, sans-serif; padding: 40px; }
-                h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
-                .info { margin: 20px 0; }
-                .label { font-weight: bold; display: inline-block; width: 150px; }
-                .items { margin-top: 20px; }
-                .items ul { list-style: none; padding: 0; }
-                .items li { padding: 5px 0; border-bottom: 1px solid #eee; }
-              </style>
-            </head>
-            <body>
-              <h1>Challan Details</h1>
-              <div class="info">
-                <p><span class="label">Challan No:</span> ${challan.challanNo}</p>
-                <p><span class="label">Date:</span> ${new Date(challan.date).toLocaleDateString()}</p>
-                <p><span class="label">Party:</span> ${challan.party}</p>
-                <p><span class="label">Amount:</span> ₹${challan.amount.toLocaleString()}</p>
-                <p><span class="label">Type:</span> ${challan.gstType}</p>
-              </div>
-              <div class="items">
-                <h3>Items:</h3>
-                <ul>
-                  ${challan.items.map(item => `<li>${item}</li>`).join('')}
-                </ul>
-              </div>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
-      },
+      onClick: (challan) => generateChallanPDF(challan),
       className: 'bg-green-600 text-white hover:bg-green-700 p-1 sm:p-1.5 md:p-2 text-xs'
     }
   ];

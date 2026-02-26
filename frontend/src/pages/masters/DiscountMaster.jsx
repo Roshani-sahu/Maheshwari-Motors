@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaSave } from 'react-icons/fa';
-import { Button } from '../../components/ui';
+import { FaSave, FaPlus } from 'react-icons/fa';
+import { Button, Modal } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
 
@@ -11,6 +11,10 @@ const DiscountMaster = () => {
   const [brands, setBrands] = useState([]);
   const [discounts, setDiscounts] = useState({});
   const [saving, setSaving] = useState(false);
+  const [labels, setLabels] = useState([]);
+  const [selectedLabel, setSelectedLabel] = useState(null);
+  const [isAddLabelModalOpen, setIsAddLabelModalOpen] = useState(false);
+  const [newLabelName, setNewLabelName] = useState('');
 
   const listFromResponse = (res) => {
     const payload = res?.data?.data;
@@ -39,6 +43,32 @@ const DiscountMaster = () => {
 
   useEffect(() => {
     if (!selectedCategory?.id) {
+      setLabels([]);
+      setSelectedLabel(null);
+      setBrands([]);
+      setDiscounts({});
+      return;
+    }
+
+    const controller = new AbortController();
+    const fetchLabels = async () => {
+      try {
+        const res = await api.get('/labels', { signal: controller.signal });
+        const list = listFromResponse(res).map((l) => ({ id: l._id, name: l.name || '' }));
+        setLabels(list);
+      } catch (error) {
+        if (error?.name !== 'CanceledError') {
+          showToast('Failed to load labels', 'error');
+        }
+      }
+    };
+
+    fetchLabels();
+    return () => controller.abort();
+  }, [selectedCategory?.id]);
+
+  useEffect(() => {
+    if (!selectedCategory?.id || !selectedLabel?.id) {
       setBrands([]);
       setDiscounts({});
       return;
@@ -73,7 +103,7 @@ const DiscountMaster = () => {
 
     fetchCategoryDiscounts();
     return () => controller.abort();
-  }, [selectedCategory?.id, showToast]);
+  }, [selectedCategory?.id, selectedLabel?.id, showToast]);
 
   const updateDiscount = (brandId, discountType, field, value) => {
     setDiscounts((prev) => ({
@@ -130,10 +160,10 @@ const DiscountMaster = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Discount Master</h1>
           <p className="text-gray-600 text-xs sm:text-sm">Manage discount rates by category and brand</p>
         </div>
-        <Button onClick={handleSave} className="flex items-center gap-2 text-xs sm:text-sm" disabled={saving || !selectedCategory}><FaSave className="text-sm sm:text-base" />Save Changes</Button>
+        <Button onClick={handleSave} className="flex items-center gap-2 text-xs sm:text-sm" disabled={saving || !selectedCategory || !selectedLabel}><FaSave className="text-sm sm:text-base" />Save Changes</Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 sm:p-4 border-b border-gray-200">
@@ -150,6 +180,27 @@ const DiscountMaster = () => {
           </div>
         </div>
 
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm sm:text-base font-semibold text-gray-900">Labels</h3>
+                <p className="text-xs text-gray-500 mt-1">Select label to manage</p>
+              </div>
+              <button onClick={() => setIsAddLabelModalOpen(true)} className="p-1.5 hover:bg-gray-100 rounded-md transition-colors">
+                <FaPlus className="text-blue-600 text-sm" />
+              </button>
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {!selectedCategory ? <div className="p-4 text-center text-gray-500 text-sm">Select a category first</div> : labels.length === 0 ? <div className="p-4 text-center text-gray-500 text-sm">No labels available</div> : labels.map((label) => (
+                <div key={label.id} onClick={() => setSelectedLabel(label)} className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-green-50 transition-colors ${selectedLabel?.id === label.id ? 'bg-green-50 border-l-4 border-l-green-500 text-green-900' : 'text-gray-700'}`}>
+                  <div className="text-sm font-medium">{label.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="lg:col-span-3">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 sm:p-4 border-b border-gray-200">
@@ -158,7 +209,9 @@ const DiscountMaster = () => {
 
             <div className="overflow-x-auto">
               {!selectedCategory ? (
-                <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">Select a category to manage discount rates</p></div>
+                <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">Select a category first</p></div>
+              ) : !selectedLabel ? (
+                <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">Select a label to manage discount rates</p></div>
               ) : brands.length === 0 ? (
                 <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">No brands available in this category</p></div>
               ) : (
@@ -207,6 +260,35 @@ const DiscountMaster = () => {
           </div>
         </div>
       </div>
+
+      <Modal isOpen={isAddLabelModalOpen} onClose={() => { setIsAddLabelModalOpen(false); setNewLabelName(''); }} title="Add New Label" size="sm">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label Name</label>
+            <input type="text" value={newLabelName} onChange={(e) => setNewLabelName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter label name" />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button variant="outline" onClick={() => { setIsAddLabelModalOpen(false); setNewLabelName(''); }}>Cancel</Button>
+            <Button onClick={async () => {
+              if (!newLabelName.trim()) {
+                showToast('Label name is required', 'error');
+                return;
+              }
+              try {
+                await api.post('/labels', { name: newLabelName });
+                showToast('Label added successfully', 'success');
+                const res = await api.get('/labels');
+                const list = listFromResponse(res).map((l) => ({ id: l._id, name: l.name || '' }));
+                setLabels(list);
+                setIsAddLabelModalOpen(false);
+                setNewLabelName('');
+              } catch (error) {
+                showToast(error?.response?.data?.message || 'Failed to add label', 'error');
+              }
+            }}>Add Label</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaEdit, FaImage, FaTrash, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaImage, FaTrash, FaTimes, FaEye } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
@@ -21,6 +21,8 @@ const ItemMaster = () => {
   const { items, setItems, deleteItem, showToast } = useStore();
   const [editingItem, setEditingItem] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingItem, setViewingItem] = useState(null);
   const [editImageFile, setEditImageFile] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, item: null });
@@ -28,6 +30,7 @@ const ItemMaster = () => {
   const [brands, setBrands] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [hsns, setHsns] = useState([]);
+  const [departments, setDepartments] = useState([]);
 
   const mapItemRecord = (item) => {
     const normalized = normalizeItem(item);
@@ -47,7 +50,15 @@ const ItemMaster = () => {
     let hasMore = true;
 
     while (hasMore) {
-      const response = await api.get('/items', { params: { page, limit: 100 } });
+      let response;
+      try {
+        response = await api.get('/items', { params: { page, limit: 100 } });
+      } catch (error) {
+        console.log('Error fetching items on page', page, error);
+      }
+
+      console.log(response);
+
       const pageItems = getResponseList(response);
       const meta = getResponseMeta(response);
 
@@ -74,11 +85,12 @@ const ItemMaster = () => {
   useEffect(() => {
       const fetchCategories = async () => {
           try {
-              const [catRes, brandRes, supplierRes, hsnRes] = await Promise.all([
+              const [catRes, brandRes, supplierRes, hsnRes, deptRes] = await Promise.all([
                   api.get('/categories'),
                   api.get('/brands'),
                   api.get('/contacts/suppliers', { params: { page: 1, limit: 200 } }),
                   api.get('/hsn', { params: { page: 1, limit: 200 } }),
+                  api.get('/departments'),
               ]);
               setCategories(getResponseList(catRes).map((category) => {
                 const normalized = normalizeCategory(category);
@@ -101,6 +113,10 @@ const ItemMaster = () => {
                     gst_percentage: toNumber(hsn?.gst_rate, 0)
                   })),
               );
+              setDepartments(getResponseList(deptRes).map((dept) => ({
+                id: getEntityId(dept),
+                name: dept?.department_name || dept?.name
+              })));
           } catch (e) { console.error(e); }
       };
       fetchCategories();
@@ -198,6 +214,14 @@ const ItemMaster = () => {
 
   const actions = [
     {
+      label: <FaEye size={10} className="sm:size-3 md:size-4" />,
+      onClick: (item) => {
+        setViewingItem(item);
+        setIsViewModalOpen(true);
+      },
+      className: 'bg-green-600 text-white hover:bg-green-700 p-1 sm:p-1.5 md:p-2 text-xs'
+    },
+    {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (item) => {
         setEditingItem(item);
@@ -229,6 +253,7 @@ const ItemMaster = () => {
         if (editingItem.categoryId) formData.append('category_id', editingItem.categoryId);
         if (editingItem.brandId) formData.append('brand_id', editingItem.brandId);
         if (editingItem.supplierId) formData.append('contact_id', editingItem.supplierId);
+        if (editingItem.departmentId) formData.append('dept_id', editingItem.departmentId);
         if (editingItem.hsn_code) formData.append('hsn_code', editingItem.hsn_code);
         if (editingItem.description) formData.append('description', editingItem.description);
         
@@ -336,6 +361,15 @@ const ItemMaster = () => {
               </div>
 
               <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Alias</label>
+                <Input
+                  value={editingItem.alias || ''}
+                  onChange={(value) => setEditingItem(prev => ({ ...prev, alias: value }))}
+                  className="text-xs sm:text-sm py-1.5 sm:py-2"
+                />
+              </div>
+
+              <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                   Current Stock Count
                 </label>
@@ -385,6 +419,20 @@ const ItemMaster = () => {
                   <option value="">Select Supplier</option>
                   {suppliers.map(s => (
                     <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Department</label>
+                <select
+                  value={editingItem.departmentId || ''}
+                  onChange={(e) => setEditingItem(prev => ({ ...prev, departmentId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
+                >
+                  <option value="">Select Department</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
               </div>
@@ -541,6 +589,95 @@ const ItemMaster = () => {
                 className="text-xs sm:text-sm py-1.5 sm:py-2"
               >
                 Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        title="Item Details"
+        size="lg"
+      >
+        {viewingItem && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Item Name</label>
+                <p className="text-sm font-medium text-gray-900">{viewingItem.itemName}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Alias</label>
+                <p className="text-sm text-gray-900">{viewingItem.alias || '-'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Category</label>
+                <p className="text-sm text-gray-900">{categories.find(c => c.id === viewingItem.categoryId)?.name || '-'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Brand</label>
+                <p className="text-sm text-gray-900">{brands.find(b => b.id === viewingItem.brandId)?.name || '-'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Supplier</label>
+                <p className="text-sm text-gray-900">{suppliers.find(s => s.id === viewingItem.supplierId)?.name || '-'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Department</label>
+                <p className="text-sm text-gray-900">{departments.find(d => d.id === viewingItem.departmentId)?.name || '-'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">HSN Code</label>
+                <p className="text-sm text-gray-900">{hsns.find(h => h._id === viewingItem.hsn_code)?.hsn_number || '-'}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">GST %</label>
+                <p className="text-sm text-gray-900">{viewingItem.gst_percent || 0}%</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Sale Rate</label>
+                <p className="text-sm font-medium text-gray-900">₹{viewingItem.amount?.toLocaleString()}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Purchase Rate</label>
+                <p className="text-sm text-gray-900">₹{viewingItem.purchase_rate?.toLocaleString() || 0}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">MRP Rate</label>
+                <p className="text-sm text-gray-900">₹{viewingItem.mrp_rate?.toLocaleString() || 0}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Discount</label>
+                <p className="text-sm text-gray-900">₹{viewingItem.discount?.toLocaleString() || 0}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Stock</label>
+                <p className="text-sm text-gray-900">{viewingItem.stockCount}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Threshold</label>
+                <p className="text-sm text-gray-900">{viewingItem.threshold}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Type</label>
+                <p className="text-sm text-gray-900">{viewingItem.type === 1 ? 'GST' : 'Non-GST'}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-500">Description</label>
+                <p className="text-sm text-gray-900">{viewingItem.description || '-'}</p>
+              </div>
+              {viewingItem.itemMedia && (
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Image</label>
+                  <img src={viewingItem.itemMedia} alt={viewingItem.itemName} className="w-32 h-32 object-cover rounded" />
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button variant="outline" onClick={() => setIsViewModalOpen(false)} className="text-xs sm:text-sm">
+                Close
               </Button>
             </div>
           </div>

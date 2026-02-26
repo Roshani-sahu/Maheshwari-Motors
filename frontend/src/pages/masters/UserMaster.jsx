@@ -15,18 +15,76 @@ const INDIAN_STATES = [
   "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Lakshadweep", "Puducherry", "Ladakh", "Jammu and Kashmir"
 ];
 
+const getSubscriptionStatus = (subscription) => {
+  if (!subscription?.validityFrom || !subscription?.validityTo) {
+    return { label: 'No Plan', sort: 5, className: 'bg-gray-200 text-gray-800' };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const validityFrom = new Date(subscription.validityFrom);
+  validityFrom.setHours(0, 0, 0, 0);
+  const validityTo = new Date(subscription.validityTo);
+  validityTo.setHours(0, 0, 0, 0);
+  const oneDay = 1000 * 60 * 60 * 24;
+
+  if (Number.isNaN(validityFrom.getTime()) || Number.isNaN(validityTo.getTime())) {
+    return { label: 'No Plan', sort: 5, className: 'bg-gray-200 text-gray-800' };
+  }
+
+  const daysSinceActive = Math.floor((today - validityFrom) / oneDay);
+  const daysUntilExpiry = Math.floor((validityTo - today) / oneDay);
+
+  // Expired
+  if (daysUntilExpiry < 0) {
+    return { label: 'Expired', sort: 2, className: 'bg-red-500 text-white' };
+  }
+  
+  // Fresh (activated within last 7 days and not expiring soon)
+  if (daysSinceActive >= 0 && daysSinceActive <= 7 && daysUntilExpiry > 30) {
+    return { label: 'Fresh', sort: 3, className: 'bg-green-500 text-white' };
+  }
+  
+  // Expiring Soon (30 days or less remaining)
+  if (daysUntilExpiry >= 0 && daysUntilExpiry <= 30) {
+    return { label: 'Expiring Soon', sort: 1, className: 'bg-yellow-400 text-gray-900' };
+  }
+  
+  // Active (more than 30 days remaining)
+  return { label: 'Active', sort: 4, className: 'bg-blue-500 text-white' };
+};
+
+const DUMMY_TRANSACTIONS = [
+  { user: 'Amit Traders', plan: 'basic', validityFrom: '2026-02-01', validityTo: '2026-03-01', amount: 1999, createdAt: '2026-02-01' },
+  { user: 'Ravi Auto', plan: 'standard', validityFrom: '2026-01-20', validityTo: '2026-02-28', amount: 2999, createdAt: '2026-01-20' },
+  { user: 'Kiran Motors', plan: 'premium', validityFrom: '2026-02-10', validityTo: '2026-05-10', amount: 4999, createdAt: '2026-02-10' },
+  { user: 'Shree Parts', plan: 'basic', validityFrom: '2026-02-14', validityTo: '2026-03-14', amount: 1999, createdAt: '2026-02-14' },
+  { user: 'MM Retail', plan: 'enterprise', validityFrom: '2026-01-05', validityTo: '2026-04-05', amount: 8999, createdAt: '2026-01-05' }
+];
+
 const UserMaster = () => {
   const navigate = useNavigate();
   const { users, setUsers, showToast } = useStore();
   const isMounted = useRef(true);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState({
+    plan: '',
+    validityFrom: '',
+    validityTo: '',
+    amount: '',
+    createdAt: new Date().toISOString().split('T')[0]
+  });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editingForm, setEditingForm] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, user: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingUser, setViewingUser] = useState(null);
+  const [isTransactionHistoryModalOpen, setIsTransactionHistoryModalOpen] = useState(false);
+  const [selectedUserTransactions, setSelectedUserTransactions] = useState(null);
+  const [transactions, setTransactions] = useState(DUMMY_TRANSACTIONS);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -44,10 +102,7 @@ const UserMaster = () => {
       GSTIN: '',
       CIN: '',
       reg_number: '',
-      bank_name: '',
-      bank_branch: '',
-      ifsc_code: '',
-      account_number: ''
+      banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]
     },
     nongst_firm: {
       username: '',
@@ -62,10 +117,7 @@ const UserMaster = () => {
       GSTIN: '',
       CIN: '',
       reg_number: '',
-      bank_name: '',
-      bank_branch: '',
-      ifsc_code: '',
-      account_number: ''
+      banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]
     }
   });
   const [newPassword, setNewPassword] = useState('');
@@ -114,13 +166,19 @@ const UserMaster = () => {
 
       if (isMounted.current) {
         console.log(`✅ Fetched ${allUsers.length} users.`);
-        const mappedUsers = allUsers.map(u => ({
-           id: u._id,
-           username: u.name, 
-           email: u.email,
-           role: 'secondary',
-           original: u 
-        }));
+        const mappedUsers = allUsers.map(u => {
+          const subscriptionStatus = getSubscriptionStatus(u.subscription);
+          return {
+            id: u._id,
+            username: u.name,
+            email: u.email,
+            role: 'secondary',
+            original: u,
+            subscriptionStatusLabel: subscriptionStatus.label,
+            subscriptionStatusSort: subscriptionStatus.sort,
+            subscriptionStatusClass: subscriptionStatus.className
+          };
+        });
         setUsers(mappedUsers);
       }
     } catch (error) {
@@ -131,9 +189,55 @@ const UserMaster = () => {
     }
   };
 
+  const fetchTransactions = async () => {
+    try {
+      let allTransactions = [];
+      let page = 1;
+      let hasMore = true;
+
+      while(hasMore && page <= 10) {
+        const response = await api.get('/admin/subscriptions', { params: { page, limit: 20 } });
+        const paginationData = response.data.data;
+        
+        let pageData = [];
+        if (Array.isArray(paginationData)) {
+          pageData = paginationData;
+          hasMore = false;
+        } else {
+          pageData = paginationData.data || [];
+          if (paginationData?.meta && paginationData.meta.hasNextPage) {
+            page++;
+          } else {
+            hasMore = false;
+          }
+        }
+        allTransactions = [...allTransactions, ...pageData];
+      }
+
+      if (isMounted.current) {
+        const mappedTransactions = allTransactions.map(sub => ({
+          user: sub.user_id?.name || 'Unknown User',
+          plan: sub.plan_type,
+          validityFrom: sub.start_date,
+          validityTo: sub.expiry_date,
+          amount: 0,
+          createdAt: sub.createdAt,
+          status: sub.status
+        }));
+        setTransactions(mappedTransactions.length > 0 ? mappedTransactions : DUMMY_TRANSACTIONS);
+      }
+    } catch (error) {
+      if (isMounted.current) {
+        console.error("Failed to fetch transactions", error);
+        setTransactions(DUMMY_TRANSACTIONS);
+      }
+    }
+  };
+
   // STRICT SINGLE RUN: No dependencies, no cleanup abort
   useEffect(() => {
      fetchUsers();
+     fetchTransactions();
      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -154,6 +258,22 @@ const UserMaster = () => {
       key: 'id', 
       label: 'ID',
       render: (value) => <span className="text-xs sm:text-sm">{value.substring(0, 8)}...</span>
+    },
+    {
+      key: 'subscriptionStatusSort',
+      label: 'Status',
+      render: (_value, row) => {
+        const showStatusDot = [1, 2, 3].includes(row?.subscriptionStatusSort);
+        if (!showStatusDot) return <span className="text-gray-400">-</span>;
+
+        return (
+          <span
+            className={`inline-flex h-4 w-4 rounded-full ring-1 ring-black/10 shadow-sm ${row.subscriptionStatusClass}`}
+            title={row.subscriptionStatusLabel}
+            aria-label={row.subscriptionStatusLabel}
+          />
+        );
+      }
     },
     { 
       key: 'username', 
@@ -206,17 +326,20 @@ const UserMaster = () => {
             return;
         }
 
+        // console.log('📤 Creating user with data:', JSON.stringify(newUser, null, 2));
         await api.post('/admin/users', newUser);
+        // console.log('✅ User created successfully');
         showToast('User added successfully', 'success');
         setIsAddModalOpen(false);
         setNewUser({
            name: '', email: '', phone: '',
-           gst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' },
-           nongst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }
+           gst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }] },
+           nongst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }] }
         });
         fetchUsers(); 
     } catch (error) {
-        console.error("User submit error:", error);
+        // console.error("❌ User submit error:", error);
+        // console.error("Error response:", error.response?.data);
         const msg = error.response?.data?.message || 'Failed to add user';
         const details = Array.isArray(error.response?.data?.errors) 
             ? error.response.data.errors.join(', ') 
@@ -231,7 +354,9 @@ const UserMaster = () => {
         if (newPassword) {
           updatedUser.password = newPassword;
         }
+        // console.log('📤 Updating user with data:', JSON.stringify(updatedUser, null, 2));
         await api.put(`/admin/users/${editingUser.id}`, updatedUser);
+        // console.log('✅ User updated successfully');
         
         setIsEditModalOpen(false);
         setNewPassword('');
@@ -240,7 +365,8 @@ const UserMaster = () => {
         showToast('User updated successfully', 'success');
         fetchUsers();
       } catch (error) {
-        console.error("User update error:", error);
+        console.error("❌ User update error:", error);
+        console.error("Error response:", error.response?.data);
         const msg = error.response?.data?.message || 'Failed to update user';
         const details = Array.isArray(error.response?.data?.errors) 
             ? error.response.data.errors.join(', ') 
@@ -271,7 +397,7 @@ const UserMaster = () => {
     }
 
     try {
-       console.log(`🗑️ Deleting user explicitly: ${deleteDialog.user.id}`);
+       console.log(`Deleting user explicitly: ${deleteDialog.user.id}`);
        await api.delete(`/admin/users/${deleteDialog.user.id}`);
        showToast('User deleted successfully', 'success');
        setDeleteDialog({ isOpen: false, user: null });
@@ -306,6 +432,78 @@ const UserMaster = () => {
           </div>
         </div>
 
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Transaction History</h2>
+            <p className="text-gray-600 text-sm">Recent user subscription and account transactions</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            {transactions.length > 0 ? (
+              <table className="w-full text-xs sm:text-sm">
+                <thead className="bg-gray-100 border-b">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">User</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Plan</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Status</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Valid From</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Valid To</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Amount</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Date</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-700">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {transactions.slice(0, 10).map((txn, idx) => {
+                    const status = getSubscriptionStatus({
+                      validityFrom: txn.validityFrom,
+                      validityTo: txn.validityTo
+                    });
+                    const showStatusDot = [1, 2, 3, 4].includes(status.sort);
+
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-4 py-2 truncate">{txn.user || '-'}</td>
+                        <td className="px-4 py-2">{txn.plan || '-'}</td>
+                        <td className="px-4 py-2">
+                          {showStatusDot ? (
+                            <span
+                              className={`inline-flex h-4 w-4 rounded-full ring-1 ring-black/10 shadow-sm ${status.className}`}
+                              title={status.label}
+                              aria-label={status.label}
+                            />
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2">{txn.validityFrom ? new Date(txn.validityFrom).toLocaleDateString() : '-'}</td>
+                        <td className="px-4 py-2">{txn.validityTo ? new Date(txn.validityTo).toLocaleDateString() : '-'}</td>
+                        <td className="px-4 py-2 font-medium">{'\u20B9'}{txn.amount || '0'}</td>
+                        <td className="px-4 py-2">{txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : '-'}</td>
+                        <td className="px-4 py-2">
+                          <button
+                            onClick={() => {
+                              setSelectedUserTransactions(txn.user);
+                              setIsTransactionHistoryModalOpen(true);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <FaEye size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="text-center py-6 text-gray-500">
+                <p>No transactions yet</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-6">
@@ -323,7 +521,7 @@ const UserMaster = () => {
                 Refresh
                 </Button>
                 <Button 
-                onClick={() => setIsAddModalOpen(true)} 
+                onClick={() => setIsSubscriptionModalOpen(true)} 
                 className="flex items-center gap-2 text-xs sm:text-sm"
                 >
                 <FaPlus className="text-sm sm:text-base" />
@@ -336,7 +534,7 @@ const UserMaster = () => {
           <div className="overflow-x-auto">
             <DataTable
               columns={columns}
-              data={users}
+              data={[...users].sort((a, b) => (a.subscriptionStatusSort ?? 99) - (b.subscriptionStatusSort ?? 99))}
               actions={actions}
               searchable={true}
               sortable={true}
@@ -347,6 +545,53 @@ const UserMaster = () => {
           </div>
         </div>
       </div>
+
+      {/* Subscription Modal */}
+      <Modal isOpen={isSubscriptionModalOpen} onClose={() => setIsSubscriptionModalOpen(false)} title="Add Subscription" size="md">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">User Name *</label>
+            <Input value={newUser.name} onChange={(v) => setNewUser({...newUser, name: v})} placeholder="Enter user name" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Plan *</label>
+            <select value={subscriptionData.plan} onChange={(e) => setSubscriptionData({...subscriptionData, plan: e.target.value})} className="w-full px-3 py-2 border rounded-md">
+              <option value="">Select Plan</option>
+              <option value="basic">Basic</option>
+              <option value="standard">Standard</option>
+              <option value="premium">Premium</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Validity From *</label>
+            <input type="date" value={subscriptionData.validityFrom} onChange={(e) => setSubscriptionData({...subscriptionData, validityFrom: e.target.value})} className="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Validity To *</label>
+            <input type="date" value={subscriptionData.validityTo} onChange={(e) => setSubscriptionData({...subscriptionData, validityTo: e.target.value})} className="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
+            <Input type="number" value={subscriptionData.amount} onChange={(v) => setSubscriptionData({...subscriptionData, amount: v})} placeholder="Enter amount" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Created At *</label>
+            <input type="date" value={subscriptionData.createdAt} onChange={(e) => setSubscriptionData({...subscriptionData, createdAt: e.target.value})} className="w-full px-3 py-2 border rounded-md" />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button onClick={() => {
+              if (!newUser.name || !subscriptionData.plan || !subscriptionData.validityFrom || !subscriptionData.validityTo || !subscriptionData.amount || !subscriptionData.createdAt) {
+                showToast('Please fill all subscription fields', 'error');
+                return;
+              }
+              setIsSubscriptionModalOpen(false);
+              setIsAddModalOpen(true);
+            }}>Continue to User Details</Button>
+            <Button variant="outline" onClick={() => setIsSubscriptionModalOpen(false)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Add User Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add User" size="lg">
@@ -434,21 +679,57 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={newUser.gst_firm.reg_number} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, reg_number: v}})} placeholder="Registration Number" className="mt-1" />
                </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={newUser.gst_firm.bank_name} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, bank_name: v}})} placeholder="Bank Name" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={newUser.gst_firm.bank_branch} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, bank_branch: v}})} placeholder="Bank Branch" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={newUser.gst_firm.ifsc_code} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, ifsc_code: v}})} placeholder="IFSC Code" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={newUser.gst_firm.account_number} onChange={(v) => setNewUser({...newUser, gst_firm: {...newUser.gst_firm, account_number: v}})} placeholder="Account Number" className="mt-1" />
+
+               {/* Bank Details */}
+               <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {newUser.gst_firm.banks.map((bank, idx) => (
+                    <div key={idx} className="border rounded p-3 mb-2 bg-white">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-600">Bank Name</label>
+                          <Input value={bank.bank_name} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].bank_name = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="Bank Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Branch</label>
+                          <Input value={bank.bank_branch} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].bank_branch = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="Branch" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">IFSC Code</label>
+                          <Input value={bank.ifsc_code} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].ifsc_code = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="IFSC Code" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Number</label>
+                          <Input value={bank.account_number} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].account_number = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="Account Number" className="mt-1" />
+                        </div>
+                      </div>
+                      {newUser.gst_firm.banks.length > 1 && (
+                        <button onClick={() => {
+                          const banks = newUser.gst_firm.banks.filter((_, i) => i !== idx);
+                          setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                        }} className="text-red-600 text-xs mt-2">Remove Bank</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => {
+                    setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks: [...newUser.gst_firm.banks, { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]}});
+                  }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                </div>
             </div>
           </div>
@@ -516,21 +797,57 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={newUser.nongst_firm.reg_number} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, reg_number: v}})} placeholder="Registration Number" className="mt-1" />
                </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={newUser.nongst_firm.bank_name} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, bank_name: v}})} placeholder="Bank Name" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={newUser.nongst_firm.bank_branch} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, bank_branch: v}})} placeholder="Bank Branch" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={newUser.nongst_firm.ifsc_code} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, ifsc_code: v}})} placeholder="IFSC Code" className="mt-1" />
-               </div>
-               <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={newUser.nongst_firm.account_number} onChange={(v) => setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, account_number: v}})} placeholder="Account Number" className="mt-1" />
+
+               {/* Bank Details */}
+               <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {newUser.nongst_firm.banks.map((bank, idx) => (
+                    <div key={idx} className="border rounded p-3 mb-2 bg-white">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-600">Bank Name</label>
+                          <Input value={bank.bank_name} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].bank_name = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="Bank Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Branch</label>
+                          <Input value={bank.bank_branch} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].bank_branch = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="Branch" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">IFSC Code</label>
+                          <Input value={bank.ifsc_code} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].ifsc_code = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="IFSC Code" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Number</label>
+                          <Input value={bank.account_number} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].account_number = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="Account Number" className="mt-1" />
+                        </div>
+                      </div>
+                      {newUser.nongst_firm.banks.length > 1 && (
+                        <button onClick={() => {
+                          const banks = newUser.nongst_firm.banks.filter((_, i) => i !== idx);
+                          setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                        }} className="text-red-600 text-xs mt-2">Remove Bank</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => {
+                    setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks: [...newUser.nongst_firm.banks, { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]}});
+                  }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                </div>
             </div>
           </div>
@@ -611,21 +928,38 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={viewingUser.original?.gst_firm?.reg_number || ''} disabled className="mt-1" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={viewingUser.original?.gst_firm?.bank_name || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={viewingUser.original?.gst_firm?.bank_branch || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={viewingUser.original?.gst_firm?.ifsc_code || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={viewingUser.original?.gst_firm?.account_number || ''} disabled className="mt-1" />
+
+                {/* Bank Details */}
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {(viewingUser.original?.gst_firm?.banks && viewingUser.original.gst_firm.banks.length > 0) ? (
+                    viewingUser.original.gst_firm.banks.map((bank, idx) => (
+                      <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-gray-600">Bank Name</label>
+                            <Input value={bank.bank_name || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Branch</label>
+                            <Input value={bank.bank_branch || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">IFSC Code</label>
+                            <Input value={bank.ifsc_code || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Account Number</label>
+                            <Input value={bank.account_number || ''} disabled className="mt-1" />
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="border rounded p-3 bg-gray-50 text-center text-gray-500 text-sm">
+                      No bank details available
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -677,21 +1011,38 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={viewingUser.original?.nongst_firm?.reg_number || ''} disabled className="mt-1" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={viewingUser.original?.nongst_firm?.bank_name || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={viewingUser.original?.nongst_firm?.bank_branch || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={viewingUser.original?.nongst_firm?.ifsc_code || ''} disabled className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={viewingUser.original?.nongst_firm?.account_number || ''} disabled className="mt-1" />
+
+                {/* Bank Details */}
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {(viewingUser.original?.nongst_firm?.banks && viewingUser.original.nongst_firm.banks.length > 0) ? (
+                    viewingUser.original.nongst_firm.banks.map((bank, idx) => (
+                      <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs text-gray-600">Bank Name</label>
+                            <Input value={bank.bank_name || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Branch</label>
+                            <Input value={bank.bank_branch || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">IFSC Code</label>
+                            <Input value={bank.ifsc_code || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Account Number</label>
+                            <Input value={bank.account_number || ''} disabled className="mt-1" />
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="border rounded p-3 bg-gray-50 text-center text-gray-500 text-sm">
+                      No bank details available
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -783,21 +1134,58 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={editingForm.gst_firm?.reg_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), reg_number: v } }))} className="mt-1" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={editingForm.gst_firm?.bank_name || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_name: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={editingForm.gst_firm?.bank_branch || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_branch: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={editingForm.gst_firm?.ifsc_code || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), ifsc_code: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={editingForm.gst_firm?.account_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), account_number: v } }))} className="mt-1" />
+
+                {/* Bank Details */}
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {(editingForm.gst_firm?.banks || [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]).map((bank, idx) => (
+                    <div key={idx} className="border rounded p-3 mb-2 bg-white">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-600">Bank Name</label>
+                          <Input value={bank.bank_name || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], bank_name: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="Bank Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Branch</label>
+                          <Input value={bank.bank_branch || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], bank_branch: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="Branch" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">IFSC Code</label>
+                          <Input value={bank.ifsc_code || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], ifsc_code: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="IFSC Code" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Number</label>
+                          <Input value={bank.account_number || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], account_number: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="Account Number" className="mt-1" />
+                        </div>
+                      </div>
+                      {(editingForm.gst_firm?.banks || []).length > 1 && (
+                        <button onClick={() => {
+                          const banks = (editingForm.gst_firm?.banks || []).filter((_, i) => i !== idx);
+                          setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                        }} className="text-red-600 text-xs mt-2">Remove Bank</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => {
+                    const banks = [...(editingForm.gst_firm?.banks || []), { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }];
+                    setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                  }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                 </div>
               </div>
             </div>
@@ -860,21 +1248,58 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Registration Number</label>
                   <Input value={editingForm.nongst_firm?.reg_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), reg_number: v } }))} className="mt-1" />
                 </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Name</label>
-                  <Input value={editingForm.nongst_firm?.bank_name || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_name: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Bank Branch</label>
-                  <Input value={editingForm.nongst_firm?.bank_branch || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_branch: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">IFSC Code</label>
-                  <Input value={editingForm.nongst_firm?.ifsc_code || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), ifsc_code: v } }))} className="mt-1" />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-gray-700">Account Number</label>
-                  <Input value={editingForm.nongst_firm?.account_number || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), account_number: v } }))} className="mt-1" />
+
+                {/* Bank Details */}
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {(editingForm.nongst_firm?.banks || [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]).map((bank, idx) => (
+                    <div key={idx} className="border rounded p-3 mb-2 bg-white">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-600">Bank Name</label>
+                          <Input value={bank.bank_name || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], bank_name: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="Bank Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Branch</label>
+                          <Input value={bank.bank_branch || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], bank_branch: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="Branch" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">IFSC Code</label>
+                          <Input value={bank.ifsc_code || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], ifsc_code: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="IFSC Code" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Number</label>
+                          <Input value={bank.account_number || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], account_number: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="Account Number" className="mt-1" />
+                        </div>
+                      </div>
+                      {(editingForm.nongst_firm?.banks || []).length > 1 && (
+                        <button onClick={() => {
+                          const banks = (editingForm.nongst_firm?.banks || []).filter((_, i) => i !== idx);
+                          setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                        }} className="text-red-600 text-xs mt-2">Remove Bank</button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => {
+                    const banks = [...(editingForm.nongst_firm?.banks || []), { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }];
+                    setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                  }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                 </div>
               </div>
             </div>
@@ -905,6 +1330,94 @@ const UserMaster = () => {
         onConfirm={handleConfirmDelete}
         itemName={deleteDialog.user?.username}
       />
+
+      {/* Transaction History Modal */}
+      <Modal 
+        isOpen={isTransactionHistoryModalOpen} 
+        onClose={() => setIsTransactionHistoryModalOpen(false)} 
+        title={`Transaction History - ${selectedUserTransactions}`}
+        size="lg"
+      >
+        <div className="max-h-[70vh] overflow-y-auto">
+          {(() => {
+            const userTxns = transactions.filter(txn => txn.user === selectedUserTransactions).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const totalPurchases = userTxns.length;
+            const totalAmount = userTxns.reduce((sum, txn) => sum + (txn.amount || 0), 0);
+            
+            return (
+              <>
+                <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-100">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-600">Total Purchases</p>
+                      <p className="text-2xl font-bold text-blue-600">{totalPurchases}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600">Total Amount Spent</p>
+                      <p className="text-2xl font-bold text-green-600">₹{totalAmount.toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <table className="w-full text-xs sm:text-sm">
+                  <thead className="bg-gray-100 border-b sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">#</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Plan</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Status</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Valid From</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Valid To</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Amount</th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-700">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {userTxns.map((txn, idx) => {
+                      const status = getSubscriptionStatus({
+                        validityFrom: txn.validityFrom,
+                        validityTo: txn.validityTo
+                      });
+                      const showStatusDot = [1, 2, 3, 4].includes(status.sort);
+
+                      return (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 text-gray-500">{idx + 1}</td>
+                          <td className="px-4 py-2">{txn.plan || '-'}</td>
+                          <td className="px-4 py-2">
+                            {showStatusDot ? (
+                              <span
+                                className={`inline-flex h-4 w-4 rounded-full ring-1 ring-black/10 shadow-sm ${status.className}`}
+                                title={status.label}
+                                aria-label={status.label}
+                              />
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2">{txn.validityFrom ? new Date(txn.validityFrom).toLocaleDateString() : '-'}</td>
+                          <td className="px-4 py-2">{txn.validityTo ? new Date(txn.validityTo).toLocaleDateString() : '-'}</td>
+                          <td className="px-4 py-2 font-medium">₹{txn.amount || '0'}</td>
+                          <td className="px-4 py-2">{txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : '-'}</td>
+                        </tr>
+                      );
+                    })}
+                    {totalPurchases === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                          No transactions found for this user
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </>
+            );
+          })()}
+          <div className="flex justify-end pt-4 border-t mt-4 sticky bottom-0 bg-white">
+            <Button variant="outline" onClick={() => setIsTransactionHistoryModalOpen(false)}>Close</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

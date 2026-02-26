@@ -4,10 +4,10 @@ import Sidebar from "./Sidebar";
 import Header from "./Header";
 
 const Layout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex  min-h-screen bg-[#F8FAFC]">
       
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -17,21 +17,16 @@ const Layout = () => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar (fixed so it doesn't occupy layout space when hidden) */}
       <div
-        className={`
-          fixed inset-y-0 left-0 z-50 w-60 bg-[#0F172A]
-          transform transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:relative lg:translate-x-0
-        `}
+        className={`fixed inset-y-0 left-0 z-50 w-60 bg-[#0F172A] transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+      <div className={`flex-1 flex flex-col min-w-0 transition-all ${sidebarOpen ? 'lg:pl-60' : ''}`}>
+        <Header onMenuClick={() => setSidebarOpen(prev => !prev)} />
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">
           <Outlet />
         </main>

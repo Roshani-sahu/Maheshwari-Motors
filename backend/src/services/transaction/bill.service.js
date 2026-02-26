@@ -149,9 +149,19 @@ class BillService {
       populate: [
         {
           path: "contact_id",
-          select: "name phone type balance transport_charge transport_id",
+          select:
+            "name phone type balance transport_charge transport_id gstin reg_number area area_id city state address",
+          populate: { path: "area_id", select: "city state pincode" },
         },
         { path: "transport_id", select: "name phone gstin" },
+        {
+          path: "challan_ids",
+          select: "challan_no challan_type date amount print_option items",
+          populate: {
+            path: "items.item_id",
+            select: "item_name barcode item_id sale_rate gst_percent",
+          },
+        },
       ],
       sort: { createdAt: -1 },
     });
@@ -163,7 +173,12 @@ class BillService {
       user_id: userId,
       is_gst: isGst,
     })
-      .populate("contact_id")
+      .populate({
+        path: "contact_id",
+        select:
+          "name phone type balance transport_charge transport_id gstin reg_number area area_id city state address",
+        populate: { path: "area_id", select: "city state pincode" },
+      })
       .populate("transport_id")
       .populate({
         path: "challan_ids",

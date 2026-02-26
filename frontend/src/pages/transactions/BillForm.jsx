@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaTimes, FaSave } from "react-icons/fa";
+import { FaTimes, FaSave, FaEye, FaPrint } from "react-icons/fa";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
 import { Modal } from '../../components/common';
 import api from "../../services/axiosInstance";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   getResponseList,
   getResponseMeta,
@@ -15,10 +17,49 @@ import {
 
 const BillForm = () => {
   const navigate = useNavigate();
-  const { showToast } = useStore();
+  const { showToast, user, selectedFirm } = useStore();
+  console.log("Selected firm in BillForm:", selectedFirm);
+
+  const normalizeFirmType = (value) =>
+    String(value || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[-\s]/g, "_");
+
+  const getFirmTypeFromToken = () => {
+    const token = localStorage.getItem("token");
+    if (!token || typeof token !== "string") return "";
+    const parts = token.split(".");
+    if (parts.length < 2) return "";
+
+    try {
+      // JWT payload is base64url encoded JSON
+      const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const padded = base64 + "===".slice((base64.length + 3) % 4);
+      const payload = JSON.parse(atob(padded));
+      return payload?.firm_type || payload?.firmType || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const firmType =
+    selectedFirm?.type ||
+    (selectedFirm?.id === "GST" ? "GST" : selectedFirm?.id === "NON_GST" ? "NON_GST" : "") ||
+    getFirmTypeFromToken() ||
+    user?.current_firm_type ||
+    user?.firm_type ||
+    user?.firmType ||
+    user?.firm_data?.firm_type ||
+    "";
+
+  const isFirmGST =
+    selectedFirm?.id === "gst" || normalizeFirmType(firmType) === "GST";
 
   const [loadedParties, setLoadedParties] = useState([]);
   const [loadedSuppliers, setLoadedSuppliers] = useState([]);
+  const [loadedAgents, setLoadedAgents] = useState([]);
+  const [loadedTransports, setLoadedTransports] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
   const [loadedDiscounts, setLoadedDiscounts] = useState({});
   const [itemSearchTerm, setItemSearchTerm] = useState("");
@@ -33,20 +74,43 @@ const BillForm = () => {
     contactType: "party",
     party: "",
     items: [],
-    gstType: 0,
+    gstType: isFirmGST ? 1 : 0,
     date: new Date().toISOString().split("T")[0],
     itemDetails: {},
     discount: 0,
+    billNumber: `BL${Date.now()}`,
+    transportId: "",
+    transportCharge: 0,
+    agent: "",
+    customerName: "",
+    vehicleNo: "",
+    printOption: 1,
   });
+
+  const effectiveGstType = isFirmGST ? 1 : bill.gstType;
+
+  // Firm type = GST means this bill must always be GST (gstType = 1),
+  // regardless of other state updates (party selection, etc.).
+  useEffect(() => {
+    if (!isFirmGST) return;
+    setBill((prev) => (prev.gstType === 1 ? prev : { ...prev, gstType: 1 }));
+  }, [isFirmGST, bill.gstType]);
+
+  const handleGstToggle = () => {
+    if (isFirmGST) return;
+    setBill((prev) => ({ ...prev, gstType: prev.gstType === 1 ? 0 : 1 }));
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pRes, sRes, iRes, brandRes] = await Promise.all([
+        const [pRes, sRes, iRes, brandRes, aRes, tRes] = await Promise.all([
           api.get("/contacts/parties", { params: { page: 1, limit: 200 } }),
           api.get("/contacts/suppliers", { params: { page: 1, limit: 200 } }),
           api.get("/items", { params: { page: 1, limit: 50, search: "" } }),
           api.get("/brands", { params: { page: 1, limit: 200 } }),
+          api.get("/agents", { params: { page: 1, limit: 200 } }),
+          api.get("/transports", { params: { page: 1, limit: 200 } }),
         ]);
 
         const partiesData = getResponseList(pRes).map((party) => {
@@ -55,6 +119,9 @@ const BillForm = () => {
             id: normalized.id,
             name: normalized.name,
             is_gst: normalized.is_gst,
+            transport_charge: normalized.transport_charge || party.transport_charge || party.transportCharge || 0,
+            transport_id: normalized.transport_id || party.transport_id || party.transportId || null,
+            agent: normalized.agent_id || party.agent || party.agent_id || null,
           };
         });
         const suppliersData = getResponseList(sRes).map((supplier) => {
@@ -64,6 +131,9 @@ const BillForm = () => {
             name: normalized.name,
             is_gst: normalized.is_gst,
             gstin: supplier.gstin || "",
+            transport_charge: normalized.transport_charge || supplier.transport_charge || supplier.transportCharge || 0,
+            transport_id: normalized.transport_id || supplier.transport_id || supplier.transportId || null,
+            agent: normalized.agent_id || supplier.agent || supplier.agent_id || null,
           };
         });
         const itemsData = getResponseList(iRes).map((item) => {
@@ -73,12 +143,26 @@ const BillForm = () => {
             id: normalized.id,
             name: normalized.itemName,
             amount: normalized.amount,
+            barcode: normalized.barcode,
           };
         });
 
         setLoadedParties(partiesData);
         setLoadedSuppliers(suppliersData);
         setLoadedItems(itemsData);
+
+        const agentsData = getResponseList(aRes).map((ag) => ({
+          id: getEntityId(ag) || ag._id || ag.id,
+          name: ag.name || ag.agent_name || ag.fullName || ag.contact_name || "Unknown",
+        }));
+        setLoadedAgents(agentsData);
+
+        const transportsData = getResponseList(tRes).map((tr) => ({
+          id: getEntityId(tr) || tr._id || tr.id,
+          name: tr.name || tr.transport_name || tr.title || "Unknown",
+          charge: tr.charge || tr.transport_charge || tr.transportCharge || 0,
+        }));
+        setLoadedTransports(transportsData);
 
         const brandList = getResponseList(brandRes);
         const discountMap = {};
@@ -192,11 +276,11 @@ const BillForm = () => {
 
       if (!prev.items.includes(itemId)) {
         const item = loadedItems.find((i) => i.id === itemId);
-        const brandId =
+      const brandId =
           item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
         const discForBrand = loadedDiscounts[brandId] || {};
         const useDisc =
-          (prev.gstType === 1 ?
+          ((isFirmGST ? 1 : prev.gstType) === 1 ?
             discForBrand.discount1 || {}
           : discForBrand.discount2 || {}) || {};
         prev.itemDetails[itemId] = {
@@ -207,7 +291,16 @@ const BillForm = () => {
           gstPercent: 0,
           itemDiscount: item?.discount || 0,
           stock: item?.stock || 0,
-          type: prev.gstType !== null ? prev.gstType : 0,
+          type: isFirmGST ? 1 : (prev.gstType !== null ? prev.gstType : 0),
+          remark: item?.name || '',
+          itemName: item?.name || '',
+          barcode:
+            item?.barcode ||
+            item?.barcode_no ||
+            item?.barcodeNumber ||
+            item?.barcode_value ||
+            item?.part_no ||
+            '',
         };
       }
 
@@ -222,7 +315,7 @@ const BillForm = () => {
     const disPercent = parseFloat(details.disPercent || 0);
     const spDis = parseFloat(details.spDis || 0);
     const gstPercent = parseFloat(details.gstPercent || 0);
-    const itemType = details.type !== undefined ? details.type : bill.gstType;
+    const itemType = details.type !== undefined ? details.type : effectiveGstType;
 
     const baseAmount = pcs * rate;
     const discountAmount = (baseAmount * disPercent) / 100 + spDis;
@@ -257,6 +350,447 @@ const BillForm = () => {
     }, 0);
   };
 
+  const calculateTotalDiscount = () => {
+    return bill.items.reduce((total, itemId) => {
+      const calc = calculateItemAmount(itemId);
+      return total + calc.discountAmount;
+    }, 0);
+  };
+
+  const handleViewLastSold = async (itemId) => {
+    const item = loadedItems.find((i) => i.id === itemId);
+    const party = (bill.contactType === 'party' ? loadedParties : loadedSuppliers).find(c => c.id === bill.party);
+    
+    // Dummy data
+    const dummyData = {
+      challan_no: `CH${Math.floor(Math.random() * 10000)}`,
+      challan_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      contact: {
+        name: party?.name || 'Sample Party',
+        phone: '9876543210'
+      },
+      is_gst: effectiveGstType,
+      item: {
+        quantity: Math.floor(Math.random() * 10) + 1,
+        rate: (item?.amount || 100) + (Math.random() * 50 - 25),
+        discount: Math.floor(Math.random() * 15),
+        gst_percent: effectiveGstType === 1 ? [5, 12, 18, 28][Math.floor(Math.random() * 4)] : 0
+      }
+    };
+    
+    setViewItemModal({ isOpen: true, data: dummyData });
+  };
+
+  const LEGACY_handlePrint = () => {
+    if (!bill.party || bill.items.length === 0) {
+      showToast('Please select a party and add items before printing', 'error');
+      return;
+    }
+
+    const party = (bill.contactType === 'party' ? loadedParties : loadedSuppliers).find(c => c.id === bill.party);
+    
+    const printContent = `
+      <html>
+        <head>
+          <title>Bill</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 40px; 
+              font-size: 12px;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              border-bottom: 2px solid #000;
+              padding-bottom: 10px;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+            }
+            .header p {
+              margin: 5px 0;
+              font-size: 11px;
+            }
+            .info-section {
+              margin-bottom: 20px;
+            }
+            .info-row {
+              display: flex;
+              margin-bottom: 5px;
+            }
+            .info-label {
+              font-weight: bold;
+              width: 100px;
+            }
+            .info-value {
+              flex: 1;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            th, td {
+              border: 1px solid #000;
+              padding: 8px;
+              text-align: left;
+              font-size: 11px;
+            }
+            th {
+              background-color: #f0f0f0;
+              font-weight: bold;
+            }
+            .amount-section {
+              margin-top: 20px;
+              display: flex;
+              justify-content: flex-end;
+            }
+            .amount-box {
+              width: 250px;
+            }
+            .amount-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 5px 0;
+              border-bottom: 1px solid #ccc;
+            }
+            .amount-total {
+              display: flex;
+              justify-content: space-between;
+              padding: 8px 0;
+              border-top: 2px solid #000;
+              font-weight: bold;
+              font-size: 13px;
+            }
+            .footer {
+              margin-top: 40px;
+              display: flex;
+              justify-content: space-between;
+            }
+            .signature {
+              width: 180px;
+              text-align: center;
+              border-top: 1px solid #000;
+              padding-top: 40px;
+              margin-top: 20px;
+            }
+            @media print {
+              body { margin: 20px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>BILL</h1>
+            <p>${selectedFirm?.name || 'Company Name'}</p>
+            <p>Bill No: ${bill.billNumber}</p>
+          </div>
+
+          <div class="info-section">
+            <div class="info-row">
+              <div class="info-label">Date:</div>
+              <div class="info-value">${new Date(bill.date).toLocaleDateString('en-IN')}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Party:</div>
+              <div class="info-value">${party?.name || ''}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">Type:</div>
+              <div class="info-value">${effectiveGstType === 1 ? 'GST' : 'Non-GST'}</div>
+            </div>
+            ${bill.customerName ? `
+            <div class="info-row">
+              <div class="info-label">Customer:</div>
+              <div class="info-value">${bill.customerName}</div>
+            </div>` : ''}
+            ${bill.vehicleNo ? `
+            <div class="info-row">
+              <div class="info-label">Vehicle No:</div>
+              <div class="info-value">${bill.vehicleNo}</div>
+            </div>` : ''}
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>S.No</th>
+                ${bill.printOption === 2 ? '<th>Item Name</th>' : '<th>Barcode</th>'}
+                <th>Qty</th>
+                <th>Rate</th>
+                <th>Discount %</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bill.items.map((itemId, index) => {
+                const item = loadedItems.find(i => i.id === itemId);
+                const details = bill.itemDetails[itemId] || {};
+                const calc = calculateItemAmount(itemId);
+                
+                return `
+                  <tr>
+                    <td>${index + 1}</td>
+                    ${bill.printOption === 2 
+                      ? `<td>${item?.name || 'Unknown'}</td>` 
+                      : `<td>${item?.barcode || item?.part_no || '-'}</td>`
+                    }
+                    <td>${details.pcs || 1}</td>
+                    <td>₹${parseFloat(details.rate || 0).toFixed(2)}</td>
+                    <td>${details.disPercent || 0}%</td>
+                    <td>₹${calc.afterDiscount.toFixed(2)}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <div class="amount-section">
+            <div class="amount-box">
+              <div class="amount-row">
+                <span>Discount:</span>
+                <span>₹${calculateTotalDiscount().toFixed(2)}</span>
+              </div>
+              ${bill.transportCharge ? `
+              <div class="amount-row">
+                <span>Transport:</span>
+                <span>₹${parseFloat(bill.transportCharge).toFixed(2)}</span>
+              </div>` : ''}
+              <div class="amount-total">
+                <span>Total Amount:</span>
+                <span>₹${calculateTotalAmount().toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <div class="signature">
+              <p>Authorized Signature</p>
+            </div>
+            <div class="signature">
+              <p>Party Signature</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
+  const handlePrint = () => {
+    if (!bill.party || bill.items.length === 0) {
+      showToast("Please select a party and add items before printing", "error");
+      return;
+    }
+
+    const party = (bill.contactType === "party" ? loadedParties : loadedSuppliers).find(
+      (contact) => contact.id === bill.party,
+    );
+
+    const firmName = selectedFirm?.name || "MAHESHWARI MOTORS";
+    const firmAddress =
+      selectedFirm?.address || "52, KHOTODRA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.";
+    const firmCity = selectedFirm?.city || "SURAT";
+    const firmContact = selectedFirm?.phone || "";
+
+    const formatDateDDMMYYYY = (value) => {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) return "";
+      const dd = String(date.getDate()).padStart(2, "0");
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const yyyy = String(date.getFullYear());
+      return `${dd}-${mm}-${yyyy}`;
+    };
+
+    const billNo = String(bill.billNumber || "").trim();
+    const billDate = formatDateDDMMYYYY(bill.date) || formatDateDDMMYYYY(new Date());
+    const printOption = Number(bill.printOption ?? 2) || 2;
+    const partyName = String(party?.name || "CASH BOOK");
+
+    const parsedItems = bill.items.map((itemId, index) => {
+      const item = loadedItems.find((loadedItem) => loadedItem.id === itemId) || {};
+      const details = bill.itemDetails[itemId] || {};
+      const calc = calculateItemAmount(itemId);
+
+      const itemName = details.itemName || item?.name || item?.item_name || "Item";
+      const barcode =
+        details.barcode ||
+        item?.barcode ||
+        item?.barcode_no ||
+        item?.barcodeNumber ||
+        item?.barcode_value ||
+        item?.part_no ||
+        "";
+      const description =
+        printOption === 2 ? String(itemName).trim() || "Item" : String(barcode).trim() || "-";
+
+      const quantity = Number(details.pcs || 1) || 0;
+      const rate = Number(details.rate ?? item.amount ?? 0) || 0;
+      const discount = Number(details.disPercent || 0) || 0;
+      const specialDiscount = Number(details.spDis || 0) || 0;
+      const lineAmount = Number(calc.afterDiscount || 0) || 0;
+
+      return {
+        row: [
+          String(index + 1),
+          description,
+          quantity ? String(quantity) : "",
+          rate.toFixed(2),
+          discount.toFixed(2),
+          specialDiscount.toFixed(2),
+        ],
+        lineAmount,
+      };
+    });
+
+    const rowsFromItems = parsedItems.map((entry) => entry.row);
+    const totalFromItems = parsedItems.reduce((sum, entry) => sum + entry.lineAmount, 0);
+    const totalAmount = Number(calculateTotalAmount() || 0) || totalFromItems;
+
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const blue = [0, 0, 255];
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 8;
+    const copyWidth = pageWidth - margin * 2;
+    const copyHeight = pageHeight - margin * 2;
+    const topY = margin;
+    const leftX = margin;
+
+    const drawBillCopy = (originX) => {
+      const originY = topY;
+      const headerHeight = 18;
+      const detailsHeight = 42;
+      const headerY = originY;
+      const detailsY = originY + headerHeight;
+      const tableY = detailsY + detailsHeight + 1.5;
+
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.3);
+      doc.rect(originX, originY, copyWidth, copyHeight);
+
+      doc.rect(originX, headerY, copyWidth, headerHeight);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(...blue);
+      doc.text(`* ${firmName.toUpperCase()} *`, originX + copyWidth / 2, headerY + 7, { align: "center" });
+      doc.setFontSize(7.5);
+      doc.text(firmAddress, originX + copyWidth / 2, headerY + 13, { align: "center" });
+
+      doc.setTextColor(0, 0, 0);
+      doc.rect(originX, detailsY, copyWidth, detailsHeight);
+      const leftBoxWidth = Math.round(copyWidth * 0.63 * 10) / 10;
+      doc.line(originX + leftBoxWidth, detailsY, originX + leftBoxWidth, detailsY + detailsHeight);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.setTextColor(...blue);
+      doc.text(`M/s. : ${partyName.toUpperCase()}`, originX + 2.5, detailsY + 9);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(0, 0, 0);
+      const contactLine = `City ${firmCity}. Contact No.,${firmContact ? ` ${firmContact}` : ""}`;
+      doc.text(contactLine, originX + 2.5, detailsY + 22);
+      doc.text("AREA--", originX + 2.5, detailsY + 32);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.text(`Bill No.     :  ${billNo}`, originX + leftBoxWidth + 3, detailsY + 12);
+      doc.text(`Date          :  ${billDate}`, originX + leftBoxWidth + 3, detailsY + 24);
+
+      const head = [[
+        "Sr.",
+        printOption === 2 ? "Item Name" : "Barcode",
+        "Qty.",
+        "Rate",
+        "Disc (%)",
+        "Sp.Dis (%)",
+      ]];
+      const fillerRow = ["", "", "", "", "", ""];
+      const body = [...(rowsFromItems.length ? rowsFromItems : [["", "", "", "", "", ""]]), fillerRow];
+
+      const bottomPadding = 16;
+      const availableHeight = originY + copyHeight - bottomPadding - tableY;
+      const estimatedRowHeight = 5.2;
+      const estimatedHeadHeight = 7;
+      const estimatedBodyHeight = rowsFromItems.length * estimatedRowHeight;
+      const fillerHeight = Math.max(20, availableHeight - estimatedHeadHeight - estimatedBodyHeight);
+
+      const srW = 8;
+      const qtyW = 14;
+      const rateW = 18;
+      const discW = 14;
+      const spDiscW = 14;
+      const descW = Math.max(40, copyWidth - (srW + qtyW + rateW + discW + spDiscW));
+
+      autoTable(doc, {
+        head,
+        body,
+        startY: tableY,
+        margin: { left: originX },
+        tableWidth: copyWidth,
+        theme: "grid",
+        styles: {
+          font: "helvetica",
+          fontSize: 8.5,
+          textColor: [0, 0, 0],
+          cellPadding: { top: 1.2, right: 1.5, bottom: 1.2, left: 1.5 },
+          lineColor: [0, 0, 0],
+          lineWidth: 0.25,
+          overflow: "linebreak",
+          valign: "top",
+        },
+        headStyles: {
+          fillColor: [230, 230, 230],
+          textColor: blue,
+          fontStyle: "bold",
+          halign: "center",
+          valign: "middle",
+        },
+        columnStyles: {
+          0: { cellWidth: srW, halign: "left" },
+          1: { cellWidth: descW, halign: "left" },
+          2: { cellWidth: qtyW, halign: "right" },
+          3: { cellWidth: rateW, halign: "right" },
+          4: { cellWidth: discW, halign: "right" },
+          5: { cellWidth: spDiscW, halign: "right" },
+        },
+        didParseCell: (data) => {
+          if (data.section !== "body") return;
+          const fillerIndex = rowsFromItems.length ? rowsFromItems.length : 1;
+          if (data.row.index === fillerIndex) {
+            data.cell.styles.minCellHeight = fillerHeight;
+          }
+        },
+      });
+    };
+
+    drawBillCopy(leftX);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total Amount: Rs. ${totalAmount.toFixed(2)}`, leftX + copyWidth - 2.5, topY + copyHeight - 6, {
+      align: "right",
+    });
+
+    const previewUrl = doc.output("bloburl");
+    const previewWindow = window.open(previewUrl, "_blank");
+    if (!previewWindow) {
+      showToast("Popup blocked. Please allow popups for print preview.", "error");
+    }
+  };
+
   const handleSave = async () => {
     if (!bill.party) {
       showToast("Please select a party", "error");
@@ -273,6 +807,7 @@ const BillForm = () => {
         challan_type: "sale",
         date: bill.date,
         contact_id: bill.party,
+        print_option: Number(bill.printOption ?? 2) || 2,
         items: bill.items.map((itemId) => {
           const item = loadedItems.find((i) => i.id === itemId);
           const details = bill.itemDetails[itemId] || {};
@@ -285,7 +820,13 @@ const BillForm = () => {
             gst_percent: Math.max(0, parseFloat(details.gstPercent || 0)),
           };
         }),
-        discount: 0,
+          discount: calculateTotalDiscount(),
+          transport_id: bill.transportId || undefined,
+          transport_charge: parseFloat(bill.transportCharge) || 0,
+          agent_id: bill.agent || undefined,
+          customer_name: bill.customerName || undefined,
+          vehicle_no: bill.vehicleNo || undefined,
+          bill_no: bill.billNumber || undefined,
       };
 
       const challanRes = await api.post("/challans", challanPayload);
@@ -302,6 +843,12 @@ const BillForm = () => {
           contact_id: bill.party,
           challan_ids: [challanId],
           delivered_amount: 0,
+          bill_no: bill.billNumber || undefined,
+          transport_id: bill.transportId || undefined,
+          transport_charge: parseFloat(bill.transportCharge) || 0,
+          agent_id: bill.agent || undefined,
+          customer_name: bill.customerName || undefined,
+          vehicle_no: bill.vehicleNo || undefined,
         };
         const res = await api.post("/bills", payload);
         console.log(res);
@@ -321,7 +868,15 @@ const BillForm = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Create Bill</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">Create Bill</h1>
+          <input
+            type="text"
+            value={bill.billNumber}
+            onChange={(e) => setBill((prev) => ({ ...prev, billNumber: e.target.value }))}
+            className="px-3 py-2 border rounded-md text-sm"
+          />
+        </div>
         <Button
           variant="outline"
           onClick={() => navigate("/transactions/bill-list")}
@@ -367,7 +922,11 @@ const BillForm = () => {
                 setBill((prev) => ({
                   ...prev,
                   party: selectedId,
-                  gstType: selected ? selected.is_gst || 0 : prev.gstType,
+                  gstType: isFirmGST ? 1 : (selected ? selected.is_gst || 0 : prev.gstType),
+                  transportCharge: selected ? selected.transport_charge || 0 : prev.transportCharge,
+                  transportId: selected ? selected.transport_id || prev.transportId : prev.transportId,
+                  agent: selected ? selected.agent || prev.agent : prev.agent,
+                  customerName: selected ? selected.name || prev.customerName : prev.customerName,
                 }));
               }}
               className="w-full px-3 py-2 border rounded-md text-sm"
@@ -399,41 +958,84 @@ const BillForm = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Type
-            </label>
-            <div className="flex gap-4 mt-2">
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="gstType"
-                  value={0}
-                  checked={bill.gstType === 0}
-                  onChange={(e) =>
-                    setBill((prev) => ({
-                      ...prev,
-                      gstType: parseInt(e.target.value),
-                    }))
-                  }
-                />
-                <span className="text-sm">0</span>
-              </label>
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="gstType"
-                  value={1}
-                  checked={bill.gstType === 1}
-                  onChange={(e) =>
-                    setBill((prev) => ({
-                      ...prev,
-                      gstType: parseInt(e.target.value),
-                    }))
-                  }
-                />
-                <span className="text-sm">1</span>
-              </label>
-            </div>
+            <button
+              type="button"
+              disabled={isFirmGST}
+              onClick={handleGstToggle}
+              aria-disabled={isFirmGST}
+              className={`w-14 h-7 mt-5 flex items-center rounded-full p-1 transition-all duration-300 ${
+                effectiveGstType === 1 ? 'bg-green-500' : 'bg-gray-300'
+              } ${!isFirmGST ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+            >
+              <div
+                className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
+                  effectiveGstType === 1 ? 'translate-x-7' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
+            <select
+              value={bill.agent}
+              onChange={(e) => setBill((prev) => ({ ...prev, agent: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">Select Agent</option>
+              {loadedAgents.map((a) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Transport</label>
+            <select
+              value={bill.transportId}
+              onChange={(e) => {
+                const tid = e.target.value;
+                const t = loadedTransports.find((x) => x.id === tid);
+                setBill((prev) => ({ ...prev, transportId: tid, transportCharge: t ? t.charge : prev.transportCharge }));
+              }}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">Select Transport</option>
+              {loadedTransports.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
+            <input
+              type="number"
+              step="0.01"
+              value={bill.transportCharge}
+              onChange={(e) => setBill((prev) => ({ ...prev, transportCharge: parseFloat(e.target.value) || 0 }))}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+            <input
+              type="text"
+              value={bill.customerName}
+              onChange={(e) => setBill((prev) => ({ ...prev, customerName: e.target.value }))}
+              placeholder="Enter customer name"
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle No</label>
+            <input
+              type="text"
+              value={bill.vehicleNo}
+              onChange={(e) => setBill((prev) => ({ ...prev, vehicleNo: e.target.value }))}
+              placeholder="Vehicle number"
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            />
           </div>
         </div>
 
@@ -450,6 +1052,7 @@ const BillForm = () => {
                 <tr>
                   <th className="px-2 py-2 text-left border-r">SNo</th>
                   <th className="px-2 py-2 text-left border-r">ItemName</th>
+                  <th className="px-2 py-2 text-left border-r">Remark</th>
                   <th className="px-2 py-2 text-left border-r">Type</th>
                   <th className="px-2 py-2 text-left border-r">Stock</th>
                   <th className="px-2 py-2 text-left border-r">PCS</th>
@@ -469,32 +1072,47 @@ const BillForm = () => {
                   const details = bill.itemDetails[itemId] || {};
                   const calc = calculateItemAmount(itemId);
                   const itemType =
-                    details.type !== undefined ? details.type : bill.gstType;
+                    details.type !== undefined ? details.type : effectiveGstType;
+                  const displayItemName = details.itemName || item?.name || "Unknown Item";
 
                   return (
                     <tr key={itemId} className="border-t">
                       <td className="px-2 py-2 border-r">{index + 1}</td>
                       <td className="px-2 py-2 border-r">
                         <span className="text-xs">
-                          {item?.name || "Unknown Item"}
+                          {displayItemName}
                         </span>
                       </td>
                       <td className="px-2 py-2 border-r">
-                        <select
-                          value={itemType !== null ? itemType : ""}
+                        <input
+                          type="text"
+                          value={details.remark || ''}
                           onChange={(e) =>
-                            updateItemDetail(
-                              itemId,
-                              "type",
-                              parseInt(e.target.value),
-                            )
+                            updateItemDetail(itemId, "remark", e.target.value)
                           }
-                          className="w-12 px-1 py-1 border rounded text-xs"
-                        >
-                          <option value="">-</option>
-                          <option value={0}>0</option>
-                          <option value={1}>1</option>
-                        </select>
+                          className="w-32 px-1 py-1 border rounded text-xs"
+                        />
+                      </td>
+                      <td className="px-2 py-2 border-r">
+                        {isFirmGST ? (
+                          <span className="text-xs">1</span>
+                        ) : (
+                          <select
+                            value={itemType !== null ? itemType : ""}
+                            onChange={(e) =>
+                              updateItemDetail(
+                                itemId,
+                                "type",
+                                parseInt(e.target.value),
+                              )
+                            }
+                            className="w-12 px-1 py-1 border rounded text-xs"
+                          >
+                            <option value="">-</option>
+                            <option value={0}>0</option>
+                            <option value={1}>1</option>
+                          </select>
+                        )}
                       </td>
                       <td className="px-2 py-2 border-r">
                         <input
@@ -623,7 +1241,7 @@ const BillForm = () => {
                 {bill.items.length === 0 && (
                   <tr>
                     <td
-                      colSpan={13}
+                      colSpan={14}
                       className="px-4 py-8 text-center text-gray-500"
                     >
                       No items selected. Use the search below to add items.
@@ -732,12 +1350,14 @@ const BillForm = () => {
             <div className="flex flex-wrap gap-2 mt-2">
               {bill.items.map((itemId) => {
                 const item = loadedItems.find((i) => i.id === itemId);
+                const details = bill.itemDetails[itemId] || {};
+                const displayItemName = details.itemName || item?.name || "Unknown Item";
                 return (
                   <span
                     key={itemId}
                     className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1"
                   >
-                    {item?.name}
+                    {displayItemName}
                     <button
                       onClick={() => toggleItemSelection(itemId)}
                       className="text-blue-600 hover:text-blue-800"
@@ -758,24 +1378,32 @@ const BillForm = () => {
               <input
                 type="number"
                 step="0.01"
-                value={bill.discount}
-                onChange={(e) =>
-                  setBill((prev) => ({
-                    ...prev,
-                    discount: parseFloat(e.target.value) || 0,
-                  }))
-                }
-                className="flex-1 px-3 py-2 border rounded-md text-sm"
+                value={calculateTotalDiscount().toFixed(2)}
+                readOnly
+                className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50"
               />
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium w-32">Net Amount:</span>
               <input
                 type="number"
-                value={(calculateTotalAmount() - bill.discount).toFixed(2)}
+                value={calculateTotalAmount().toFixed(2)}
                 readOnly
                 className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50"
               />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium w-32">Print Format:</span>
+              <select
+                value={bill.printOption}
+                onChange={(e) => setBill(prev => ({ ...prev, printOption: parseInt(e.target.value) }))}
+                className="flex-1 px-3 py-2 border rounded-md text-sm"
+              >
+                <option value={1}>Print 1 - Show Barcode</option>
+                <option value={2}>Print 2 - Show Item Name</option>
+              </select>
             </div>
           </div>
         </div>
@@ -788,6 +1416,14 @@ const BillForm = () => {
           >
             <FaSave />
             Save Bill
+          </Button>
+          <Button
+            onClick={handlePrint}
+            disabled={!bill.party || bill.items.length === 0}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+          >
+            <FaPrint />
+            Print Preview
           </Button>
           <Button
             variant="outline"
@@ -837,7 +1473,7 @@ const BillForm = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Rate:</p>
-                  <p className="text-sm">₹{viewItemModal.data.item?.rate}</p>
+                  <p className="text-sm">₹{viewItemModal.data.item?.rate?.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Discount:</p>
