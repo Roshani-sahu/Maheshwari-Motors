@@ -53,7 +53,7 @@ const DiscountMaster = () => {
     const controller = new AbortController();
     const fetchLabels = async () => {
       try {
-        const res = await api.get('/labels', { signal: controller.signal });
+        const res = await api.get(`/labels/category/${selectedCategory.id}`, { signal: controller.signal });
         const list = listFromResponse(res).map((l) => ({ id: l._id, name: l.name || '' }));
         setLabels(list);
       } catch (error) {
@@ -68,21 +68,24 @@ const DiscountMaster = () => {
   }, [selectedCategory?.id]);
 
   useEffect(() => {
-    if (!selectedCategory?.id || !selectedLabel?.id) {
+    if (!selectedLabel?.id) {
       setBrands([]);
       setDiscounts({});
       return;
     }
 
     const controller = new AbortController();
-    const fetchCategoryDiscounts = async () => {
+    const fetchLabelDiscounts = async () => {
       try {
-        const res = await api.get(`/brands/category/${selectedCategory.id}/discounts`, { signal: controller.signal });
-        const list = listFromResponse(res).map((b) => ({
-          id: b._id,
-          name: b.brand_name || b.name || '',
-          discount1: b.discount1 || { normal: 0, special: 0 },
-          discount2: b.discount2 || { normal: 0, special: 0 }
+        const res = await api.get(`/labels/${selectedLabel.id}`, { signal: controller.signal });
+        const labelData = res?.data?.data;
+        const brandDiscounts = labelData?.brand_discounts || [];
+        
+        const list = brandDiscounts.map((item) => ({
+          id: item.brand_id?._id || item.brand_id,
+          name: item.brand_id?.name || '',
+          discount1: item.disc1 || { normal: 0, special: 0 },
+          discount2: item.disc2 || { normal: 0, special: 0 }
         }));
         setBrands(list);
 
@@ -101,9 +104,9 @@ const DiscountMaster = () => {
       }
     };
 
-    fetchCategoryDiscounts();
+    fetchLabelDiscounts();
     return () => controller.abort();
-  }, [selectedCategory?.id, selectedLabel?.id, showToast]);
+  }, [selectedLabel?.id, showToast]);
 
   const updateDiscount = (brandId, discountType, field, value) => {
     setDiscounts((prev) => ({
@@ -187,7 +190,7 @@ const DiscountMaster = () => {
                 <h3 className="text-sm sm:text-base font-semibold text-gray-900">Labels</h3>
                 <p className="text-xs text-gray-500 mt-1">Select label to manage</p>
               </div>
-              <button onClick={() => setIsAddLabelModalOpen(true)} className="p-1.5 hover:bg-gray-100 rounded-md transition-colors">
+              <button onClick={() => setIsAddLabelModalOpen(true)} disabled={!selectedCategory} className="p-1.5 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 <FaPlus className="text-blue-600 text-sm" />
               </button>
             </div>
@@ -274,10 +277,14 @@ const DiscountMaster = () => {
                 showToast('Label name is required', 'error');
                 return;
               }
+              if (!selectedCategory?.id) {
+                showToast('Please select a category first', 'error');
+                return;
+              }
               try {
-                await api.post('/labels', { name: newLabelName });
+                await api.post('/labels', { name: newLabelName, category_id: selectedCategory.id });
                 showToast('Label added successfully', 'success');
-                const res = await api.get('/labels');
+                const res = await api.get(`/labels/category/${selectedCategory.id}`);
                 const list = listFromResponse(res).map((l) => ({ id: l._id, name: l.name || '' }));
                 setLabels(list);
                 setIsAddLabelModalOpen(false);

@@ -89,6 +89,8 @@ const UserMaster = () => {
     name: '',
     email: '',
     phone: '',
+    signature: '',
+    signatureFile: null,
     gst_firm: {
       username: '',
       password: '',
@@ -613,6 +615,27 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Email</label>
                   <Input type="email" value={newUser.email} onChange={(v) => setNewUser({...newUser, email: v})} placeholder="staff@mm.com" className="mt-1" />
                </div>
+               <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Signature</label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setNewUser({...newUser, signature: reader.result, signatureFile: file});
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="mt-1 block w-full text-xs sm:text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {newUser.signature && (
+                    <img src={newUser.signature} alt="Signature" className="mt-2 h-20 border rounded" />
+                  )}
+               </div>
             </div>
           </div>
 
@@ -878,6 +901,14 @@ const UserMaster = () => {
                   <label className="text-xs font-medium text-gray-700">Email</label>
                   <Input value={viewingUser.original?.email || viewingUser.email} disabled className="mt-1" />
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Signature</label>
+                  {viewingUser.original?.signature ? (
+                    <img src={viewingUser.original.signature} alt="Signature" className="mt-2 h-20 border rounded" />
+                  ) : (
+                    <p className="text-sm text-gray-500 mt-1">No signature available</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1072,6 +1103,27 @@ const UserMaster = () => {
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700">Email</label>
                   <Input type="email" value={editingForm.email || ''} onChange={(v) => setEditingForm(prev => ({ ...prev, email: v }))} className="mt-1" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700">Signature</label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setEditingForm(prev => ({ ...prev, signature: reader.result }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="mt-1 block w-full text-xs sm:text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {editingForm.signature && (
+                    <img src={editingForm.signature} alt="Signature" className="mt-2 h-20 border rounded" />
+                  )}
                 </div>
               </div>
             </div>

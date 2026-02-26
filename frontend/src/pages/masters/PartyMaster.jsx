@@ -104,12 +104,22 @@ const PartyMaster = () => {
     fetchParties();
   }, [showToast]);
 
-  // Fetch categories
+  // Fetch categories and extract labels
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await api.get('/categories');
-        setCategories(getResponseList(response));
+        const cats = getResponseList(response);
+        setCategories(cats);
+        
+        const allLabels = cats.flatMap(cat => 
+          (cat.labels || []).map(label => ({
+            _id: label._id,
+            name: label.name,
+            category_id: getEntityId(cat)
+          }))
+        );
+        setLabels(allLabels);
       } catch (error) {
         console.error("Failed to fetch categories", error);
       }
@@ -167,19 +177,6 @@ const PartyMaster = () => {
       }
     };
     fetchBanks();
-  }, []);
-
-  // Fetch labels
-  useEffect(() => {
-    const fetchLabels = async () => {
-      try {
-        const response = await api.get('/labels');
-        setLabels(getResponseList(response));
-      } catch (error) {
-        console.error("Failed to fetch labels", error);
-      }
-    };
-    fetchLabels();
   }, []);
 
   const columns = [
@@ -240,7 +237,27 @@ const PartyMaster = () => {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (party) => {
         setSelectedParty(party);
-        setFormData(party);
+        setFormData({
+          name: party.name || '',
+          alias: party.alias || '',
+          phone: party.phone || '',
+          whatsapp_number: party.whatsapp_number || '',
+          email: party.email || '',
+          address: party.address || '',
+          city: party.city || '',
+          state: party.state || '',
+          gstin: party.gstin || '',
+          category: party.category || '',
+          is_gst: party.is_gst || 0,
+          cin: party.cin || '',
+          reg_number: party.reg_number || '',
+          bank_id: party.bank_id || '',
+          transport_charge: party.transport_charge || '',
+          transport_id: party.transport_id || '',
+          area_id: party.area_id || '',
+          agent: party.agent || '',
+          label_id: party.label_id || ''
+        });
         setIsEditModalOpen(true);
       },
       className: 'bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs'
@@ -302,16 +319,21 @@ const PartyMaster = () => {
     if (formData.reg_number) payload.reg_number = formData.reg_number;
     if (formData.bank_id) payload.bank_id = formData.bank_id;
     if (formData.transport_charge) payload.transport_charge = formData.transport_charge;
+    else payload.transport_charge = 0;
     if (formData.transport_id) payload.transport_id = formData.transport_id;
     if (formData.area_id) payload.area_id = formData.area_id;
     if (formData.agent) payload.agent_id = formData.agent;
-    if (formData.label_id) payload.label_id = formData.label_id;
+    if (formData.label_id && formData.label_id !== '') payload.label_id = formData.label_id;
+
+    console.log('Submitting payload:', payload);
 
     try {
       if (isEditModalOpen) {
+        console.log('Editing party:', selectedParty.id);
         await api.put(`/contacts/${selectedParty.id}`, payload);
         showToast('Party updated successfully', 'success');
       } else {
+        console.log('Creating new party');
         await api.post('/contacts', payload);
         showToast('Party created successfully', 'success');
       }
@@ -326,6 +348,7 @@ const PartyMaster = () => {
       setSelectedParty(null);
     } catch (error) {
       console.error("Party submit error:", error);
+      console.error("Error response:", error.response?.data);
       const msg = error.response?.data?.message || 'Operation failed';
       const details = Array.isArray(error.response?.data?.errors) 
           ? error.response.data.errors.join(', ') 
@@ -730,9 +753,18 @@ const PartyMaster = () => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
-            <select name="label_id" value={formData.label_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="">Select Label</option>
-              {labels.map(label => <option key={getEntityId(label)} value={getEntityId(label)}>{label.name}</option>)}
+            <select 
+              name="label_id" 
+              value={formData.label_id} 
+              onChange={handleInputChange} 
+              disabled={!formData.category}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">{formData.category ? 'Select Label' : 'Select Category First'}</option>
+              {labels
+                .filter(label => label.category_id === formData.category)
+                .map((label, index) => <option key={`${label._id}-${index}`} value={label._id}>{label.name}</option>)
+              }
             </select>
           </div>
 </div>
