@@ -4,6 +4,7 @@ import Challan from "../../models/transaction/challan.model.js";
 import Bill from "../../models/transaction/bill.model.js";
 import Item from "../../models/master/item.model.js";
 import Category from "../../models/master/category.model.js";
+import Label from "../../models/master/label.model.js";
 import Bank from "../../models/master/bank.model.js";
 import { ApiError, Pagination, toNumber } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
@@ -119,14 +120,14 @@ class ContactService {
     const normalized = assignedLabel.trim();
     const escaped = this._escapeRegex(normalized);
 
-    const labelExists = await Category.exists({
+    const labelExists = await Label.exists({
       user_id: userId,
-      "labels.name": { $regex: new RegExp(`^${escaped}$`, "i") },
+      name: { $regex: new RegExp(`^${escaped}$`, "i") },
     });
 
     if (!labelExists) {
       throw ApiError.badRequest(
-        "Assigned label not found in category labels. Create label in category first.",
+        "Assigned label not found. Create label first.",
       );
     }
 
@@ -147,13 +148,13 @@ class ContactService {
       );
     }
 
-    const category = await Category.findOne({
-      _id: categoryId,
+    const label = await Label.findOne({
+      _id: labelId,
+      category_id: categoryId,
       user_id: userId,
-      "labels._id": labelId,
     });
 
-    if (!category) {
+    if (!label) {
       throw ApiError.badRequest(
         "Label not found in the selected category. Ensure label_id belongs to the contact's category.",
       );

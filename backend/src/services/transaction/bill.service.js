@@ -53,10 +53,16 @@ class BillService {
   }
 
   _getBillDue(bill) {
-    return Math.max(0, this._round((bill.amount || 0) - (bill.paid_amount || 0)));
+    return Math.max(
+      0,
+      this._round((bill.amount || 0) - (bill.paid_amount || 0)),
+    );
   }
 
-  _normalizePaymentType(paymentType, defaultType = "cash_payment_received_amount") {
+  _normalizePaymentType(
+    paymentType,
+    defaultType = "cash_payment_received_amount",
+  ) {
     const raw = paymentType || defaultType;
     const normalizedRaw = String(raw).trim().toLowerCase();
     const underscored = normalizedRaw.replace(/\s+/g, "_");
@@ -166,7 +172,10 @@ class BillService {
           select: "item_name alias description hsn_id",
         },
       })
-      .populate("payment_entries.bank_id", "bank_name account_number ifsc_code");
+      .populate(
+        "payment_entries.bank_id",
+        "bank_name account_number ifsc_code",
+      );
 
     if (!bill) throw ApiError.notFound("Bill not found");
     return bill;
@@ -203,9 +212,15 @@ class BillService {
       );
     }
 
-    let totalAmount = challans.reduce((sum, challan) => sum + challan.amount, 0);
+    let totalAmount = challans.reduce(
+      (sum, challan) => sum + challan.amount,
+      0,
+    );
 
-    const contact = await Contact.findOne({ _id: contact_id, user_id: userId }).lean();
+    const contact = await Contact.findOne({
+      _id: contact_id,
+      user_id: userId,
+    }).lean();
     if (!contact) throw ApiError.notFound("Contact not found");
 
     let resolvedTransportId = null;
@@ -228,8 +243,13 @@ class BillService {
     if (transport_charge !== undefined && transport_charge !== null) {
       resolvedTransportCharge = Number(transport_charge);
     }
-    if (!Number.isFinite(resolvedTransportCharge) || resolvedTransportCharge < 0) {
-      throw ApiError.badRequest("transport_charge must be a non-negative number");
+    if (
+      !Number.isFinite(resolvedTransportCharge) ||
+      resolvedTransportCharge < 0
+    ) {
+      throw ApiError.badRequest(
+        "transport_charge must be a non-negative number",
+      );
     }
 
     let deliveredNum = null;
@@ -279,9 +299,9 @@ class BillService {
       contact_id,
       transport_id: resolvedTransportId,
       customer_name:
-        typeof customer_name === "string" && customer_name.trim()
-          ? customer_name.trim()
-          : contact.name || "",
+        typeof customer_name === "string" && customer_name.trim() ?
+          customer_name.trim()
+        : contact.name || "",
       vehicle_number:
         typeof vehicle_number === "string" ? vehicle_number.trim() : "",
       transport_charge: resolvedTransportCharge,
@@ -360,7 +380,9 @@ class BillService {
 
         const billId = String(row.bill_id);
         if (seen.has(billId)) {
-          throw ApiError.badRequest(`Duplicate bill_id '${billId}' in allocations`);
+          throw ApiError.badRequest(
+            `Duplicate bill_id '${billId}' in allocations`,
+          );
         }
         seen.add(billId);
 
@@ -368,7 +390,10 @@ class BillService {
           min: 0.01,
         });
 
-        normalizedAllocations.push({ bill_id: billId, amount: this._round(amount) });
+        normalizedAllocations.push({
+          bill_id: billId,
+          amount: this._round(amount),
+        });
       }
 
       const bills = await Bill.find({
@@ -438,8 +463,9 @@ class BillService {
     }
 
     const billIds = normalizedAllocations.map((row) => row.bill_id);
-    const bills = billIds.length
-      ? await Bill.find({
+    const bills =
+      billIds.length ?
+        await Bill.find({
           _id: { $in: billIds },
           contact_id,
           user_id: userId,
@@ -517,7 +543,9 @@ class BillService {
 
   async recordPayment(billId, userId, isGst, payload) {
     const normalizedPayload =
-      typeof payload === "object" && payload !== null ? payload : { amount: payload };
+      typeof payload === "object" && payload !== null ?
+        payload
+      : { amount: payload };
 
     const amount = toNumber(normalizedPayload.amount, "Payment amount", {
       min: 0.01,
@@ -542,7 +570,10 @@ class BillService {
     if (!bill) throw ApiError.notFound("Bill not found");
 
     const newPaidAmount = this._round((bill.paid_amount || 0) + amount);
-    const paymentStatus = this._resolvePaymentStatus(bill.amount, newPaidAmount);
+    const paymentStatus = this._resolvePaymentStatus(
+      bill.amount,
+      newPaidAmount,
+    );
 
     const excessAmount = Math.max(0, this._round(newPaidAmount - bill.amount));
 
@@ -576,7 +607,9 @@ class BillService {
 
   async handleReturn(billId, userId, isGst, payload) {
     const normalizedPayload =
-      typeof payload === "object" && payload !== null ? payload : { return_amount: payload };
+      typeof payload === "object" && payload !== null ?
+        payload
+      : { return_amount: payload };
 
     const returnAmount = toNumber(
       normalizedPayload.return_amount,
@@ -607,7 +640,10 @@ class BillService {
     }
 
     const newAmount = this._round(bill.amount - returnAmount);
-    const paymentStatus = this._resolvePaymentStatus(newAmount, bill.paid_amount || 0);
+    const paymentStatus = this._resolvePaymentStatus(
+      newAmount,
+      bill.paid_amount || 0,
+    );
 
     const entry = this._buildPaymentEntry({
       amount: returnAmount,
@@ -696,38 +732,37 @@ class BillService {
   }
 
   async getLastSoldItemsForParty(payload, userId, isGst) {
-    const partyId = payload?.party_id;
+    const contactId = payload?.contact_id;
     const itemId = payload?.item_id;
 
-    if (!partyId) {
-      throw ApiError.badRequest("party_id is required");
+    if (!contactId) {
+      throw ApiError.badRequest("contact_id is required");
     }
     if (!itemId) {
       throw ApiError.badRequest("item_id is required");
     }
 
-    if (!mongoose.Types.ObjectId.isValid(partyId)) {
-      throw ApiError.badRequest("Invalid party_id");
+    if (!mongoose.Types.ObjectId.isValid(contactId)) {
+      throw ApiError.badRequest("Invalid contact_id");
     }
     if (!mongoose.Types.ObjectId.isValid(itemId)) {
       throw ApiError.badRequest("Invalid item_id");
     }
 
-    const party = await Contact.findOne({
-      _id: partyId,
+    const contact = await Contact.findOne({
+      _id: contactId,
       user_id: userId,
-      type: "party",
     })
       .select("_id name type")
       .lean();
-    if (!party) {
-      throw ApiError.notFound("Party not found");
+    if (!contact) {
+      throw ApiError.notFound("Contact not found");
     }
 
     const bills = await Bill.find({
       user_id: userId,
       is_gst: isGst,
-      contact_id: partyId,
+      contact_id: contactId,
     })
       .select("_id bill_no date amount payment_status challan_ids")
       .sort({ date: -1, createdAt: -1, _id: -1 })
@@ -756,7 +791,7 @@ class BillService {
       user_id: userId,
       is_gst: isGst,
       challan_type: "sale",
-      contact_id: partyId,
+      contact_id: contactId,
       "items.item_id": itemId,
     })
       .select("bill_id challan_no date items")
@@ -770,13 +805,15 @@ class BillService {
     const entries = [];
 
     for (const challan of challans) {
-      const mappedBill = challan.bill_id ? billMap.get(String(challan.bill_id)) : null;
+      const mappedBill =
+        challan.bill_id ? billMap.get(String(challan.bill_id)) : null;
       if (!mappedBill) continue;
 
       for (const line of challan.items || []) {
         const lineItem = line?.item_id;
         const lineItemId =
-          typeof lineItem === "object" && lineItem?._id ? String(lineItem._id)
+          typeof lineItem === "object" && lineItem?._id ?
+            String(lineItem._id)
           : String(lineItem);
 
         if (lineItemId !== normalizedItemId) continue;

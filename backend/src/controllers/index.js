@@ -2,6 +2,7 @@ export { default as authController } from "./auth/auth.controller.js";
 export * as adminController from "./auth/admin.controller.js";
 export * as itemController from "./master/item.controller.js";
 export * as categoryController from "./master/category.controller.js";
+export * as labelController from "./master/label.controller.js";
 export * as brandController from "./master/brand.controller.js";
 export * as hsnController from "./master/hsn.controller.js";
 export * as contactController from "./master/contact.controller.js";

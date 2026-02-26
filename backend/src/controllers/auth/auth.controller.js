@@ -83,6 +83,20 @@ class AuthController {
         new ApiResponse(200, null, "All other sessions revoked successfully"),
       );
   });
+
+  uploadSignature = asyncHandler(async (req, res) => {
+    const result = await authService.uploadSignature(req.user._id, req.file);
+    res
+      .status(201)
+      .json(new ApiResponse(201, result, "Signature uploaded successfully"));
+  });
+
+  updateSignature = asyncHandler(async (req, res) => {
+    const result = await authService.updateSignature(req.user._id, req.file);
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Signature updated successfully"));
+  });
 }
 
 export default new AuthController();

@@ -6,6 +6,7 @@ import Subscription from "../../models/common/subscription.model.js";
 import Bank from "../../models/master/bank.model.js";
 import s3Service from "../common/s3.service.js";
 import { ApiError, Pagination } from "../../utils/index.js";
+import { getNextId } from "../../helpers/counter.js";
 
 class AdminService {
   _normalizeBankIds(bankIds, label) {
@@ -87,6 +88,29 @@ class AdminService {
       start_date: new Date(),
       notes: "Auto-created demo subscription",
     });
+  }
+
+  async _createFirmBank(userId, bankName, accountNumber, ifscCode, bankBranch) {
+    if (!bankName && !accountNumber) return null;
+
+    if (!bankName || typeof bankName !== "string" || !bankName.trim()) {
+      throw ApiError.badRequest("bank_name is required when providing bank details");
+    }
+    if (!accountNumber || typeof accountNumber !== "string" || !accountNumber.trim()) {
+      throw ApiError.badRequest("account_number is required when providing bank details");
+    }
+
+    const bank = await Bank.create({
+      id: await getNextId("Bank", userId),
+      bank_name: bankName.trim(),
+      account_number: accountNumber.trim(),
+      ifsc_code: typeof ifscCode === "string" ? ifscCode.trim() : "",
+      bank_branch: typeof bankBranch === "string" ? bankBranch.trim() : "",
+      is_default: false,
+      user_id: userId,
+    });
+
+    return bank._id;
   }
 
   _validateFirmRequired(firm, label) {
@@ -171,7 +195,10 @@ class AdminService {
       GSTIN: gstGSTIN,
       CIN: gstCIN,
       reg_number: gstRegNumber,
-      bank_ids: gstBankIds,
+      bank_name: gstBankName,
+      account_number: gstAccountNumber,
+      ifsc_code: gstIfscCode,
+      bank_branch: gstBankBranch,
     } = gst_firm;
 
     const {
@@ -186,19 +213,11 @@ class AdminService {
       GSTIN: nongstGSTIN,
       CIN: nongstCIN,
       reg_number: nongstRegNumber,
-      bank_ids: nongstBankIds,
+      bank_name: nongstBankName,
+      account_number: nongstAccountNumber,
+      ifsc_code: nongstIfscCode,
+      bank_branch: nongstBankBranch,
     } = nongst_firm;
-
-    const normalizedGstBankIds =
-      this._normalizeBankIds(gstBankIds, "GST Firm") || [];
-    const normalizedNongstBankIds =
-      this._normalizeBankIds(nongstBankIds, "Non-GST Firm") || [];
-
-    if (normalizedGstBankIds.length > 0 || normalizedNongstBankIds.length > 0) {
-      throw ApiError.badRequest(
-        "bank_ids can be assigned after user creation, once banks are created for that user",
-      );
-    }
 
     const user = await User.create({
       type: "secondary",
@@ -237,6 +256,32 @@ class AdminService {
         bank_ids: [],
       },
     });
+
+    // Create bank records from manual fields and assign to firms
+    const gstBankId = await this._createFirmBank(
+      user._id,
+      gstBankName,
+      gstAccountNumber,
+      gstIfscCode,
+      gstBankBranch,
+    );
+    const nongstBankId = await this._createFirmBank(
+      user._id,
+      nongstBankName,
+      nongstAccountNumber,
+      nongstIfscCode,
+      nongstBankBranch,
+    );
+
+    if (gstBankId) {
+      user.gst_firm.bank_ids = [gstBankId];
+    }
+    if (nongstBankId) {
+      user.nongst_firm.bank_ids = [nongstBankId];
+    }
+    if (gstBankId || nongstBankId) {
+      await user.save();
+    }
 
     await this._ensureDemoSubscription(user._id);
 
