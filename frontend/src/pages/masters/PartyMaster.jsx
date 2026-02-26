@@ -284,58 +284,35 @@ const PartyMaster = () => {
       return;
     }
 
-    const payload = new FormData();
-    payload.append('name', formData.name);
-    payload.append('type', 'party');
-    payload.append('is_gst', Number(formData.is_gst) === 1 ? 1 : 0);
-    if (formData.alias) payload.append('alias', formData.alias);
-    if (cleanPhone) payload.append('phone', cleanPhone);
-    if (formData.whatsapp_number) payload.append('whatsapp_number', formData.whatsapp_number);
-    if (formData.email) payload.append('email', formData.email);
-    if (formData.address) payload.append('address', formData.address);
-    if (formData.city) payload.append('city', formData.city);
-    if (formData.state) payload.append('state', formData.state);
-    if (formData.gstin) payload.append('gstin', formData.gstin.toUpperCase());
-    if (formData.category) payload.append('category_id', formData.category);
-    if (formData.cin) payload.append('cin', formData.cin);
-    if (formData.reg_number) payload.append('reg_number', formData.reg_number);
-    if (formData.bank_id) payload.append('bank_id', formData.bank_id);
-    if (formData.transport_charge) payload.append('transport_charge', formData.transport_charge);
-    if (formData.transport_id) payload.append('transport_id', formData.transport_id);
-    if (formData.area_id) payload.append('area_id', formData.area_id);
-    if (formData.agent) payload.append('agent_id', formData.agent);
-    if (formData.label_id) payload.append('label_id', formData.label_id);
+    const payload = {
+      name: formData.name,
+      type: 'party',
+      is_gst: Number(formData.is_gst) === 1 ? 1 : 0
+    };
+    if (formData.alias) payload.alias = formData.alias;
+    if (cleanPhone) payload.phone = cleanPhone;
+    if (formData.whatsapp_number) payload.whatsapp_number = formData.whatsapp_number;
+    if (formData.email) payload.email = formData.email;
+    if (formData.address) payload.address = formData.address;
+    if (formData.city) payload.city = formData.city;
+    if (formData.state) payload.state = formData.state;
+    if (formData.gstin) payload.gstin = formData.gstin.toUpperCase();
+    if (formData.category) payload.category_id = formData.category;
+    if (formData.cin) payload.cin = formData.cin;
+    if (formData.reg_number) payload.reg_number = formData.reg_number;
+    if (formData.bank_id) payload.bank_id = formData.bank_id;
+    if (formData.transport_charge) payload.transport_charge = formData.transport_charge;
+    if (formData.transport_id) payload.transport_id = formData.transport_id;
+    if (formData.area_id) payload.area_id = formData.area_id;
+    if (formData.agent) payload.agent_id = formData.agent;
+    if (formData.label_id) payload.label_id = formData.label_id;
 
     try {
       if (isEditModalOpen) {
-        const jsonPayload = {
-          name: formData.name,
-          type: 'party',
-          is_gst: Number(formData.is_gst) === 1 ? 1 : 0
-        };
-        if (formData.alias) jsonPayload.alias = formData.alias;
-        if (cleanPhone) jsonPayload.phone = cleanPhone;
-        if (formData.whatsapp_number) jsonPayload.whatsapp_number = formData.whatsapp_number;
-        if (formData.email) jsonPayload.email = formData.email;
-        if (formData.address) jsonPayload.address = formData.address;
-        if (formData.city) jsonPayload.city = formData.city;
-        if (formData.state) jsonPayload.state = formData.state;
-        if (formData.gstin) jsonPayload.gstin = formData.gstin.toUpperCase();
-        if (formData.category) jsonPayload.category_id = formData.category;
-        if (formData.cin) jsonPayload.cin = formData.cin;
-        if (formData.reg_number) jsonPayload.reg_number = formData.reg_number;
-        if (formData.bank_id) jsonPayload.bank_id = formData.bank_id;
-        if (formData.transport_charge) jsonPayload.transport_charge = formData.transport_charge;
-        if (formData.transport_id) jsonPayload.transport_id = formData.transport_id;
-        if (formData.area_id) jsonPayload.area_id = formData.area_id;
-        if (formData.agent) jsonPayload.agent_id = formData.agent;
-        if (formData.label_id) jsonPayload.label_id = formData.label_id;
-        await api.put(`/contacts/${selectedParty.id}`, jsonPayload);
+        await api.put(`/contacts/${selectedParty.id}`, payload);
         showToast('Party updated successfully', 'success');
       } else {
-        await api.post('/contacts', payload, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await api.post('/contacts', payload);
         showToast('Party created successfully', 'success');
       }
       
