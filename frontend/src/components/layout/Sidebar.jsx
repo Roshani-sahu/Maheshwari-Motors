@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   FaBookOpen,
   FaHouse,
@@ -7,7 +7,7 @@ import {
   // FaRightLeft,
   FaChartPie,
   // FaSliders,
-  FaCircleQuestion,
+  FaRightFromBracket,
   FaBuilding,
   FaFileInvoiceDollar,
   FaListCheck,
@@ -55,8 +55,20 @@ const SidebarSection = ({ title, children, defaultOpen = false }) => {
 };
 
 const Sidebar = ({ onClose }) => {
+  const navigate = useNavigate();
   const linkBase =
     "flex items-center gap-3 px-3 py-2 text-sm rounded-md transition";
+
+  const handleLogout = async () => {
+    try {
+      await (await import('../../services/axiosInstance')).default.post('/auth/logout');
+    } catch (error) {
+      console.error("Logout API failed", error);
+    } finally {
+      localStorage.removeItem('token');
+      navigate('/login');
+    }
+  };
 
   return (
     <aside className="flex flex-col w-60 min-h-screen max-h-full fixed border-r pb-3 border-neutral-200 bg-[#0F172A] ">
@@ -561,20 +573,16 @@ const Sidebar = ({ onClose }) => {
       </nav>
 
       {/* Footer - Fixed to bottom */}
-      <div className="fixed bottom-0 left-0 w-60 p-4 border-t border-neutral-200 bg-[#0F172A] z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 flex items-center justify-center bg-neutral-100 rounded-full">
-            <FaCircleQuestion className="text-neutral-600 text-sm" />
+      <div className="fixed bottom-0 left-0 w-60 p-1 border-t border-neutral-200 bg-[#0F172A] z-10">
+        <button onClick={handleLogout} className="flex items-center gap-3 w-full hover:bg-neutral-100 hover:text-neutral-900 rounded-md px-3 py-2 transition">
+          <div className="w-8 h-8 flex items-center justify-center bg-red-100 rounded-full">
+            <FaRightFromBracket className="text-red-600 text-sm" />
           </div>
-          <div>
-            <p className="text-sm text-[#CBD5E1]">
-              <NavLink to="/help-support" onClick={onClose} className="hover:text-white transition cursor-pointer">
-                Help & Support
-              </NavLink>
-            </p>
-            <p className="text-xs text-neutral-500">Get assistance</p>
+          <div className="text-left">
+            <p className="text-sm text-[#CBD5E1] font-medium">Logout</p>
+            <p className="text-xs text-neutral-500">Sign out of account</p>
           </div>
-        </div>
+        </button>
       </div>
     </aside>
   );

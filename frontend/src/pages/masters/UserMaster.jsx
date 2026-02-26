@@ -191,10 +191,40 @@ const UserMaster = () => {
 
   const fetchTransactions = async () => {
     try {
-      const response = await api.get('/admin/transactions');
+      let allTransactions = [];
+      let page = 1;
+      let hasMore = true;
+
+      while(hasMore && page <= 10) {
+        const response = await api.get('/admin/subscriptions', { params: { page, limit: 20 } });
+        const paginationData = response.data.data;
+        
+        let pageData = [];
+        if (Array.isArray(paginationData)) {
+          pageData = paginationData;
+          hasMore = false;
+        } else {
+          pageData = paginationData.data || [];
+          if (paginationData?.meta && paginationData.meta.hasNextPage) {
+            page++;
+          } else {
+            hasMore = false;
+          }
+        }
+        allTransactions = [...allTransactions, ...pageData];
+      }
+
       if (isMounted.current) {
-        const txnData = Array.isArray(response.data?.data) ? response.data.data : response.data?.data?.data || [];
-        setTransactions(txnData.length > 0 ? txnData : DUMMY_TRANSACTIONS);
+        const mappedTransactions = allTransactions.map(sub => ({
+          user: sub.user_id?.name || 'Unknown User',
+          plan: sub.plan_type,
+          validityFrom: sub.start_date,
+          validityTo: sub.expiry_date,
+          amount: 0,
+          createdAt: sub.createdAt,
+          status: sub.status
+        }));
+        setTransactions(mappedTransactions.length > 0 ? mappedTransactions : DUMMY_TRANSACTIONS);
       }
     } catch (error) {
       if (isMounted.current) {
@@ -900,10 +930,10 @@ const UserMaster = () => {
                 </div>
 
                 {/* Bank Details */}
-                {viewingUser.original?.gst_firm?.banks && viewingUser.original.gst_firm.banks.length > 0 && (
-                  <div className="sm:col-span-2">
-                    <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
-                    {viewingUser.original.gst_firm.banks.map((bank, idx) => (
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {(viewingUser.original?.gst_firm?.banks && viewingUser.original.gst_firm.banks.length > 0) ? (
+                    viewingUser.original.gst_firm.banks.map((bank, idx) => (
                       <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
@@ -924,9 +954,13 @@ const UserMaster = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    ))
+                  ) : (
+                    <div className="border rounded p-3 bg-gray-50 text-center text-gray-500 text-sm">
+                      No bank details available
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -979,10 +1013,10 @@ const UserMaster = () => {
                 </div>
 
                 {/* Bank Details */}
-                {viewingUser.original?.nongst_firm?.banks && viewingUser.original.nongst_firm.banks.length > 0 && (
-                  <div className="sm:col-span-2">
-                    <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
-                    {viewingUser.original.nongst_firm.banks.map((bank, idx) => (
+                <div className="sm:col-span-2">
+                  <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
+                  {(viewingUser.original?.nongst_firm?.banks && viewingUser.original.nongst_firm.banks.length > 0) ? (
+                    viewingUser.original.nongst_firm.banks.map((bank, idx) => (
                       <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
@@ -1003,9 +1037,13 @@ const UserMaster = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    ))
+                  ) : (
+                    <div className="border rounded p-3 bg-gray-50 text-center text-gray-500 text-sm">
+                      No bank details available
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
