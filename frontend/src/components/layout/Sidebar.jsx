@@ -249,6 +249,21 @@ const Sidebar = ({ onClose }) => {
               <FaBuilding className="w-4 h-4" />
               Bank Master
             </NavLink>
+
+            <NavLink
+              to="/masters/return-master"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaFileInvoice className="w-4 h-4" />
+              Return Master
+            </NavLink>
             
 
               <NavLink
