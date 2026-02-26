@@ -23,6 +23,7 @@ const challanSchema = new mongoose.Schema(
     },
     date: { type: Date, required: true, default: Date.now },
     label_name: { type: String, trim: true, default: null },
+    print_option: { type: Number, enum: [1, 2], default: 2 },
     contact_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Contact",
