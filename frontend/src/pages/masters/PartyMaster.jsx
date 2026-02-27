@@ -64,6 +64,7 @@ const PartyMaster = () => {
   const mapParty = (contact) => {
     const normalized = normalizeContact(contact);
     const bankId = typeof contact.bank_id === 'object' ? getEntityId(contact.bank_id) : contact.bank_id;
+    const labelId = getEntityId(contact.label_id);
     return {
       id: normalized.id,
       name: normalized.name,
@@ -86,7 +87,7 @@ const PartyMaster = () => {
       transport_id: normalized.transport_id,
       area_id: normalized.area_id,
       agent: normalized.agent_id,
-      label_id: normalized.label_id
+      label_id: labelId
     };
   };
 
@@ -95,6 +96,7 @@ const PartyMaster = () => {
     const fetchParties = async () => {
       try {
         const response = await api.get('/contacts/parties', { params: { page: 1, limit: 200 } });
+        console.log('Party data:', getResponseList(response));
         setParties(getResponseList(response).map(mapParty));
       } catch (error) {
         console.error("Failed to fetch parties", error);
@@ -104,27 +106,29 @@ const PartyMaster = () => {
     fetchParties();
   }, [showToast]);
 
-  // Fetch categories and extract labels
+  // Fetch categories and labels
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchCategoriesAndLabels = async () => {
       try {
-        const response = await api.get('/categories');
-        const cats = getResponseList(response);
+        const [catRes, labelRes] = await Promise.all([
+          api.get('/categories'),
+          api.get('/labels', { params: { page: 1, limit: 200 } })
+        ]);
+        
+        const cats = getResponseList(catRes);
         setCategories(cats);
         
-        const allLabels = cats.flatMap(cat => 
-          (cat.labels || []).map(label => ({
-            _id: label._id,
-            name: label.name,
-            category_id: getEntityId(cat)
-          }))
-        );
-        setLabels(allLabels);
+        const labelsData = getResponseList(labelRes).map(label => ({
+          _id: getEntityId(label),
+          name: label.name || label.label_name,
+          category_id: getEntityId(label.category_id)
+        }));
+        setLabels(labelsData);
       } catch (error) {
-        console.error("Failed to fetch categories", error);
+        console.error("Failed to fetch categories/labels", error);
       }
     };
-    fetchCategories();
+    fetchCategoriesAndLabels();
   }, []);
 
   // Fetch agents
@@ -520,7 +524,7 @@ const PartyMaster = () => {
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Label</label>
-                <p className="text-sm text-gray-900">{labels.find(l => getEntityId(l) === selectedParty.label_id)?.name || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{labels.find(l => l._id === selectedParty.label_id)?.name || 'N/A'}</p>
               </div>
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label>

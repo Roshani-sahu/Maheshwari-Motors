@@ -73,10 +73,11 @@ const Dashboard = () => {
         const isGstValue = isGst ? 1 : 0;
 
         // Fetch General Dashboard Data (Big Object), Items (for stock), and Alert Count
-        const [dashboardRes, todayFirmRes, billsRes, itemRes, alertCountRes] = await Promise.all([
+        const [dashboardRes, todayFirmRes, challansRes, billsRes, itemRes, alertCountRes] = await Promise.all([
              api.get('/dashboard'),
              api.get('/dashboard/firm', { params: { is_gst: isGstValue, period: 'today' } }),
-             api.get('/bills'),
+             api.get('/challans', { params: { page: 1, limit: 20 } }),
+             api.get('/bills', { params: { page: 1, limit: 20 } }),
              api.get('/items', { params: { page: 1, limit: 100 } }),
              api.get('/items/low-stock', { params: { page: 1, limit: 100 } })
         ]);
@@ -85,7 +86,10 @@ const Dashboard = () => {
 
         const data = dashboardRes.data?.data || {};
         const todayData = todayFirmRes.data?.data || {};
-        const totalBills = getResponseList(billsRes).length;
+        const totalChallans = challansRes.data?.data?.meta?.total || getResponseList(challansRes).length;
+        const totalBills = billsRes.data?.data?.meta?.total || getResponseList(billsRes).length;
+        const recentChallansData = getResponseList(challansRes).slice(0, 5);
+        const recentBillsData = getResponseList(billsRes).slice(0, 5);
         const items = Array.isArray(itemRes.data?.data) ? itemRes.data.data : (Array.isArray(itemRes.data) ? itemRes.data : []);
         
         // Get alert count safely
@@ -95,7 +99,6 @@ const Dashboard = () => {
           : (Array.isArray(alertPayload?.data) ? alertPayload.data.length : (alertPayload?.meta?.totalDocs || 0));
 
         // Use firm-specific data with period filter
-        const totalChallans = todayData.sale_challans || data.counts?.sale_challans || 0;
         setDashboardData({
             totalFirms: 2, 
             todaysChallans: totalChallans,
@@ -103,25 +106,9 @@ const Dashboard = () => {
             lowStockAlerts: alertCountVal
         });
         
-        // Recent Lists - Backend returns mixed, we filter
-        /*
-        const filterRecent = (list) => (list || []).filter(item => {
-             // item.is_gst might be 1/0 or string '1'/'0'
-             const itemIsGstVal = Number(item.is_gst);
-             const itemIsGst = itemIsGstVal === 1;
-             return itemIsGst === isGst;
-        });
-
-        const recentC = filterRecent(data.recent_challans);
-        const recentB = filterRecent(data.recent_bills);
-        */
-        
-        // Use raw data to ensure transactions show up (Backend returns global list for user)
-        const recentC = data.recent_challans || [];
-        const recentB = data.recent_bills || [];
-        
-        setRecentChallans(recentC);
-        setRecentBills(recentB);
+        // Set recent challans and bills from API
+        setRecentChallans(recentChallansData);
+        setRecentBills(recentBillsData);
         
         // Update Store
         setItems(items);
@@ -172,20 +159,15 @@ const Dashboard = () => {
     className="p-3 sm:p-4 md:p-6"
   />
   
-  {/* Custom Bill Card */}
-  <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg border-l-2 sm:border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
-    <div className="flex items-center justify-between mb-2 sm:mb-3 md:mb-4">
-      <div>
-        <p className="text-xs sm:text-sm font-medium text-gray-600">Total Bills</p>
-      </div>
-      <div className="p-2 sm:p-3 rounded-full bg-purple-50">
-        <FaFileInvoiceDollar className="text-sm sm:text-base md:text-xl text-purple-600" />
-      </div>
-    </div>
-    <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-      {dashboardData?.todaysBills || 0}
-    </p>
-  </div>
+  <StatsCard
+    title="Total Bills"
+    value={dashboardData?.todaysBills || 0}
+    subtitle="All Bills"
+    icon={FaFileInvoiceDollar}
+    color="purple"
+    onClick={() => navigate('/transactions/bill-list')}
+    className="p-3 sm:p-4 md:p-6"
+  />
   
   <StatsCard
     title="Low Stock Alerts"
@@ -212,11 +194,11 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="p-4 space-y-3">
-            {recentChallans.map((challan) => (
+            {recentChallans.length > 0 ? recentChallans.map((challan) => (
               <div key={challan._id || challan.id} className="flex items-center justify-between text-sm">
                 <div>
                   <span className="font-medium text-gray-900">{challan.challan_no || challan.id}</span>
-                  <span className="text-gray-600 ml-2">{challan.party_name}</span>
+                  <span className="text-gray-600 ml-2">{challan.contact_id?.name || challan.party_name || 'N/A'}</span>
                 </div>
                 <div className="text-right">
                   <div className="font-medium text-gray-900">{formatCurrency(challan.amount || 0)}</div>
@@ -228,7 +210,9 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-gray-500 text-center py-4">No recent challans</p>
+            )}
           </div>
         </div>
 
@@ -245,18 +229,20 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="p-4 space-y-3">
-            {recentBills.map((bill) => (
+            {recentBills.length > 0 ? recentBills.map((bill) => (
               <div key={bill._id || bill.id} className="flex items-center justify-between text-sm">
                 <div>
                   <span className="font-medium text-gray-900">{bill.bill_no || bill.id}</span>
-                  <span className="text-gray-600 ml-2">{bill.party_id?.name || bill.party_name}</span>
+                  <span className="text-gray-600 ml-2">{bill.contact_id?.name || bill.party_id?.name || bill.party_name || 'N/A'}</span>
                 </div>
                 <div className="text-right">
                   <div className="font-medium text-gray-900">{formatCurrency(bill.amount || 0)}</div>
                   <div className="text-xs text-gray-500">{formatDate(new Date(bill.date))}</div>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-gray-500 text-center py-4">No recent bills</p>
+            )}
           </div>
         </div>
       </div>

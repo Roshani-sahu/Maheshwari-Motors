@@ -64,6 +64,7 @@ export const normalizeContact = (contact = {}) => ({
   transport_id: getEntityId(contact?.transport_id),
   area_id: getEntityId(contact?.area_id),
   agent_id: getEntityId(contact?.agent_id),
+  label_id: getEntityId(contact?.label_id),
   cin: contact?.cin || "",
   reg_number: contact?.reg_number || "",
   bank_name: contact?.bank_name || "",
@@ -77,6 +78,7 @@ export const normalizeContact = (contact = {}) => ({
 export const normalizeItem = (item = {}) => ({
   id: getEntityId(item),
   itemName: item?.item_name || item?.name || "",
+  alias: item?.alias || "",
   barcode: item?.barcode || item?.barcode_no || item?.barcodeNumber || item?.barcode_value || "",
   amount: toNumber(item?.sale_rate ?? item?.amount ?? item?.rate, 0),
   purchase_rate: toNumber(item?.purchase_rate, 0),
@@ -96,6 +98,9 @@ export const normalizeItem = (item = {}) => ({
   categoryId: getEntityId(item?.category_id || item?.category_ids?.[0]),
   brandId: getEntityId(item?.brand_id),
   supplierId: getEntityId(item?.contact_id || item?.supplier_id),
+  departmentId: getEntityId(item?.dept_id || item?.department_id),
+  hsn_code: item?.hsn_code || "",
+  description: item?.description || "",
   itemMedia: item?.image || "",
   raw: item,
 });
@@ -189,9 +194,19 @@ export const normalizeBill = (bill = {}) => ({
   id: getEntityId(bill),
   billNo: bill?.bill_no || bill?.billNo || "",
   date: bill?.date || null,
+  createdAt: bill?.createdAt || bill?.created_at || null,
   partyId: getEntityId(bill?.contact_id || bill?.party_id),
   party: bill?.contact_id?.name || bill?.party_id?.name || "Unknown",
-  amount: toNumber(bill?.amount ?? bill?.total_amount, 0),
+  amount: (() => {
+    const billAmount = toNumber(bill?.amount ?? bill?.total_amount, 0);
+    if (billAmount > 0) return billAmount;
+    
+    const challanItems = (bill?.challan_ids || []).flatMap((challan) => challan?.items || []);
+    const calculatedAmount = challanItems.reduce((sum, item) => {
+      return sum + toNumber(item?.amount, 0);
+    }, 0);
+    return calculatedAmount;
+  })(),
   gstType: toNumber(bill?.is_gst, 0) === 1 ? 1 : 0,
   payment_status: bill?.payment_status || "",
   linkedChallans:

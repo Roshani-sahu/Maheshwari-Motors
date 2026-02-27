@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FaEye,
+  // FaEye,
   FaFileInvoiceDollar,
   FaFilter,
   FaLink,
@@ -26,8 +26,34 @@ const BillList = () => {
   useEffect(() => {
     const fetchBills = async () => {
       try {
-        const response = await api.get("/bills");
-        setBills(getResponseList(response).map(normalizeBill));
+        let allBills = [];
+        let page = 1;
+        let hasMore = true;
+
+        while (hasMore && page <= 50) {
+          const response = await api.get("/bills", { params: { page, limit: 100 } });
+          const data = response?.data?.data;
+          
+          let pageData = [];
+          if (Array.isArray(data)) {
+            pageData = data;
+            hasMore = false;
+          } else {
+            pageData = data?.data || [];
+            if (data?.meta?.hasNextPage) {
+              page++;
+            } else {
+              hasMore = false;
+            }
+          }
+          allBills = [...allBills, ...pageData];
+        }
+
+        setBills(allBills.map(normalizeBill).sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.date);
+          const dateB = new Date(b.createdAt || b.date);
+          return dateB - dateA;
+        }));
       } catch (error) {
         console.error("Failed to fetch bills", error);
       }

@@ -37,10 +37,7 @@ const ItemMaster = () => {
     return {
       ...normalized,
       item_id: item?.item_id,
-      barcode: item?.barcode,
-      status: normalized.stockCount < normalized.threshold ? 'LOW' : 'OK',
-      hsn_code: item?.hsn_code || '',
-      description: item?.description || ''
+      status: normalized.stockCount < normalized.threshold ? 'LOW' : 'OK'
     };
   };
 
@@ -85,21 +82,49 @@ const ItemMaster = () => {
   useEffect(() => {
       const fetchCategories = async () => {
           try {
-              const [catRes, brandRes, supplierRes, hsnRes, deptRes] = await Promise.all([
+              const [catRes, supplierRes, hsnRes, deptRes] = await Promise.all([
                   api.get('/categories'),
-                  api.get('/brands'),
                   api.get('/contacts/suppliers', { params: { page: 1, limit: 200 } }),
                   api.get('/hsn', { params: { page: 1, limit: 200 } }),
                   api.get('/departments'),
               ]);
+              
               setCategories(getResponseList(catRes).map((category) => {
                 const normalized = normalizeCategory(category);
                 return { id: normalized.id, name: normalized.name };
               }));
-              setBrands(getResponseList(brandRes).map((brand) => {
+              
+              // Fetch all brands with pagination
+              let allBrands = [];
+              let page = 1;
+              let hasMore = true;
+              
+              while (hasMore) {
+                try {
+                  const brandRes = await api.get('/brands', { params: { page, limit: 100 } });
+                  const pageBrands = getResponseList(brandRes);
+                  allBrands = [...allBrands, ...pageBrands];
+                  
+                  const meta = getResponseMeta(brandRes);
+                  if (meta?.hasNextPage) {
+                    page++;
+                  } else {
+                    hasMore = false;
+                  }
+                  
+                  if (pageBrands.length === 0) hasMore = false;
+                  if (page > 50) hasMore = false;
+                } catch (error) {
+                  console.error('Error fetching brands page', page, error);
+                  hasMore = false;
+                }
+              }
+              
+              setBrands(allBrands.map((brand) => {
                 const normalized = normalizeBrand(brand);
                 return { id: normalized.id, name: normalized.name };
               }));
+              
               setSuppliers(getResponseList(supplierRes).map((supplier) => {
                 const normalized = normalizeContact(supplier);
                 return { id: normalized.id, name: normalized.name };

@@ -843,6 +843,7 @@ const BillForm = () => {
           contact_id: bill.party,
           challan_ids: [challanId],
           delivered_amount: 0,
+          amount: calculateTotalAmount(),
           bill_no: bill.billNumber || undefined,
           transport_id: bill.transportId || undefined,
           transport_charge: parseFloat(bill.transportCharge) || 0,
@@ -851,9 +852,9 @@ const BillForm = () => {
           vehicle_no: bill.vehicleNo || undefined,
         };
         const res = await api.post("/bills", payload);
-        console.log(res);
+        console.log("Bill creation response:", res.data);
       } catch (error) {
-        console.log("Bill creation error:", error, error.response.data);
+        console.log("Bill creation error:", error, error.response?.data);
       }
 
       showToast("Bill created successfully", "success");
@@ -870,12 +871,12 @@ const BillForm = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Create Bill</h1>
-          <input
+          {/* <input
             type="text"
             value={bill.billNumber}
             onChange={(e) => setBill((prev) => ({ ...prev, billNumber: e.target.value }))}
             className="px-3 py-2 border rounded-md text-sm"
-          />
+          /> */}
         </div>
         <Button
           variant="outline"
@@ -1342,7 +1343,7 @@ const BillForm = () => {
           </div>
         </div>
 
-        {bill.items.length > 0 && (
+        {/* {bill.items.length > 0 && (
           <div className="border rounded-lg p-4 bg-gray-50">
             <span className="text-sm font-medium text-gray-700">
               Selected Items ({bill.items.length}):
@@ -1369,7 +1370,7 @@ const BillForm = () => {
               })}
             </div>
           </div>
-        )}
+        )} */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">

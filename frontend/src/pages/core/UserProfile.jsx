@@ -48,14 +48,18 @@ const UserProfile = () => {
 
         const isGst = String(userData?.current_firm_type || '').toUpperCase() === 'GST';
 
-        const [dashboardRes, todayFirmRes, lowStockRes] = await Promise.all([
+        const [dashboardRes, todayFirmRes, challansRes, billsRes, lowStockRes] = await Promise.all([
           api.get('/dashboard', { signal: controller.signal }),
           api.get('/dashboard/firm', { params: { is_gst: isGst ? 1 : 0, period: 'today' }, signal: controller.signal }),
+          api.get('/challans', { params: { page: 1, limit: 20 }, signal: controller.signal }),
+          api.get('/bills', { params: { page: 1, limit: 20 }, signal: controller.signal }),
           api.get('/items/low-stock', { params: { page: 1, limit: 200 }, signal: controller.signal })
         ]);
 
         const data = dashboardRes?.data?.data || {};
         const todayData = todayFirmRes?.data?.data || {};
+        const totalChallans = challansRes.data?.data?.meta?.total || 0;
+        const totalBills = billsRes.data?.data?.meta?.total || 0;
 
         const lowStockPayload = lowStockRes?.data?.data;
         const lowStockCount = Array.isArray(lowStockPayload)
@@ -63,8 +67,8 @@ const UserProfile = () => {
           : (Array.isArray(lowStockPayload?.data) ? lowStockPayload.data.length : (lowStockPayload?.meta?.totalDocs || 0));
 
         setDashboardData({
-          todaysChallans: todayData.sale_challans || 0,
-          todaysBills: todayData.bills || 0,
+          todaysChallans: totalChallans,
+          todaysBills: totalBills,
           lowStockAlerts: Number(lowStockCount || 0)
         });
       } catch (err) {
