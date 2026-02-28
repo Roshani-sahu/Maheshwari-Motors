@@ -50,10 +50,12 @@ import ChallanForm from "./pages/transactions/ChallanForm";
 import BillList from "./pages/transactions/BillList";
 import BillForm from "./pages/transactions/BillForm";
 import TransactionHistory from "./pages/transactions/TransactionHistory";
+import OutStandings from "./pages/transactions/OutStandings";
 
 // Report Pages
 import Reports from "./pages/reports/Reports";
 import GSTReport from "./pages/reports/GSTReport";
+import GSTReportDetails from "./pages/reports/GSTReportDetails";
 import PurchaseReport from "./pages/reports/PurchaseReport";
 import SalesReport from "./pages/reports/SalesReport";
 import SalesReturnReport from "./pages/reports/SalesReturnReport";
@@ -62,6 +64,7 @@ import PurchaseReturnReport from "./pages/reports/PurchaseReturnReport";
 // Setup Pages
 import BackupRestore from "./pages/setup/BackupRestore";
 import FinancialYearClose from "./pages/setup/FinancialYearClose";
+import ChequePrintSetup from "./pages/setup/ChequePrintSetup";
 
 // Components
 import FirmSetup from "./components/FirmSetup";
@@ -146,11 +149,13 @@ const App = () => {
           <Route path="/transactions/bill-list" element={<BillList />} />
           <Route path="/transactions/bills/create" element={<BillForm />} />
           <Route path="/transactions/transaction-history" element={<TransactionHistory />} />
+          <Route path="/transactions/outstandings" element={<OutStandings />} />
 
           {/* 4. Reports */}
           <Route path="/reports" element={<Reports />} />
           <Route path="/reports/purchase-report" element={<PurchaseReport />} />
           <Route path="/reports/gst-report" element={<GSTReport />} />
+          <Route path="/reports/gst-report-details" element={<GSTReportDetails />} />
           <Route path="/reports/sales-report" element={<SalesReport />} />
           <Route path="/reports/sales-return-report" element={<SalesReturnReport />} />
           <Route path="/reports/purchase-return-report" element={<PurchaseReturnReport />} />
@@ -158,6 +163,7 @@ const App = () => {
           {/* 5. Setup & Tools */}
           <Route path="/setup/backup-restore" element={<BackupRestore />} />
           <Route path="/setup/financial-year-close" element={<FinancialYearClose />} />
+          <Route path="/setup/cheque-print-setup" element={<ChequePrintSetup />} />
 
           {/* Settings */}
           <Route path="/settings" element={<Settings />} />
