@@ -346,13 +346,82 @@ const UserMaster = () => {
 
   const handleUpdateUser = async () => {
       try {
-        const updatedUser = { ...editingForm };
+        // Update banks first
+        const bankUpdates = [];
+        if (editingForm.gst_firm?.bank_ids) {
+          editingForm.gst_firm.bank_ids.forEach(b => {
+            if (typeof b === 'object' && b._id) {
+              bankUpdates.push(api.put(`/banks/${b._id}`, {
+                bank_name: b.bank_name,
+                bank_branch: b.bank_branch,
+                ifsc_code: b.ifsc_code,
+                account_number: b.account_number,
+                account_holder: b.account_holder,
+                upi_id: b.upi_id,
+                is_default: b.is_default
+              }));
+            }
+          });
+        }
+        if (editingForm.nongst_firm?.bank_ids) {
+          editingForm.nongst_firm.bank_ids.forEach(b => {
+            if (typeof b === 'object' && b._id) {
+              bankUpdates.push(api.put(`/banks/${b._id}`, {
+                bank_name: b.bank_name,
+                bank_branch: b.bank_branch,
+                ifsc_code: b.ifsc_code,
+                account_number: b.account_number,
+                account_holder: b.account_holder,
+                upi_id: b.upi_id,
+                is_default: b.is_default
+              }));
+            }
+          });
+        }
+        await Promise.all(bankUpdates);
+
+        // Update user with only bank IDs
+        const updatedUser = {
+          name: editingForm.name,
+          email: editingForm.email,
+          phone: editingForm.phone,
+          gst_firm: {
+            username: editingForm.gst_firm?.username,
+            password: editingForm.gst_firm?.password,
+            name: editingForm.gst_firm?.name,
+            phone: editingForm.gst_firm?.phone,
+            email: editingForm.gst_firm?.email,
+            address: editingForm.gst_firm?.address,
+            godown_address: editingForm.gst_firm?.godown_address,
+            city: editingForm.gst_firm?.city,
+            state: editingForm.gst_firm?.state,
+            GSTIN: editingForm.gst_firm?.GSTIN,
+            CIN: editingForm.gst_firm?.CIN,
+            reg_number: editingForm.gst_firm?.reg_number,
+            bank_ids: editingForm.gst_firm?.bank_ids?.map(b => b._id || b)
+          },
+          nongst_firm: {
+            username: editingForm.nongst_firm?.username,
+            password: editingForm.nongst_firm?.password,
+            name: editingForm.nongst_firm?.name,
+            phone: editingForm.nongst_firm?.phone,
+            email: editingForm.nongst_firm?.email,
+            address: editingForm.nongst_firm?.address,
+            godown_address: editingForm.nongst_firm?.godown_address,
+            city: editingForm.nongst_firm?.city,
+            state: editingForm.nongst_firm?.state,
+            GSTIN: editingForm.nongst_firm?.GSTIN,
+            CIN: editingForm.nongst_firm?.CIN,
+            reg_number: editingForm.nongst_firm?.reg_number,
+            bank_ids: editingForm.nongst_firm?.bank_ids?.map(b => b._id || b)
+          }
+        };
         if (newPassword) {
           updatedUser.password = newPassword;
         }
-        console.log('📤 Updating user with data:', JSON.stringify(updatedUser, null, 2));
-        await api.put(`/admin/users/${editingUser.id}`, updatedUser);
-        console.log('✅ User updated successfully');
+        
+        const userId = editingForm._id || editingForm.id || editingUser.id;
+        await api.put(`/admin/users/${userId}`, updatedUser);
         
         setIsEditModalOpen(false);
         setNewPassword('');

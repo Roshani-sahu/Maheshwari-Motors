@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaTimes, FaSave, FaEye, FaPrint } from "react-icons/fa";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
-import { Modal } from '../../components/common';
+import { Modal } from "../../components/common";
 import api from "../../services/axiosInstance";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -46,7 +46,9 @@ const BillForm = () => {
 
   const firmType =
     selectedFirm?.type ||
-    (selectedFirm?.id === "GST" ? "GST" : selectedFirm?.id === "NON_GST" ? "NON_GST" : "") ||
+    (selectedFirm?.id === "GST" ? "GST"
+    : selectedFirm?.id === "NON_GST" ? "NON_GST"
+    : "") ||
     getFirmTypeFromToken() ||
     user?.current_firm_type ||
     user?.firm_type ||
@@ -69,7 +71,10 @@ const BillForm = () => {
   const [itemsPage, setItemsPage] = useState(1);
   const [totalItemsPages, setTotalItemsPages] = useState(1);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
-  const [viewItemModal, setViewItemModal] = useState({ isOpen: false, data: null });
+  const [viewItemModal, setViewItemModal] = useState({
+    isOpen: false,
+    data: null,
+  });
   const itemDropdownRef = useRef(null);
 
   const [bill, setBill] = useState({
@@ -122,8 +127,16 @@ const BillForm = () => {
             name: normalized.name,
             is_gst: normalized.is_gst,
             label_id: normalized.label_id,
-            transport_charge: normalized.transport_charge || party.transport_charge || party.transportCharge || 0,
-            transport_id: normalized.transport_id || party.transport_id || party.transportId || null,
+            transport_charge:
+              normalized.transport_charge ||
+              party.transport_charge ||
+              party.transportCharge ||
+              0,
+            transport_id:
+              normalized.transport_id ||
+              party.transport_id ||
+              party.transportId ||
+              null,
             agent: normalized.agent_id || party.agent || party.agent_id || null,
           };
         });
@@ -134,9 +147,21 @@ const BillForm = () => {
             name: normalized.name,
             is_gst: normalized.is_gst,
             gstin: supplier.gstin || "",
-            transport_charge: normalized.transport_charge || supplier.transport_charge || supplier.transportCharge || 0,
-            transport_id: normalized.transport_id || supplier.transport_id || supplier.transportId || null,
-            agent: normalized.agent_id || supplier.agent || supplier.agent_id || null,
+            transport_charge:
+              normalized.transport_charge ||
+              supplier.transport_charge ||
+              supplier.transportCharge ||
+              0,
+            transport_id:
+              normalized.transport_id ||
+              supplier.transport_id ||
+              supplier.transportId ||
+              null,
+            agent:
+              normalized.agent_id ||
+              supplier.agent ||
+              supplier.agent_id ||
+              null,
           };
         });
         const itemsData = getResponseList(iRes).map((item) => {
@@ -156,7 +181,12 @@ const BillForm = () => {
 
         const agentsData = getResponseList(aRes).map((ag) => ({
           id: getEntityId(ag) || ag._id || ag.id,
-          name: ag.name || ag.agent_name || ag.fullName || ag.contact_name || "Unknown",
+          name:
+            ag.name ||
+            ag.agent_name ||
+            ag.fullName ||
+            ag.contact_name ||
+            "Unknown",
         }));
         setLoadedAgents(agentsData);
 
@@ -278,7 +308,9 @@ const BillForm = () => {
     const controller = new AbortController();
     const fetchLabelDiscounts = async () => {
       try {
-        const res = await api.get(`/labels/${labelId}`, { signal: controller.signal });
+        const res = await api.get(`/labels/${labelId}`, {
+          signal: controller.signal,
+        });
         const labelData = getResponseData(res) || {};
         const brandDiscounts = labelData?.brand_discounts || [];
         const discountMap = {};
@@ -286,11 +318,16 @@ const BillForm = () => {
           const brandId = getEntityId(entry?.brand_id);
           if (!brandId) return;
           discountMap[brandId] = {
-            discount1: entry?.disc1 || entry?.discount1 || { normal: 0, special: 0 },
-            discount2: entry?.disc2 || entry?.discount2 || { normal: 0, special: 0 },
+            discount1: entry?.disc1 ||
+              entry?.discount1 || { normal: 0, special: 0 },
+            discount2: entry?.disc2 ||
+              entry?.discount2 || { normal: 0, special: 0 },
           };
         });
-        setLoadedLabelDiscounts((prev) => ({ ...prev, [labelId]: discountMap }));
+        setLoadedLabelDiscounts((prev) => ({
+          ...prev,
+          [labelId]: discountMap,
+        }));
       } catch (error) {
         if (error?.name !== "CanceledError") {
           console.error("Failed to load label discounts", error);
@@ -305,11 +342,13 @@ const BillForm = () => {
   const filteredItems = loadedItems.filter(
     (item) => !bill.items.includes(item.id),
   );
+  const round2 = (value) => Number((Number(value) || 0).toFixed(2));
 
   const toggleItemSelection = (itemId) => {
     const activeParty = loadedParties.find((p) => p.id === bill.party);
     const activeLabelId = activeParty?.label_id;
-    const labelDiscounts = activeLabelId ? loadedLabelDiscounts[activeLabelId] : null;
+    const labelDiscounts =
+      activeLabelId ? loadedLabelDiscounts[activeLabelId] : null;
 
     setBill((prev) => {
       const items =
@@ -319,9 +358,12 @@ const BillForm = () => {
 
       if (!prev.items.includes(itemId)) {
         const item = loadedItems.find((i) => i.id === itemId);
-      const brandId =
+        const brandId =
           item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
-        const discForBrand = (labelDiscounts && labelDiscounts[brandId]) || loadedDiscounts[brandId] || {};
+        const discForBrand =
+          (labelDiscounts && labelDiscounts[brandId]) ||
+          loadedDiscounts[brandId] ||
+          {};
         const useDisc =
           ((isFirmGST ? 1 : prev.gstType) === 1 ?
             discForBrand.discount1 || {}
@@ -334,16 +376,19 @@ const BillForm = () => {
           gstPercent: 0,
           itemDiscount: item?.discount || 0,
           stock: item?.stock || 0,
-          type: isFirmGST ? 1 : (prev.gstType !== null ? prev.gstType : 0),
-          remark: item?.name || '',
-          itemName: item?.name || '',
+          type:
+            isFirmGST ? 1
+            : prev.gstType !== null ? prev.gstType
+            : 0,
+          remark: item?.name || "",
+          itemName: item?.name || "",
           barcode:
             item?.barcode ||
             item?.barcode_no ||
             item?.barcodeNumber ||
             item?.barcode_value ||
             item?.part_no ||
-            '',
+            "",
         };
       }
 
@@ -357,19 +402,29 @@ const BillForm = () => {
     const rate = parseFloat(details.rate || 0);
     const disPercent = parseFloat(details.disPercent || 0);
     const spDis = parseFloat(details.spDis || 0);
+    const itemDiscount = parseFloat(details.itemDiscount || 0);
     const gstPercent = parseFloat(details.gstPercent || 0);
-    const itemType = details.type !== undefined ? details.type : effectiveGstType;
+    const itemType =
+      details.type !== undefined ? details.type : effectiveGstType;
 
-    const baseAmount = pcs * rate;
-    const discountAmount = (baseAmount * disPercent) / 100 + spDis;
-    const afterDiscount = baseAmount - discountAmount;
-    const gstAmount = itemType === 1 ? (afterDiscount * gstPercent) / 100 : 0;
+    const grossAmount = round2(pcs * rate);
+    const percentDiscount = round2((grossAmount * disPercent) / 100);
+    const discountAmount = round2(percentDiscount + spDis + itemDiscount);
+    const taxableAmount = round2(grossAmount - discountAmount);
+    const gstAmount = round2(
+      itemType === 1 ? (taxableAmount * gstPercent) / 100 : 0,
+    );
+    const amount = round2(taxableAmount + gstAmount);
 
     return {
-      baseAmount,
+      grossAmount,
+      totalDiscount: discountAmount,
       discountAmount,
-      afterDiscount,
+      taxableAmount,
       gstAmount,
+      amount,
+      baseAmount: grossAmount,
+      afterDiscount: taxableAmount,
     };
   };
 
@@ -389,7 +444,7 @@ const BillForm = () => {
   const calculateTotalAmount = () => {
     return bill.items.reduce((total, itemId) => {
       const calc = calculateItemAmount(itemId);
-      return total + calc.afterDiscount;
+      return total + calc.amount;
     }, 0);
   };
 
@@ -402,44 +457,55 @@ const BillForm = () => {
 
   const handleViewLastSold = async (itemId) => {
     const item = loadedItems.find((i) => i.id === itemId);
-    const party = (bill.contactType === 'party' ? loadedParties : loadedSuppliers).find(c => c.id === bill.party);
-    
+    const party = (
+      bill.contactType === "party" ?
+        loadedParties
+      : loadedSuppliers).find((c) => c.id === bill.party);
+
     // Dummy data
     const dummyData = {
       challan_no: `CH${Math.floor(Math.random() * 10000)}`,
-      challan_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+      challan_date: new Date(
+        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
+      ).toISOString(),
       contact: {
-        name: party?.name || 'Sample Party',
-        phone: '9876543210'
+        name: party?.name || "Sample Party",
+        phone: "9876543210",
       },
       is_gst: effectiveGstType,
       item: {
         quantity: Math.floor(Math.random() * 10) + 1,
         rate: (item?.amount || 100) + (Math.random() * 50 - 25),
         discount: Math.floor(Math.random() * 15),
-        gst_percent: effectiveGstType === 1 ? [5, 12, 18, 28][Math.floor(Math.random() * 4)] : 0
-      }
+        gst_percent:
+          effectiveGstType === 1 ?
+            [5, 12, 18, 28][Math.floor(Math.random() * 4)]
+          : 0,
+      },
     };
-    
+
     setViewItemModal({ isOpen: true, data: dummyData });
   };
 
   const LEGACY_handlePrint = () => {
     if (!bill.party || bill.items.length === 0) {
-      showToast('Please select a party and add items before printing', 'error');
+      showToast("Please select a party and add items before printing", "error");
       return;
     }
 
-    const party = (bill.contactType === 'party' ? loadedParties : loadedSuppliers).find(c => c.id === bill.party);
-    
+    const party = (
+      bill.contactType === "party" ?
+        loadedParties
+      : loadedSuppliers).find((c) => c.id === bill.party);
+
     const printContent = `
       <html>
         <head>
           <title>Bill</title>
           <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 40px; 
+            body {
+              font-family: Arial, sans-serif;
+              margin: 40px;
               font-size: 12px;
             }
             .header {
@@ -527,40 +593,48 @@ const BillForm = () => {
         <body>
           <div class="header">
             <h1>BILL</h1>
-            <p>${selectedFirm?.name || 'Company Name'}</p>
+            <p>${selectedFirm?.name || "Company Name"}</p>
             <p>Bill No: ${bill.billNumber}</p>
           </div>
 
           <div class="info-section">
             <div class="info-row">
               <div class="info-label">Date:</div>
-              <div class="info-value">${new Date(bill.date).toLocaleDateString('en-IN')}</div>
+              <div class="info-value">${new Date(bill.date).toLocaleDateString("en-IN")}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Party:</div>
-              <div class="info-value">${party?.name || ''}</div>
+              <div class="info-value">${party?.name || ""}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Type:</div>
-              <div class="info-value">${effectiveGstType === 1 ? 'GST' : 'Non-GST'}</div>
+              <div class="info-value">${effectiveGstType === 1 ? "GST" : "Non-GST"}</div>
             </div>
-            ${bill.customerName ? `
+            ${
+              bill.customerName ?
+                `
             <div class="info-row">
               <div class="info-label">Customer:</div>
               <div class="info-value">${bill.customerName}</div>
-            </div>` : ''}
-            ${bill.vehicleNo ? `
+            </div>`
+              : ""
+            }
+            ${
+              bill.vehicleNo ?
+                `
             <div class="info-row">
               <div class="info-label">Vehicle No:</div>
               <div class="info-value">${bill.vehicleNo}</div>
-            </div>` : ''}
+            </div>`
+              : ""
+            }
           </div>
 
           <table>
             <thead>
               <tr>
                 <th>S.No</th>
-                ${bill.printOption === 2 ? '<th>Item Name</th>' : '<th>Barcode</th>'}
+                ${bill.printOption === 2 ? "<th>Item Name</th>" : "<th>Barcode</th>"}
                 <th>Qty</th>
                 <th>Rate</th>
                 <th>Discount %</th>
@@ -568,17 +642,19 @@ const BillForm = () => {
               </tr>
             </thead>
             <tbody>
-              ${bill.items.map((itemId, index) => {
-                const item = loadedItems.find(i => i.id === itemId);
-                const details = bill.itemDetails[itemId] || {};
-                const calc = calculateItemAmount(itemId);
-                
-                return `
+              ${bill.items
+                .map((itemId, index) => {
+                  const item = loadedItems.find((i) => i.id === itemId);
+                  const details = bill.itemDetails[itemId] || {};
+                  const calc = calculateItemAmount(itemId);
+
+                  return `
                   <tr>
                     <td>${index + 1}</td>
-                    ${bill.printOption === 2 
-                      ? `<td>${item?.name || 'Unknown'}</td>` 
-                      : `<td>${item?.barcode || item?.part_no || '-'}</td>`
+                    ${
+                      bill.printOption === 2 ?
+                        `<td>${item?.name || "Unknown"}</td>`
+                      : `<td>${item?.barcode || item?.part_no || "-"}</td>`
                     }
                     <td>${details.pcs || 1}</td>
                     <td>₹${parseFloat(details.rate || 0).toFixed(2)}</td>
@@ -586,7 +662,8 @@ const BillForm = () => {
                     <td>₹${calc.afterDiscount.toFixed(2)}</td>
                   </tr>
                 `;
-              }).join('')}
+                })
+                .join("")}
             </tbody>
           </table>
 
@@ -596,11 +673,15 @@ const BillForm = () => {
                 <span>Discount:</span>
                 <span>₹${calculateTotalDiscount().toFixed(2)}</span>
               </div>
-              ${bill.transportCharge ? `
+              ${
+                bill.transportCharge ?
+                  `
               <div class="amount-row">
                 <span>Transport:</span>
                 <span>₹${parseFloat(bill.transportCharge).toFixed(2)}</span>
-              </div>` : ''}
+              </div>`
+                : ""
+              }
               <div class="amount-total">
                 <span>Total Amount:</span>
                 <span>₹${calculateTotalAmount().toFixed(2)}</span>
@@ -620,10 +701,10 @@ const BillForm = () => {
       </html>
     `;
 
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    const printWindow = window.open("", "_blank", "width=800,height=600");
     printWindow.document.write(printContent);
     printWindow.document.close();
-    
+
     setTimeout(() => {
       printWindow.print();
     }, 250);
@@ -635,13 +716,15 @@ const BillForm = () => {
       return;
     }
 
-    const party = (bill.contactType === "party" ? loadedParties : loadedSuppliers).find(
-      (contact) => contact.id === bill.party,
-    );
+    const party = (
+      bill.contactType === "party" ?
+        loadedParties
+      : loadedSuppliers).find((contact) => contact.id === bill.party);
 
     const firmName = selectedFirm?.name || "MAHESHWARI MOTORS";
     const firmAddress =
-      selectedFirm?.address || "52, KHOTODRA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.";
+      selectedFirm?.address ||
+      "52, KHOTODRA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.";
     const firmCity = selectedFirm?.city || "SURAT";
     const firmContact = selectedFirm?.phone || "";
 
@@ -655,16 +738,19 @@ const BillForm = () => {
     };
 
     const billNo = String(bill.billNumber || "").trim();
-    const billDate = formatDateDDMMYYYY(bill.date) || formatDateDDMMYYYY(new Date());
+    const billDate =
+      formatDateDDMMYYYY(bill.date) || formatDateDDMMYYYY(new Date());
     const printOption = Number(bill.printOption ?? 2) || 2;
     const partyName = String(party?.name || "CASH BOOK");
 
     const parsedItems = bill.items.map((itemId, index) => {
-      const item = loadedItems.find((loadedItem) => loadedItem.id === itemId) || {};
+      const item =
+        loadedItems.find((loadedItem) => loadedItem.id === itemId) || {};
       const details = bill.itemDetails[itemId] || {};
       const calc = calculateItemAmount(itemId);
 
-      const itemName = details.itemName || item?.name || item?.item_name || "Item";
+      const itemName =
+        details.itemName || item?.name || item?.item_name || "Item";
       const barcode =
         details.barcode ||
         item?.barcode ||
@@ -674,7 +760,9 @@ const BillForm = () => {
         item?.part_no ||
         "";
       const description =
-        printOption === 2 ? String(itemName).trim() || "Item" : String(barcode).trim() || "-";
+        printOption === 2 ?
+          String(itemName).trim() || "Item"
+        : String(barcode).trim() || "-";
 
       const quantity = Number(details.pcs || 1) || 0;
       const rate = Number(details.rate ?? item.amount ?? 0) || 0;
@@ -696,10 +784,17 @@ const BillForm = () => {
     });
 
     const rowsFromItems = parsedItems.map((entry) => entry.row);
-    const totalFromItems = parsedItems.reduce((sum, entry) => sum + entry.lineAmount, 0);
+    const totalFromItems = parsedItems.reduce(
+      (sum, entry) => sum + entry.lineAmount,
+      0,
+    );
     const totalAmount = Number(calculateTotalAmount() || 0) || totalFromItems;
 
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
     const blue = [0, 0, 255];
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -725,19 +820,35 @@ const BillForm = () => {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
       doc.setTextColor(...blue);
-      doc.text(`* ${firmName.toUpperCase()} *`, originX + copyWidth / 2, headerY + 7, { align: "center" });
+      doc.text(
+        `* ${firmName.toUpperCase()} *`,
+        originX + copyWidth / 2,
+        headerY + 7,
+        { align: "center" },
+      );
       doc.setFontSize(7.5);
-      doc.text(firmAddress, originX + copyWidth / 2, headerY + 13, { align: "center" });
+      doc.text(firmAddress, originX + copyWidth / 2, headerY + 13, {
+        align: "center",
+      });
 
       doc.setTextColor(0, 0, 0);
       doc.rect(originX, detailsY, copyWidth, detailsHeight);
       const leftBoxWidth = Math.round(copyWidth * 0.63 * 10) / 10;
-      doc.line(originX + leftBoxWidth, detailsY, originX + leftBoxWidth, detailsY + detailsHeight);
+      doc.line(
+        originX + leftBoxWidth,
+        detailsY,
+        originX + leftBoxWidth,
+        detailsY + detailsHeight,
+      );
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10.5);
       doc.setTextColor(...blue);
-      doc.text(`M/s. : ${partyName.toUpperCase()}`, originX + 2.5, detailsY + 9);
+      doc.text(
+        `M/s. : ${partyName.toUpperCase()}`,
+        originX + 2.5,
+        detailsY + 9,
+      );
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
@@ -748,33 +859,52 @@ const BillForm = () => {
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9.5);
-      doc.text(`Bill No.     :  ${billNo}`, originX + leftBoxWidth + 3, detailsY + 12);
-      doc.text(`Date          :  ${billDate}`, originX + leftBoxWidth + 3, detailsY + 24);
+      doc.text(
+        `Bill No.     :  ${billNo}`,
+        originX + leftBoxWidth + 3,
+        detailsY + 12,
+      );
+      doc.text(
+        `Date          :  ${billDate}`,
+        originX + leftBoxWidth + 3,
+        detailsY + 24,
+      );
 
-      const head = [[
-        "Sr.",
-        printOption === 2 ? "Item Name" : "Barcode",
-        "Qty.",
-        "Rate",
-        "Disc (%)",
-        "Sp.Dis (%)",
-      ]];
+      const head = [
+        [
+          "Sr.",
+          printOption === 2 ? "Item Name" : "Barcode",
+          "Qty.",
+          "Rate",
+          "Disc (%)",
+          "Sp.Dis (%)",
+        ],
+      ];
       const fillerRow = ["", "", "", "", "", ""];
-      const body = [...(rowsFromItems.length ? rowsFromItems : [["", "", "", "", "", ""]]), fillerRow];
+      const body = [
+        ...(rowsFromItems.length ? rowsFromItems : [["", "", "", "", "", ""]]),
+        fillerRow,
+      ];
 
       const bottomPadding = 16;
       const availableHeight = originY + copyHeight - bottomPadding - tableY;
       const estimatedRowHeight = 5.2;
       const estimatedHeadHeight = 7;
       const estimatedBodyHeight = rowsFromItems.length * estimatedRowHeight;
-      const fillerHeight = Math.max(20, availableHeight - estimatedHeadHeight - estimatedBodyHeight);
+      const fillerHeight = Math.max(
+        20,
+        availableHeight - estimatedHeadHeight - estimatedBodyHeight,
+      );
 
       const srW = 8;
       const qtyW = 14;
       const rateW = 18;
       const discW = 14;
       const spDiscW = 14;
-      const descW = Math.max(40, copyWidth - (srW + qtyW + rateW + discW + spDiscW));
+      const descW = Math.max(
+        40,
+        copyWidth - (srW + qtyW + rateW + discW + spDiscW),
+      );
 
       autoTable(doc, {
         head,
@@ -823,14 +953,22 @@ const BillForm = () => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Total Amount: Rs. ${totalAmount.toFixed(2)}`, leftX + copyWidth - 2.5, topY + copyHeight - 6, {
-      align: "right",
-    });
+    doc.text(
+      `Total Amount: Rs. ${totalAmount.toFixed(2)}`,
+      leftX + copyWidth - 2.5,
+      topY + copyHeight - 6,
+      {
+        align: "right",
+      },
+    );
 
     const previewUrl = doc.output("bloburl");
     const previewWindow = window.open(previewUrl, "_blank");
     if (!previewWindow) {
-      showToast("Popup blocked. Please allow popups for print preview.", "error");
+      showToast(
+        "Popup blocked. Please allow popups for print preview.",
+        "error",
+      );
     }
   };
 
@@ -845,15 +983,39 @@ const BillForm = () => {
     }
 
     try {
+      const selectedParty = loadedParties.find(
+        (party) => party.id === bill.party,
+      );
+      const grossTotal = round2(
+        bill.items.reduce(
+          (sum, itemId) => sum + calculateItemAmount(itemId).grossAmount,
+          0,
+        ),
+      );
+      const subTotal = round2(
+        bill.items.reduce(
+          (sum, itemId) => sum + calculateItemAmount(itemId).amount,
+          0,
+        ),
+      );
+      const netAmount = round2(calculateTotalAmount());
+
       // Create challan
       const challanPayload = {
         challan_type: "sale",
         date: bill.date,
         contact_id: bill.party,
+        label_id: selectedParty?.label_id || undefined,
         print_option: Number(bill.printOption ?? 2) || 2,
+        gross_total: grossTotal,
+        sub_total: subTotal,
+        discount: 0,
+        amount: netAmount,
         items: bill.items.map((itemId) => {
           const item = loadedItems.find((i) => i.id === itemId);
           const details = bill.itemDetails[itemId] || {};
+          const calc = calculateItemAmount(itemId);
+          const masterIsGst = item?.is_gst ?? 1;
           return {
             item_id: itemId,
             quantity: Math.max(1, parseFloat(details.pcs || 1)),
@@ -861,15 +1023,27 @@ const BillForm = () => {
             discount: Math.max(0, parseFloat(details.disPercent || 0)),
             special_discount: Math.max(0, parseFloat(details.spDis || 0)),
             gst_percent: Math.max(0, parseFloat(details.gstPercent || 0)),
+            gross_amount: round2(calc.grossAmount),
+            discount_amount: round2(calc.discountAmount),
+            total_discount: round2(calc.totalDiscount),
+            taxable_amount: round2(calc.taxableAmount),
+            gst_amount: round2(calc.gstAmount),
+            amount: round2(calc.amount),
+            is_gst:
+              masterIsGst === 0 ? 0
+              : details.type !== undefined && details.type !== null ?
+                Number(details.type) === 1 ?
+                  1
+                : 0
+              : effectiveGstType,
           };
         }),
-          discount: calculateTotalDiscount(),
-          transport_id: bill.transportId || undefined,
-          transport_charge: parseFloat(bill.transportCharge) || 0,
-          agent_id: bill.agent || undefined,
-          customer_name: bill.customerName || undefined,
-          vehicle_no: bill.vehicleNo || undefined,
-          bill_no: bill.billNumber || undefined,
+        transport_id: bill.transportId || undefined,
+        transport_charge: parseFloat(bill.transportCharge) || 0,
+        agent_id: bill.agent || undefined,
+        customer_name: bill.customerName || undefined,
+        vehicle_no: bill.vehicleNo || undefined,
+        bill_no: bill.billNumber || undefined,
       };
 
       const challanRes = await api.post("/challans", challanPayload);
@@ -881,24 +1055,20 @@ const BillForm = () => {
       }
 
       // Convert to bill
-      try {
-        const payload = {
-          contact_id: bill.party,
-          challan_ids: [challanId],
-          delivered_amount: 0,
-          amount: calculateTotalAmount(),
-          bill_no: bill.billNumber || undefined,
-          transport_id: bill.transportId || undefined,
-          transport_charge: parseFloat(bill.transportCharge) || 0,
-          agent_id: bill.agent || undefined,
-          customer_name: bill.customerName || undefined,
-          vehicle_no: bill.vehicleNo || undefined,
-        };
-        const res = await api.post("/bills", payload);
-        console.log("Bill creation response:", res.data);
-      } catch (error) {
-        console.log("Bill creation error:", error, error.response?.data);
-      }
+      const payload = {
+        contact_id: bill.party,
+        challan_ids: [challanId],
+        delivered_amount: 0,
+        amount: netAmount,
+        bill_no: bill.billNumber || undefined,
+        transport_id: bill.transportId || undefined,
+        transport_charge: parseFloat(bill.transportCharge) || 0,
+        agent_id: bill.agent || undefined,
+        customer_name: bill.customerName || undefined,
+        vehicle_no: bill.vehicleNo || undefined,
+      };
+      const res = await api.post("/bills", payload);
+      console.log("Bill creation response:", res.data);
 
       showToast("Bill created successfully", "success");
       navigate("/transactions/bill-list");
@@ -966,11 +1136,23 @@ const BillForm = () => {
                 setBill((prev) => ({
                   ...prev,
                   party: selectedId,
-                  gstType: isFirmGST ? 1 : (selected ? selected.is_gst || 0 : prev.gstType),
-                  transportCharge: selected ? selected.transport_charge || 0 : prev.transportCharge,
-                  transportId: selected ? selected.transport_id || prev.transportId : prev.transportId,
+                  gstType:
+                    isFirmGST ? 1
+                    : selected ? selected.is_gst || 0
+                    : prev.gstType,
+                  transportCharge:
+                    selected ?
+                      selected.transport_charge || 0
+                    : prev.transportCharge,
+                  transportId:
+                    selected ?
+                      selected.transport_id || prev.transportId
+                    : prev.transportId,
                   agent: selected ? selected.agent || prev.agent : prev.agent,
-                  customerName: selected ? selected.name || prev.customerName : prev.customerName,
+                  customerName:
+                    selected ?
+                      selected.name || prev.customerName
+                    : prev.customerName,
                 }));
               }}
               className="w-full px-3 py-2 border rounded-md text-sm"
@@ -1008,12 +1190,12 @@ const BillForm = () => {
               onClick={handleGstToggle}
               aria-disabled={isFirmGST}
               className={`w-14 h-7 mt-5 flex items-center rounded-full p-1 transition-all duration-300 ${
-                effectiveGstType === 1 ? 'bg-green-500' : 'bg-gray-300'
-              } ${!isFirmGST ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                effectiveGstType === 1 ? "bg-green-500" : "bg-gray-300"
+              } ${!isFirmGST ? "cursor-pointer" : "cursor-not-allowed opacity-70"}`}
             >
               <div
                 className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
-                  effectiveGstType === 1 ? 'translate-x-7' : 'translate-x-0'
+                  effectiveGstType === 1 ? "translate-x-7" : "translate-x-0"
                 }`}
               />
             </button>
@@ -1022,61 +1204,90 @@ const BillForm = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Agent
+            </label>
             <select
               value={bill.agent}
-              onChange={(e) => setBill((prev) => ({ ...prev, agent: e.target.value }))}
+              onChange={(e) =>
+                setBill((prev) => ({ ...prev, agent: e.target.value }))
+              }
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
               <option value="">Select Agent</option>
               {loadedAgents.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Transport</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Transport
+            </label>
             <select
               value={bill.transportId}
               onChange={(e) => {
                 const tid = e.target.value;
                 const t = loadedTransports.find((x) => x.id === tid);
-                setBill((prev) => ({ ...prev, transportId: tid, transportCharge: t ? t.charge : prev.transportCharge }));
+                setBill((prev) => ({
+                  ...prev,
+                  transportId: tid,
+                  transportCharge: t ? t.charge : prev.transportCharge,
+                }));
               }}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
               <option value="">Select Transport</option>
               {loadedTransports.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Transport Charge</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Transport Charge
+            </label>
             <input
               type="number"
               step="0.01"
               value={bill.transportCharge}
-              onChange={(e) => setBill((prev) => ({ ...prev, transportCharge: parseFloat(e.target.value) || 0 }))}
+              onChange={(e) =>
+                setBill((prev) => ({
+                  ...prev,
+                  transportCharge: parseFloat(e.target.value) || 0,
+                }))
+              }
               className="w-full px-3 py-2 border rounded-md text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Customer Name
+            </label>
             <input
               type="text"
               value={bill.customerName}
-              onChange={(e) => setBill((prev) => ({ ...prev, customerName: e.target.value }))}
+              onChange={(e) =>
+                setBill((prev) => ({ ...prev, customerName: e.target.value }))
+              }
               placeholder="Enter customer name"
               className="w-full px-3 py-2 border rounded-md text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle No</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Vehicle No
+            </label>
             <input
               type="text"
               value={bill.vehicleNo}
-              onChange={(e) => setBill((prev) => ({ ...prev, vehicleNo: e.target.value }))}
+              onChange={(e) =>
+                setBill((prev) => ({ ...prev, vehicleNo: e.target.value }))
+              }
               placeholder="Vehicle number"
               className="w-full px-3 py-2 border rounded-md text-sm"
             />
@@ -1116,21 +1327,22 @@ const BillForm = () => {
                   const details = bill.itemDetails[itemId] || {};
                   const calc = calculateItemAmount(itemId);
                   const itemType =
-                    details.type !== undefined ? details.type : effectiveGstType;
-                  const displayItemName = details.itemName || item?.name || "Unknown Item";
+                    details.type !== undefined ?
+                      details.type
+                    : effectiveGstType;
+                  const displayItemName =
+                    details.itemName || item?.name || "Unknown Item";
 
                   return (
                     <tr key={itemId} className="border-t">
                       <td className="px-2 py-2 border-r">{index + 1}</td>
                       <td className="px-2 py-2 border-r">
-                        <span className="text-xs">
-                          {displayItemName}
-                        </span>
+                        <span className="text-xs">{displayItemName}</span>
                       </td>
                       <td className="px-2 py-2 border-r">
                         <input
                           type="text"
-                          value={details.remark || ''}
+                          value={details.remark || ""}
                           onChange={(e) =>
                             updateItemDetail(itemId, "remark", e.target.value)
                           }
@@ -1138,10 +1350,9 @@ const BillForm = () => {
                         />
                       </td>
                       <td className="px-2 py-2 border-r">
-                        {isFirmGST ? (
+                        {isFirmGST ?
                           <span className="text-xs">1</span>
-                        ) : (
-                          <select
+                        : <select
                             value={itemType !== null ? itemType : ""}
                             onChange={(e) =>
                               updateItemDetail(
@@ -1156,7 +1367,7 @@ const BillForm = () => {
                             <option value={0}>0</option>
                             <option value={1}>1</option>
                           </select>
-                        )}
+                        }
                       </td>
                       <td className="px-2 py-2 border-r">
                         <input
@@ -1442,7 +1653,12 @@ const BillForm = () => {
               <span className="text-sm font-medium w-32">Print Format:</span>
               <select
                 value={bill.printOption}
-                onChange={(e) => setBill(prev => ({ ...prev, printOption: parseInt(e.target.value) }))}
+                onChange={(e) =>
+                  setBill((prev) => ({
+                    ...prev,
+                    printOption: parseInt(e.target.value),
+                  }))
+                }
                 className="flex-1 px-3 py-2 border rounded-md text-sm"
               >
                 <option value={1}>Print 1 - Show Barcode</option>
@@ -1493,7 +1709,11 @@ const BillForm = () => {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Date:</p>
-                <p className="text-sm">{new Date(viewItemModal.data.challan_date).toLocaleDateString()}</p>
+                <p className="text-sm">
+                  {new Date(
+                    viewItemModal.data.challan_date,
+                  ).toLocaleDateString()}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Contact:</p>
@@ -1501,15 +1721,21 @@ const BillForm = () => {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">Phone:</p>
-                <p className="text-sm">{viewItemModal.data.contact?.phone || 'N/A'}</p>
+                <p className="text-sm">
+                  {viewItemModal.data.contact?.phone || "N/A"}
+                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">GST Type:</p>
-                <p className="text-sm">{viewItemModal.data.is_gst === 1 ? 'GST' : 'Non-GST'}</p>
+                <p className="text-sm">
+                  {viewItemModal.data.is_gst === 1 ? "GST" : "Non-GST"}
+                </p>
               </div>
             </div>
             <div className="border-t pt-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Item Details:</p>
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                Item Details:
+              </p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-600">Quantity:</p>
@@ -1517,15 +1743,21 @@ const BillForm = () => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Rate:</p>
-                  <p className="text-sm">₹{viewItemModal.data.item?.rate?.toFixed(2)}</p>
+                  <p className="text-sm">
+                    ₹{viewItemModal.data.item?.rate?.toFixed(2)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Discount:</p>
-                  <p className="text-sm">{viewItemModal.data.item?.discount}%</p>
+                  <p className="text-sm">
+                    {viewItemModal.data.item?.discount}%
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">GST:</p>
-                  <p className="text-sm">{viewItemModal.data.item?.gst_percent}%</p>
+                  <p className="text-sm">
+                    {viewItemModal.data.item?.gst_percent}%
+                  </p>
                 </div>
               </div>
             </div>

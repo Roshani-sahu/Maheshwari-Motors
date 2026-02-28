@@ -1,11 +1,17 @@
-import { useState, useEffect, useRef, Fragment } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { FaChevronDown, FaChevronUp, FaTimes, FaSave, FaPrint } from 'react-icons/fa';
-import { Button } from '../../components/ui';
-import useStore from '../../store';
-import api from '../../services/axiosInstance';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { useState, useEffect, useRef, Fragment } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
+  FaChevronDown,
+  FaChevronUp,
+  FaTimes,
+  FaSave,
+  FaPrint,
+} from "react-icons/fa";
+import { Button } from "../../components/ui";
+import useStore from "../../store";
+import api from "../../services/axiosInstance";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   getResponseData,
   getResponseList,
@@ -13,8 +19,8 @@ import {
   getEntityId,
   normalizeContact,
   normalizeItem,
-  normalizeChallan
-} from '../../services/apiUtils';
+  normalizeChallan,
+} from "../../services/apiUtils";
 
 const ChallanForm = () => {
   const navigate = useNavigate();
@@ -24,45 +30,48 @@ const ChallanForm = () => {
 
   const [loadedParties, setLoadedParties] = useState([]);
   const [loadedSuppliers, setLoadedSuppliers] = useState([]);
+  const [loadedLabels, setLoadedLabels] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
   const [loadedBanks, setLoadedBanks] = useState([]);
   const [loadedDiscounts, setLoadedDiscounts] = useState({});
   const [loadedLabelDiscounts, setLoadedLabelDiscounts] = useState({});
-  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [itemSearchTerm, setItemSearchTerm] = useState("");
   const [showItemDropdown, setShowItemDropdown] = useState(false);
   const [itemsPage, setItemsPage] = useState(1);
   const [totalItemsPages, setTotalItemsPages] = useState(1);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState(null);
   const [itemHistoryMap, setItemHistoryMap] = useState({});
-  const [showCombinedStock, setShowCombinedStock] = useState({});
   const [showAllCombinedStock, setShowAllCombinedStock] = useState(false);
   const itemDropdownRef = useRef(null);
 
   const [challan, setChallan] = useState({
-    contactType: 'party',
-    party: '',
-    challanNo: '',
+    contactType: "party",
+    party: "",
+    label_id: "",
+    challanNo: "",
     items: [],
     gstType: null,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split("T")[0],
     itemDetails: {},
     discount: 0,
     printOption: 1,
-    from_bank: '',
-    to_bank: ''
+    from_bank: "",
+    to_bank: "",
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pRes, sRes, iRes, brandRes, bankRes] = await Promise.all([
-          api.get('/contacts/parties', { params: { page: 1, limit: 200 } }),
-          api.get('/contacts/suppliers', { params: { page: 1, limit: 200 } }),
-          api.get('/items', { params: { page: 1, limit: 50, search: '' } }),
-          api.get('/brands', { params: { page: 1, limit: 200 } }),
-          api.get('/banks', { params: { page: 1, limit: 200 } })
-        ]);
+        const [pRes, sRes, iRes, brandRes, bankRes, labelRes] =
+          await Promise.all([
+            api.get("/contacts/parties", { params: { page: 1, limit: 200 } }),
+            api.get("/contacts/suppliers", { params: { page: 1, limit: 200 } }),
+            api.get("/items", { params: { page: 1, limit: 50, search: "" } }),
+            api.get("/brands", { params: { page: 1, limit: 200 } }),
+            api.get("/banks", { params: { page: 1, limit: 200 } }),
+            api.get("/labels", { params: { page: 1, limit: 500 } }),
+          ]);
 
         const partiesData = getResponseList(pRes).map((party) => {
           const normalized = normalizeContact(party);
@@ -70,12 +79,18 @@ const ChallanForm = () => {
             id: normalized.id,
             name: normalized.name,
             is_gst: normalized.is_gst,
-            label_id: normalized.label_id
+            label_id: normalized.label_id,
+            category_id: normalized.category_id,
           };
         });
         const suppliersData = getResponseList(sRes).map((supplier) => {
           const normalized = normalizeContact(supplier);
-          return { id: normalized.id, name: normalized.name, is_gst: normalized.is_gst, gstin: supplier.gstin || '' };
+          return {
+            id: normalized.id,
+            name: normalized.name,
+            is_gst: normalized.is_gst,
+            gstin: supplier.gstin || "",
+          };
         });
         const itemsData = getResponseList(iRes).map((item) => {
           const normalized = normalizeItem(item);
@@ -85,16 +100,26 @@ const ChallanForm = () => {
             name: normalized.itemName,
             amount: normalized.amount,
             barcode: normalized.barcode,
-            is_gst: normalized.type
+            is_gst: normalized.type,
           };
         });
 
         setLoadedParties(partiesData);
         setLoadedSuppliers(suppliersData);
         setLoadedItems(itemsData);
+        setLoadedLabels(
+          getResponseList(labelRes).map((label) => ({
+            id: getEntityId(label),
+            name: label?.name || label?.label_name || "",
+            category_id: getEntityId(label?.category_id),
+          })),
+        );
 
         const bankList = getResponseList(bankRes);
-        const banks = bankList.map(b => ({ id: getEntityId(b), name: b.bank_name || b.name }));
+        const banks = bankList.map((b) => ({
+          id: getEntityId(b),
+          name: b.bank_name || b.name,
+        }));
         setLoadedBanks(banks);
 
         const brandList = getResponseList(brandRes);
@@ -104,7 +129,7 @@ const ChallanForm = () => {
           if (brandId) {
             discountMap[brandId] = {
               discount1: b.discount1 || { normal: 0, special: 0 },
-              discount2: b.discount2 || { normal: 0, special: 0 }
+              discount2: b.discount2 || { normal: 0, special: 0 },
             };
           }
         });
@@ -128,108 +153,114 @@ const ChallanForm = () => {
               disPercent: item?.discount || 0,
               spDis: item?.special_discount || 0,
               gstPercent: item?.gst_percent || 0,
-              itemName: itemRef?.item_name || itemRef?.name || '',
+              grossAmount: item?.gross_amount || 0,
+              discountAmount: item?.discount_amount || 0,
+              totalDiscount: item?.total_discount || 0,
+              taxableAmount: item?.taxable_amount || 0,
+              gstAmount: item?.gst_amount || 0,
+              amount: item?.amount || 0,
+              itemName: itemRef?.item_name || itemRef?.name || "",
               barcode:
                 itemRef?.barcode ||
                 itemRef?.barcode_no ||
                 itemRef?.barcodeNumber ||
                 itemRef?.barcode_value ||
                 itemRef?.part_no ||
-                ''
+                "",
             };
           });
 
-          const dateValue = challanData?.date
-            ? new Date(challanData.date).toISOString().split('T')[0]
-            : new Date().toISOString().split('T')[0];
+          const dateValue =
+            challanData?.date ?
+              new Date(challanData.date).toISOString().split("T")[0]
+            : new Date().toISOString().split("T")[0];
 
           setChallan({
-            contactType: challan.contactType,
+            contactType:
+              challanData?.challan_type === "purchase" ? "supplier" : "party",
             party: normalizedChallan.partyId,
-            challanNo: normalizedChallan.challanNo || '',
-            items: (challanData?.items || []).map((item) => getEntityId(item?.item_id || item)).filter(Boolean),
+            label_id:
+              getEntityId(challanData?.label_id) ||
+              partiesData.find(
+                (party) => party.id === normalizedChallan.partyId,
+              )?.label_id ||
+              "",
+            challanNo: normalizedChallan.challanNo || "",
+            items: (challanData?.items || [])
+              .map((item) => getEntityId(item?.item_id || item))
+              .filter(Boolean),
             gstType: normalizedChallan.gstType,
             date: dateValue,
             itemDetails,
-            discount: challan.discount,
+            discount: challanData?.discount ?? 0,
             printOption: challanData?.print_option || 1,
-            from_bank: challanData?.from_bank || '',
-            to_bank: challanData?.to_bank || ''
+            from_bank: challanData?.from_bank || "",
+            to_bank: challanData?.to_bank || "",
           });
         }
       } catch (err) {
-        console.error('Failed to fetch data', err);
-        showToast('Failed to load data', 'error');
+        console.error("Failed to fetch data", err);
+        showToast("Failed to load data", "error");
       }
     };
     fetchData();
-  }, [selectedFirm?.id, id, isEditMode]);
+  }, [selectedFirm?.id, id, isEditMode, showToast]);
 
   const formatHistoryDate = (value) => {
-    if (!value) return '-';
+    if (!value) return "-";
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleDateString('en-IN');
-  };
-
-  const getDaysSince = (value) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    const today = new Date();
-    const d1 = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const d2 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const diffDays = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
-    return diffDays < 0 ? 0 : diffDays;
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleDateString("en-IN");
   };
 
   const fetchItemHistory = async (itemId) => {
-    if (challan.contactType !== 'party') {
-      setItemHistoryMap(prev => ({
+    if (challan.contactType !== "party") {
+      setItemHistoryMap((prev) => ({
         ...prev,
         [itemId]: {
           loading: false,
           rows: [],
-          error: 'History available only for Party challans'
-        }
+          error: "History available only for Party challans",
+        },
       }));
       return;
     }
 
     if (!challan.party) {
-      const errorMsg = 'Please select party before loading history';
-      showToast(errorMsg, 'error');
-      setItemHistoryMap(prev => ({
+      const errorMsg = "Please select party before loading history";
+      showToast(errorMsg, "error");
+      setItemHistoryMap((prev) => ({
         ...prev,
-        [itemId]: { loading: false, rows: [], error: errorMsg }
+        [itemId]: { loading: false, rows: [], error: errorMsg },
       }));
       return;
     }
 
-    setItemHistoryMap(prev => ({
+    setItemHistoryMap((prev) => ({
       ...prev,
-      [itemId]: { loading: true, rows: [], error: null }
+      [itemId]: { loading: true, rows: [], error: null },
     }));
 
     try {
       const response = await api.get(`/challans/item/${itemId}/last-sold`, {
         params: {
-          contact_id: challan.party
-        }
+          contact_id: challan.party,
+        },
       });
       const rows = getResponseList(response);
 
-      setItemHistoryMap(prev => ({
+      setItemHistoryMap((prev) => ({
         ...prev,
-        [itemId]: { loading: false, rows, error: null }
+        [itemId]: { loading: false, rows, error: null },
       }));
     } catch (error) {
-      console.error('Failed to load item history:', error);
-      const errorMsg = error?.response?.data?.message || 'Failed to load item history';
-      showToast(errorMsg, 'error');
-      setItemHistoryMap(prev => ({
+      console.error("Failed to load item history:", error);
+      const errorMsg =
+        error?.response?.data?.message || "Failed to load item history";
+      showToast(errorMsg, "error");
+      setItemHistoryMap((prev) => ({
         ...prev,
-        [itemId]: { loading: false, rows: [], error: errorMsg }
+        [itemId]: { loading: false, rows: [], error: errorMsg },
       }));
     }
   };
@@ -240,7 +271,10 @@ const ChallanForm = () => {
       return;
     }
     setExpandedItemId(itemId);
-    if (!itemHistoryMap[itemId]?.rows?.length && !itemHistoryMap[itemId]?.loading) {
+    if (
+      !itemHistoryMap[itemId]?.rows?.length &&
+      !itemHistoryMap[itemId]?.loading
+    ) {
       await fetchItemHistory(itemId);
     }
   };
@@ -248,7 +282,9 @@ const ChallanForm = () => {
   const loadItemsPage = async (page) => {
     setIsLoadingItems(true);
     try {
-      const response = await api.get('/items', { params: { page, limit: 50, search: itemSearchTerm } });
+      const response = await api.get("/items", {
+        params: { page, limit: 50, search: itemSearchTerm },
+      });
       const items = getResponseList(response).map((item) => {
         const normalized = normalizeItem(item);
         return {
@@ -257,7 +293,7 @@ const ChallanForm = () => {
           name: normalized.itemName,
           amount: normalized.amount,
           barcode: normalized.barcode,
-          is_gst: normalized.type
+          is_gst: normalized.type,
         };
       });
 
@@ -267,7 +303,7 @@ const ChallanForm = () => {
       const meta = getResponseMeta(response);
       setTotalItemsPages(meta?.totalPages || 1);
     } catch (err) {
-      console.error('Failed to load items page:', err);
+      console.error("Failed to load items page:", err);
     } finally {
       setIsLoadingItems(false);
     }
@@ -277,7 +313,9 @@ const ChallanForm = () => {
     const searchItems = async () => {
       setIsLoadingItems(true);
       try {
-        const response = await api.get('/items', { params: { page: 1, limit: 50, search: itemSearchTerm } });
+        const response = await api.get("/items", {
+          params: { page: 1, limit: 50, search: itemSearchTerm },
+        });
         const searchResults = getResponseList(response).map((item) => {
           const normalized = normalizeItem(item);
           return {
@@ -286,7 +324,7 @@ const ChallanForm = () => {
             name: normalized.itemName,
             amount: normalized.amount,
             barcode: normalized.barcode,
-            is_gst: normalized.type
+            is_gst: normalized.type,
           };
         });
 
@@ -296,7 +334,7 @@ const ChallanForm = () => {
         const meta = getResponseMeta(response);
         setTotalItemsPages(meta?.totalPages || 1);
       } catch (err) {
-        console.error('Failed to search items:', err);
+        console.error("Failed to search items:", err);
       } finally {
         setIsLoadingItems(false);
       }
@@ -310,27 +348,29 @@ const ChallanForm = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (itemDropdownRef.current && !itemDropdownRef.current.contains(event.target)) {
+      if (
+        itemDropdownRef.current &&
+        !itemDropdownRef.current.contains(event.target)
+      ) {
         setShowItemDropdown(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
-    if (challan.contactType !== 'party') return;
-    if (!challan.party) return;
-
-    const party = loadedParties.find((p) => p.id === challan.party);
-    const labelId = party?.label_id;
+    if (challan.contactType !== "party") return;
+    const labelId = challan.label_id;
     if (!labelId) return;
     if (loadedLabelDiscounts[labelId]) return;
 
     const controller = new AbortController();
     const fetchLabelDiscounts = async () => {
       try {
-        const res = await api.get(`/labels/${labelId}`, { signal: controller.signal });
+        const res = await api.get(`/labels/${labelId}`, {
+          signal: controller.signal,
+        });
         const labelData = getResponseData(res) || {};
         const brandDiscounts = labelData?.brand_discounts || [];
         const discountMap = {};
@@ -338,45 +378,61 @@ const ChallanForm = () => {
           const brandId = getEntityId(entry?.brand_id);
           if (!brandId) return;
           discountMap[brandId] = {
-            discount1: entry?.disc1 || entry?.discount1 || { normal: 0, special: 0 },
-            discount2: entry?.disc2 || entry?.discount2 || { normal: 0, special: 0 }
+            discount1: entry?.disc1 ||
+              entry?.discount1 || { normal: 0, special: 0 },
+            discount2: entry?.disc2 ||
+              entry?.discount2 || { normal: 0, special: 0 },
           };
         });
-        setLoadedLabelDiscounts((prev) => ({ ...prev, [labelId]: discountMap }));
+        setLoadedLabelDiscounts((prev) => ({
+          ...prev,
+          [labelId]: discountMap,
+        }));
       } catch (error) {
-        if (error?.name !== 'CanceledError') {
-          console.error('Failed to load label discounts', error);
+        if (error?.name !== "CanceledError") {
+          console.error("Failed to load label discounts", error);
         }
       }
     };
 
     fetchLabelDiscounts();
     return () => controller.abort();
-  }, [challan.contactType, challan.party, loadedParties, loadedLabelDiscounts]);
+  }, [challan.contactType, challan.label_id, loadedLabelDiscounts]);
 
-  const filteredItems = loadedItems.filter(item => !challan.items.includes(item.id));
+  const filteredItems = loadedItems.filter(
+    (item) => !challan.items.includes(item.id),
+  );
+  const round2 = (value) => Number((Number(value) || 0).toFixed(2));
 
   const toggleItemSelection = async (itemId) => {
     if (challan.items.includes(itemId) && expandedItemId === itemId) {
       setExpandedItemId(null);
     }
-    
+
     const isAdding = !challan.items.includes(itemId);
-    const activeParty = loadedParties.find((p) => p.id === challan.party);
-    const activeLabelId = activeParty?.label_id;
-    const labelDiscounts = activeLabelId ? loadedLabelDiscounts[activeLabelId] : null;
-    
-    setChallan(prev => {
-      const items = prev.items.includes(itemId)
-        ? prev.items.filter(i => i !== itemId)
+    const activeLabelId = challan.label_id;
+    const labelDiscounts =
+      activeLabelId ? loadedLabelDiscounts[activeLabelId] : null;
+
+    setChallan((prev) => {
+      const items =
+        prev.items.includes(itemId) ?
+          prev.items.filter((i) => i !== itemId)
         : [...prev.items, itemId];
 
       if (!prev.items.includes(itemId)) {
-        const item = loadedItems.find(i => i.id === itemId);
+        const item = loadedItems.find((i) => i.id === itemId);
         const masterIsGst = item?.is_gst ?? 1;
-        const brandId = item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
-        const discForBrand = (labelDiscounts && labelDiscounts[brandId]) || loadedDiscounts[brandId] || {};
-        const useDisc = (prev.gstType === 1 ? (discForBrand.discount1 || {}) : (discForBrand.discount2 || {})) || {};
+        const brandId =
+          item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
+        const discForBrand =
+          (labelDiscounts && labelDiscounts[brandId]) ||
+          loadedDiscounts[brandId] ||
+          {};
+        const useDisc =
+          (prev.gstType === 1 ?
+            discForBrand.discount1 || {}
+          : discForBrand.discount2 || {}) || {};
         const itemDetails = {
           pcs: 1,
           rate: item?.amount || 0,
@@ -387,28 +443,34 @@ const ChallanForm = () => {
           stock: item?.physical_stock || 0,
           logicalStock: item?.logical_stock || 0,
           physicalStock: item?.physical_stock || 0,
-          type: masterIsGst === 0 ? 0 : (prev.gstType !== null ? prev.gstType : 0),
-          remark: item?.name || '',
-          itemName: item?.name || '',
+          type:
+            masterIsGst === 0 ? 0
+            : prev.gstType !== null ? prev.gstType
+            : 0,
+          remark: item?.name || "",
+          itemName: item?.name || "",
           barcode:
             item?.barcode ||
             item?.barcode_no ||
             item?.barcodeNumber ||
             item?.barcode_value ||
             item?.part_no ||
-            '',
+            "",
         };
         prev.itemDetails[itemId] = itemDetails;
-        console.log('Item added to challan:', { itemId, item, itemDetails });
+        console.log("Item added to challan:", { itemId, item, itemDetails });
       }
 
       return { ...prev, items };
     });
-    
+
     // Auto-fetch history when adding item
     if (isAdding) {
       setExpandedItemId(itemId);
-      if (!itemHistoryMap[itemId]?.rows?.length && !itemHistoryMap[itemId]?.loading) {
+      if (
+        !itemHistoryMap[itemId]?.rows?.length &&
+        !itemHistoryMap[itemId]?.loading
+      ) {
         await fetchItemHistory(itemId);
       }
     }
@@ -422,29 +484,35 @@ const ChallanForm = () => {
     const spDis = parseFloat(details.spDis || 0);
     const itemDiscount = parseFloat(details.itemDiscount || 0);
     const gstPercent = parseFloat(details.gstPercent || 0);
-    const itemType = details.type !== undefined ? details.type : challan.gstType;
+    const itemType =
+      details.type !== undefined ? details.type : challan.gstType;
 
-    const baseAmount = pcs * rate;
-    const percentDiscount = baseAmount * disPercent / 100;
-    const afterPercentDiscount = baseAmount - percentDiscount;
-    const discountAmount = percentDiscount + spDis + itemDiscount;
-    const afterDiscount = baseAmount - discountAmount;
-    const gstAmount = itemType === 1 ? (afterDiscount * gstPercent / 100) : 0;
-    const finalAmount = afterDiscount + gstAmount;
+    const grossAmount = round2(pcs * rate);
+    const percentDiscount = round2((grossAmount * disPercent) / 100);
+    const discountAmount = round2(percentDiscount + spDis + itemDiscount);
+    const taxableAmount = round2(grossAmount - discountAmount);
+    const gstAmount = round2(
+      itemType === 1 ? (taxableAmount * gstPercent) / 100 : 0,
+    );
+    const amount = round2(taxableAmount + gstAmount);
 
     return {
-      baseAmount,
+      grossAmount,
       discountAmount,
-      afterDiscount,
+      totalDiscount: discountAmount,
+      taxableAmount,
       gstAmount,
-      finalAmount
+      amount,
+      baseAmount: grossAmount,
+      afterDiscount: taxableAmount,
+      finalAmount: amount,
     };
   };
 
   const calculateSubtotal = () => {
     return challan.items.reduce((total, itemId) => {
       const calc = calculateItemAmount(itemId);
-      return total + calc.baseAmount;
+      return total + calc.grossAmount;
     }, 0);
   };
 
@@ -467,19 +535,19 @@ const ChallanForm = () => {
     const totalDiscount = calculateTotalDiscount();
     const totalGst = calculateTotalGst();
     const extraDiscount = parseFloat(challan.discount || 0);
-    return subtotal - totalDiscount - extraDiscount + totalGst;
+    return round2(subtotal - totalDiscount - extraDiscount + totalGst);
   };
 
   const updateItemDetail = (itemId, field, value) => {
-    setChallan(prev => ({
+    setChallan((prev) => ({
       ...prev,
       itemDetails: {
         ...prev.itemDetails,
         [itemId]: {
           ...prev.itemDetails[itemId],
-          [field]: value
-        }
-      }
+          [field]: value,
+        },
+      },
     }));
   };
 
@@ -493,33 +561,56 @@ const ChallanForm = () => {
   const handleSave = async () => {
     try {
       if (!challan.party) {
-        showToast(`Please select ${challan.contactType === 'supplier' ? 'supplier' : 'party'}`, 'error');
+        showToast(
+          `Please select ${challan.contactType === "supplier" ? "supplier" : "party"}`,
+          "error",
+        );
         return;
       }
       if (challan.items.length === 0) {
-        showToast('Please add at least one item', 'error');
+        showToast("Please add at least one item", "error");
         return;
       }
 
-      const challanType = challan.contactType === 'supplier' ? 'purchase' : 'sale';
+      const challanType =
+        challan.contactType === "supplier" ? "purchase" : "sale";
       const challanIsGst = challan.gstType !== null ? challan.gstType : 0;
+      const grossTotal = round2(calculateSubtotal());
+      const totalDiscount = round2(calculateTotalDiscount());
+      const totalGst = round2(calculateTotalGst());
+      const challanLevelDiscount = round2(parseFloat(challan.discount || 0));
+      const netAmount = round2(
+        grossTotal - totalDiscount - challanLevelDiscount + totalGst,
+      );
 
       const payload = {
         challan_type: challanType,
         date: challan.date,
         contact_id: challan.party,
+        ...(challanType === "sale" ?
+          { label_id: challan.label_id || undefined }
+        : {}),
         is_gst: challanIsGst,
         print_option: challan.printOption,
-        amount: parseFloat(calculateNetAmount().toFixed(2)),
+        gross_total: grossTotal,
+        sub_total: round2(
+          challan.items.reduce(
+            (sum, itemId) => sum + calculateItemAmount(itemId).amount,
+            0,
+          ),
+        ),
+        discount: challanLevelDiscount,
+        amount: netAmount,
         from_bank: challan.from_bank || null,
         to_bank: challan.to_bank || null,
-        items: challan.items.map(itemId => {
-          const item = loadedItems.find(i => i.id === itemId);
+        items: challan.items.map((itemId) => {
+          const item = loadedItems.find((i) => i.id === itemId);
           const details = challan.itemDetails[itemId] || {};
+          const calc = calculateItemAmount(itemId);
           const itemType =
-            details.type !== undefined && details.type !== null
-              ? details.type
-              : challanIsGst;
+            details.type !== undefined && details.type !== null ?
+              details.type
+            : challanIsGst;
           const masterIsGst = item?.is_gst ?? 1;
           return {
             item_id: itemId,
@@ -528,53 +619,61 @@ const ChallanForm = () => {
             discount: parseFloat(details.disPercent || 0),
             special_discount: parseFloat(details.spDis || 0),
             gst_percent: parseFloat(details.gstPercent || 0),
-            is_gst: masterIsGst === 0 ? 0 : itemType
+            gross_amount: round2(calc.grossAmount),
+            discount_amount: round2(calc.discountAmount),
+            total_discount: round2(calc.totalDiscount),
+            taxable_amount: round2(calc.taxableAmount),
+            gst_amount: round2(calc.gstAmount),
+            amount: round2(calc.amount),
+            is_gst: masterIsGst === 0 ? 0 : itemType,
           };
         }),
-        discount: parseFloat(calculateTotalDiscount().toFixed(2))
       };
 
-      console.log('Challan Payload:', payload);
-      console.log('Calculated Net Amount:', calculateNetAmount());
-      console.log('Calculated Total Discount:', calculateTotalDiscount());
+      console.log("Challan Payload:", payload);
+      console.log("Calculated Net Amount:", netAmount);
+      console.log("Calculated Total Discount:", totalDiscount);
 
       if (isEditMode) {
         const response = await api.put(`/challans/${id}`, payload);
-        console.log('Challan Update Response:', response.data);
-        showToast('Challan updated successfully', 'success');
+        console.log("Challan Update Response:", response.data);
+        showToast("Challan updated successfully", "success");
       } else {
-        const response = await api.post('/challans', payload);
-        console.log('Challan Create Response:', response.data);
-        showToast('Challan created successfully', 'success');
+        const response = await api.post("/challans", payload);
+        console.log("Challan Create Response:", response.data);
+        showToast("Challan created successfully", "success");
       }
 
-      navigate('/transactions/challan-list');
+      navigate("/transactions/challan-list");
     } catch (error) {
       console.error(error);
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        `Failed to ${isEditMode ? 'update' : 'create'} challan`;
-      showToast(message, 'error');
+        `Failed to ${isEditMode ? "update" : "create"} challan`;
+      showToast(message, "error");
     }
   };
 
   const LEGACY_handlePrint = () => {
-    if (challan.party === '' || challan.items.length === 0) {
-      showToast('Please select a party and add items before printing', 'error');
+    if (challan.party === "" || challan.items.length === 0) {
+      showToast("Please select a party and add items before printing", "error");
       return;
     }
 
-    const party = (challan.contactType === 'party' ? loadedParties : loadedSuppliers).find(c => c.id === challan.party);
-    
+    const party = (
+      challan.contactType === "party" ?
+        loadedParties
+      : loadedSuppliers).find((c) => c.id === challan.party);
+
     const printContent = `
       <html>
         <head>
           <title>Challan</title>
           <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 40px; 
+            body {
+              font-family: Arial, sans-serif;
+              margin: 40px;
               font-size: 12px;
             }
             .header {
@@ -662,21 +761,21 @@ const ChallanForm = () => {
         <body>
           <div class="header">
             <h1>CHALLAN</h1>
-            <p>${selectedFirm?.name || 'Company Name'}</p>
+            <p>${selectedFirm?.name || "Company Name"}</p>
           </div>
 
           <div class="info-section">
             <div class="info-row">
               <div class="info-label">Date:</div>
-              <div class="info-value">${new Date(challan.date).toLocaleDateString('en-IN')}</div>
+              <div class="info-value">${new Date(challan.date).toLocaleDateString("en-IN")}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Party:</div>
-              <div class="info-value">${party?.name || ''}</div>
+              <div class="info-value">${party?.name || ""}</div>
             </div>
             <div class="info-row">
               <div class="info-label">Type:</div>
-              <div class="info-value">${challan.gstType === 1 ? 'GST' : 'Non-GST'}</div>
+              <div class="info-value">${challan.gstType === 1 ? "GST" : "Non-GST"}</div>
             </div>
           </div>
 
@@ -684,7 +783,7 @@ const ChallanForm = () => {
             <thead>
               <tr>
                 <th>S.No</th>
-                ${challan.printOption === 2 ? '<th>Item Name</th>' : '<th>Barcode</th>'}
+                ${challan.printOption === 2 ? "<th>Item Name</th>" : "<th>Barcode</th>"}
                 <th>Qty</th>
                 <th>Rate</th>
                 <th>Discount %</th>
@@ -692,17 +791,19 @@ const ChallanForm = () => {
               </tr>
             </thead>
             <tbody>
-              ${challan.items.map((itemId, index) => {
-                const item = loadedItems.find(i => i.id === itemId);
-                const details = challan.itemDetails[itemId] || {};
-                const calc = calculateItemAmount(itemId);
-                
-                return `
+              ${challan.items
+                .map((itemId, index) => {
+                  const item = loadedItems.find((i) => i.id === itemId);
+                  const details = challan.itemDetails[itemId] || {};
+                  const calc = calculateItemAmount(itemId);
+
+                  return `
                   <tr>
                     <td>${index + 1}</td>
-                    ${challan.printOption === 2 
-                      ? `<td>${item?.name || 'Unknown'}</td>` 
-                      : `<td>${item?.barcode || '-'}</td>`
+                    ${
+                      challan.printOption === 2 ?
+                        `<td>${item?.name || "Unknown"}</td>`
+                      : `<td>${item?.barcode || "-"}</td>`
                     }
                     <td>${details.pcs || 1}</td>
                     <td>₹${parseFloat(details.rate || 0).toFixed(2)}</td>
@@ -710,7 +811,8 @@ const ChallanForm = () => {
                     <td>₹${calc.afterDiscount.toFixed(2)}</td>
                   </tr>
                 `;
-              }).join('')}
+                })
+                .join("")}
             </tbody>
           </table>
 
@@ -743,47 +845,55 @@ const ChallanForm = () => {
       </html>
     `;
 
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    const printWindow = window.open("", "_blank", "width=800,height=600");
     printWindow.document.write(printContent);
     printWindow.document.close();
-    
+
     setTimeout(() => {
       printWindow.print();
     }, 250);
   };
 
   const handlePrint = () => {
-    if (challan.party === '' || challan.items.length === 0) {
-      showToast('Please select a party and add items before printing', 'error');
+    if (challan.party === "" || challan.items.length === 0) {
+      showToast("Please select a party and add items before printing", "error");
       return;
     }
 
-    const party = (challan.contactType === 'party' ? loadedParties : loadedSuppliers).find((contact) => contact.id === challan.party);
-    const firmName = selectedFirm?.name || 'MAHESHWARI MOTORS';
-    const firmAddress = selectedFirm?.address || '52, KHOTODRA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.';
-    const firmCity = selectedFirm?.city || 'SURAT';
-    const firmContact = selectedFirm?.phone || '';
+    const party = (
+      challan.contactType === "party" ?
+        loadedParties
+      : loadedSuppliers).find((contact) => contact.id === challan.party);
+    const firmName = selectedFirm?.name || "MAHESHWARI MOTORS";
+    const firmAddress =
+      selectedFirm?.address ||
+      "52, KHOTODRA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.";
+    const firmCity = selectedFirm?.city || "SURAT";
+    const firmContact = selectedFirm?.phone || "";
 
     const formatDateDDMMYYYY = (value) => {
       const date = value ? new Date(value) : new Date();
-      if (Number.isNaN(date.getTime())) return '';
-      const dd = String(date.getDate()).padStart(2, '0');
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      if (Number.isNaN(date.getTime())) return "";
+      const dd = String(date.getDate()).padStart(2, "0");
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
       const yyyy = String(date.getFullYear());
       return `${dd}-${mm}-${yyyy}`;
     };
 
-    const challanNo = String(challan.challanNo || '').trim();
-    const challanDate = formatDateDDMMYYYY(challan.date) || formatDateDDMMYYYY(new Date());
+    const challanNo = String(challan.challanNo || "").trim();
+    const challanDate =
+      formatDateDDMMYYYY(challan.date) || formatDateDDMMYYYY(new Date());
     const printOption = Number(challan.printOption ?? 2) || 2;
-    const partyName = String(party?.name || 'CASH BOOK');
+    const partyName = String(party?.name || "CASH BOOK");
 
     const parsedItems = challan.items.map((itemId, index) => {
-      const item = loadedItems.find((loadedItem) => loadedItem.id === itemId) || {};
+      const item =
+        loadedItems.find((loadedItem) => loadedItem.id === itemId) || {};
       const details = challan.itemDetails[itemId] || {};
       const calc = calculateItemAmount(itemId);
 
-      const itemName = details.itemName || item?.name || item?.item_name || 'Item';
+      const itemName =
+        details.itemName || item?.name || item?.item_name || "Item";
       const barcode =
         details.barcode ||
         item?.barcode ||
@@ -791,10 +901,11 @@ const ChallanForm = () => {
         item?.barcodeNumber ||
         item?.barcode_value ||
         item?.part_no ||
-        '';
-      const description = printOption === 2
-        ? String(itemName).trim() || 'Item'
-        : String(barcode).trim() || '-';
+        "";
+      const description =
+        printOption === 2 ?
+          String(itemName).trim() || "Item"
+        : String(barcode).trim() || "-";
 
       const quantity = Number(details.pcs || 1) || 0;
       const rate = Number(details.rate ?? item.amount ?? 0) || 0;
@@ -806,7 +917,7 @@ const ChallanForm = () => {
         row: [
           String(index + 1),
           description,
-          quantity ? String(quantity) : '',
+          quantity ? String(quantity) : "",
           rate.toFixed(2),
           discount.toFixed(2),
           specialDiscount.toFixed(2),
@@ -816,10 +927,17 @@ const ChallanForm = () => {
     });
 
     const rowsFromItems = parsedItems.map((entry) => entry.row);
-    const totalFromItems = parsedItems.reduce((sum, entry) => sum + entry.lineAmount, 0);
+    const totalFromItems = parsedItems.reduce(
+      (sum, entry) => sum + entry.lineAmount,
+      0,
+    );
     const totalAmount = Number(calculateNetAmount() || 0) || totalFromItems;
 
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
     const blue = [0, 0, 255];
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -842,52 +960,94 @@ const ChallanForm = () => {
       doc.rect(originX, originY, copyWidth, copyHeight);
 
       doc.rect(originX, headerY, copyWidth, headerHeight);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
       doc.setTextColor(...blue);
-      doc.text(`* ${firmName.toUpperCase()} *`, originX + copyWidth / 2, headerY + 7, { align: 'center' });
+      doc.text(
+        `* ${firmName.toUpperCase()} *`,
+        originX + copyWidth / 2,
+        headerY + 7,
+        { align: "center" },
+      );
       doc.setFontSize(7.5);
-      doc.text(firmAddress, originX + copyWidth / 2, headerY + 13, { align: 'center' });
+      doc.text(firmAddress, originX + copyWidth / 2, headerY + 13, {
+        align: "center",
+      });
 
       doc.setTextColor(0, 0, 0);
       doc.rect(originX, detailsY, copyWidth, detailsHeight);
       const leftBoxWidth = Math.round(copyWidth * 0.63 * 10) / 10;
-      doc.line(originX + leftBoxWidth, detailsY, originX + leftBoxWidth, detailsY + detailsHeight);
+      doc.line(
+        originX + leftBoxWidth,
+        detailsY,
+        originX + leftBoxWidth,
+        detailsY + detailsHeight,
+      );
 
-      doc.setFont('helvetica', 'bold');
+      doc.setFont("helvetica", "bold");
       doc.setFontSize(10.5);
       doc.setTextColor(...blue);
-      doc.text(`M/s. : ${partyName.toUpperCase()}`, originX + 2.5, detailsY + 9);
+      doc.text(
+        `M/s. : ${partyName.toUpperCase()}`,
+        originX + 2.5,
+        detailsY + 9,
+      );
 
-      doc.setFont('helvetica', 'normal');
+      doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
-      const contactLine = `City ${firmCity}. Contact No.,${firmContact ? ` ${firmContact}` : ''}`;
+      const contactLine = `City ${firmCity}. Contact No.,${firmContact ? ` ${firmContact}` : ""}`;
       doc.text(contactLine, originX + 2.5, detailsY + 22);
-      doc.text('AREA--', originX + 2.5, detailsY + 32);
+      doc.text("AREA--", originX + 2.5, detailsY + 32);
 
-      doc.setFont('helvetica', 'bold');
+      doc.setFont("helvetica", "bold");
       doc.setFontSize(9.5);
-      doc.text(`Challan No.  :  ${challanNo}`, originX + leftBoxWidth + 3, detailsY + 12);
-      doc.text(`Date          :  ${challanDate}`, originX + leftBoxWidth + 3, detailsY + 24);
+      doc.text(
+        `Challan No.  :  ${challanNo}`,
+        originX + leftBoxWidth + 3,
+        detailsY + 12,
+      );
+      doc.text(
+        `Date          :  ${challanDate}`,
+        originX + leftBoxWidth + 3,
+        detailsY + 24,
+      );
 
-      const head = [['Sr.', printOption === 2 ? 'Item Name' : 'Barcode', 'Qty.', 'Rate', 'Disc (%)', 'Sp.Dis (%)']];
-      const fillerRow = ['', '', '', '', '', ''];
-      const body = [...(rowsFromItems.length ? rowsFromItems : [['', '', '', '', '', '']]), fillerRow];
+      const head = [
+        [
+          "Sr.",
+          printOption === 2 ? "Item Name" : "Barcode",
+          "Qty.",
+          "Rate",
+          "Disc (%)",
+          "Sp.Dis (%)",
+        ],
+      ];
+      const fillerRow = ["", "", "", "", "", ""];
+      const body = [
+        ...(rowsFromItems.length ? rowsFromItems : [["", "", "", "", "", ""]]),
+        fillerRow,
+      ];
 
       const bottomPadding = 16;
       const availableHeight = originY + copyHeight - bottomPadding - tableY;
       const estimatedRowHeight = 5.2;
       const estimatedHeadHeight = 7;
       const estimatedBodyHeight = rowsFromItems.length * estimatedRowHeight;
-      const fillerHeight = Math.max(20, availableHeight - estimatedHeadHeight - estimatedBodyHeight);
+      const fillerHeight = Math.max(
+        20,
+        availableHeight - estimatedHeadHeight - estimatedBodyHeight,
+      );
 
       const srW = 8;
       const qtyW = 14;
       const rateW = 18;
       const discW = 14;
       const spDiscW = 14;
-      const descW = Math.max(40, copyWidth - (srW + qtyW + rateW + discW + spDiscW));
+      const descW = Math.max(
+        40,
+        copyWidth - (srW + qtyW + rateW + discW + spDiscW),
+      );
 
       autoTable(doc, {
         head,
@@ -895,34 +1055,34 @@ const ChallanForm = () => {
         startY: tableY,
         margin: { left: originX },
         tableWidth: copyWidth,
-        theme: 'grid',
+        theme: "grid",
         styles: {
-          font: 'helvetica',
+          font: "helvetica",
           fontSize: 8.5,
           textColor: [0, 0, 0],
           cellPadding: { top: 1.2, right: 1.5, bottom: 1.2, left: 1.5 },
           lineColor: [0, 0, 0],
           lineWidth: 0.25,
-          overflow: 'linebreak',
-          valign: 'top',
+          overflow: "linebreak",
+          valign: "top",
         },
         headStyles: {
           fillColor: [230, 230, 230],
           textColor: blue,
-          fontStyle: 'bold',
-          halign: 'center',
-          valign: 'middle',
+          fontStyle: "bold",
+          halign: "center",
+          valign: "middle",
         },
         columnStyles: {
-          0: { cellWidth: srW, halign: 'left' },
-          1: { cellWidth: descW, halign: 'left' },
-          2: { cellWidth: qtyW, halign: 'right' },
-          3: { cellWidth: rateW, halign: 'right' },
-          4: { cellWidth: discW, halign: 'right' },
-          5: { cellWidth: spDiscW, halign: 'right' },
+          0: { cellWidth: srW, halign: "left" },
+          1: { cellWidth: descW, halign: "left" },
+          2: { cellWidth: qtyW, halign: "right" },
+          3: { cellWidth: rateW, halign: "right" },
+          4: { cellWidth: discW, halign: "right" },
+          5: { cellWidth: spDiscW, halign: "right" },
         },
         didParseCell: (data) => {
-          if (data.section !== 'body') return;
+          if (data.section !== "body") return;
           const fillerIndex = rowsFromItems.length ? rowsFromItems.length : 1;
           if (data.row.index === fillerIndex) {
             data.cell.styles.minCellHeight = fillerHeight;
@@ -933,17 +1093,25 @@ const ChallanForm = () => {
 
     drawChallanCopy(leftX);
 
-    doc.setFont('helvetica', 'bold');
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Total Amount: Rs. ${totalAmount.toFixed(2)}`, leftX + copyWidth - 2.5, topY + copyHeight - 6, {
-      align: 'right',
-    });
+    doc.text(
+      `Total Amount: Rs. ${totalAmount.toFixed(2)}`,
+      leftX + copyWidth - 2.5,
+      topY + copyHeight - 6,
+      {
+        align: "right",
+      },
+    );
 
-    const previewUrl = doc.output('bloburl');
-    const previewWindow = window.open(previewUrl, '_blank');
+    const previewUrl = doc.output("bloburl");
+    const previewWindow = window.open(previewUrl, "_blank");
     if (!previewWindow) {
-      showToast('Popup blocked. Please allow popups for print preview.', 'error');
+      showToast(
+        "Popup blocked. Please allow popups for print preview.",
+        "error",
+      );
     }
   };
 
@@ -951,20 +1119,32 @@ const ChallanForm = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">
-          {isEditMode ? 'Edit Challan' : 'Create Challan'}
+          {isEditMode ? "Edit Challan" : "Create Challan"}
         </h1>
-        <Button variant="outline" onClick={() => navigate('/transactions/challan-list')}>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/transactions/challan-list")}
+        >
           Back to List
         </Button>
       </div>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-blue-50 rounded-lg">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Type *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contact Type *
+            </label>
             <select
               value={challan.contactType}
-              onChange={(e) => setChallan(prev => ({ ...prev, contactType: e.target.value, party: '' }))}
+              onChange={(e) =>
+                setChallan((prev) => ({
+                  ...prev,
+                  contactType: e.target.value,
+                  party: "",
+                  label_id: "",
+                }))
+              }
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
               <option value="party">Party</option>
@@ -973,83 +1153,158 @@ const ChallanForm = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {challan.contactType === 'party' ? 'Party' : 'Supplier'} *
+              {challan.contactType === "party" ? "Party" : "Supplier"} *
             </label>
             <select
               value={challan.party}
               onChange={(e) => {
                 const selectedId = e.target.value;
-                const contacts = challan.contactType === 'party' ? loadedParties : loadedSuppliers;
-                const selected = contacts.find(c => c.id === selectedId);
-                setChallan(prev => ({ 
-                  ...prev, 
+                const contacts =
+                  challan.contactType === "party" ?
+                    loadedParties
+                  : loadedSuppliers;
+                const selected = contacts.find((c) => c.id === selectedId);
+                setChallan((prev) => ({
+                  ...prev,
                   party: selectedId,
-                  gstType: selected ? (selected.is_gst || 0) : prev.gstType
+                  label_id: selected?.label_id || "",
+                  gstType: selected ? selected.is_gst || 0 : prev.gstType,
                 }));
                 setExpandedItemId(null);
                 setItemHistoryMap({});
               }}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
-              <option value="">Select {challan.contactType === 'party' ? 'Party' : 'Supplier'}</option>
-              {(challan.contactType === 'party' ? loadedParties : loadedSuppliers).map(contact => (
-                <option key={contact.id} value={contact.id}>{contact.name}</option>
+              <option value="">
+                Select {challan.contactType === "party" ? "Party" : "Supplier"}
+              </option>
+              {(challan.contactType === "party" ?
+                loadedParties
+              : loadedSuppliers
+              ).map((contact) => (
+                <option key={contact.id} value={contact.id}>
+                  {contact.name}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Label
+            </label>
+            <select
+              value={challan.label_id}
+              onChange={(e) =>
+                setChallan((prev) => ({
+                  ...prev,
+                  label_id: e.target.value,
+                }))
+              }
+              disabled={challan.contactType !== "party" || !challan.party}
+              className="w-full px-3 py-2 border rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">
+                {challan.contactType !== "party" ?
+                  "Not applicable"
+                : !challan.party ?
+                  "Select Party First"
+                : "Select Label"}
+              </option>
+              {loadedLabels
+                .filter((label) => {
+                  const selectedParty = loadedParties.find(
+                    (party) => party.id === challan.party,
+                  );
+                  if (!selectedParty?.category_id) return true;
+                  return label.category_id === selectedParty.category_id;
+                })
+                .map((label) => (
+                  <option key={label.id} value={label.id}>
+                    {label.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date
+            </label>
             <input
               type="date"
               value={challan.date}
-              onChange={(e) => setChallan(prev => ({ ...prev, date: e.target.value }))}
+              onChange={(e) =>
+                setChallan((prev) => ({ ...prev, date: e.target.value }))
+              }
               className="w-full px-3 py-2 border rounded-md text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type
+            </label>
             <div className="flex items-center gap-3 mt-2">
-              <div 
-                onClick={() => setChallan(prev => ({ ...prev, gstType: prev.gstType === 0 ? 1 : 0 }))}
+              <div
+                onClick={() =>
+                  setChallan((prev) => ({
+                    ...prev,
+                    gstType: prev.gstType === 0 ? 1 : 0,
+                  }))
+                }
                 className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
-                  challan.gstType === 1 ? 'bg-green-500' : challan.gstType === 0 ? 'bg-gray-300' : 'bg-gray-200'
+                  challan.gstType === 1 ? "bg-green-500"
+                  : challan.gstType === 0 ? "bg-gray-300"
+                  : "bg-gray-200"
                 }`}
               >
-                <div 
+                <div
                   className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${
-                    challan.gstType === 1 ? 'translate-x-7' : 'translate-x-0'
-                  }`} 
+                    challan.gstType === 1 ? "translate-x-7" : "translate-x-0"
+                  }`}
                 />
               </div>
-              <span className="text-sm text-gray-600">{challan.gstType === null ? '-' : challan.gstType}</span>
+              <span className="text-sm text-gray-600">
+                {challan.gstType === null ? "-" : challan.gstType}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From Bank</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              From Bank
+            </label>
             <select
               value={challan.from_bank}
-              onChange={(e) => setChallan(prev => ({ ...prev, from_bank: e.target.value }))}
+              onChange={(e) =>
+                setChallan((prev) => ({ ...prev, from_bank: e.target.value }))
+              }
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
               <option value="">Select Bank</option>
-              {loadedBanks.map(bank => (
-                <option key={bank.id} value={bank.id}>{bank.name}</option>
+              {loadedBanks.map((bank) => (
+                <option key={bank.id} value={bank.id}>
+                  {bank.name}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">To Bank</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              To Bank
+            </label>
             <select
               value={challan.to_bank}
-              onChange={(e) => setChallan(prev => ({ ...prev, to_bank: e.target.value }))}
+              onChange={(e) =>
+                setChallan((prev) => ({ ...prev, to_bank: e.target.value }))
+              }
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
               <option value="">Select Bank</option>
-              {loadedBanks.map(bank => (
-                <option key={bank.id} value={bank.id}>{bank.name}</option>
+              {loadedBanks.map((bank) => (
+                <option key={bank.id} value={bank.id}>
+                  {bank.name}
+                </option>
               ))}
             </select>
           </div>
@@ -1057,12 +1312,16 @@ const ChallanForm = () => {
 
         <div className="border rounded-lg">
           <div className="bg-gray-100 px-4 py-2">
-            <h3 className="font-medium text-gray-900">Rate Information - Add / Less</h3>
+            <h3 className="font-medium text-gray-900">
+              Rate Information - Add / Less
+            </h3>
           </div>
 
-           <div className="p-4 bg-gray-50 border-t">
+          <div className="p-4 bg-gray-50 border-t">
             <div className="mb-3">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Search & Add Items:</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search & Add Items:
+              </label>
               <div className="relative" ref={itemDropdownRef}>
                 <input
                   type="text"
@@ -1089,24 +1348,28 @@ const ChallanForm = () => {
                         >
                           ←
                         </button>
-                        <span>Page {itemsPage} of {totalItemsPages}</span>
+                        <span>
+                          Page {itemsPage} of {totalItemsPages}
+                        </span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             loadItemsPage(itemsPage + 1);
                           }}
-                          disabled={itemsPage === totalItemsPages || isLoadingItems}
+                          disabled={
+                            itemsPage === totalItemsPages || isLoadingItems
+                          }
                           className="px-2 py-0.5 bg-white border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200"
                         >
                           →
                         </button>
                       </div>
-                      {filteredItems.map(item => (
+                      {filteredItems.map((item) => (
                         <button
                           key={item.id}
                           onClick={() => {
                             toggleItemSelection(item.id);
-                            setItemSearchTerm('');
+                            setItemSearchTerm("");
                             setShowItemDropdown(false);
                           }}
                           className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b last:border-b-0"
@@ -1114,17 +1377,27 @@ const ChallanForm = () => {
                           <div className="flex justify-between items-center">
                             <span className="truncate">
                               {item.name}
-                              {item.part_no && <span className="text-gray-400 text-xs ml-1">({item.part_no})</span>}
+                              {item.part_no && (
+                                <span className="text-gray-400 text-xs ml-1">
+                                  ({item.part_no})
+                                </span>
+                              )}
                             </span>
-                            <span className="text-gray-500 text-xs ml-2">₹{item.amount}</span>
+                            <span className="text-gray-500 text-xs ml-2">
+                              ₹{item.amount}
+                            </span>
                           </div>
                         </button>
                       ))}
                       {filteredItems.length === 0 && !isLoadingItems && (
-                        <div className="px-3 py-2 text-gray-500 text-sm">No items found</div>
+                        <div className="px-3 py-2 text-gray-500 text-sm">
+                          No items found
+                        </div>
                       )}
                       {isLoadingItems && (
-                        <div className="px-3 py-2 text-gray-500 text-sm text-center">Loading...</div>
+                        <div className="px-3 py-2 text-gray-500 text-sm text-center">
+                          Loading...
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1141,9 +1414,11 @@ const ChallanForm = () => {
                   <th className="px-2 py-2 text-left border-r">ItemName</th>
                   <th className="px-2 py-2 text-left border-r">Remark</th>
                   <th className="px-2 py-2 text-left border-r">Type</th>
-                  <th 
-                    className="px-2 py-2 text-left border-r hover:bg-gray-100" 
-                    onDoubleClick={() => setShowAllCombinedStock(prev => !prev)}
+                  <th
+                    className="px-2 py-2 text-left border-r hover:bg-gray-100"
+                    onDoubleClick={() =>
+                      setShowAllCombinedStock((prev) => !prev)
+                    }
                   >
                     Stock
                   </th>
@@ -1160,17 +1435,16 @@ const ChallanForm = () => {
               </thead>
               <tbody>
                 {challan.items.map((itemId, index) => {
-                  const item = loadedItems.find(i => i.id === itemId);
+                  const item = loadedItems.find((i) => i.id === itemId);
                   const details = challan.itemDetails[itemId] || {};
                   const calc = calculateItemAmount(itemId);
                   const masterIsGst = item?.is_gst ?? 1;
                   const itemType =
-                    masterIsGst === 0
-                      ? 0
-                      : (details.type !== undefined ? details.type : challan.gstType);
-                  const displayItemName = details.itemName || item?.name || 'Unknown Item';
-                  const historyState = itemHistoryMap[itemId] || { loading: false, rows: [], error: null };
-                  const historyRows = Array.isArray(historyState.rows) ? historyState.rows.slice(0, 4) : [];
+                    masterIsGst === 0 ? 0
+                    : details.type !== undefined ? details.type
+                    : challan.gstType;
+                  const displayItemName =
+                    details.itemName || item?.name || "Unknown Item";
                   const historyOpen = expandedItemId === itemId;
 
                   return (
@@ -1185,7 +1459,9 @@ const ChallanForm = () => {
                               className="text-gray-500 hover:text-gray-700"
                               title="View last 4 entries"
                             >
-                              {historyOpen ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
+                              {historyOpen ?
+                                <FaChevronUp size={10} />
+                              : <FaChevronDown size={10} />}
                             </button>
                           </div>
                         </td>
@@ -1195,34 +1471,47 @@ const ChallanForm = () => {
                         <td className="px-2 py-2 border-r">
                           <input
                             type="text"
-                            value={details.remark || ''}
-                            onChange={(e) => updateItemDetail(itemId, 'remark', e.target.value)}
+                            value={details.remark || ""}
+                            onChange={(e) =>
+                              updateItemDetail(itemId, "remark", e.target.value)
+                            }
                             className="w-32 px-1 py-1 border rounded text-xs"
                           />
                         </td>
-                      <td className="px-2 py-2 border-r">
-                        {masterIsGst === 0 ? (
-                          <span className="text-xs">0</span>
-                        ) : (
-                          <select
-                            value={itemType !== null ? itemType : ''}
-                            onChange={(e) => updateItemDetail(itemId, 'type', parseInt(e.target.value))}
-                            className="w-12 px-1 py-1 border rounded text-xs"
-                          >
-                            <option value="">-</option>
-                            <option value={0}>0</option>
-                            <option value={1}>1</option>
-                          </select>
-                        )}
-                      </td>
+                        <td className="px-2 py-2 border-r">
+                          {masterIsGst === 0 ?
+                            <span className="text-xs">0</span>
+                          : <select
+                              value={itemType !== null ? itemType : ""}
+                              onChange={(e) =>
+                                updateItemDetail(
+                                  itemId,
+                                  "type",
+                                  parseInt(e.target.value),
+                                )
+                              }
+                              className="w-12 px-1 py-1 border rounded text-xs"
+                            >
+                              <option value="">-</option>
+                              <option value={0}>0</option>
+                              <option value={1}>1</option>
+                            </select>
+                          }
+                        </td>
                         <td className="px-2 py-2 border-r">
                           <input
                             type="number"
-                            value={showAllCombinedStock
-                              ? ((details.physicalStock || 0) + (details.logicalStock || 0)).toFixed(1)
-                              : (details.stock || 0)
+                            value={
+                              showAllCombinedStock ?
+                                (
+                                  (details.physicalStock || 0) +
+                                  (details.logicalStock || 0)
+                                ).toFixed(1)
+                              : details.stock || 0
                             }
-                            onChange={(e) => updateItemDetail(itemId, 'stock', e.target.value)}
+                            onChange={(e) =>
+                              updateItemDetail(itemId, "stock", e.target.value)
+                            }
                             className="w-16 px-1 py-1 border rounded text-xs"
                             readOnly
                           />
@@ -1231,7 +1520,9 @@ const ChallanForm = () => {
                           <input
                             type="number"
                             value={details.pcs || 1}
-                            onChange={(e) => updateItemDetail(itemId, 'pcs', e.target.value)}
+                            onChange={(e) =>
+                              updateItemDetail(itemId, "pcs", e.target.value)
+                            }
                             className="w-10 px-1 py-1 border rounded text-xs"
                           />
                         </td>
@@ -1239,7 +1530,9 @@ const ChallanForm = () => {
                           <input
                             type="number"
                             value={details.rate || item?.amount || 0}
-                            onChange={(e) => updateItemDetail(itemId, 'rate', e.target.value)}
+                            onChange={(e) =>
+                              updateItemDetail(itemId, "rate", e.target.value)
+                            }
                             className="w-20 px-1 py-1 border rounded text-xs"
                           />
                         </td>
@@ -1247,7 +1540,13 @@ const ChallanForm = () => {
                           <input
                             type="number"
                             value={details.disPercent || 0}
-                            onChange={(e) => updateItemDetail(itemId, 'disPercent', e.target.value)}
+                            onChange={(e) =>
+                              updateItemDetail(
+                                itemId,
+                                "disPercent",
+                                e.target.value,
+                              )
+                            }
                             className="w-16 px-1 py-1 border rounded text-xs"
                           />
                         </td>
@@ -1255,7 +1554,9 @@ const ChallanForm = () => {
                           <input
                             type="number"
                             value={details.spDis || 0}
-                            onChange={(e) => updateItemDetail(itemId, 'spDis', e.target.value)}
+                            onChange={(e) =>
+                              updateItemDetail(itemId, "spDis", e.target.value)
+                            }
                             className="w-16 px-1 py-1 border rounded text-xs"
                           />
                         </td>
@@ -1264,26 +1565,39 @@ const ChallanForm = () => {
                             type="number"
                             step="0.01"
                             value={details.itemDiscount || 0}
-                            onChange={(e) => updateItemDetail(itemId, 'itemDiscount', e.target.value)}
+                            onChange={(e) =>
+                              updateItemDetail(
+                                itemId,
+                                "itemDiscount",
+                                e.target.value,
+                              )
+                            }
                             className="w-16 px-1 py-1 border rounded text-xs"
                           />
                         </td>
-                        {itemType === 1 ? (
+                        {itemType === 1 ?
                           <>
                             <td className="px-2 py-2 border-r">
                               <input
                                 type="number"
                                 value={details.gstPercent || 0}
-                                onChange={(e) => updateItemDetail(itemId, 'gstPercent', e.target.value)}
+                                onChange={(e) =>
+                                  updateItemDetail(
+                                    itemId,
+                                    "gstPercent",
+                                    e.target.value,
+                                  )
+                                }
                                 className="w-16 px-1 py-1 border rounded text-xs"
                               />
                             </td>
                             <td className="px-2 py-2 border-r">
-                              <span className="text-xs">{calc.gstAmount.toFixed(2)}</span>
+                              <span className="text-xs">
+                                {calc.gstAmount.toFixed(2)}
+                              </span>
                             </td>
                           </>
-                        ) : (
-                          <>
+                        : <>
                             <td className="px-2 py-2 border-r">
                               <span className="text-xs">-</span>
                             </td>
@@ -1291,9 +1605,11 @@ const ChallanForm = () => {
                               <span className="text-xs">-</span>
                             </td>
                           </>
-                        )}
+                        }
                         <td className="px-2 py-2 border-r">
-                          <span className="text-xs font-medium">{calc.afterDiscount.toFixed(2)}</span>
+                          <span className="text-xs font-medium">
+                            {calc.afterDiscount.toFixed(2)}
+                          </span>
                         </td>
                         <td className="px-2 py-2">
                           <button
@@ -1372,7 +1688,10 @@ const ChallanForm = () => {
                 })}
                 {challan.items.length === 0 && (
                   <tr>
-                    <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
+                    <td
+                      colSpan={14}
+                      className="px-4 py-8 text-center text-gray-500"
+                    >
                       No items selected. Use the search below to add items.
                     </td>
                   </tr>
@@ -1380,34 +1699,41 @@ const ChallanForm = () => {
               </tbody>
             </table>
           </div>
-
-         
         </div>
 
         {challan.items.length > 0 && (
           <div className="border rounded-lg bg-gray-50">
             <div className="bg-gray-100 px-4 py-2 border-b">
-              <span className="text-sm font-medium text-gray-700">Selected Items ({challan.items.length})</span>
+              <span className="text-sm font-medium text-gray-700">
+                Selected Items ({challan.items.length})
+              </span>
             </div>
             <div className="p-4">
               <div className="flex flex-wrap gap-2 mb-4">
-                {challan.items.map(itemId => {
-                  const item = loadedItems.find(i => i.id === itemId);
+                {challan.items.map((itemId) => {
+                  const item = loadedItems.find((i) => i.id === itemId);
                   const details = challan.itemDetails[itemId] || {};
-                  const displayItemName = details.itemName || item?.name || 'Unknown Item';
+                  const displayItemName =
+                    details.itemName || item?.name || "Unknown Item";
                   const isActive = expandedItemId === itemId;
                   return (
-                    <span 
-                      key={itemId} 
+                    <span
+                      key={itemId}
                       onClick={() => handleToggleHistory(itemId)}
                       className={`px-2 py-1 text-xs rounded flex items-center gap-1 cursor-pointer transition-colors ${
-                        isActive ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                        isActive ?
+                          "bg-blue-600 text-white"
+                        : "bg-blue-100 text-blue-800 hover:bg-blue-200"
                       }`}
                     >
                       {displayItemName}
                       <button
                         onClick={() => toggleItemSelection(itemId)}
-                        className={isActive ? 'text-white hover:text-gray-200' : 'text-blue-600 hover:text-blue-800'}
+                        className={
+                          isActive ?
+                            "text-white hover:text-gray-200"
+                          : "text-blue-600 hover:text-blue-800"
+                        }
                       >
                         <FaTimes size={10} />
                       </button>
@@ -1415,66 +1741,124 @@ const ChallanForm = () => {
                   );
                 })}
               </div>
-              
-              {expandedItemId && (() => {
-                const historyState = itemHistoryMap[expandedItemId] || { loading: false, rows: [], error: null };
-                const historyRows = Array.isArray(historyState.rows) ? historyState.rows.slice(0, 4) : [];
-                const item = loadedItems.find(i => i.id === expandedItemId);
-                const details = challan.itemDetails[expandedItemId] || {};
-                const displayItemName = details.itemName || item?.name || 'Unknown Item';
-                
-                return (
-                  <div className="border rounded-lg bg-white">
-                    <div className="bg-gray-50 px-3 py-2 border-b">
-                      <span className="text-xs font-medium text-gray-700">Last 4 Entries - {displayItemName}</span>
-                    </div>
-                    {historyState.loading ? (
-                      <div className="px-3 py-4 text-xs text-gray-500 text-center">Loading history...</div>
-                    ) : historyState.error ? (
-                      <div className="px-3 py-4 text-xs text-red-600 text-center">{historyState.error}</div>
-                    ) : historyRows.length === 0 ? (
-                      <div className="px-3 py-4 text-xs text-gray-500 text-center">No history found.</div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr className="bg-gray-50">
-                              <th className="px-2 py-2 text-left border">Date</th>
-                              <th className="px-2 py-2 text-left border">Challan No</th>
-                              <th className="px-2 py-2 text-left border">Rate</th>
-                              <th className="px-2 py-2 text-left border">Qty</th>
-                              <th className="px-2 py-2 text-left border">Amount</th>
-                              <th className="px-2 py-2 text-left border">Disc%</th>
-                              <th className="px-2 py-2 text-left border">Sp Disc</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {historyRows.map((row, rowIndex) => (
-                              <tr 
-                                key={`history-${rowIndex}`} 
-                                className="hover:bg-blue-50 cursor-pointer"
-                                onClick={() => {
-                                  updateItemDetail(expandedItemId, 'rate', row?.rate || 0);
-                                  updateItemDetail(expandedItemId, 'disPercent', row?.discount || 0);
-                                  updateItemDetail(expandedItemId, 'spDis', row?.special_discount || 0);
-                                }}
-                              >
-                                <td className="px-2 py-2 border">{formatHistoryDate(row?.challan_date)}</td>
-                                <td className="px-2 py-2 border">{row?.challan_no || '-'}</td>
-                                <td className="px-2 py-2 border">{Number(row?.rate || 0).toFixed(2)}</td>
-                                <td className="px-2 py-2 border">{Number(row?.quantity || 0)}</td>
-                                <td className="px-2 py-2 border">{Number(row?.amount || 0).toFixed(2)}</td>
-                                <td className="px-2 py-2 border">{Number(row?.discount || 0).toFixed(2)}</td>
-                                <td className="px-2 py-2 border">{Number(row?.special_discount || 0).toFixed(2)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+
+              {expandedItemId &&
+                (() => {
+                  const historyState = itemHistoryMap[expandedItemId] || {
+                    loading: false,
+                    rows: [],
+                    error: null,
+                  };
+                  const historyRows =
+                    Array.isArray(historyState.rows) ?
+                      historyState.rows.slice(0, 4)
+                    : [];
+                  const item = loadedItems.find((i) => i.id === expandedItemId);
+                  const details = challan.itemDetails[expandedItemId] || {};
+                  const displayItemName =
+                    details.itemName || item?.name || "Unknown Item";
+
+                  return (
+                    <div className="border rounded-lg bg-white">
+                      <div className="bg-gray-50 px-3 py-2 border-b">
+                        <span className="text-xs font-medium text-gray-700">
+                          Last 4 Entries - {displayItemName}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
+                      {historyState.loading ?
+                        <div className="px-3 py-4 text-xs text-gray-500 text-center">
+                          Loading history...
+                        </div>
+                      : historyState.error ?
+                        <div className="px-3 py-4 text-xs text-red-600 text-center">
+                          {historyState.error}
+                        </div>
+                      : historyRows.length === 0 ?
+                        <div className="px-3 py-4 text-xs text-gray-500 text-center">
+                          No history found.
+                        </div>
+                      : <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="px-2 py-2 text-left border">
+                                  Date
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Challan No
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Rate
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Qty
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Amount
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Disc%
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Sp Disc
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {historyRows.map((row, rowIndex) => (
+                                <tr
+                                  key={`history-${rowIndex}`}
+                                  className="hover:bg-blue-50 cursor-pointer"
+                                  onClick={() => {
+                                    updateItemDetail(
+                                      expandedItemId,
+                                      "rate",
+                                      row?.rate || 0,
+                                    );
+                                    updateItemDetail(
+                                      expandedItemId,
+                                      "disPercent",
+                                      row?.discount || 0,
+                                    );
+                                    updateItemDetail(
+                                      expandedItemId,
+                                      "spDis",
+                                      row?.special_discount || 0,
+                                    );
+                                  }}
+                                >
+                                  <td className="px-2 py-2 border">
+                                    {formatHistoryDate(row?.challan_date)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {row?.challan_no || "-"}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.rate || 0).toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.quantity || 0)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.amount || 0).toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.discount || 0).toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.special_discount || 0).toFixed(
+                                      2,
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      }
+                    </div>
+                  );
+                })()}
             </div>
           </div>
         )}
@@ -1506,7 +1890,12 @@ const ChallanForm = () => {
               <span className="text-sm font-medium w-32">Print Format:</span>
               <select
                 value={challan.printOption}
-                onChange={(e) => setChallan(prev => ({ ...prev, printOption: parseInt(e.target.value) }))}
+                onChange={(e) =>
+                  setChallan((prev) => ({
+                    ...prev,
+                    printOption: parseInt(e.target.value),
+                  }))
+                }
                 className="flex-1 px-3 py-2 border rounded-md text-sm"
               >
                 <option value={1}>Print 1 - Show Barcode</option>
@@ -1523,7 +1912,7 @@ const ChallanForm = () => {
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
           >
             <FaSave />
-            {isEditMode ? 'Update' : 'Save'} Challan
+            {isEditMode ? "Update" : "Save"} Challan
           </Button>
           <Button
             onClick={handlePrint}
@@ -1535,7 +1924,7 @@ const ChallanForm = () => {
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate('/transactions/challan-list')}
+            onClick={() => navigate("/transactions/challan-list")}
           >
             Cancel
           </Button>
