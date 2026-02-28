@@ -177,12 +177,46 @@ const UserProfile = () => {
                 {isGstLogin && (
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">GST Bank Details</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {renderField('Bank Name', activeFirm?.bank_name)}
-                      {renderField('Bank Branch', activeFirm?.bank_branch)}
-                      {renderField('IFSC Code', activeFirm?.ifsc_code, true)}
-                      {renderField('Account Number', activeFirm?.account_number, true)}
-                    </div>
+                    {Array.isArray(activeFirm?.bank_ids) && activeFirm.bank_ids.length > 0 ? (
+                      activeFirm.bank_ids.map((bank, idx) => (
+                        <div key={idx} className="mb-4 pb-4 border-b last:border-b-0">
+                          <p className="text-sm font-medium text-gray-500 mb-2">Bank {idx + 1}</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {renderField('Bank Name', bank?.bank_name)}
+                            {renderField('Bank Branch', bank?.bank_branch)}
+                            {renderField('IFSC Code', bank?.ifsc_code, true)}
+                            {renderField('Account Number', bank?.account_number, true)}
+                            {renderField('Account Holder', bank?.account_holder)}
+                            {bank?.upi_id && renderField('UPI ID', bank?.upi_id, true)}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No bank details available</p>
+                    )}
+                  </div>
+                )}
+
+                {!isGstLogin && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Non-GST Bank Details</h3>
+                    {Array.isArray(activeFirm?.bank_ids) && activeFirm.bank_ids.length > 0 ? (
+                      activeFirm.bank_ids.map((bank, idx) => (
+                        <div key={idx} className="mb-4 pb-4 border-b last:border-b-0">
+                          <p className="text-sm font-medium text-gray-500 mb-2">Bank {idx + 1}</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {renderField('Bank Name', bank?.bank_name)}
+                            {renderField('Bank Branch', bank?.bank_branch)}
+                            {renderField('IFSC Code', bank?.ifsc_code, true)}
+                            {renderField('Account Number', bank?.account_number, true)}
+                            {renderField('Account Holder', bank?.account_holder)}
+                            {bank?.upi_id && renderField('UPI ID', bank?.upi_id, true)}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No bank details available</p>
+                    )}
                   </div>
                 )}
               </div>

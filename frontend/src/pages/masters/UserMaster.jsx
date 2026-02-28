@@ -216,7 +216,7 @@ const UserMaster = () => {
           plan: sub.plan_type,
           validityFrom: sub.start_date,
           validityTo: sub.expiry_date,
-          amount: 0,
+          amount: sub.amount || 0,
           createdAt: sub.createdAt,
           status: sub.status
         }));
