@@ -56,6 +56,67 @@ const getSubscriptionStatus = (subscription) => {
 
 
 
+const getDefaultUserForm = () => ({
+  name: '',
+  email: '',
+  phone: '',
+  signature: '',
+  signatureFile: null,
+  gst_firm: {
+    username: '',
+    password: '',
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    godown_address: '',
+    city: '',
+    state: '',
+    GSTIN: '',
+    CIN: '',
+    reg_number: '',
+    banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]
+  },
+  nongst_firm: {
+    username: '',
+    password: '',
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    godown_address: '',
+    city: '',
+    state: '',
+    GSTIN: '',
+    CIN: '',
+    reg_number: '',
+    banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]
+  }
+});
+
+const buildFirmUpdatePayload = (firm = {}) => {
+  const payload = {
+    username: firm.username || '',
+    name: firm.name || '',
+    phone: firm.phone || '',
+    email: firm.email || '',
+    address: firm.address || '',
+    godown_address: firm.godown_address || '',
+    city: firm.city || '',
+    state: firm.state || '',
+    GSTIN: firm.GSTIN || '',
+    CIN: firm.CIN || '',
+    reg_number: firm.reg_number || '',
+    bank_ids: Array.isArray(firm.bank_ids) ? firm.bank_ids : [],
+  };
+
+  if (firm.password && !String(firm.password).startsWith('$2')) {
+    payload.password = firm.password;
+  }
+
+  return payload;
+};
+
 const UserMaster = () => {
   const navigate = useNavigate();
   const { users, setUsers, showToast } = useStore();
@@ -73,49 +134,14 @@ const UserMaster = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editingForm, setEditingForm] = useState(null);
+  const [editingSignatureFile, setEditingSignatureFile] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, user: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingUser, setViewingUser] = useState(null);
   const [isTransactionHistoryModalOpen, setIsTransactionHistoryModalOpen] = useState(false);
   const [selectedUserTransactions, setSelectedUserTransactions] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    signature: '',
-    signatureFile: null,
-    gst_firm: {
-      username: '',
-      password: '',
-      name: '',
-      phone: '',
-      email: '',
-      address: '',
-      godown_address: '',
-      city: '',
-      state: '',
-      GSTIN: '',
-      CIN: '',
-      reg_number: '',
-      banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]
-    },
-    nongst_firm: {
-      username: '',
-      password: '',
-      name: '',
-      phone: '',
-      email: '',
-      address: '',
-      godown_address: '',
-      city: '',
-      state: '',
-      GSTIN: '',
-      CIN: '',
-      reg_number: '',
-      banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]
-    }
-  });
+  const [newUser, setNewUser] = useState(getDefaultUserForm());
   const [newPassword, setNewPassword] = useState('');
 
   // Check master/admin authentication
@@ -298,7 +324,25 @@ const UserMaster = () => {
         setEditingUser(user);
         // initialize editing form from original payload if available
         const base = user?.original || {};
-        setEditingForm({ ...base, id: user.id });
+        setEditingForm({
+          ...base,
+          id: user.id,
+          gst_firm: {
+            ...(base.gst_firm || {}),
+            password: '',
+            bank_ids: Array.isArray(base.gst_firm?.bank_ids)
+              ? base.gst_firm.bank_ids
+              : [],
+          },
+          nongst_firm: {
+            ...(base.nongst_firm || {}),
+            password: '',
+            bank_ids: Array.isArray(base.nongst_firm?.bank_ids)
+              ? base.nongst_firm.bank_ids
+              : [],
+          },
+        });
+        setEditingSignatureFile(null);
         setNewPassword('');
         setIsEditModalOpen(true);
       },
@@ -315,131 +359,99 @@ const UserMaster = () => {
     }
   ], []);
 
-  const handleAddUser = async () => {
+    const handleAddUser = async () => {
     try {
-        if (!newUser.name || !newUser.gst_firm.username || !newUser.nongst_firm.username) {
-            showToast('Please fill required fields (Name, Usernames)', 'error');
-            return;
-        }
+      if (!newUser.name || !newUser.gst_firm.username || !newUser.nongst_firm.username) {
+        showToast('Please fill required fields (Name, Usernames)', 'error');
+        return;
+      }
 
-        console.log('📤 Creating user with data:', JSON.stringify(newUser, null, 2));
-        await api.post('/admin/users', newUser);
-        console.log('✅ User created successfully');
-        showToast('User added successfully', 'success');
-        setIsAddModalOpen(false);
-        setNewUser({
-           name: '', email: '', phone: '',
-           gst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }] },
-           nongst_firm: { username: '', password: '', name: '', phone: '', email: '', address: '', godown_address: '', city: '', state: '', GSTIN: '', CIN: '', reg_number: '', banks: [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }] }
+      const createPayload = {
+        name: newUser.name,
+        email: newUser.email,
+        phone: newUser.phone,
+        gst_firm: newUser.gst_firm,
+        nongst_firm: newUser.nongst_firm,
+      };
+
+      console.log('Creating user with data:', JSON.stringify(createPayload, null, 2));
+      const createdResponse = await api.post('/admin/users', createPayload);
+      const createdUserId = createdResponse?.data?.data?._id;
+
+      if (newUser.signatureFile && createdUserId) {
+        const formData = new FormData();
+        formData.append('signature', newUser.signatureFile);
+        await api.post(`/admin/users/${createdUserId}/signature`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
-        fetchUsers(); 
+      }
+
+      console.log('User created successfully');
+      showToast(
+        newUser.signatureFile
+          ? 'User and signature added successfully'
+          : 'User added successfully',
+        'success',
+      );
+      setIsAddModalOpen(false);
+      setNewUser(getDefaultUserForm());
+      fetchUsers();
     } catch (error) {
-        console.error("❌ User submit error:", error);
-        console.error("Error response:", error.response?.data);
-        const msg = error.response?.data?.message || 'Failed to add user';
-        const details = Array.isArray(error.response?.data?.errors) 
-            ? error.response.data.errors.join(', ') 
-            : '';
-        showToast(details ? `${msg}: ${details}` : msg, 'error');
+      console.error('User submit error:', error);
+      console.error('Error response:', error.response?.data);
+      const msg = error.response?.data?.message || 'Failed to add user';
+      const details = Array.isArray(error.response?.data?.errors)
+        ? error.response.data.errors.join(', ')
+        : '';
+      showToast(details ? `${msg}: ${details}` : msg, 'error');
     }
   };
 
   const handleUpdateUser = async () => {
-      try {
-        // Update banks first
-        const bankUpdates = [];
-        if (editingForm.gst_firm?.bank_ids) {
-          editingForm.gst_firm.bank_ids.forEach(b => {
-            if (typeof b === 'object' && b._id) {
-              bankUpdates.push(api.put(`/banks/${b._id}`, {
-                bank_name: b.bank_name,
-                bank_branch: b.bank_branch,
-                ifsc_code: b.ifsc_code,
-                account_number: b.account_number,
-                account_holder: b.account_holder,
-                upi_id: b.upi_id,
-                is_default: b.is_default
-              }));
-            }
-          });
-        }
-        if (editingForm.nongst_firm?.bank_ids) {
-          editingForm.nongst_firm.bank_ids.forEach(b => {
-            if (typeof b === 'object' && b._id) {
-              bankUpdates.push(api.put(`/banks/${b._id}`, {
-                bank_name: b.bank_name,
-                bank_branch: b.bank_branch,
-                ifsc_code: b.ifsc_code,
-                account_number: b.account_number,
-                account_holder: b.account_holder,
-                upi_id: b.upi_id,
-                is_default: b.is_default
-              }));
-            }
-          });
-        }
-        await Promise.all(bankUpdates);
+    try {
+      const updatedUser = {
+        name: editingForm?.name || '',
+        email: editingForm?.email || '',
+        phone: editingForm?.phone || '',
+        is_active: Boolean(editingForm?.is_active),
+        gst_firm: buildFirmUpdatePayload(editingForm?.gst_firm),
+        nongst_firm: buildFirmUpdatePayload(editingForm?.nongst_firm),
+      };
+      console.log('Updating user with data:', JSON.stringify(updatedUser, null, 2));
+      await api.put(`/admin/users/${editingUser.id}`, updatedUser);
 
-        // Update user with only bank IDs
-        const updatedUser = {
-          name: editingForm.name,
-          email: editingForm.email,
-          phone: editingForm.phone,
-          gst_firm: {
-            username: editingForm.gst_firm?.username,
-            password: editingForm.gst_firm?.password,
-            name: editingForm.gst_firm?.name,
-            phone: editingForm.gst_firm?.phone,
-            email: editingForm.gst_firm?.email,
-            address: editingForm.gst_firm?.address,
-            godown_address: editingForm.gst_firm?.godown_address,
-            city: editingForm.gst_firm?.city,
-            state: editingForm.gst_firm?.state,
-            GSTIN: editingForm.gst_firm?.GSTIN,
-            CIN: editingForm.gst_firm?.CIN,
-            reg_number: editingForm.gst_firm?.reg_number,
-            bank_ids: editingForm.gst_firm?.bank_ids?.map(b => b._id || b)
-          },
-          nongst_firm: {
-            username: editingForm.nongst_firm?.username,
-            password: editingForm.nongst_firm?.password,
-            name: editingForm.nongst_firm?.name,
-            phone: editingForm.nongst_firm?.phone,
-            email: editingForm.nongst_firm?.email,
-            address: editingForm.nongst_firm?.address,
-            godown_address: editingForm.nongst_firm?.godown_address,
-            city: editingForm.nongst_firm?.city,
-            state: editingForm.nongst_firm?.state,
-            GSTIN: editingForm.nongst_firm?.GSTIN,
-            CIN: editingForm.nongst_firm?.CIN,
-            reg_number: editingForm.nongst_firm?.reg_number,
-            bank_ids: editingForm.nongst_firm?.bank_ids?.map(b => b._id || b)
-          }
-        };
-        if (newPassword) {
-          updatedUser.password = newPassword;
-        }
-        
-        const userId = editingForm._id || editingForm.id || editingUser.id;
-        await api.put(`/admin/users/${userId}`, updatedUser);
-        
-        setIsEditModalOpen(false);
-        setNewPassword('');
-        setEditingForm(null);
-        setEditingUser(null);
-        showToast('User updated successfully', 'success');
-        fetchUsers();
-      } catch (error) {
-        console.error("❌ User update error:", error);
-        console.error("Error response:", error.response?.data);
-        const msg = error.response?.data?.message || 'Failed to update user';
-        const details = Array.isArray(error.response?.data?.errors) 
-            ? error.response.data.errors.join(', ') 
-            : '';
-        showToast(details ? `${msg}: ${details}` : msg, 'error');
+      if (editingSignatureFile) {
+        const formData = new FormData();
+        formData.append('signature', editingSignatureFile);
+        await api.put(`/admin/users/${editingUser.id}/signature`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
       }
-  };
 
+      console.log('User updated successfully');
+
+      setIsEditModalOpen(false);
+      setNewPassword('');
+      setEditingSignatureFile(null);
+      setEditingForm(null);
+      setEditingUser(null);
+      showToast(
+        editingSignatureFile
+          ? 'User and signature updated successfully'
+          : 'User updated successfully',
+        'success',
+      );
+      fetchUsers();
+    } catch (error) {
+      console.error('User update error:', error);
+      console.error('Error response:', error.response?.data);
+      const msg = error.response?.data?.message || 'Failed to update user';
+      const details = Array.isArray(error.response?.data?.errors)
+        ? error.response.data.errors.join(', ')
+        : '';
+      showToast(details ? `${msg}: ${details}` : msg, 'error');
+    }
+  };
   const handleConfirmDelete = useCallback(async () => {
     // 🛡️ LEVEL 1: State Check
     if (!deleteDialog.isOpen || !deleteDialog.user || !deleteDialog.user.id) {
@@ -1243,7 +1255,15 @@ const UserMaster = () => {
       </Modal>
 
       {/* Edit User Modal (full editable form) */}
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit User" size="lg">
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingSignatureFile(null);
+        }}
+        title="Edit User"
+        size="lg"
+      >
         {editingForm && (
           <div className="max-h-[70vh] overflow-y-auto pr-2 space-y-6">
             <div className="bg-gray-50 p-4 rounded-lg border">
@@ -1274,6 +1294,7 @@ const UserMaster = () => {
                           setEditingForm(prev => ({ ...prev, signature: reader.result }));
                         };
                         reader.readAsDataURL(file);
+                        setEditingSignatureFile(file);
                       }
                     }}
                     className="mt-1 block w-full text-xs sm:text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
@@ -1664,3 +1685,4 @@ const UserMaster = () => {
 };
 
 export default UserMaster;
+
