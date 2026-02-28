@@ -1035,8 +1035,8 @@ const UserMaster = () => {
                 {/* Bank Details */}
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
-                  {(Array.isArray(viewingUser.original?.gst_firm?.banks) && viewingUser.original.gst_firm.banks.length > 0) ? (
-                    viewingUser.original.gst_firm.banks.map((bank, idx) => (
+                  {(Array.isArray(viewingUser.original?.gst_firm?.bank_ids) && viewingUser.original.gst_firm.bank_ids.length > 0) ? (
+                    viewingUser.original.gst_firm.bank_ids.map((bank, idx) => (
                       <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
@@ -1126,8 +1126,8 @@ const UserMaster = () => {
                 {/* Bank Details */}
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
-                  {(Array.isArray(viewingUser.original?.nongst_firm?.banks) && viewingUser.original.nongst_firm.banks.length > 0) ? (
-                    viewingUser.original.nongst_firm.banks.map((bank, idx) => (
+                  {(Array.isArray(viewingUser.original?.nongst_firm?.bank_ids) && viewingUser.original.nongst_firm.bank_ids.length > 0) ? (
+                    viewingUser.original.nongst_firm.bank_ids.map((bank, idx) => (
                       <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
@@ -1278,69 +1278,69 @@ const UserMaster = () => {
                 {/* Bank Details */}
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
-                  {(editingForm.gst_firm?.banks || [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]).map((bank, idx) => (
+                  {(editingForm.gst_firm?.bank_ids || [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]).map((bank, idx) => (
                     <div key={idx} className="border rounded p-3 mb-2 bg-white">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs text-gray-600">Bank Name</label>
                           <Input value={bank.bank_name || ''} onChange={(v) => {
-                            const banks = [...(editingForm.gst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], bank_name: v};
-                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.gst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], bank_name: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_ids } }));
                           }} placeholder="Bank Name" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">Branch</label>
                           <Input value={bank.bank_branch || ''} onChange={(v) => {
-                            const banks = [...(editingForm.gst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], bank_branch: v};
-                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.gst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], bank_branch: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_ids } }));
                           }} placeholder="Branch" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">IFSC Code</label>
                           <Input value={bank.ifsc_code || ''} onChange={(v) => {
-                            const banks = [...(editingForm.gst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], ifsc_code: v};
-                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.gst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], ifsc_code: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_ids } }));
                           }} placeholder="IFSC Code" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">Account Number</label>
                           <Input value={bank.account_number || ''} onChange={(v) => {
-                            const banks = [...(editingForm.gst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], account_number: v};
-                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.gst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], account_number: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_ids } }));
                           }} placeholder="Account Number" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">Account Holder</label>
                           <Input value={bank.account_holder || ''} onChange={(v) => {
-                            const banks = [...(editingForm.gst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], account_holder: v};
-                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.gst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], account_holder: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_ids } }));
                           }} placeholder="Account Holder" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">UPI ID</label>
                           <Input value={bank.upi_id || ''} onChange={(v) => {
-                            const banks = [...(editingForm.gst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], upi_id: v};
-                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.gst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], upi_id: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_ids } }));
                           }} placeholder="UPI ID" className="mt-1" />
                         </div>
                       </div>
-                      {(editingForm.gst_firm?.banks || []).length > 1 && (
+                      {(editingForm.gst_firm?.bank_ids || []).length > 1 && (
                         <button onClick={() => {
-                          const banks = (editingForm.gst_firm?.banks || []).filter((_, i) => i !== idx);
-                          setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          const bank_ids = (editingForm.gst_firm?.bank_ids || []).filter((_, i) => i !== idx);
+                          setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_ids } }));
                         }} className="text-red-600 text-xs mt-2">Remove Bank</button>
                       )}
                     </div>
                   ))}
                   <button onClick={() => {
-                    const banks = [...(editingForm.gst_firm?.banks || []), { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }];
-                    setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                    const bank_ids = [...(editingForm.gst_firm?.bank_ids || []), { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }];
+                    setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), bank_ids } }));
                   }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                 </div>
               </div>
@@ -1408,69 +1408,69 @@ const UserMaster = () => {
                 {/* Bank Details */}
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
-                  {(editingForm.nongst_firm?.banks || [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]).map((bank, idx) => (
+                  {(editingForm.nongst_firm?.bank_ids || [{ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }]).map((bank, idx) => (
                     <div key={idx} className="border rounded p-3 mb-2 bg-white">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs text-gray-600">Bank Name</label>
                           <Input value={bank.bank_name || ''} onChange={(v) => {
-                            const banks = [...(editingForm.nongst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], bank_name: v};
-                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.nongst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], bank_name: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_ids } }));
                           }} placeholder="Bank Name" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">Branch</label>
                           <Input value={bank.bank_branch || ''} onChange={(v) => {
-                            const banks = [...(editingForm.nongst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], bank_branch: v};
-                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.nongst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], bank_branch: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_ids } }));
                           }} placeholder="Branch" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">IFSC Code</label>
                           <Input value={bank.ifsc_code || ''} onChange={(v) => {
-                            const banks = [...(editingForm.nongst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], ifsc_code: v};
-                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.nongst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], ifsc_code: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_ids } }));
                           }} placeholder="IFSC Code" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">Account Number</label>
                           <Input value={bank.account_number || ''} onChange={(v) => {
-                            const banks = [...(editingForm.nongst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], account_number: v};
-                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.nongst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], account_number: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_ids } }));
                           }} placeholder="Account Number" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">Account Holder</label>
                           <Input value={bank.account_holder || ''} onChange={(v) => {
-                            const banks = [...(editingForm.nongst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], account_holder: v};
-                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.nongst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], account_holder: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_ids } }));
                           }} placeholder="Account Holder" className="mt-1" />
                         </div>
                         <div>
                           <label className="text-xs text-gray-600">UPI ID</label>
                           <Input value={bank.upi_id || ''} onChange={(v) => {
-                            const banks = [...(editingForm.nongst_firm?.banks || [])];
-                            banks[idx] = {...banks[idx], upi_id: v};
-                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                            const bank_ids = [...(editingForm.nongst_firm?.bank_ids || [])];
+                            bank_ids[idx] = {...bank_ids[idx], upi_id: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_ids } }));
                           }} placeholder="UPI ID" className="mt-1" />
                         </div>
                       </div>
-                      {(editingForm.nongst_firm?.banks || []).length > 1 && (
+                      {(editingForm.nongst_firm?.bank_ids || []).length > 1 && (
                         <button onClick={() => {
-                          const banks = (editingForm.nongst_firm?.banks || []).filter((_, i) => i !== idx);
-                          setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          const bank_ids = (editingForm.nongst_firm?.bank_ids || []).filter((_, i) => i !== idx);
+                          setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_ids } }));
                         }} className="text-red-600 text-xs mt-2">Remove Bank</button>
                       )}
                     </div>
                   ))}
                   <button onClick={() => {
-                    const banks = [...(editingForm.nongst_firm?.banks || []), { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }];
-                    setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                    const bank_ids = [...(editingForm.nongst_firm?.bank_ids || []), { bank_name: '', bank_branch: '', ifsc_code: '', account_number: '' }];
+                    setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), bank_ids } }));
                   }} className="text-blue-600 text-xs">+ Add Another Bank</button>
                 </div>
               </div>
