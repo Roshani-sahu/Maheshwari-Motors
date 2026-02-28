@@ -26,6 +26,7 @@ const ChallanForm = () => {
   const [loadedSuppliers, setLoadedSuppliers] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
   const [loadedDiscounts, setLoadedDiscounts] = useState({});
+  const [loadedLabelDiscounts, setLoadedLabelDiscounts] = useState({});
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [showItemDropdown, setShowItemDropdown] = useState(false);
   const [itemsPage, setItemsPage] = useState(1);
@@ -61,7 +62,12 @@ const ChallanForm = () => {
 
         const partiesData = getResponseList(pRes).map((party) => {
           const normalized = normalizeContact(party);
-          return { id: normalized.id, name: normalized.name, is_gst: normalized.is_gst };
+          return {
+            id: normalized.id,
+            name: normalized.name,
+            is_gst: normalized.is_gst,
+            label_id: normalized.label_id
+          };
         });
         const suppliersData = getResponseList(sRes).map((supplier) => {
           const normalized = normalizeContact(supplier);
@@ -302,6 +308,42 @@ const ChallanForm = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (challan.contactType !== 'party') return;
+    if (!challan.party) return;
+
+    const party = loadedParties.find((p) => p.id === challan.party);
+    const labelId = party?.label_id;
+    if (!labelId) return;
+    if (loadedLabelDiscounts[labelId]) return;
+
+    const controller = new AbortController();
+    const fetchLabelDiscounts = async () => {
+      try {
+        const res = await api.get(`/labels/${labelId}`, { signal: controller.signal });
+        const labelData = getResponseData(res) || {};
+        const brandDiscounts = labelData?.brand_discounts || [];
+        const discountMap = {};
+        brandDiscounts.forEach((entry) => {
+          const brandId = getEntityId(entry?.brand_id);
+          if (!brandId) return;
+          discountMap[brandId] = {
+            discount1: entry?.disc1 || entry?.discount1 || { normal: 0, special: 0 },
+            discount2: entry?.disc2 || entry?.discount2 || { normal: 0, special: 0 }
+          };
+        });
+        setLoadedLabelDiscounts((prev) => ({ ...prev, [labelId]: discountMap }));
+      } catch (error) {
+        if (error?.name !== 'CanceledError') {
+          console.error('Failed to load label discounts', error);
+        }
+      }
+    };
+
+    fetchLabelDiscounts();
+    return () => controller.abort();
+  }, [challan.contactType, challan.party, loadedParties, loadedLabelDiscounts]);
+
   const filteredItems = loadedItems.filter(item => !challan.items.includes(item.id));
 
   const toggleItemSelection = async (itemId) => {
@@ -310,6 +352,9 @@ const ChallanForm = () => {
     }
     
     const isAdding = !challan.items.includes(itemId);
+    const activeParty = loadedParties.find((p) => p.id === challan.party);
+    const activeLabelId = activeParty?.label_id;
+    const labelDiscounts = activeLabelId ? loadedLabelDiscounts[activeLabelId] : null;
     
     setChallan(prev => {
       const items = prev.items.includes(itemId)
@@ -320,7 +365,7 @@ const ChallanForm = () => {
         const item = loadedItems.find(i => i.id === itemId);
         const masterIsGst = item?.is_gst ?? 1;
         const brandId = item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
-        const discForBrand = loadedDiscounts[brandId] || {};
+        const discForBrand = (labelDiscounts && labelDiscounts[brandId]) || loadedDiscounts[brandId] || {};
         const useDisc = (prev.gstType === 1 ? (discForBrand.discount1 || {}) : (discForBrand.discount2 || {})) || {};
         const itemDetails = {
           pcs: 1,
