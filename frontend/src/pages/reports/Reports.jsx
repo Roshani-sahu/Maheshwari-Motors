@@ -1,331 +1,276 @@
-import React, { useState } from 'react';
-import { FaChartBar, FaChartLine, FaChartPie, FaTrophy,  FaArrowUp, FaDownload } from 'react-icons/fa';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { exportToPDF } from '../../utils/pdfExport';
+import React, { useEffect, useMemo, useState } from "react";
+import { Button, Input, Select } from "../../components/ui";
+import api from "../../services/axiosInstance";
+import { getResponseList, normalizeContact, toNumber } from "../../services/apiUtils";
+import { FaPrint, FaSyncAlt, FaSearch } from "react-icons/fa";
+
+const SAMPLE_ROWS = [
+  {
+    date: "2026-02-12",
+    voucherNo: "01232",
+    type: "Sale",
+    docNo: "SALE BOOK (GST)",
+    narration: "SALE BOOK (GST)",
+    debit: 1690.0,
+    credit: 0,
+    balance: 16265.0,
+    cd: "Dr",
+    firm: "MAA",
+  },
+  {
+    date: "2026-02-13",
+    voucherNo: "01270",
+    type: "Sale",
+    docNo: "SALE BOOK (GST)",
+    narration: "SALE BOOK (GST)",
+    debit: 4050.0,
+    credit: 0,
+    balance: 20315.0,
+    cd: "Dr",
+    firm: "MAA",
+  },
+  {
+    date: "2026-02-14",
+    voucherNo: "00724",
+    type: "Cash Rec",
+    docNo: "CASH BOOK",
+    narration: "CASH BOOK",
+    debit: 0,
+    credit: 12022.0,
+    balance: 8955.0,
+    cd: "Dr",
+    firm: "MAA",
+  },
+];
+
+const REPORT_TYPES = ["All", "Sale", "Purchase", "Cash Rec", "Cash Pay", "Bank Rec", "Bank Pay"];
 
 const Reports = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState('year');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [parties, setParties] = useState([]);
+  const [filters, setFilters] = useState({
+    partyId: "",
+    dateFrom: "",
+    dateTo: "",
+    type: "All",
+    docNo: "",
+    narration: "",
+    firm: "",
+  });
+  const [applied, setApplied] = useState(filters);
+  const [rows, setRows] = useState(SAMPLE_ROWS);
 
-  const handleDateChange = (from, to) => {
-    setDateFrom(from);
-    setDateTo(to);
-    console.log('Filtering business data from', from, 'to', to);
-  };
-
-  // Dynamic data based on selected period
-  const getFilteredData = () => {
-    const baseData = {
-      month: {
-        monthlyData: [{ month: 'Current', challans: 20, bills: 16, revenue: 225 }],
-        totalChallans: '20',
-        totalBills: '16',
-        totalRevenue: '₹225K',
-        conversionRate: '80%'
-      },
-      quarter: {
-        monthlyData: [
-          { month: 'Month 1', challans: 15, bills: 12, revenue: 165 },
-          { month: 'Month 2', challans: 22, bills: 18, revenue: 245 },
-          { month: 'Month 3', challans: 25, bills: 20, revenue: 285 }
-        ],
-        totalChallans: '62',
-        totalBills: '50',
-        totalRevenue: '₹6.95L',
-        conversionRate: '81%'
-      },
-      year: {
-        monthlyData: [
-          { month: 'Jan', challans: 12, bills: 8, revenue: 125 },
-          { month: 'Feb', challans: 18, bills: 14, revenue: 185 },
-          { month: 'Mar', challans: 15, bills: 12, revenue: 165 },
-          { month: 'Apr', challans: 22, bills: 18, revenue: 245 },
-          { month: 'May', challans: 25, bills: 20, revenue: 285 },
-          { month: 'Jun', challans: 20, bills: 16, revenue: 225 }
-        ],
-        totalChallans: '253',
-        totalBills: '200',
-        totalRevenue: '₹29.5L',
-        conversionRate: '79%'
-      },
-      custom: {
-        monthlyData: [
-          { month: dateFrom ? new Date(dateFrom).toLocaleDateString('en-US', {month: 'short'}) : 'Start', challans: Math.floor(Math.random() * 15 + 10), bills: Math.floor(Math.random() * 12 + 8), revenue: Math.floor(Math.random() * 100 + 150) },
-          { month: dateTo ? new Date(dateTo).toLocaleDateString('en-US', {month: 'short'}) : 'End', challans: Math.floor(Math.random() * 20 + 15), bills: Math.floor(Math.random() * 15 + 10), revenue: Math.floor(Math.random() * 120 + 180) }
-        ],
-        totalChallans: dateFrom && dateTo ? `${Math.floor(Math.random() * 50 + 80)}` : '125',
-        totalBills: dateFrom && dateTo ? `${Math.floor(Math.random() * 40 + 60)}` : '95',
-        totalRevenue: dateFrom && dateTo ? `₹${Math.floor(Math.random() * 800 + 500)}K` : '₹12.5L',
-        conversionRate: dateFrom && dateTo ? `${Math.floor(Math.random() * 10 + 75)}%` : '76%'
+  useEffect(() => {
+    const loadParties = async () => {
+      try {
+        const res = await api.get("/contacts/parties", { params: { page: 1, limit: 200 } });
+        const list = getResponseList(res).map((contact) => {
+          const normalized = normalizeContact(contact);
+          return { id: normalized.id, name: normalized.name };
+        });
+        setParties(list);
+      } catch (error) {
+        console.error("Failed to load parties", error);
       }
     };
-    return baseData[selectedPeriod] || baseData.year;
+    loadParties();
+  }, []);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((row) => {
+      if (applied.type !== "All" && row.type !== applied.type) return false;
+      if (applied.docNo && !row.docNo.toLowerCase().includes(applied.docNo.toLowerCase())) return false;
+      if (applied.narration && !row.narration.toLowerCase().includes(applied.narration.toLowerCase())) return false;
+      if (applied.firm && !row.firm.toLowerCase().includes(applied.firm.toLowerCase())) return false;
+      if (applied.dateFrom && new Date(row.date) < new Date(applied.dateFrom)) return false;
+      if (applied.dateTo && new Date(row.date) > new Date(applied.dateTo)) return false;
+      return true;
+    });
+  }, [rows, applied]);
+
+  const totals = useMemo(() => {
+    const debitTotal = filteredRows.reduce((sum, row) => sum + toNumber(row.debit, 0), 0);
+    const creditTotal = filteredRows.reduce((sum, row) => sum + toNumber(row.credit, 0), 0);
+    const closingBalance = filteredRows.length
+      ? filteredRows[filteredRows.length - 1].balance
+      : 0;
+    return {
+      debitTotal,
+      creditTotal,
+      closingBalance,
+    };
+  }, [filteredRows]);
+
+  const handleView = () => {
+    setApplied(filters);
   };
 
-  const currentData = getFilteredData();
+  const handleRefresh = () => {
+    setFilters({
+      partyId: "",
+      dateFrom: "",
+      dateTo: "",
+      type: "All",
+      docNo: "",
+      narration: "",
+      firm: "",
+    });
+    setApplied({
+      partyId: "",
+      dateFrom: "",
+      dateTo: "",
+      type: "All",
+      docNo: "",
+      narration: "",
+      firm: "",
+    });
+    setRows(SAMPLE_ROWS);
+  };
 
-  const transactionTypeData = [
-    { name: 'Challans', value: 253, color: '#3B82F6' },
-    { name: 'Bills', value: 200, color: '#10B981' },
-    { name: 'Prepaid', value: 45, color: '#8B5CF6' },
-    { name: 'Due', value: 32, color: '#F59E0B' }
-  ];
-
-  const gstData = [
-    { name: '1 (GST)', value: 320, color: '#10B981' },
-    { name: '0 (NON-GST)', value: 210, color: '#3B82F6' }
-  ];
-
-  const topPartiesData = [
-    { party: 'ABC Motors', amount: 450 },
-    { party: 'XYZ Parts', amount: 380 },
-    { party: 'PQR Auto', amount: 320 },
-    { party: 'LMN Garage', amount: 280 },
-    { party: 'RST Motors', amount: 250 }
-  ];
+  const handlePrint = () => {
+    window.print();
+  };
 
   return (
-    <div className="space-y-4 sm:space-y-6 bg-gray-50 min-h-screen ">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
-        <div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Business Analytics</h1>
-          <p className="text-gray-500 mt-1 text-xs sm:text-sm md:text-base">Track your business performance</p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Account Ledger Report</h1>
+        <p className="text-gray-600">Filter party ledger entries and view debit/credit balances.</p>
+      </div>
+
+      <div className="bg-white border rounded-lg p-4 space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={handleView} className="flex items-center gap-2">
+            <FaSearch /> View
+          </Button>
+          <Button variant="outline" onClick={handlePrint} className="flex items-center gap-2">
+            <FaPrint /> Print
+          </Button>
+          <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2">
+            <FaSyncAlt /> Refresh
+          </Button>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => exportToPDF('business-report-content', 'Business_Report.pdf')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition text-sm"
-          >
-            <FaDownload /> Download PDF
-          </button>
-          <select
-          value={selectedPeriod}
-          onChange={(e) => setSelectedPeriod(e.target.value)}
-          className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
-        >
-          <option value="month">This Month</option>
-          <option value="quarter">This Quarter</option>
-          <option value="year">This Year</option>
-          <option value="custom">Custom Range</option>
-        </select>
-        {selectedPeriod === 'custom' && (
-          <>
-            <input
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Party</label>
+            <Select
+              value={filters.partyId}
+              onChange={(value) => setFilters((prev) => ({ ...prev, partyId: value }))}
+              placeholder="Select Party"
+            >
+              {parties.map((party) => (
+                <option key={party.id} value={party.id}>
+                  {party.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+            <Input
               type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              value={filters.dateFrom}
+              onChange={(value) => setFilters((prev) => ({ ...prev, dateFrom: value }))}
             />
-            <input
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+            <Input
               type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              value={filters.dateTo}
+              onChange={(value) => setFilters((prev) => ({ ...prev, dateTo: value }))}
             />
-            {dateFrom && dateTo && (
-              <button
-                onClick={() => handleDateChange(dateFrom, dateTo)}
-                className="px-3 py-1.5 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
-              >
-                Apply
-              </button>
-            )}
-          </>
-        )}
-        </div>
-      </div>
-
-      <div id="business-report-content">
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Challans</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.totalChallans}</h3>
-              <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
-                <FaArrowUp size={10} className="sm:size-3" /> 12% increase
-              </p>
-            </div>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FaChartLine className="text-blue-600 text-sm sm:text-base md:text-xl" />
-            </div>
           </div>
-        </div>
-
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Bills</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.totalBills}</h3>
-              <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
-                <FaArrowUp size={10} className="sm:size-3" /> 8% increase
-              </p>
-            </div>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <FaChartBar className="text-green-600 text-sm sm:text-base md:text-xl" />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <Select
+              value={filters.type}
+              onChange={(value) => setFilters((prev) => ({ ...prev, type: value }))}
+            >
+              {REPORT_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </Select>
           </div>
-        </div>
-
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Total Revenue</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.totalRevenue}</h3>
-              <p className="text-xs sm:text-sm text-green-600 mt-1 sm:mt-2 flex items-center gap-1">
-                <FaArrowUp size={10} className="sm:size-3" /> 15% increase
-              </p>
-            </div>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <FaTrophy className="text-purple-600 text-sm sm:text-base md:text-xl" />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Doc No</label>
+            <Input
+              value={filters.docNo}
+              onChange={(value) => setFilters((prev) => ({ ...prev, docNo: value }))}
+              placeholder="Document No"
+            />
           </div>
-        </div>
-
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500 font-medium">Conversion Rate</p>
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{currentData.conversionRate}</h3>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Challan to Bill</p>
-            </div>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <FaChartPie className="text-orange-600 text-sm sm:text-base md:text-xl" />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Narration</label>
+            <Input
+              value={filters.narration}
+              onChange={(value) => setFilters((prev) => ({ ...prev, narration: value }))}
+              placeholder="Narration"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Firm</label>
+            <Input
+              value={filters.firm}
+              onChange={(value) => setFilters((prev) => ({ ...prev, firm: value }))}
+              placeholder="Firm"
+            />
           </div>
         </div>
       </div>
 
-      {/* Charts Row 1 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Line Chart */}
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Challans vs Bills Trend</h3>
-          <ResponsiveContainer width="100%" height={220} className="mx-auto sm:mx-0">
-            <AreaChart data={currentData.monthlyData}>
-              <defs>
-                <linearGradient id="colorChallans" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorBills" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
-              <YAxis stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
-              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '11px', sm: '12px' }} />
-              <Area type="monotone" dataKey="challans" stroke="#3B82F6" fillOpacity={1} fill="url(#colorChallans)" strokeWidth={2} />
-              <Area type="monotone" dataKey="bills" stroke="#10B981" fillOpacity={1} fill="url(#colorBills)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
+      <div className="bg-white border rounded-lg p-4">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="px-3 py-2 text-left">Date</th>
+                <th className="px-3 py-2 text-left">V. No</th>
+                <th className="px-3 py-2 text-left">Type</th>
+                <th className="px-3 py-2 text-left">Doc No</th>
+                <th className="px-3 py-2 text-left">Narration</th>
+                <th className="px-3 py-2 text-right">Debit Amount</th>
+                <th className="px-3 py-2 text-right">Credit Amount</th>
+                <th className="px-3 py-2 text-right">Balance</th>
+                <th className="px-3 py-2 text-left">C/D</th>
+                <th className="px-3 py-2 text-left">Firm</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((row, idx) => (
+                <tr key={`${row.voucherNo}-${idx}`} className="border-b last:border-b-0">
+                  <td className="px-3 py-2">{row.date ? new Date(row.date).toLocaleDateString() : "-"}</td>
+                  <td className="px-3 py-2">{row.voucherNo}</td>
+                  <td className="px-3 py-2">{row.type}</td>
+                  <td className="px-3 py-2">{row.docNo}</td>
+                  <td className="px-3 py-2">{row.narration}</td>
+                  <td className="px-3 py-2 text-right">{toNumber(row.debit, 0).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">{toNumber(row.credit, 0).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">{toNumber(row.balance, 0).toLocaleString()}</td>
+                  <td className="px-3 py-2">{row.cd}</td>
+                  <td className="px-3 py-2">{row.firm}</td>
+                </tr>
+              ))}
+              {filteredRows.length === 0 && (
+                <tr>
+                  <td className="px-3 py-6 text-center text-gray-500" colSpan={10}>
+                    No ledger entries found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
-        {/* Bar Chart */}
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Monthly Revenue (₹ in thousands)</h3>
-          <ResponsiveContainer width="100%" height={220} className="mx-auto sm:mx-0">
-            <BarChart data={currentData.monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
-              <YAxis stroke="#9CA3AF" style={{ fontSize: '10px', sm: '12px' }} />
-              <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px', fontSize: '11px', sm: '12px' }} />
-              <Bar dataKey="revenue" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Pie Chart 1 */}
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Transaction Types</h3>
-          <ResponsiveContainer width="100%" height={180} className="mx-auto">
-            <PieChart>
-              <Pie
-                data={transactionTypeData}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={70}
-                paddingAngle={3}
-                dataKey="value"
-              >
-                {transactionTypeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ fontSize: '11px', sm: '12px' }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="grid grid-cols-2 gap-2 mt-3 sm:mt-4">
-            {transactionTypeData.map((item, index) => (
-              <div key={index} className="flex items-center gap-1.5 sm:gap-2">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                <span className="text-xs text-gray-600 truncate">{item.name}</span>
-                <span className="text-xs font-semibold ml-auto">{item.value}</span>
-              </div>
-            ))}
+        <div className="mt-4 border-t pt-3 text-xs text-gray-700">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>Total Debit: <span className="font-semibold">{totals.debitTotal.toLocaleString()}</span></div>
+            <div>Total Credit: <span className="font-semibold">{totals.creditTotal.toLocaleString()}</span></div>
+            <div>Closing Balance: <span className="font-semibold">{toNumber(totals.closingBalance, 0).toLocaleString()}</span></div>
           </div>
         </div>
-
-        {/* Pie Chart 2 */}
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">GST Distribution</h3>
-          <ResponsiveContainer width="100%" height={180} className="mx-auto">
-            <PieChart>
-              <Pie
-                data={gstData}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={70}
-                paddingAngle={3}
-                dataKey="value"
-              >
-                {gstData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={{ fontSize: '11px', sm: '12px' }} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="grid grid-cols-2 gap-2 mt-3 sm:mt-4">
-            {gstData.map((item, index) => (
-              <div key={index} className="flex items-center gap-1.5 sm:gap-2">
-                <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                <span className="text-xs text-gray-600 truncate">{item.name}</span>
-                <span className="text-xs font-semibold ml-auto">{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Top Parties */}
-        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 text-center sm:text-left">Top Parties</h3>
-          <div className="space-y-2 sm:space-y-3">
-            {topPartiesData.map((item, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm">
-                    {index + 1}
-                  </div>
-                  <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">{item.party}</span>
-                </div>
-                <span className="text-xs sm:text-sm font-bold text-gray-900">₹{item.amount}K</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
       </div>
     </div>
   );

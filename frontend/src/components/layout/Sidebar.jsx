@@ -9,7 +9,6 @@ import {
   // FaSliders,
   FaRightFromBracket,
   FaBuilding,
-  FaFileInvoiceDollar,
   FaListCheck,
   // FaUserShield,
   // FaClockRotateLeft,
@@ -26,9 +25,6 @@ import {
   FaBell,
   FaFileInvoice,
   FaClockRotateLeft as FaHistory,
-  FaChartLine,
-  FaArrowTrendUp,
-  FaArrowTrendDown,
   FaDownload,
   FaCalendarXmark,
   FaMoneyBillTransfer
@@ -473,12 +469,25 @@ const Sidebar = ({ onClose }) => {
               <FaHistory className="w-4 h-4" />
               Transaction History
             </NavLink>
+
+            <NavLink
+              to="/transactions/outstandings"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaMoneyBillTransfer className="w-4 h-4" />
+              OutStandings
+            </NavLink>
           </SidebarSection>
 
           {/* 4. Reports */}
           <SidebarSection title="Reports">
-
-
             <NavLink
               to="/reports"
               onClick={onClose}
@@ -492,11 +501,11 @@ const Sidebar = ({ onClose }) => {
               end
             >
               <FaChartPie className="w-4 h-4" />
-              Business Reports
+              Account Ledger Report
             </NavLink>
-            
+
             <NavLink
-              to="/reports/gst-report"
+              to="/reports/gst-report-details"
               onClick={onClose}
               className={({ isActive }) =>
                 `${linkBase} ${
@@ -506,65 +515,8 @@ const Sidebar = ({ onClose }) => {
                 }`
               }
             >
-              <FaFileInvoiceDollar className="w-4 h-4" />
-              GST Report
-            </NavLink>
-            
-            <NavLink
-              to="/reports/purchase-report"
-              onClick={onClose}
-              className={({ isActive }) =>
-                `${linkBase} ${
-                  isActive
-                    ? "bg-neutral-100 text-neutral-900"
-                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
-                }`
-              }
-            >
-              <FaFileInvoiceDollar className="w-4 h-4" />
-              Purchase Report
-            </NavLink>
-            <NavLink
-              to="/reports/sales-report"
-              onClick={onClose}
-              className={({ isActive }) =>
-                `${linkBase} ${
-                  isActive
-                    ? "bg-neutral-100 text-neutral-900"
-                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
-                }`
-              }
-            >
-              <FaChartLine className="w-4 h-4" />
-              Sales Report
-            </NavLink>
-            <NavLink
-              to="/reports/sales-return-report"
-              onClick={onClose}
-              className={({ isActive }) =>
-                `${linkBase} ${
-                  isActive
-                    ? "bg-neutral-100 text-neutral-900"
-                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
-                }`
-              }
-            >
-              <FaArrowTrendDown className="w-4 h-4" />
-              Sales Return Report
-            </NavLink>
-            <NavLink
-              to="/reports/purchase-return-report"
-              onClick={onClose}
-              className={({ isActive }) =>
-                `${linkBase} ${
-                  isActive
-                    ? "bg-neutral-100 text-neutral-900"
-                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
-                }`
-              }
-            >
-              <FaArrowTrendUp className="w-4 h-4" />
-              Purchase Return Report
+              <FaChartPie className="w-4 h-4" />
+              GST Report Details
             </NavLink>
           </SidebarSection>
 
@@ -598,6 +550,21 @@ const Sidebar = ({ onClose }) => {
             >
               <FaCalendarXmark className="w-4 h-4" />
               Financial Year Close
+            </NavLink>
+
+            <NavLink
+              to="/setup/cheque-print-setup"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900"
+                }`
+              }
+            >
+              <FaFileInvoice className="w-4 h-4" />
+              Cheque Print Setup
             </NavLink>
           </SidebarSection> 
         </ul>
