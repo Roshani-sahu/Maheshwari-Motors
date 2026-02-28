@@ -20,13 +20,15 @@ const BOOKS = {
 };
 
 const INITIAL_FORM = {
+  transaction_no: '',
   type: '',
-  party_id: '',
+  contact_id: '',
   amount: '',
   bank_id: '',
   date: new Date().toISOString().split('T')[0],
   reference: '',
-  remarks: ''
+  remarks: '',
+  is_gst: 0
 };
 
 const TransactionMaster = () => {
@@ -41,97 +43,7 @@ const TransactionMaster = () => {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, transaction: null });
-
-  // Dummy data
-  const DUMMY_PARTIES = [
-    { _id: '1', name: 'ABC Motors Pvt Ltd' },
-    { _id: '2', name: 'XYZ Auto Parts' },
-    { _id: '3', name: 'Sharma Traders' },
-    { _id: '4', name: 'Kumar Enterprises' },
-    { _id: '5', name: 'Singh Auto Works' }
-  ];
-
-  const DUMMY_BANKS = [
-    { _id: 'b1', bank_name: 'HDFC Bank', account_number: '1234567890' },
-    { _id: 'b2', bank_name: 'ICICI Bank', account_number: '9876543210' },
-    { _id: 'b3', bank_name: 'SBI', account_number: '5555666677' },
-    { _id: 'b4', bank_name: 'Axis Bank', account_number: '8888999900' }
-  ];
-
-  const DUMMY_TRANSACTIONS = [
-    {
-      id: 't1',
-      type: TRANSACTION_TYPES.CASH_RECEIVED,
-      party: 'ABC Motors Pvt Ltd',
-      party_id: '1',
-      amount: 25000,
-      bank: 'N/A',
-      bank_id: null,
-      date: '2024-02-20',
-      reference: 'CR001',
-      remarks: 'Payment received for invoice #INV001'
-    },
-    {
-      id: 't2',
-      type: TRANSACTION_TYPES.BANK_RECEIVED,
-      party: 'XYZ Auto Parts',
-      party_id: '2',
-      amount: 50000,
-      bank: 'HDFC Bank',
-      bank_id: 'b1',
-      date: '2024-02-21',
-      reference: 'CHQ12345',
-      remarks: 'Cheque payment received'
-    },
-    {
-      id: 't3',
-      type: TRANSACTION_TYPES.CASH_PAYMENT,
-      party: 'Sharma Traders',
-      party_id: '3',
-      amount: 15000,
-      bank: 'N/A',
-      bank_id: null,
-      date: '2024-02-22',
-      reference: 'CP001',
-      remarks: 'Cash payment for supplies'
-    },
-    {
-      id: 't4',
-      type: TRANSACTION_TYPES.BANK_PAYMENT,
-      party: 'Kumar Enterprises',
-      party_id: '4',
-      amount: 75000,
-      bank: 'ICICI Bank',
-      bank_id: 'b2',
-      date: '2024-02-23',
-      reference: 'NEFT789',
-      remarks: 'NEFT transfer for purchase'
-    },
-    {
-      id: 't5',
-      type: TRANSACTION_TYPES.CASH_RECEIVED,
-      party: 'Singh Auto Works',
-      party_id: '5',
-      amount: 30000,
-      bank: 'N/A',
-      bank_id: null,
-      date: '2024-02-24',
-      reference: 'CR002',
-      remarks: 'Cash received against bill'
-    },
-    {
-      id: 't6',
-      type: TRANSACTION_TYPES.BANK_RECEIVED,
-      party: 'ABC Motors Pvt Ltd',
-      party_id: '1',
-      amount: 100000,
-      bank: 'SBI',
-      bank_id: 'b3',
-      date: '2024-02-25',
-      reference: 'RTGS456',
-      remarks: 'RTGS payment received'
-    }
-  ];
+  const [loading, setLoading] = useState(false);
 
   const getResponseList = (res) => {
     const data = res?.data?.data;
@@ -139,16 +51,45 @@ const TransactionMaster = () => {
   };
 
   useEffect(() => {
-    // Use dummy data instead of API calls
-    setParties(DUMMY_PARTIES);
-    setBanks(DUMMY_BANKS);
-    filterTransactionsByBook();
+    fetchParties();
+    fetchBanks();
+  }, []);
+
+  useEffect(() => {
+    fetchTransactions();
   }, [activeBook]);
 
-  const filterTransactionsByBook = () => {
-    const bookTypes = getBookTransactionTypes(activeBook);
-    const filtered = DUMMY_TRANSACTIONS.filter(t => bookTypes.includes(t.type));
-    setTransactions(filtered);
+  const fetchParties = async () => {
+    try {
+      const res = await api.get('/contacts');
+      setParties(getResponseList(res));
+    } catch (error) {
+      showToast('Failed to fetch parties', 'error');
+    }
+  };
+
+  const fetchBanks = async () => {
+    try {
+      const res = await api.get('/banks');
+      setBanks(getResponseList(res));
+    } catch (error) {
+      showToast('Failed to fetch banks', 'error');
+    }
+  };
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/transactions');
+      const allTransactions = getResponseList(res);
+      const bookTypes = getBookTransactionTypes(activeBook);
+      const filtered = allTransactions.filter(t => bookTypes.includes(t.type));
+      setTransactions(filtered);
+    } catch (error) {
+      showToast('Failed to fetch transactions', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getBookTransactionTypes = (book) => {
@@ -168,11 +109,12 @@ const TransactionMaster = () => {
 
   const columns = [
     { key: 'id', label: 'ID', width: '50px', render: (v, r, i) => i + 1 },
+    { key: 'transaction_no', label: 'Trans No', width: '100px' },
     { key: 'date', label: 'Date', width: '100px', render: (v) => new Date(v).toLocaleDateString() },
     { key: 'type', label: 'Type', width: '120px', render: (v) => v.replace(/_/g, ' ').toUpperCase() },
-    { key: 'party', label: 'Party', width: '150px' },
+    { key: 'contact_id', label: 'Party', width: '150px', render: (v) => parties.find(p => p._id === v)?.name || 'N/A' },
     { key: 'amount', label: 'Amount', width: '100px', render: (v) => `₹${v?.toFixed(2)}` },
-    { key: 'bank', label: 'Bank', width: '120px' },
+    { key: 'bank_id', label: 'Bank', width: '120px', render: (v) => v ? banks.find(b => b._id === v)?.bank_name || 'N/A' : 'N/A' },
     { key: 'reference', label: 'Reference', width: '100px' }
   ];
 
@@ -187,13 +129,15 @@ const TransactionMaster = () => {
       onClick: (t) => {
         setSelectedTransaction(t);
         setFormData({
+          transaction_no: t.transaction_no,
           type: t.type,
-          party_id: t.party_id,
+          contact_id: t.contact_id,
           amount: t.amount,
           bank_id: t.bank_id || '',
           date: t.date?.split('T')[0],
           reference: t.reference || '',
-          remarks: t.remarks || ''
+          remarks: t.remarks || '',
+          is_gst: t.is_gst
         });
         setIsEditModalOpen(true);
       },
@@ -212,52 +156,48 @@ const TransactionMaster = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.type || !formData.party_id || !formData.amount) {
+    if (!formData.transaction_no || !formData.type || !formData.contact_id || !formData.amount) {
       showToast('Please fill all required fields', 'error');
       return;
     }
 
-    const party = parties.find(p => p._id === formData.party_id);
-    const bank = banks.find(b => b._id === formData.bank_id);
-
-    const newTransaction = {
-      id: 't' + Date.now(),
+    const payload = {
+      transaction_no: formData.transaction_no,
       type: formData.type,
-      party: party?.name || 'N/A',
-      party_id: formData.party_id,
+      contact_id: formData.contact_id,
       amount: Number(formData.amount),
-      bank: bank?.bank_name || 'N/A',
       bank_id: formData.bank_id || null,
       date: formData.date,
       reference: formData.reference,
-      remarks: formData.remarks
+      remarks: formData.remarks,
+      is_gst: formData.is_gst
     };
 
-    if (isEditModalOpen) {
-      DUMMY_TRANSACTIONS.splice(
-        DUMMY_TRANSACTIONS.findIndex(t => t.id === selectedTransaction.id),
-        1,
-        newTransaction
-      );
-      showToast('Transaction updated successfully', 'success');
-    } else {
-      DUMMY_TRANSACTIONS.push(newTransaction);
-      showToast('Transaction created successfully', 'success');
+    try {
+      if (isEditModalOpen) {
+        await api.put(`/transactions/${selectedTransaction._id}`, payload);
+        showToast('Transaction updated successfully', 'success');
+      } else {
+        await api.post('/transactions', payload);
+        showToast('Transaction created successfully', 'success');
+      }
+      fetchTransactions();
+      setIsAddModalOpen(false);
+      setIsEditModalOpen(false);
+      setFormData(INITIAL_FORM);
+      setSelectedTransaction(null);
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Operation failed', 'error');
     }
-
-    filterTransactionsByBook();
-    setIsAddModalOpen(false);
-    setIsEditModalOpen(false);
-    setFormData(INITIAL_FORM);
-    setSelectedTransaction(null);
   };
 
   const handleDelete = async () => {
-    const index = DUMMY_TRANSACTIONS.findIndex(t => t.id === deleteDialog.transaction.id);
-    if (index > -1) {
-      DUMMY_TRANSACTIONS.splice(index, 1);
+    try {
+      await api.delete(`/transactions/${deleteDialog.transaction._id}`);
       showToast('Transaction deleted successfully', 'success');
-      filterTransactionsByBook();
+      fetchTransactions();
+    } catch (error) {
+      showToast('Failed to delete transaction', 'error');
     }
     setDeleteDialog({ isOpen: false, transaction: null });
   };
@@ -304,25 +244,28 @@ const TransactionMaster = () => {
         searchable={true}
         sortable={true}
         pagination={true}
+        loading={loading}
       />
 
       <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog({ isOpen: false, transaction: null })}
         onConfirm={handleDelete}
-        itemName={`Transaction #${deleteDialog.transaction?.id}`}
+        itemName={`Transaction #${deleteDialog.transaction?.transaction_no}`}
       />
 
       <Modal isOpen={isViewModalOpen} onClose={() => { setIsViewModalOpen(false); setSelectedTransaction(null); }} title="Transaction Details" size="md">
         {selectedTransaction && (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
+              <div><label className="font-medium">Transaction No:</label><p>{selectedTransaction.transaction_no}</p></div>
               <div><label className="font-medium">Type:</label><p>{selectedTransaction.type.replace(/_/g, ' ').toUpperCase()}</p></div>
               <div><label className="font-medium">Date:</label><p>{new Date(selectedTransaction.date).toLocaleDateString()}</p></div>
-              <div><label className="font-medium">Party:</label><p>{selectedTransaction.party}</p></div>
+              <div><label className="font-medium">Party:</label><p>{parties.find(p => p._id === selectedTransaction.contact_id)?.name || 'N/A'}</p></div>
               <div><label className="font-medium">Amount:</label><p>₹{selectedTransaction.amount?.toFixed(2)}</p></div>
-              <div><label className="font-medium">Bank:</label><p>{selectedTransaction.bank}</p></div>
+              <div><label className="font-medium">Bank:</label><p>{selectedTransaction.bank_id ? banks.find(b => b._id === selectedTransaction.bank_id)?.bank_name || 'N/A' : 'N/A'}</p></div>
               <div><label className="font-medium">Reference:</label><p>{selectedTransaction.reference || 'N/A'}</p></div>
+              <div><label className="font-medium">GST:</label><p>{selectedTransaction.is_gst ? 'Yes' : 'No'}</p></div>
               <div className="col-span-2"><label className="font-medium">Remarks:</label><p>{selectedTransaction.remarks || 'N/A'}</p></div>
             </div>
             <Button variant="outline" onClick={() => { setIsViewModalOpen(false); setSelectedTransaction(null); }}>Close</Button>
@@ -333,6 +276,10 @@ const TransactionMaster = () => {
       <Modal isOpen={isAddModalOpen || isEditModalOpen} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setFormData(INITIAL_FORM); }} title={isEditModalOpen ? 'Edit Transaction' : 'Add Transaction'} size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Transaction No *</label>
+              <input type="text" name="transaction_no" value={formData.transaction_no} onChange={handleInputChange} required className="w-full px-3 py-2 border rounded-lg" />
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">Transaction Type *</label>
               <select name="type" value={formData.type} onChange={handleInputChange} required className="w-full px-3 py-2 border rounded-lg">
@@ -348,7 +295,7 @@ const TransactionMaster = () => {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Party *</label>
-              <select name="party_id" value={formData.party_id} onChange={handleInputChange} required className="w-full px-3 py-2 border rounded-lg">
+              <select name="contact_id" value={formData.contact_id} onChange={handleInputChange} required className="w-full px-3 py-2 border rounded-lg">
                 <option value="">Select Party</option>
                 {parties.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
               </select>
@@ -369,6 +316,13 @@ const TransactionMaster = () => {
             <div>
               <label className="block text-sm font-medium mb-1">Reference</label>
               <input type="text" name="reference" value={formData.reference} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg" placeholder="Ref/Cheque No" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">GST Transaction</label>
+              <select name="is_gst" value={formData.is_gst} onChange={handleInputChange} className="w-full px-3 py-2 border rounded-lg">
+                <option value={0}>No</option>
+                <option value={1}>Yes</option>
+              </select>
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium mb-1">Remarks</label>

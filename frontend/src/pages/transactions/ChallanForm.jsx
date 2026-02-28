@@ -33,6 +33,8 @@ const ChallanForm = () => {
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState(null);
   const [itemHistoryMap, setItemHistoryMap] = useState({});
+  const [showCombinedStock, setShowCombinedStock] = useState({});
+  const [showAllCombinedStock, setShowAllCombinedStock] = useState(false);
   const itemDropdownRef = useRef(null);
 
   const [challan, setChallan] = useState({
@@ -194,11 +196,10 @@ const ChallanForm = () => {
     }));
 
     try {
-      const response = await api.post('/bills/last-sold-items', {
-        contact_id: challan.party,
-        party_id: challan.party,
-        include_all_gst: 1,
-        item_id: itemId
+      const response = await api.get(`/challans/item/${itemId}/last-sold`, {
+        params: {
+          contact_id: challan.party
+        }
       });
       const rows = getResponseList(response);
 
@@ -303,10 +304,13 @@ const ChallanForm = () => {
 
   const filteredItems = loadedItems.filter(item => !challan.items.includes(item.id));
 
-  const toggleItemSelection = (itemId) => {
+  const toggleItemSelection = async (itemId) => {
     if (challan.items.includes(itemId) && expandedItemId === itemId) {
       setExpandedItemId(null);
     }
+    
+    const isAdding = !challan.items.includes(itemId);
+    
     setChallan(prev => {
       const items = prev.items.includes(itemId)
         ? prev.items.filter(i => i !== itemId)
@@ -318,14 +322,16 @@ const ChallanForm = () => {
         const brandId = item?.brand_id?._id || item?.brand_id || item?.brand || item?.brandId;
         const discForBrand = loadedDiscounts[brandId] || {};
         const useDisc = (prev.gstType === 1 ? (discForBrand.discount1 || {}) : (discForBrand.discount2 || {})) || {};
-        prev.itemDetails[itemId] = {
+        const itemDetails = {
           pcs: 1,
           rate: item?.amount || 0,
           disPercent: useDisc.normal || 0,
           spDis: useDisc.special || 0,
           gstPercent: 0,
           itemDiscount: item?.discount || 0,
-          stock: item?.stock || 0,
+          stock: item?.physical_stock || 0,
+          logicalStock: item?.logical_stock || 0,
+          physicalStock: item?.physical_stock || 0,
           type: masterIsGst === 0 ? 0 : (prev.gstType !== null ? prev.gstType : 0),
           remark: item?.name || '',
           itemName: item?.name || '',
@@ -337,10 +343,20 @@ const ChallanForm = () => {
             item?.part_no ||
             '',
         };
+        prev.itemDetails[itemId] = itemDetails;
+        console.log('Item added to challan:', { itemId, item, itemDetails });
       }
 
       return { ...prev, items };
     });
+    
+    // Auto-fetch history when adding item
+    if (isAdding) {
+      setExpandedItemId(itemId);
+      if (!itemHistoryMap[itemId]?.rows?.length && !itemHistoryMap[itemId]?.loading) {
+        await fetchItemHistory(itemId);
+      }
+    }
   };
 
   const calculateItemAmount = (itemId) => {
@@ -949,246 +965,7 @@ const ChallanForm = () => {
             <h3 className="font-medium text-gray-900">Rate Information - Add / Less</h3>
           </div>
 
-          <div className="overflow-x-auto max-h-80 overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 sticky top-0">
-                <tr>
-                  <th className="px-2 py-2 text-left border-r">SNo</th>
-                  <th className="px-2 py-2 text-left border-r">ItemName</th>
-                  <th className="px-2 py-2 text-left border-r">Remark</th>
-                  <th className="px-2 py-2 text-left border-r">Type</th>
-                  <th className="px-2 py-2 text-left border-r">Stock</th>
-                  <th className="px-2 py-2 text-left border-r">PCS</th>
-                  <th className="px-2 py-2 text-left border-r">Rate</th>
-                  <th className="px-2 py-2 text-left border-r">Dis %</th>
-                  <th className="px-2 py-2 text-left border-r">SP Dis</th>
-                  <th className="px-2 py-2 text-left border-r">Item Disc</th>
-                  <th className="px-2 py-2 text-left border-r">GST %</th>
-                  <th className="px-2 py-2 text-left border-r">GST Amt</th>
-                  <th className="px-2 py-2 text-left border-r">Amount</th>
-                  <th className="px-2 py-2 text-left">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {challan.items.map((itemId, index) => {
-                  const item = loadedItems.find(i => i.id === itemId);
-                  const details = challan.itemDetails[itemId] || {};
-                  const calc = calculateItemAmount(itemId);
-                  const masterIsGst = item?.is_gst ?? 1;
-                  const itemType =
-                    masterIsGst === 0
-                      ? 0
-                      : (details.type !== undefined ? details.type : challan.gstType);
-                  const displayItemName = details.itemName || item?.name || 'Unknown Item';
-                  const historyState = itemHistoryMap[itemId] || { loading: false, rows: [], error: null };
-                  const historyRows = Array.isArray(historyState.rows) ? historyState.rows.slice(0, 4) : [];
-                  const historyOpen = expandedItemId === itemId;
-
-                  return (
-                    <Fragment key={itemId}>
-                      <tr className="border-t">
-                        <td className="px-2 py-2 border-r">
-                          <div className="flex items-center gap-1">
-                            <span>{index + 1}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleHistory(itemId)}
-                              className="text-gray-500 hover:text-gray-700"
-                              title="View last 4 entries"
-                            >
-                              {historyOpen ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <span className="text-xs">{displayItemName}</span>
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <input
-                            type="text"
-                            value={details.remark || ''}
-                            onChange={(e) => updateItemDetail(itemId, 'remark', e.target.value)}
-                            className="w-32 px-1 py-1 border rounded text-xs"
-                          />
-                        </td>
-                      <td className="px-2 py-2 border-r">
-                        {masterIsGst === 0 ? (
-                          <span className="text-xs">0</span>
-                        ) : (
-                          <select
-                            value={itemType !== null ? itemType : ''}
-                            onChange={(e) => updateItemDetail(itemId, 'type', parseInt(e.target.value))}
-                            className="w-12 px-1 py-1 border rounded text-xs"
-                          >
-                            <option value="">-</option>
-                            <option value={0}>0</option>
-                            <option value={1}>1</option>
-                          </select>
-                        )}
-                      </td>
-                        <td className="px-2 py-2 border-r">
-                          <input
-                            type="number"
-                            value={details.stock || 0}
-                            onChange={(e) => updateItemDetail(itemId, 'stock', e.target.value)}
-                            className="w-12 px-1 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <input
-                            type="number"
-                            value={details.pcs || 1}
-                            onChange={(e) => updateItemDetail(itemId, 'pcs', e.target.value)}
-                            className="w-12 px-1 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <input
-                            type="number"
-                            value={details.rate || item?.amount || 0}
-                            onChange={(e) => updateItemDetail(itemId, 'rate', e.target.value)}
-                            className="w-16 px-1 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <input
-                            type="number"
-                            value={details.disPercent || 0}
-                            onChange={(e) => updateItemDetail(itemId, 'disPercent', e.target.value)}
-                            className="w-16 px-1 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <input
-                            type="number"
-                            value={details.spDis || 0}
-                            onChange={(e) => updateItemDetail(itemId, 'spDis', e.target.value)}
-                            className="w-16 px-1 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={details.itemDiscount || 0}
-                            onChange={(e) => updateItemDetail(itemId, 'itemDiscount', e.target.value)}
-                            className="w-16 px-1 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        {itemType === 1 ? (
-                          <>
-                            <td className="px-2 py-2 border-r">
-                              <input
-                                type="number"
-                                value={details.gstPercent || 0}
-                                onChange={(e) => updateItemDetail(itemId, 'gstPercent', e.target.value)}
-                                className="w-16 px-1 py-1 border rounded text-xs"
-                              />
-                            </td>
-                            <td className="px-2 py-2 border-r">
-                              <span className="text-xs">{calc.gstAmount.toFixed(2)}</span>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td className="px-2 py-2 border-r">
-                              <span className="text-xs">-</span>
-                            </td>
-                            <td className="px-2 py-2 border-r">
-                              <span className="text-xs">-</span>
-                            </td>
-                          </>
-                        )}
-                        <td className="px-2 py-2 border-r">
-                          <span className="text-xs font-medium">{calc.afterDiscount.toFixed(2)}</span>
-                        </td>
-                        <td className="px-2 py-2">
-                          <button
-                            onClick={() => toggleItemSelection(itemId)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <FaTimes size={12} />
-                          </button>
-                        </td>
-                      </tr>
-                      {historyOpen && (
-                        <tr className="border-t bg-gray-50">
-                          <td colSpan={14} className="px-3 py-3">
-                            <div className="text-xs font-medium text-gray-700 mb-2">
-                              Last 4 Entries
-                            </div>
-                            {historyState.loading ? (
-                              <div className="text-xs text-gray-500">Loading history...</div>
-                            ) : historyState.error ? (
-                              <div className="text-xs text-red-600">{historyState.error}</div>
-                            ) : historyRows.length === 0 ? (
-                              <div className="text-xs text-gray-500">No history found.</div>
-                            ) : (
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-xs">
-                                  <thead>
-                                    <tr className="bg-white">
-                                      <th className="px-2 py-1 text-left border">Date</th>
-                                      <th className="px-2 py-1 text-left border">Bill No</th>
-                                      <th className="px-2 py-1 text-left border">Rate</th>
-                                      <th className="px-2 py-1 text-left border">Qty</th>
-                                      <th className="px-2 py-1 text-left border">Amount</th>
-                                      <th className="px-2 py-1 text-left border">Days</th>
-                                      <th className="px-2 py-1 text-left border">Disc%</th>
-                                      <th className="px-2 py-1 text-left border">Sp Disc</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {historyRows.map((row, rowIndex) => (
-                                      <tr key={`${itemId}-history-${rowIndex}`} className="bg-white">
-                                        <td className="px-2 py-1 border">
-                                          {formatHistoryDate(row?.bill_date || row?.challan_date)}
-                                        </td>
-                                        <td className="px-2 py-1 border">
-                                          {row?.bill_no || row?.challan_no || '-'}
-                                        </td>
-                                        <td className="px-2 py-1 border">
-                                          {Number(row?.rate || 0).toFixed(2)}
-                                        </td>
-                                        <td className="px-2 py-1 border">
-                                          {Number(row?.quantity || 0)}
-                                        </td>
-                                        <td className="px-2 py-1 border">
-                                          {Number(row?.amount || 0).toFixed(2)}
-                                        </td>
-                                        <td className="px-2 py-1 border">
-                                          {getDaysSince(row?.bill_date || row?.challan_date)}
-                                        </td>
-                                        <td className="px-2 py-1 border">
-                                          {Number(row?.discount || 0).toFixed(2)}
-                                        </td>
-                                        <td className="px-2 py-1 border">
-                                          {Number(row?.special_discount || 0).toFixed(2)}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-                {challan.items.length === 0 && (
-                  <tr>
-                    <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
-                      No items selected. Use the search below to add items.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="p-4 bg-gray-50 border-t">
+           <div className="p-4 bg-gray-50 border-t">
             <div className="mb-3">
               <label className="block text-sm font-medium text-gray-700 mb-2">Search & Add Items:</label>
               <div className="relative" ref={itemDropdownRef}>
@@ -1260,28 +1037,349 @@ const ChallanForm = () => {
               </div>
             </div>
           </div>
+
+          <div className="overflow-x-auto max-h-80 border-t-2 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 sticky top-0">
+                <tr>
+                  <th className="px-2 py-2 text-left border-r">SNo</th>
+                  <th className="px-2 py-2 text-left border-r">ItemName</th>
+                  <th className="px-2 py-2 text-left border-r">Remark</th>
+                  <th className="px-2 py-2 text-left border-r">Type</th>
+                  <th 
+                    className="px-2 py-2 text-left border-r hover:bg-gray-100" 
+                    onDoubleClick={() => setShowAllCombinedStock(prev => !prev)}
+                  >
+                    Stock
+                  </th>
+                  <th className="px-2 py-2 text-left border-r">PCS</th>
+                  <th className="px-2 py-2 text-left border-r">Rate</th>
+                  <th className="px-2 py-2 text-left border-r">Dis %</th>
+                  <th className="px-2 py-2 text-left border-r">SP Dis</th>
+                  <th className="px-2 py-2 text-left border-r">Item Disc</th>
+                  <th className="px-2 py-2 text-left border-r">GST %</th>
+                  <th className="px-2 py-2 text-left border-r">GST Amt</th>
+                  <th className="px-2 py-2 text-left border-r">Amount</th>
+                  <th className="px-2 py-2 text-left">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {challan.items.map((itemId, index) => {
+                  const item = loadedItems.find(i => i.id === itemId);
+                  const details = challan.itemDetails[itemId] || {};
+                  const calc = calculateItemAmount(itemId);
+                  const masterIsGst = item?.is_gst ?? 1;
+                  const itemType =
+                    masterIsGst === 0
+                      ? 0
+                      : (details.type !== undefined ? details.type : challan.gstType);
+                  const displayItemName = details.itemName || item?.name || 'Unknown Item';
+                  const historyState = itemHistoryMap[itemId] || { loading: false, rows: [], error: null };
+                  const historyRows = Array.isArray(historyState.rows) ? historyState.rows.slice(0, 4) : [];
+                  const historyOpen = expandedItemId === itemId;
+
+                  return (
+                    <Fragment key={itemId}>
+                      <tr className="border-t">
+                        <td className="px-2 py-2 border-r">
+                          <div className="flex items-center gap-1">
+                            <span>{index + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleHistory(itemId)}
+                              className="text-gray-500 hover:text-gray-700"
+                              title="View last 4 entries"
+                            >
+                              {historyOpen ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <span className="text-xs">{displayItemName}</span>
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="text"
+                            value={details.remark || ''}
+                            onChange={(e) => updateItemDetail(itemId, 'remark', e.target.value)}
+                            className="w-32 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                      <td className="px-2 py-2 border-r">
+                        {masterIsGst === 0 ? (
+                          <span className="text-xs">0</span>
+                        ) : (
+                          <select
+                            value={itemType !== null ? itemType : ''}
+                            onChange={(e) => updateItemDetail(itemId, 'type', parseInt(e.target.value))}
+                            className="w-12 px-1 py-1 border rounded text-xs"
+                          >
+                            <option value="">-</option>
+                            <option value={0}>0</option>
+                            <option value={1}>1</option>
+                          </select>
+                        )}
+                      </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={showAllCombinedStock
+                              ? ((details.physicalStock || 0) + (details.logicalStock || 0)).toFixed(1)
+                              : (details.stock || 0)
+                            }
+                            onChange={(e) => updateItemDetail(itemId, 'stock', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs"
+                            readOnly
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={details.pcs || 1}
+                            onChange={(e) => updateItemDetail(itemId, 'pcs', e.target.value)}
+                            className="w-10 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={details.rate || item?.amount || 0}
+                            onChange={(e) => updateItemDetail(itemId, 'rate', e.target.value)}
+                            className="w-20 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={details.disPercent || 0}
+                            onChange={(e) => updateItemDetail(itemId, 'disPercent', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            value={details.spDis || 0}
+                            onChange={(e) => updateItemDetail(itemId, 'spDis', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        <td className="px-2 py-2 border-r">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={details.itemDiscount || 0}
+                            onChange={(e) => updateItemDetail(itemId, 'itemDiscount', e.target.value)}
+                            className="w-16 px-1 py-1 border rounded text-xs"
+                          />
+                        </td>
+                        {itemType === 1 ? (
+                          <>
+                            <td className="px-2 py-2 border-r">
+                              <input
+                                type="number"
+                                value={details.gstPercent || 0}
+                                onChange={(e) => updateItemDetail(itemId, 'gstPercent', e.target.value)}
+                                className="w-16 px-1 py-1 border rounded text-xs"
+                              />
+                            </td>
+                            <td className="px-2 py-2 border-r">
+                              <span className="text-xs">{calc.gstAmount.toFixed(2)}</span>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-2 py-2 border-r">
+                              <span className="text-xs">-</span>
+                            </td>
+                            <td className="px-2 py-2 border-r">
+                              <span className="text-xs">-</span>
+                            </td>
+                          </>
+                        )}
+                        <td className="px-2 py-2 border-r">
+                          <span className="text-xs font-medium">{calc.afterDiscount.toFixed(2)}</span>
+                        </td>
+                        <td className="px-2 py-2">
+                          <button
+                            onClick={() => toggleItemSelection(itemId)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <FaTimes size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                      {/* {historyOpen && (
+                        <tr className="border-t bg-gray-50">
+                          <td colSpan={14} className="px-3 py-3">
+                            <div className="text-xs font-medium text-gray-700 mb-2">
+                              Last 4 Entries
+                            </div>
+                            {historyState.loading ? (
+                              <div className="text-xs text-gray-500">Loading history...</div>
+                            ) : historyState.error ? (
+                              <div className="text-xs text-red-600">{historyState.error}</div>
+                            ) : historyRows.length === 0 ? (
+                              <div className="text-xs text-gray-500">No history found.</div>
+                            ) : (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="bg-white">
+                                      <th className="px-2 py-1 text-left border">Date</th>
+                                      <th className="px-2 py-1 text-left border">Bill No</th>
+                                      <th className="px-2 py-1 text-left border">Rate</th>
+                                      <th className="px-2 py-1 text-left border">Qty</th>
+                                      <th className="px-2 py-1 text-left border">Amount</th>
+                                      <th className="px-2 py-1 text-left border">Days</th>
+                                      <th className="px-2 py-1 text-left border">Disc%</th>
+                                      <th className="px-2 py-1 text-left border">Sp Disc</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {historyRows.map((row, rowIndex) => (
+                                      <tr key={`${itemId}-history-${rowIndex}`} className="bg-white">
+                                        <td className="px-2 py-1 border">
+                                          {formatHistoryDate(row?.challan_date)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {row?.challan_no || '-'}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.rate || 0).toFixed(2)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.quantity || 0)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.amount || 0).toFixed(2)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {getDaysSince(row?.challan_date)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.discount || 0).toFixed(2)}
+                                        </td>
+                                        <td className="px-2 py-1 border">
+                                          {Number(row?.special_discount || 0).toFixed(2)}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )} */}
+                    </Fragment>
+                  );
+                })}
+                {challan.items.length === 0 && (
+                  <tr>
+                    <td colSpan={14} className="px-4 py-8 text-center text-gray-500">
+                      No items selected. Use the search below to add items.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+         
         </div>
 
         {challan.items.length > 0 && (
-          <div className="border rounded-lg p-4 bg-gray-50">
-            <span className="text-sm font-medium text-gray-700">Selected Items ({challan.items.length}):</span>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {challan.items.map(itemId => {
-                const item = loadedItems.find(i => i.id === itemId);
-                const details = challan.itemDetails[itemId] || {};
-                const displayItemName = details.itemName || item?.name || 'Unknown Item';
-                return (
-                  <span key={itemId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded flex items-center gap-1">
-                    {displayItemName}
-                    <button
-                      onClick={() => toggleItemSelection(itemId)}
-                      className="text-blue-600 hover:text-blue-800"
+          <div className="border rounded-lg bg-gray-50">
+            <div className="bg-gray-100 px-4 py-2 border-b">
+              <span className="text-sm font-medium text-gray-700">Selected Items ({challan.items.length})</span>
+            </div>
+            <div className="p-4">
+              <div className="flex flex-wrap gap-2 mb-4">
+                {challan.items.map(itemId => {
+                  const item = loadedItems.find(i => i.id === itemId);
+                  const details = challan.itemDetails[itemId] || {};
+                  const displayItemName = details.itemName || item?.name || 'Unknown Item';
+                  const isActive = expandedItemId === itemId;
+                  return (
+                    <span 
+                      key={itemId} 
+                      onClick={() => handleToggleHistory(itemId)}
+                      className={`px-2 py-1 text-xs rounded flex items-center gap-1 cursor-pointer transition-colors ${
+                        isActive ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                      }`}
                     >
-                      <FaTimes size={10} />
-                    </button>
-                  </span>
+                      {displayItemName}
+                      <button
+                        onClick={() => toggleItemSelection(itemId)}
+                        className={isActive ? 'text-white hover:text-gray-200' : 'text-blue-600 hover:text-blue-800'}
+                      >
+                        <FaTimes size={10} />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+              
+              {expandedItemId && (() => {
+                const historyState = itemHistoryMap[expandedItemId] || { loading: false, rows: [], error: null };
+                const historyRows = Array.isArray(historyState.rows) ? historyState.rows.slice(0, 4) : [];
+                const item = loadedItems.find(i => i.id === expandedItemId);
+                const details = challan.itemDetails[expandedItemId] || {};
+                const displayItemName = details.itemName || item?.name || 'Unknown Item';
+                
+                return (
+                  <div className="border rounded-lg bg-white">
+                    <div className="bg-gray-50 px-3 py-2 border-b">
+                      <span className="text-xs font-medium text-gray-700">Last 4 Entries - {displayItemName}</span>
+                    </div>
+                    {historyState.loading ? (
+                      <div className="px-3 py-4 text-xs text-gray-500 text-center">Loading history...</div>
+                    ) : historyState.error ? (
+                      <div className="px-3 py-4 text-xs text-red-600 text-center">{historyState.error}</div>
+                    ) : historyRows.length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-gray-500 text-center">No history found.</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th className="px-2 py-2 text-left border">Date</th>
+                              <th className="px-2 py-2 text-left border">Challan No</th>
+                              <th className="px-2 py-2 text-left border">Rate</th>
+                              <th className="px-2 py-2 text-left border">Qty</th>
+                              <th className="px-2 py-2 text-left border">Amount</th>
+                              <th className="px-2 py-2 text-left border">Disc%</th>
+                              <th className="px-2 py-2 text-left border">Sp Disc</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {historyRows.map((row, rowIndex) => (
+                              <tr 
+                                key={`history-${rowIndex}`} 
+                                className="hover:bg-blue-50 cursor-pointer"
+                                onClick={() => {
+                                  updateItemDetail(expandedItemId, 'rate', row?.rate || 0);
+                                  updateItemDetail(expandedItemId, 'disPercent', row?.discount || 0);
+                                  updateItemDetail(expandedItemId, 'spDis', row?.special_discount || 0);
+                                }}
+                              >
+                                <td className="px-2 py-2 border">{formatHistoryDate(row?.challan_date)}</td>
+                                <td className="px-2 py-2 border">{row?.challan_no || '-'}</td>
+                                <td className="px-2 py-2 border">{Number(row?.rate || 0).toFixed(2)}</td>
+                                <td className="px-2 py-2 border">{Number(row?.quantity || 0)}</td>
+                                <td className="px-2 py-2 border">{Number(row?.amount || 0).toFixed(2)}</td>
+                                <td className="px-2 py-2 border">{Number(row?.discount || 0).toFixed(2)}</td>
+                                <td className="px-2 py-2 border">{Number(row?.special_discount || 0).toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
                 );
-              })}
+              })()}
             </div>
           </div>
         )}

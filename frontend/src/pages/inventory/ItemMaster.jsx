@@ -279,7 +279,8 @@ const ItemMaster = () => {
         if (editingItem.brandId) formData.append('brand_id', editingItem.brandId);
         if (editingItem.supplierId) formData.append('contact_id', editingItem.supplierId);
         if (editingItem.departmentId) formData.append('dept_id', editingItem.departmentId);
-        if (editingItem.hsn_code) formData.append('hsn_code', editingItem.hsn_code);
+        if (editingItem.hsn_code) formData.append('hsn_id', editingItem.hsn_code);
+        if (editingItem.alias) formData.append('alias', editingItem.alias);
         if (editingItem.description) formData.append('description', editingItem.description);
         
         if (editImageFile) {
@@ -655,7 +656,7 @@ const ItemMaster = () => {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500">HSN Code</label>
-                <p className="text-sm text-gray-900">{hsns.find(h => h._id === viewingItem.hsn_code)?.hsn_number || '-'}</p>
+                <p className="text-sm text-gray-900">{viewingItem.hsn_number || '-'}</p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500">GST %</label>

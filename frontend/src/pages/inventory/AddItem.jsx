@@ -166,6 +166,7 @@ const AddItem = () => {
       appendOptional(payload, 'brand_id', formData.brand);
       appendOptional(payload, 'contact_id', formData.supplier);
       appendOptional(payload, 'dept_id', formData.department);
+      appendOptional(payload, 'hsn_id', formData.hsn_code);
       appendOptional(payload, 'description', formData.description);
       appendOptional(payload, 'alias', formData.alias);
       appendOptional(payload, 'item_id', formData.item_id);

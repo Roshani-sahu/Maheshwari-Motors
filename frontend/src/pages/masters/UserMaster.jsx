@@ -54,13 +54,7 @@ const getSubscriptionStatus = (subscription) => {
   return { label: 'Active', sort: 4, className: 'bg-blue-500 text-white' };
 };
 
-const DUMMY_TRANSACTIONS = [
-  { user: 'Amit Traders', plan: 'basic', validityFrom: '2026-02-01', validityTo: '2026-03-01', amount: 1999, createdAt: '2026-02-01' },
-  { user: 'Ravi Auto', plan: 'standard', validityFrom: '2026-01-20', validityTo: '2026-02-28', amount: 2999, createdAt: '2026-01-20' },
-  { user: 'Kiran Motors', plan: 'premium', validityFrom: '2026-02-10', validityTo: '2026-05-10', amount: 4999, createdAt: '2026-02-10' },
-  { user: 'Shree Parts', plan: 'basic', validityFrom: '2026-02-14', validityTo: '2026-03-14', amount: 1999, createdAt: '2026-02-14' },
-  { user: 'MM Retail', plan: 'enterprise', validityFrom: '2026-01-05', validityTo: '2026-04-05', amount: 8999, createdAt: '2026-01-05' }
-];
+
 
 const UserMaster = () => {
   const navigate = useNavigate();
@@ -70,11 +64,11 @@ const UserMaster = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState({
-    plan: '',
-    validityFrom: '',
-    validityTo: '',
-    amount: '',
-    createdAt: new Date().toISOString().split('T')[0]
+    username: '',
+    years: 0,
+    months: 0,
+    days: 0,
+    amount: ''
   });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -84,7 +78,7 @@ const UserMaster = () => {
   const [viewingUser, setViewingUser] = useState(null);
   const [isTransactionHistoryModalOpen, setIsTransactionHistoryModalOpen] = useState(false);
   const [selectedUserTransactions, setSelectedUserTransactions] = useState(null);
-  const [transactions, setTransactions] = useState(DUMMY_TRANSACTIONS);
+  const [transactions, setTransactions] = useState([]);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -226,12 +220,12 @@ const UserMaster = () => {
           createdAt: sub.createdAt,
           status: sub.status
         }));
-        setTransactions(mappedTransactions.length > 0 ? mappedTransactions : DUMMY_TRANSACTIONS);
+        setTransactions(mappedTransactions);
       }
     } catch (error) {
       if (isMounted.current) {
         console.error("Failed to fetch transactions", error);
-        setTransactions(DUMMY_TRANSACTIONS);
+        setTransactions([]);
       }
     }
   };
@@ -328,9 +322,9 @@ const UserMaster = () => {
             return;
         }
 
-        // console.log('📤 Creating user with data:', JSON.stringify(newUser, null, 2));
+        console.log('📤 Creating user with data:', JSON.stringify(newUser, null, 2));
         await api.post('/admin/users', newUser);
-        // console.log('✅ User created successfully');
+        console.log('✅ User created successfully');
         showToast('User added successfully', 'success');
         setIsAddModalOpen(false);
         setNewUser({
@@ -340,8 +334,8 @@ const UserMaster = () => {
         });
         fetchUsers(); 
     } catch (error) {
-        // console.error("❌ User submit error:", error);
-        // console.error("Error response:", error.response?.data);
+        console.error("❌ User submit error:", error);
+        console.error("Error response:", error.response?.data);
         const msg = error.response?.data?.message || 'Failed to add user';
         const details = Array.isArray(error.response?.data?.errors) 
             ? error.response.data.errors.join(', ') 
@@ -356,9 +350,9 @@ const UserMaster = () => {
         if (newPassword) {
           updatedUser.password = newPassword;
         }
-        // console.log('📤 Updating user with data:', JSON.stringify(updatedUser, null, 2));
+        console.log('📤 Updating user with data:', JSON.stringify(updatedUser, null, 2));
         await api.put(`/admin/users/${editingUser.id}`, updatedUser);
-        // console.log('✅ User updated successfully');
+        console.log('✅ User updated successfully');
         
         setIsEditModalOpen(false);
         setNewPassword('');
@@ -553,44 +547,90 @@ const UserMaster = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">User Name *</label>
-            <Input value={newUser.name} onChange={(v) => setNewUser({...newUser, name: v})} placeholder="Enter user name" />
+            <Input 
+              value={subscriptionData.username} 
+              onChange={(v) => setSubscriptionData({...subscriptionData, username: v})} 
+              placeholder="Enter user name" 
+            />
           </div>
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Plan *</label>
-            <select value={subscriptionData.plan} onChange={(e) => setSubscriptionData({...subscriptionData, plan: e.target.value})} className="w-full px-3 py-2 border rounded-md">
-              <option value="">Select Plan</option>
-              <option value="basic">Basic</option>
-              <option value="standard">Standard</option>
-              <option value="premium">Premium</option>
-              <option value="enterprise">Enterprise</option>
-            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Duration *</label>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Years</label>
+                <Input 
+                  type="number" 
+                  min="0"
+                  value={subscriptionData.years} 
+                  onChange={(v) => setSubscriptionData({...subscriptionData, years: parseInt(v) || 0})} 
+                  placeholder="0" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Months</label>
+                <Input 
+                  type="number" 
+                  min="0"
+                  max="12"
+                  value={subscriptionData.months} 
+                  onChange={(v) => {
+                    const val = parseInt(v) || 0;
+                    setSubscriptionData({...subscriptionData, months: val > 12 ? 12 : val});
+                  }} 
+                  placeholder="0" 
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Days</label>
+                <Input 
+                  type="number" 
+                  min="0"
+                  max="31"
+                  value={subscriptionData.days} 
+                  onChange={(v) => {
+                    const val = parseInt(v) || 0;
+                    setSubscriptionData({...subscriptionData, days: val > 31 ? 31 : val});
+                  }} 
+                  placeholder="0" 
+                />
+              </div>
+            </div>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Validity From *</label>
-            <input type="date" value={subscriptionData.validityFrom} onChange={(e) => setSubscriptionData({...subscriptionData, validityFrom: e.target.value})} className="w-full px-3 py-2 border rounded-md" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹) *</label>
+            <Input 
+              type="number" 
+              value={subscriptionData.amount} 
+              onChange={(v) => setSubscriptionData({...subscriptionData, amount: v})} 
+              placeholder="Enter amount" 
+            />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Validity To *</label>
-            <input type="date" value={subscriptionData.validityTo} onChange={(e) => setSubscriptionData({...subscriptionData, validityTo: e.target.value})} className="w-full px-3 py-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Amount *</label>
-            <Input type="number" value={subscriptionData.amount} onChange={(v) => setSubscriptionData({...subscriptionData, amount: v})} placeholder="Enter amount" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Created At *</label>
-            <input type="date" value={subscriptionData.createdAt} onChange={(e) => setSubscriptionData({...subscriptionData, createdAt: e.target.value})} className="w-full px-3 py-2 border rounded-md" />
-          </div>
+
           <div className="flex gap-3 pt-4">
             <Button onClick={() => {
-              if (!newUser.name || !subscriptionData.plan || !subscriptionData.validityFrom || !subscriptionData.validityTo || !subscriptionData.amount || !subscriptionData.createdAt) {
-                showToast('Please fill all subscription fields', 'error');
+              if (!subscriptionData.username) {
+                showToast('Please enter user name', 'error');
                 return;
               }
+              if (subscriptionData.years === 0 && subscriptionData.months === 0 && subscriptionData.days === 0) {
+                showToast('Please set duration (years, months, or days)', 'error');
+                return;
+              }
+              if (!subscriptionData.amount || parseFloat(subscriptionData.amount) <= 0) {
+                showToast('Please enter a valid amount', 'error');
+                return;
+              }
+              
+              setNewUser({...newUser, name: subscriptionData.username});
               setIsSubscriptionModalOpen(false);
               setIsAddModalOpen(true);
             }}>Continue to User Details</Button>
-            <Button variant="outline" onClick={() => setIsSubscriptionModalOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => {
+              setIsSubscriptionModalOpen(false);
+              setSubscriptionData({ username: '', years: 0, months: 0, days: 0, amount: '' });
+            }}>Cancel</Button>
           </div>
         </div>
       </Modal>
@@ -741,6 +781,22 @@ const UserMaster = () => {
                             setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
                           }} placeholder="Account Number" className="mt-1" />
                         </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Holder</label>
+                          <Input value={bank.account_holder || ''} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].account_holder = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="Account Holder Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">UPI ID</label>
+                          <Input value={bank.upi_id || ''} onChange={(v) => {
+                            const banks = [...newUser.gst_firm.banks];
+                            banks[idx].upi_id = v;
+                            setNewUser({...newUser, gst_firm: {...newUser.gst_firm, banks}});
+                          }} placeholder="UPI ID" className="mt-1" />
+                        </div>
                       </div>
                       {newUser.gst_firm.banks.length > 1 && (
                         <button onClick={() => {
@@ -859,6 +915,22 @@ const UserMaster = () => {
                             setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
                           }} placeholder="Account Number" className="mt-1" />
                         </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Holder</label>
+                          <Input value={bank.account_holder || ''} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].account_holder = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="Account Holder Name" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">UPI ID</label>
+                          <Input value={bank.upi_id || ''} onChange={(v) => {
+                            const banks = [...newUser.nongst_firm.banks];
+                            banks[idx].upi_id = v;
+                            setNewUser({...newUser, nongst_firm: {...newUser.nongst_firm, banks}});
+                          }} placeholder="UPI ID" className="mt-1" />
+                        </div>
                       </div>
                       {newUser.nongst_firm.banks.length > 1 && (
                         <button onClick={() => {
@@ -963,25 +1035,33 @@ const UserMaster = () => {
                 {/* Bank Details */}
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
-                  {(viewingUser.original?.gst_firm?.banks && viewingUser.original.gst_firm.banks.length > 0) ? (
+                  {(Array.isArray(viewingUser.original?.gst_firm?.banks) && viewingUser.original.gst_firm.banks.length > 0) ? (
                     viewingUser.original.gst_firm.banks.map((bank, idx) => (
                       <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="text-xs text-gray-600">Bank Name</label>
-                            <Input value={bank.bank_name || ''} disabled className="mt-1" />
+                            <Input value={bank?.bank_name || ''} disabled className="mt-1" />
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">Branch</label>
-                            <Input value={bank.bank_branch || ''} disabled className="mt-1" />
+                            <Input value={bank?.bank_branch || ''} disabled className="mt-1" />
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">IFSC Code</label>
-                            <Input value={bank.ifsc_code || ''} disabled className="mt-1" />
+                            <Input value={bank?.ifsc_code || ''} disabled className="mt-1" />
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">Account Number</label>
-                            <Input value={bank.account_number || ''} disabled className="mt-1" />
+                            <Input value={bank?.account_number || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Account Holder</label>
+                            <Input value={bank?.account_holder || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">UPI ID</label>
+                            <Input value={bank?.upi_id || ''} disabled className="mt-1" />
                           </div>
                         </div>
                       </div>
@@ -1046,25 +1126,33 @@ const UserMaster = () => {
                 {/* Bank Details */}
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-gray-700 mb-2 block">Bank Details</label>
-                  {(viewingUser.original?.nongst_firm?.banks && viewingUser.original.nongst_firm.banks.length > 0) ? (
+                  {(Array.isArray(viewingUser.original?.nongst_firm?.banks) && viewingUser.original.nongst_firm.banks.length > 0) ? (
                     viewingUser.original.nongst_firm.banks.map((bank, idx) => (
                       <div key={idx} className="border rounded p-3 mb-2 bg-gray-50">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="text-xs text-gray-600">Bank Name</label>
-                            <Input value={bank.bank_name || ''} disabled className="mt-1" />
+                            <Input value={bank?.bank_name || ''} disabled className="mt-1" />
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">Branch</label>
-                            <Input value={bank.bank_branch || ''} disabled className="mt-1" />
+                            <Input value={bank?.bank_branch || ''} disabled className="mt-1" />
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">IFSC Code</label>
-                            <Input value={bank.ifsc_code || ''} disabled className="mt-1" />
+                            <Input value={bank?.ifsc_code || ''} disabled className="mt-1" />
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">Account Number</label>
-                            <Input value={bank.account_number || ''} disabled className="mt-1" />
+                            <Input value={bank?.account_number || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">Account Holder</label>
+                            <Input value={bank?.account_holder || ''} disabled className="mt-1" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-600">UPI ID</label>
+                            <Input value={bank?.upi_id || ''} disabled className="mt-1" />
                           </div>
                         </div>
                       </div>
@@ -1225,6 +1313,22 @@ const UserMaster = () => {
                             setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
                           }} placeholder="Account Number" className="mt-1" />
                         </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Holder</label>
+                          <Input value={bank.account_holder || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], account_holder: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="Account Holder" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">UPI ID</label>
+                          <Input value={bank.upi_id || ''} onChange={(v) => {
+                            const banks = [...(editingForm.gst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], upi_id: v};
+                            setEditingForm(prev => ({ ...prev, gst_firm: { ...(prev.gst_firm || {}), banks } }));
+                          }} placeholder="UPI ID" className="mt-1" />
+                        </div>
                       </div>
                       {(editingForm.gst_firm?.banks || []).length > 1 && (
                         <button onClick={() => {
@@ -1338,6 +1442,22 @@ const UserMaster = () => {
                             banks[idx] = {...banks[idx], account_number: v};
                             setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
                           }} placeholder="Account Number" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">Account Holder</label>
+                          <Input value={bank.account_holder || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], account_holder: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="Account Holder" className="mt-1" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-600">UPI ID</label>
+                          <Input value={bank.upi_id || ''} onChange={(v) => {
+                            const banks = [...(editingForm.nongst_firm?.banks || [])];
+                            banks[idx] = {...banks[idx], upi_id: v};
+                            setEditingForm(prev => ({ ...prev, nongst_firm: { ...(prev.nongst_firm || {}), banks } }));
+                          }} placeholder="UPI ID" className="mt-1" />
                         </div>
                       </div>
                       {(editingForm.nongst_firm?.banks || []).length > 1 && (
