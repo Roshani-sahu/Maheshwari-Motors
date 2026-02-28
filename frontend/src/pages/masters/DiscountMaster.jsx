@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaSave, FaPlus } from 'react-icons/fa';
 import { Button, Modal } from '../../components/ui';
+import { getEntityId } from '../../services/apiUtils';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
 
@@ -25,50 +26,44 @@ const DiscountMaster = () => {
 
   useEffect(() => {
     const controller = new AbortController();
-    const fetchCategories = async () => {
+    const fetchCategoriesAndLabels = async () => {
       try {
-        const catRes = await api.get('/categories', { params: { page: 1, limit: 200 }, signal: controller.signal });
-        const catList = listFromResponse(catRes).map((c) => ({ id: c._id, name: c.category_name || c.name || '' }));
+        const [catRes, labelRes] = await Promise.all([
+          api.get('/categories', { params: { page: 1, limit: 200 }, signal: controller.signal }),
+          api.get('/labels', { params: { page: 1, limit: 200 }, signal: controller.signal })
+        ]);
+
+        const catList = listFromResponse(catRes).map((c) => ({
+          id: getEntityId(c),
+          name: c.category_name || c.name || ''
+        }));
         setCategories(catList);
+
+        const labelList = listFromResponse(labelRes).map((label) => ({
+          id: getEntityId(label),
+          name: label?.name || label?.label_name || '',
+          categoryId: getEntityId(label?.category_id)
+        }));
+        setLabels(labelList);
       } catch (error) {
         if (error?.name !== 'CanceledError') {
-          showToast('Failed to load categories', 'error');
+          showToast('Failed to load categories/labels', 'error');
         }
       }
     };
 
-    fetchCategories();
+    fetchCategoriesAndLabels();
     return () => controller.abort();
   }, []);
 
   useEffect(() => {
-    if (!selectedCategory?.id) {
-      setLabels([]);
-      setSelectedLabel(null);
+    if (!selectedLabel?.id || !selectedCategory?.id) {
       setBrands([]);
       setDiscounts({});
       return;
     }
 
-    const controller = new AbortController();
-    const fetchLabels = async () => {
-      try {
-        const res = await api.get(`/labels/category/${selectedCategory.id}`, { signal: controller.signal });
-        const list = listFromResponse(res).map((l) => ({ id: l._id, name: l.name || '' }));
-        setLabels(list);
-      } catch (error) {
-        if (error?.name !== 'CanceledError') {
-          showToast('Failed to load labels', 'error');
-        }
-      }
-    };
-
-    fetchLabels();
-    return () => controller.abort();
-  }, [selectedCategory?.id]);
-
-  useEffect(() => {
-    if (!selectedLabel?.id) {
+    if (selectedLabel?.categoryId && selectedLabel.categoryId !== selectedCategory.id) {
       setBrands([]);
       setDiscounts({});
       return;
@@ -106,7 +101,24 @@ const DiscountMaster = () => {
 
     fetchLabelDiscounts();
     return () => controller.abort();
-  }, [selectedLabel?.id, showToast]);
+  }, [selectedLabel?.id, selectedCategory?.id, selectedLabel?.categoryId, showToast]);
+
+  const filteredLabels = selectedCategory?.id
+    ? labels.filter((label) => String(label.categoryId) === String(selectedCategory.id))
+    : labels;
+
+  const filteredCategories = selectedLabel?.categoryId
+    ? categories.filter((category) => String(category.id) === String(selectedLabel.categoryId))
+    : categories;
+
+  useEffect(() => {
+    if (!selectedLabel?.categoryId) return;
+    if (selectedCategory?.id && String(selectedCategory.id) === String(selectedLabel.categoryId)) return;
+    const matched = categories.find((category) => String(category.id) === String(selectedLabel.categoryId));
+    if (matched) {
+      setSelectedCategory(matched);
+    }
+  }, [selectedLabel?.id, selectedLabel?.categoryId, selectedCategory?.id, categories]);
 
   const updateDiscount = (brandId, discountType, field, value) => {
     setDiscounts((prev) => ({
@@ -126,7 +138,8 @@ const DiscountMaster = () => {
   };
 
   const handleSave = async () => {
-    if (saving || Object.keys(discounts).length === 0) return;
+    if (saving || !selectedLabel?.id) return;
+    if (Object.keys(discounts).length === 0) return;
 
     const allValues = Object.values(discounts).flatMap((d) => [
       Number(d?.discount1?.normal || 0),
@@ -140,14 +153,15 @@ const DiscountMaster = () => {
       return;
     }
 
+    const brandDiscounts = brands.map((brand) => ({
+      brand_id: brand.id,
+      disc1: discounts[brand.id]?.discount1 || { normal: 0, special: 0 },
+      disc2: discounts[brand.id]?.discount2 || { normal: 0, special: 0 }
+    }));
+
     setSaving(true);
     try {
-      await Promise.all(
-        Object.keys(discounts).map((brandId) => api.patch(`/brands/${brandId}/discount`, {
-          discount1: discounts[brandId].discount1,
-          discount2: discounts[brandId].discount2
-        }))
-      );
+      await api.put(`/labels/${selectedLabel.id}`, { brand_discounts: brandDiscounts });
       showToast('Discounts saved successfully', 'success');
     } catch (error) {
       showToast(error?.response?.data?.message || 'Failed to save discounts', 'error');
@@ -169,22 +183,6 @@ const DiscountMaster = () => {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="p-3 sm:p-4 border-b border-gray-200">
-              <h3 className="text-sm sm:text-base font-semibold text-gray-900">Rate Categories</h3>
-              <p className="text-xs text-gray-500 mt-1">Select category to manage</p>
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              {categories.length === 0 ? <div className="p-4 text-center text-gray-500 text-sm">No categories available</div> : categories.map((category) => (
-                <div key={category.id} onClick={() => setSelectedCategory(category)} className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-blue-50 transition-colors ${selectedCategory?.id === category.id ? 'bg-blue-50 border-l-4 border-l-blue-500 text-blue-900' : 'text-gray-700'}`}>
-                  <div className="text-sm font-medium">{category.name}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-sm sm:text-base font-semibold text-gray-900">Labels</h3>
@@ -195,9 +193,33 @@ const DiscountMaster = () => {
               </button>
             </div>
             <div className="max-h-96 overflow-y-auto">
-              {!selectedCategory ? <div className="p-4 text-center text-gray-500 text-sm">Select a category first</div> : labels.length === 0 ? <div className="p-4 text-center text-gray-500 text-sm">No labels available</div> : labels.map((label) => (
+              {labels.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">No labels available</div>
+              ) : filteredLabels.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">No labels available for this category</div>
+              ) : filteredLabels.map((label) => (
                 <div key={label.id} onClick={() => setSelectedLabel(label)} className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-green-50 transition-colors ${selectedLabel?.id === label.id ? 'bg-green-50 border-l-4 border-l-green-500 text-green-900' : 'text-gray-700'}`}>
                   <div className="text-sm font-medium">{label.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="p-3 sm:p-4 border-b border-gray-200">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">Rate Categories</h3>
+              <p className="text-xs text-gray-500 mt-1">Select category to manage</p>
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {categories.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">No categories available</div>
+              ) : filteredCategories.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 text-sm">No categories available for this label</div>
+              ) : filteredCategories.map((category) => (
+                <div key={category.id} onClick={() => setSelectedCategory(category)} className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-blue-50 transition-colors ${selectedCategory?.id === category.id ? 'bg-blue-50 border-l-4 border-l-blue-500 text-blue-900' : 'text-gray-700'}`}>
+                  <div className="text-sm font-medium">{category.name}</div>
                 </div>
               ))}
             </div>
@@ -207,14 +229,14 @@ const DiscountMaster = () => {
         <div className="lg:col-span-3">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 sm:p-4 border-b border-gray-200">
-              <h3 className="text-sm sm:text-base font-semibold text-gray-900">{selectedCategory ? `${selectedCategory.name} - Brand Discounts` : 'Brand Discounts'}</h3>
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">{selectedLabel ? `${selectedLabel.name} - Brand Discounts` : 'Brand Discounts'}</h3>
             </div>
 
             <div className="overflow-x-auto">
-              {!selectedCategory ? (
-                <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">Select a category first</p></div>
-              ) : !selectedLabel ? (
+              {!selectedLabel ? (
                 <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">Select a label to manage discount rates</p></div>
+              ) : !selectedCategory ? (
+                <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">Select a category for this label</p></div>
               ) : brands.length === 0 ? (
                 <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">No brands available in this category</p></div>
               ) : (
@@ -284,8 +306,12 @@ const DiscountMaster = () => {
               try {
                 await api.post('/labels', { name: newLabelName, category_id: selectedCategory.id });
                 showToast('Label added successfully', 'success');
-                const res = await api.get(`/labels/category/${selectedCategory.id}`);
-                const list = listFromResponse(res).map((l) => ({ id: l._id, name: l.name || '' }));
+                const res = await api.get('/labels', { params: { page: 1, limit: 200 } });
+                const list = listFromResponse(res).map((label) => ({
+                  id: getEntityId(label),
+                  name: label?.name || label?.label_name || '',
+                  categoryId: getEntityId(label?.category_id)
+                }));
                 setLabels(list);
                 setIsAddLabelModalOpen(false);
                 setNewLabelName('');
