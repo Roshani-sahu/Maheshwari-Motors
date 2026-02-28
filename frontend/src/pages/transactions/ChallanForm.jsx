@@ -534,6 +534,10 @@ const ChallanForm = () => {
         discount: parseFloat(calculateTotalDiscount().toFixed(2))
       };
 
+      console.log('Challan Payload:', payload);
+      console.log('Calculated Net Amount:', calculateNetAmount());
+      console.log('Calculated Total Discount:', calculateTotalDiscount());
+
       if (isEditMode) {
         const response = await api.put(`/challans/${id}`, payload);
         console.log('Challan Update Response:', response.data);
