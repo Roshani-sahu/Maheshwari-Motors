@@ -19,17 +19,14 @@ const ChallanList = () => {
   const [validationError, setValidationError] = useState('');
   const [loading, setLoading] = useState(true);
 
-  const defaultFilters = {
+  const [filters, setFilters] = useState({
     type: 'all',
     search: '',
     contactId: '',
     paymentStatus: '',
     fromDate: '',
     toDate: ''
-  };
-
-  const [filterDraft, setFilterDraft] = useState(defaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState(defaultFilters);
+  });
 
   const resolveEndpoint = useCallback((type) => {
     if (type === 'sale') return '/challans/sale';
@@ -53,9 +50,9 @@ const ChallanList = () => {
   }, []);
 
   const fetchAllPages = useCallback(async () => {
-    const endpoint = resolveEndpoint(appliedFilters.type);
+    const endpoint = resolveEndpoint(filters.type);
     const firstResponse = await api.get(endpoint, {
-      params: buildParams(1, appliedFilters)
+      params: buildParams(1, filters)
     });
 
     const firstPageRows = getResponseList(firstResponse).map((challan) => {
@@ -76,7 +73,7 @@ const ChallanList = () => {
     for (let page = 2; page <= totalPages; page += 1) {
       requests.push(
         api.get(endpoint, {
-          params: buildParams(page, appliedFilters)
+          params: buildParams(page, filters)
         })
       );
     }
@@ -93,7 +90,7 @@ const ChallanList = () => {
     );
 
     return [...firstPageRows, ...remainingRows];
-  }, [appliedFilters, buildParams, resolveEndpoint]);
+  }, [filters, buildParams, resolveEndpoint]);
 
   const loadAllChallans = useCallback(async () => {
     const allChallans = await fetchAllPages();
@@ -575,15 +572,6 @@ const ChallanList = () => {
     }
   ];
 
-  const handleApplyFilters = () => {
-    setAppliedFilters({ ...filterDraft });
-  };
-
-  const handleResetFilters = () => {
-    setFilterDraft(defaultFilters);
-    setAppliedFilters(defaultFilters);
-  };
-
   const handleConvertToBill = async () => {
     if (selectedChallans.length === 0) {
       alert('Please select challans to convert');
@@ -653,8 +641,8 @@ const ChallanList = () => {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
             <select
-              value={filterDraft.type}
-              onChange={(e) => setFilterDraft((prev) => ({ ...prev, type: e.target.value }))}
+              value={filters.type}
+              onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
               className="w-full px-2 py-2 border rounded-md text-xs sm:text-sm"
             >
               <option value="all">All</option>
@@ -665,8 +653,8 @@ const ChallanList = () => {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Payment Status</label>
             <select
-              value={filterDraft.paymentStatus}
-              onChange={(e) => setFilterDraft((prev) => ({ ...prev, paymentStatus: e.target.value }))}
+              value={filters.paymentStatus}
+              onChange={(e) => setFilters((prev) => ({ ...prev, paymentStatus: e.target.value }))}
               className="w-full px-2 py-2 border rounded-md text-xs sm:text-sm"
             >
               <option value="">All</option>
@@ -679,8 +667,8 @@ const ChallanList = () => {
             <label className="block text-xs font-medium text-gray-600 mb-1">From Date</label>
             <input
               type="date"
-              value={filterDraft.fromDate}
-              onChange={(e) => setFilterDraft((prev) => ({ ...prev, fromDate: e.target.value }))}
+              value={filters.fromDate}
+              onChange={(e) => setFilters((prev) => ({ ...prev, fromDate: e.target.value }))}
               className="w-full px-2 py-2 border rounded-md text-xs sm:text-sm"
             />
           </div>
@@ -688,8 +676,8 @@ const ChallanList = () => {
             <label className="block text-xs font-medium text-gray-600 mb-1">To Date</label>
             <input
               type="date"
-              value={filterDraft.toDate}
-              onChange={(e) => setFilterDraft((prev) => ({ ...prev, toDate: e.target.value }))}
+              value={filters.toDate}
+              onChange={(e) => setFilters((prev) => ({ ...prev, toDate: e.target.value }))}
               className="w-full px-2 py-2 border rounded-md text-xs sm:text-sm"
             />
           </div>
@@ -698,8 +686,8 @@ const ChallanList = () => {
             <input
               type="text"
               placeholder="Search challan..."
-              value={filterDraft.search}
-              onChange={(e) => setFilterDraft((prev) => ({ ...prev, search: e.target.value }))}
+              value={filters.search}
+              onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
               className="w-full px-3 py-2 border rounded-md text-xs sm:text-sm"
             />
           </div>
@@ -708,17 +696,14 @@ const ChallanList = () => {
             <input
               type="text"
               placeholder="Contact ID"
-              value={filterDraft.contactId}
-              onChange={(e) => setFilterDraft((prev) => ({ ...prev, contactId: e.target.value }))}
+              value={filters.contactId}
+              onChange={(e) => setFilters((prev) => ({ ...prev, contactId: e.target.value }))}
               className="w-full px-3 py-2 border rounded-md text-xs sm:text-sm"
             />
           </div>
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
-          <Button onClick={handleApplyFilters} className="text-xs sm:text-sm">
-            Apply Filters
-          </Button>
-          <Button variant="outline" onClick={handleResetFilters} className="text-xs sm:text-sm">
+          <Button variant="outline" onClick={() => setFilters({ type: 'all', search: '', contactId: '', paymentStatus: '', fromDate: '', toDate: '' })} className="text-xs sm:text-sm">
             Reset
           </Button>
         </div>

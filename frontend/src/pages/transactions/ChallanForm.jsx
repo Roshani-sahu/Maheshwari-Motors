@@ -25,6 +25,7 @@ const ChallanForm = () => {
   const [loadedParties, setLoadedParties] = useState([]);
   const [loadedSuppliers, setLoadedSuppliers] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
+  const [loadedBanks, setLoadedBanks] = useState([]);
   const [loadedDiscounts, setLoadedDiscounts] = useState({});
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [showItemDropdown, setShowItemDropdown] = useState(false);
@@ -46,17 +47,20 @@ const ChallanForm = () => {
     date: new Date().toISOString().split('T')[0],
     itemDetails: {},
     discount: 0,
-    printOption: 1
+    printOption: 1,
+    from_bank: '',
+    to_bank: ''
   });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pRes, sRes, iRes, brandRes] = await Promise.all([
+        const [pRes, sRes, iRes, brandRes, bankRes] = await Promise.all([
           api.get('/contacts/parties', { params: { page: 1, limit: 200 } }),
           api.get('/contacts/suppliers', { params: { page: 1, limit: 200 } }),
           api.get('/items', { params: { page: 1, limit: 50, search: '' } }),
-          api.get('/brands', { params: { page: 1, limit: 200 } })
+          api.get('/brands', { params: { page: 1, limit: 200 } }),
+          api.get('/banks', { params: { page: 1, limit: 200 } })
         ]);
 
         const partiesData = getResponseList(pRes).map((party) => {
@@ -82,6 +86,10 @@ const ChallanForm = () => {
         setLoadedParties(partiesData);
         setLoadedSuppliers(suppliersData);
         setLoadedItems(itemsData);
+
+        const bankList = getResponseList(bankRes);
+        const banks = bankList.map(b => ({ id: getEntityId(b), name: b.bank_name || b.name }));
+        setLoadedBanks(banks);
 
         const brandList = getResponseList(brandRes);
         const discountMap = {};
@@ -138,7 +146,9 @@ const ChallanForm = () => {
             date: dateValue,
             itemDetails,
             discount: challan.discount,
-            printOption: challanData?.print_option || 1
+            printOption: challanData?.print_option || 1,
+            from_bank: challanData?.from_bank || '',
+            to_bank: challanData?.to_bank || ''
           });
         }
       } catch (err) {
@@ -370,7 +380,9 @@ const ChallanForm = () => {
     const itemType = details.type !== undefined ? details.type : challan.gstType;
 
     const baseAmount = pcs * rate;
-    const discountAmount = (baseAmount * disPercent / 100) + spDis + itemDiscount;
+    const percentDiscount = baseAmount * disPercent / 100;
+    const afterPercentDiscount = baseAmount - percentDiscount;
+    const discountAmount = percentDiscount + spDis + itemDiscount;
     const afterDiscount = baseAmount - discountAmount;
     const gstAmount = itemType === 1 ? (afterDiscount * gstPercent / 100) : 0;
     const finalAmount = afterDiscount + gstAmount;
@@ -453,6 +465,9 @@ const ChallanForm = () => {
         contact_id: challan.party,
         is_gst: challanIsGst,
         print_option: challan.printOption,
+        amount: parseFloat(calculateNetAmount().toFixed(2)),
+        from_bank: challan.from_bank || null,
+        to_bank: challan.to_bank || null,
         items: challan.items.map(itemId => {
           const item = loadedItems.find(i => i.id === itemId);
           const details = challan.itemDetails[itemId] || {};
@@ -475,10 +490,12 @@ const ChallanForm = () => {
       };
 
       if (isEditMode) {
-        await api.put(`/challans/${id}`, payload);
+        const response = await api.put(`/challans/${id}`, payload);
+        console.log('Challan Update Response:', response.data);
         showToast('Challan updated successfully', 'success');
       } else {
-        await api.post('/challans', payload);
+        const response = await api.post('/challans', payload);
+        console.log('Challan Create Response:', response.data);
         showToast('Challan created successfully', 'success');
       }
 
@@ -957,6 +974,35 @@ const ChallanForm = () => {
               </div>
               <span className="text-sm text-gray-600">{challan.gstType === null ? '-' : challan.gstType}</span>
             </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">From Bank</label>
+            <select
+              value={challan.from_bank}
+              onChange={(e) => setChallan(prev => ({ ...prev, from_bank: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">Select Bank</option>
+              {loadedBanks.map(bank => (
+                <option key={bank.id} value={bank.id}>{bank.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">To Bank</label>
+            <select
+              value={challan.to_bank}
+              onChange={(e) => setChallan(prev => ({ ...prev, to_bank: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">Select Bank</option>
+              {loadedBanks.map(bank => (
+                <option key={bank.id} value={bank.id}>{bank.name}</option>
+              ))}
+            </select>
           </div>
         </div>
 
