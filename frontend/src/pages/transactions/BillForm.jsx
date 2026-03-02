@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaTimes, FaSave, FaEye, FaPrint, FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { FaTimes, FaSave, FaEye, FaPrint } from "react-icons/fa";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
 import { Modal } from "../../components/common";
@@ -63,7 +63,6 @@ const BillForm = () => {
   const [loadedSuppliers, setLoadedSuppliers] = useState([]);
   const [loadedAgents, setLoadedAgents] = useState([]);
   const [loadedTransports, setLoadedTransports] = useState([]);
-  const [loadedBanks, setLoadedBanks] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
   const [loadedDiscounts, setLoadedDiscounts] = useState({});
   const [loadedLabelDiscounts, setLoadedLabelDiscounts] = useState({});
@@ -76,9 +75,6 @@ const BillForm = () => {
     isOpen: false,
     data: null,
   });
-  const [showAllCombinedStock, setShowAllCombinedStock] = useState(false);
-  const [expandedItemId, setExpandedItemId] = useState(null);
-  const [itemHistoryMap, setItemHistoryMap] = useState({});
   const itemDropdownRef = useRef(null);
 
   const [bill, setBill] = useState({
@@ -96,8 +92,6 @@ const BillForm = () => {
     customerName: "",
     vehicleNo: "",
     printOption: 1,
-    from_bank: "",
-    to_bank: "",
   });
 
   const effectiveGstType = isFirmGST ? 1 : bill.gstType;
@@ -114,89 +108,16 @@ const BillForm = () => {
     setBill((prev) => ({ ...prev, gstType: prev.gstType === 1 ? 0 : 1 }));
   };
 
-  const formatHistoryDate = (value) => {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "-";
-    return date.toLocaleDateString("en-IN");
-  };
-
-  const fetchItemHistory = async (itemId) => {
-    if (bill.contactType !== "party") {
-      setItemHistoryMap((prev) => ({
-        ...prev,
-        [itemId]: {
-          loading: false,
-          rows: [],
-          error: "History available only for Party bills",
-        },
-      }));
-      return;
-    }
-
-    if (!bill.party) {
-      const errorMsg = "Please select party before loading history";
-      showToast(errorMsg, "error");
-      setItemHistoryMap((prev) => ({
-        ...prev,
-        [itemId]: { loading: false, rows: [], error: errorMsg },
-      }));
-      return;
-    }
-
-    setItemHistoryMap((prev) => ({
-      ...prev,
-      [itemId]: { loading: true, rows: [], error: null },
-    }));
-
-    try {
-      const response = await api.post(`/bills/last-sold-items`, {
-        contact_id: bill.party,
-        item_id: itemId,
-      });
-      const rows = getResponseList(response);
-
-      setItemHistoryMap((prev) => ({
-        ...prev,
-        [itemId]: { loading: false, rows, error: null },
-      }));
-    } catch (error) {
-      console.error("Failed to load item history:", error);
-      const errorMsg =
-        error?.response?.data?.message || "Failed to load item history";
-      showToast(errorMsg, "error");
-      setItemHistoryMap((prev) => ({
-        ...prev,
-        [itemId]: { loading: false, rows: [], error: errorMsg },
-      }));
-    }
-  };
-
-  const handleToggleHistory = async (itemId) => {
-    if (expandedItemId === itemId) {
-      setExpandedItemId(null);
-      return;
-    }
-    setExpandedItemId(itemId);
-    if (
-      !itemHistoryMap[itemId]?.rows?.length &&
-      !itemHistoryMap[itemId]?.loading
-    ) {
-      await fetchItemHistory(itemId);
-    }
-  };
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pRes, sRes, iRes, brandRes, aRes, tRes, bankRes] = await Promise.all([
+        const [pRes, sRes, iRes, brandRes, aRes, tRes] = await Promise.all([
           api.get("/contacts/parties", { params: { page: 1, limit: 200 } }),
           api.get("/contacts/suppliers", { params: { page: 1, limit: 200 } }),
           api.get("/items", { params: { page: 1, limit: 50, search: "" } }),
           api.get("/brands", { params: { page: 1, limit: 200 } }),
           api.get("/agents", { params: { page: 1, limit: 200 } }),
           api.get("/transports", { params: { page: 1, limit: 200 } }),
-          api.get("/banks", { params: { page: 1, limit: 200 } }),
         ]);
 
         const partiesData = getResponseList(pRes).map((party) => {
@@ -275,12 +196,6 @@ const BillForm = () => {
           charge: tr.charge || tr.transport_charge || tr.transportCharge || 0,
         }));
         setLoadedTransports(transportsData);
-
-        const banksData = getResponseList(bankRes).map((bank) => ({
-          id: getEntityId(bank) || bank._id || bank.id,
-          name: bank.name || bank.bank_name || bank.title || "Unknown",
-        }));
-        setLoadedBanks(banksData);
 
         const brandList = getResponseList(brandRes);
         const discountMap = {};
@@ -1151,8 +1066,6 @@ const BillForm = () => {
         agent_id: bill.agent || undefined,
         customer_name: bill.customerName || undefined,
         vehicle_no: bill.vehicleNo || undefined,
-        from_bank: bill.from_bank || undefined,
-        to_bank: bill.to_bank || undefined,
       };
       const res = await api.post("/bills", payload);
       console.log("Bill creation response:", res.data);
@@ -1381,47 +1294,6 @@ const BillForm = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              From Bank
-            </label>
-            <select
-              value={bill.from_bank}
-              onChange={(e) =>
-                setBill((prev) => ({ ...prev, from_bank: e.target.value }))
-              }
-              className="w-full px-3 py-2 border rounded-md text-sm"
-            >
-              <option value="">Select From Bank</option>
-              {loadedBanks.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              To Bank
-            </label>
-            <select
-              value={bill.to_bank}
-              onChange={(e) =>
-                setBill((prev) => ({ ...prev, to_bank: e.target.value }))
-              }
-              className="w-full px-3 py-2 border rounded-md text-sm"
-            >
-              <option value="">Select To Bank</option>
-              {loadedBanks.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
         <div className="border rounded-lg">
           <div className="bg-gray-100 px-4 py-2">
             <h3 className="font-medium text-gray-900">
@@ -1526,14 +1398,7 @@ const BillForm = () => {
                   <th className="px-2 py-2 text-left border-r">ItemName</th>
                   <th className="px-2 py-2 text-left border-r">Remark</th>
                   <th className="px-2 py-2 text-left border-r">Type</th>
-                  <th
-                    className="px-2 py-2 text-left border-r hover:bg-gray-100"
-                    onDoubleClick={() =>
-                      setShowAllCombinedStock((prev) => !prev)
-                    }
-                  >
-                    Stock
-                  </th>
+                  <th className="px-2 py-2 text-left border-r">Stock</th>
                   <th className="px-2 py-2 text-left border-r">PCS</th>
                   <th className="px-2 py-2 text-left border-r">Rate</th>
                   <th className="px-2 py-2 text-left border-r">Dis %</th>
@@ -1556,77 +1421,53 @@ const BillForm = () => {
                     : effectiveGstType;
                   const displayItemName =
                     details.itemName || item?.name || "Unknown Item";
-                  const historyOpen = expandedItemId === itemId;
 
                   return (
-                    <Fragment key={itemId}>
-                      <tr className="border-t">
-                        <td className="px-2 py-2 border-r">
-                          <div className="flex items-center gap-1">
-                            <span>{index + 1}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleHistory(itemId)}
-                              className="text-gray-500 hover:text-gray-700"
-                              title="View last 4 entries"
-                            >
-                              {historyOpen ?
-                                <FaChevronUp size={10} />
-                              : <FaChevronDown size={10} />}
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <span className="text-xs">{displayItemName}</span>
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <input
-                            type="text"
-                            value={details.remark || ""}
-                            onChange={(e) =>
-                              updateItemDetail(itemId, "remark", e.target.value)
-                            }
-                            className="w-32 px-1 py-1 border rounded text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          {isFirmGST ?
-                            <span className="text-xs">1</span>
-                          : <select
-                              value={itemType !== null ? itemType : ""}
-                              onChange={(e) =>
-                                updateItemDetail(
-                                  itemId,
-                                  "type",
-                                  parseInt(e.target.value),
-                                )
-                              }
-                              className="w-12 px-1 py-1 border rounded text-xs"
-                            >
-                              <option value="">-</option>
-                              <option value={0}>0</option>
-                              <option value={1}>1</option>
-                            </select>
+                    <tr key={itemId} className="border-t">
+                      <td className="px-2 py-2 border-r">{index + 1}</td>
+                      <td className="px-2 py-2 border-r">
+                        <span className="text-xs">{displayItemName}</span>
+                      </td>
+                      <td className="px-2 py-2 border-r">
+                        <input
+                          type="text"
+                          value={details.remark || ""}
+                          onChange={(e) =>
+                            updateItemDetail(itemId, "remark", e.target.value)
                           }
-                        </td>
-                        <td className="px-2 py-2 border-r">
-                          <input
-                            type="number"
-                            value={
-                              showAllCombinedStock ?
-                                (
-                                  (details.physicalStock || 0) +
-                                  (details.logicalStock || 0)
-                                ).toFixed(1)
-                              : details.stock || 0
-                            }
+                          className="w-32 px-1 py-1 border rounded text-xs"
+                        />
+                      </td>
+                      <td className="px-2 py-2 border-r">
+                        {isFirmGST ?
+                          <span className="text-xs">1</span>
+                        : <select
+                            value={itemType !== null ? itemType : ""}
                             onChange={(e) =>
-                              updateItemDetail(itemId, "stock", e.target.value)
+                              updateItemDetail(
+                                itemId,
+                                "type",
+                                parseInt(e.target.value),
+                              )
                             }
                             className="w-12 px-1 py-1 border rounded text-xs"
-                            readOnly
-                          />
-                        </td>
+                          >
+                            <option value="">-</option>
+                            <option value={0}>0</option>
+                            <option value={1}>1</option>
+                          </select>
+                        }
+                      </td>
+                      <td className="px-2 py-2 border-r">
+                        <input
+                          type="number"
+                          value={details.stock || 0}
+                          onChange={(e) =>
+                            updateItemDetail(itemId, "stock", e.target.value)
+                          }
+                          className="w-12 px-1 py-1 border rounded text-xs"
+                        />
+                      </td>
                       <td className="px-2 py-2 border-r">
                         <input
                           type="number"
@@ -1738,125 +1579,7 @@ const BillForm = () => {
                           </button>
                         </div>
                       </td>
-                      </tr>
-                      {historyOpen &&
-                        (() => {
-                          const historyState = itemHistoryMap[itemId] || {
-                            loading: false,
-                            rows: [],
-                            error: null,
-                          };
-                          const historyRows =
-                            Array.isArray(historyState.rows) ?
-                              historyState.rows.slice(0, 4)
-                            : [];
-
-                          return (
-                            <tr className="border-t bg-gray-50">
-                              <td colSpan={14} className="px-3 py-3">
-                                <div className="text-xs font-medium text-gray-700 mb-2">
-                                  Last 4 Entries
-                                </div>
-                                {historyState.loading ?
-                                  <div className="text-xs text-gray-500">
-                                    Loading history...
-                                  </div>
-                                : historyState.error ?
-                                  <div className="text-xs text-red-600">
-                                    {historyState.error}
-                                  </div>
-                                : historyRows.length === 0 ?
-                                  <div className="text-xs text-gray-500">
-                                    No history found.
-                                  </div>
-                                : <div className="overflow-x-auto">
-                                    <table className="w-full text-xs">
-                                      <thead>
-                                        <tr className="bg-white">
-                                          <th className="px-2 py-1 text-left border">
-                                            Date
-                                          </th>
-                                          <th className="px-2 py-1 text-left border">
-                                            Bill No
-                                          </th>
-                                          <th className="px-2 py-1 text-left border">
-                                            Rate
-                                          </th>
-                                          <th className="px-2 py-1 text-left border">
-                                            Qty
-                                          </th>
-                                          <th className="px-2 py-1 text-left border">
-                                            Amount
-                                          </th>
-                                          <th className="px-2 py-1 text-left border">
-                                            Disc%
-                                          </th>
-                                          <th className="px-2 py-1 text-left border">
-                                            Sp Disc
-                                          </th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {historyRows.map((row, rowIndex) => (
-                                          <tr
-                                            key={`history-${rowIndex}`}
-                                            className="hover:bg-blue-50 cursor-pointer"
-                                            onClick={() => {
-                                              updateItemDetail(
-                                                itemId,
-                                                "rate",
-                                                row?.rate || 0,
-                                              );
-                                              updateItemDetail(
-                                                itemId,
-                                                "disPercent",
-                                                row?.discount || 0,
-                                              );
-                                              updateItemDetail(
-                                                itemId,
-                                                "spDis",
-                                                row?.special_discount || 0,
-                                              );
-                                            }}
-                                          >
-                                            <td className="px-2 py-1 border">
-                                              {formatHistoryDate(
-                                                row?.bill_date,
-                                              )}
-                                            </td>
-                                            <td className="px-2 py-1 border">
-                                              {row?.bill_no || "-"}
-                                            </td>
-                                            <td className="px-2 py-1 border">
-                                              {Number(row?.rate || 0).toFixed(2)}
-                                            </td>
-                                            <td className="px-2 py-1 border">
-                                              {Number(row?.quantity || 0)}
-                                            </td>
-                                            <td className="px-2 py-1 border">
-                                              {Number(row?.amount || 0).toFixed(2)}
-                                            </td>
-                                            <td className="px-2 py-1 border">
-                                              {Number(row?.discount || 0).toFixed(
-                                                2,
-                                              )}
-                                            </td>
-                                            <td className="px-2 py-1 border">
-                                              {Number(
-                                                row?.special_discount || 0,
-                                              ).toFixed(2)}
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                }
-                              </td>
-                            </tr>
-                          );
-                        })()}
-                    </Fragment>
+                    </tr>
                   );
                 })}
                 {bill.items.length === 0 && (

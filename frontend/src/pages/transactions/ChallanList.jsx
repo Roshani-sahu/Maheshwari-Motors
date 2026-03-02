@@ -329,12 +329,47 @@ const ChallanList = () => {
     const challanDate = formatDateDDMMYYYY(challanData?.date || challan?.date) || formatDateDDMMYYYY(new Date());
 
     const items = Array.isArray(challanData?.items) ? challanData.items : [];
+
+    // build a lookup of item details; if the server only returns an ObjectId we fetch the info
+    const itemDetailsMap = {};
+    const missingIds = new Set();
+    items.forEach((item) => {
+      if (item?.item_id) {
+        if (typeof item.item_id === 'object' && item.item_id !== null) {
+          const idVal = item.item_id._id || item.item_id.id || '';
+          if (idVal) itemDetailsMap[idVal] = item.item_id;
+        } else {
+          missingIds.add(item.item_id);
+        }
+      }
+    });
+    if (missingIds.size > 0) {
+      try {
+        const responses = await Promise.all(
+          Array.from(missingIds).map((id) => api.get(`/items/${id}`))
+        );
+        responses.forEach((r) => {
+          const d = getResponseData(r);
+          const idVal = d?._id || d?.id || '';
+          if (idVal) itemDetailsMap[idVal] = d;
+        });
+      } catch (err) {
+        console.warn('Failed to fetch some item details for PDF:', err);
+      }
+    }
+
     const parsedItems =
       items.length > 0
         ? items.map((item, index) => {
-            const itemRef = item?.item_id || item || {};
+            const rawRef = item?.item_id || item || {};
+            let itemRef;
+            if (rawRef && typeof rawRef === 'object' && (rawRef.item_name || rawRef.name || rawRef.barcode)) {
+              itemRef = rawRef;
+            } else {
+              itemRef = itemDetailsMap[rawRef] || {};
+            }
             const itemName =
-              itemRef?.item_name || itemRef?.name || item?.item_name || item?.name || item?.description || 'Item';
+              itemRef?.item_name || itemRef?.name || item?.item_name || item?.name || item?.description || '';
             const barcode =
               itemRef?.barcode ||
               itemRef?.barcode_no ||
@@ -342,9 +377,9 @@ const ChallanList = () => {
               itemRef?.barcode_value ||
               item?.barcode ||
               '';
-            const description = printOption === 2
-              ? String(itemName).trim() || 'Item'
-              : String(barcode).trim() || '-';
+            const description = (printOption === 2
+              ? String(itemName).trim()
+              : String(barcode).trim()) || '-'; // show '-' if empty
 
             const quantity = Number(item?.quantity ?? item?.pcs ?? item?.qty ?? 0) || 0;
             const rate = Number(item?.rate ?? itemRef?.sale_rate ?? itemRef?.amount ?? 0) || 0;
@@ -356,7 +391,7 @@ const ChallanList = () => {
               row: [
                 String(index + 1),
                 description,
-                quantity ? String(quantity) : '',
+                quantity ? String(quantity) : '-', // show '-' if no quantity
                 rate.toFixed(2),
                 discount.toFixed(2),
                 specialDiscount.toFixed(2)
@@ -376,87 +411,92 @@ const ChallanList = () => {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 8;
-    const copyWidth = pageWidth - margin * 2;
-    const copyHeight = pageHeight - margin * 2;
-    const topY = margin;
-    const leftX = margin;
+    // layout 2×2 copies on a single A4
+    const cols = 2;
+    const rows = 2;
+    const hGap = margin;
+    const vGap = margin;
+    const quadrantWidth = (pageWidth - margin * 2 - hGap * (cols - 1)) / cols;
+    const quadrantHeight = (pageHeight - margin * 2 - vGap * (rows - 1)) / rows;
 
-    const drawChallanCopy = (originX) => {
-      const originY = topY;
-      const headerHeight = 18;
-      const detailsHeight = 42;
-      const headerY = originY;
-      const detailsY = originY + headerHeight;
+    const drawChallanCopy = (originX, originY) => {
+      const pad = 0.5;
+      const headerHeight = 20; // space for company name + address
+      const detailsHeight = 42; // space for party + contact + dates
+      const innerX = originX + pad;
+      const innerWidth = quadrantWidth - pad * 2;
+      const headerY = originY + pad;
+      const detailsY = headerY + headerHeight;
       const tableY = detailsY + detailsHeight + 1.5;
 
       // Outer border
       doc.setDrawColor(0, 0, 0);
       doc.setLineWidth(0.3);
-      doc.rect(originX, originY, copyWidth, copyHeight);
+      doc.rect(originX, originY, quadrantWidth, quadrantHeight);
 
       // Header box
-      doc.rect(originX, headerY, copyWidth, headerHeight);
+      doc.rect(innerX, headerY, innerWidth, headerHeight);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
+      doc.setFontSize(14); // smaller company name
       doc.setTextColor(...blue);
-      doc.text(`* ${firmName.toUpperCase()} *`, originX + copyWidth / 2, headerY + 7, { align: 'center' });
-      doc.setFontSize(7.5);
-      doc.text(firmAddress, originX + copyWidth / 2, headerY + 13, { align: 'center' });
+      doc.text(`* ${firmName.toUpperCase()} *`, innerX + innerWidth / 2, headerY + 5.5, { align: 'center' });
+      doc.setFontSize(6.5); // reduce address size
+      doc.text(firmAddress, innerX + innerWidth / 2, headerY + 11, { align: 'center' });
 
       // Details box with split
       doc.setTextColor(0, 0, 0);
-      doc.rect(originX, detailsY, copyWidth, detailsHeight);
-      const leftBoxWidth = Math.round(copyWidth * 0.63 * 10) / 10;
-      doc.line(originX + leftBoxWidth, detailsY, originX + leftBoxWidth, detailsY + detailsHeight);
+      doc.rect(innerX, detailsY, innerWidth, detailsHeight);
+      const leftBoxWidth = Math.round(innerWidth * 0.55 * 10) / 10;
+      doc.line(innerX + leftBoxWidth, detailsY, innerX + leftBoxWidth, detailsY + detailsHeight);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
+      doc.setFontSize(8.5); // reduce party name font
       doc.setTextColor(...blue);
-      doc.text(`M/s. : ${String(partyName).toUpperCase()}`, originX + 2.5, detailsY + 9);
+      const partyDisplay = String(partyName).toUpperCase().substring(0, 35); // truncate long names
+      doc.text(`M/s. : ${partyDisplay}`, innerX + 2.5, detailsY + 5);
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(7.5);
       doc.setTextColor(0, 0, 0);
       const contactLine = `City ${firmCity}. Contact No.,${firmContact ? ` ${firmContact}` : ''}`;
-      doc.text(contactLine, originX + 2.5, detailsY + 22);
-      doc.text('AREA--', originX + 2.5, detailsY + 32);
+      doc.text(contactLine, innerX + 2.5, detailsY + 13);
+      doc.text('AREA--', innerX + 2.5, detailsY + 22);
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9.5);
-      doc.text(`Challan No.  :  ${challanNo}`, originX + leftBoxWidth + 3, detailsY + 12);
-      doc.text(`Date          :  ${challanDate}`, originX + leftBoxWidth + 3, detailsY + 24);
+      doc.setFontSize(8.5);
+      doc.text(`Challan No.  :  ${challanNo}`, innerX + leftBoxWidth + 2, detailsY + 5);
+      doc.text(`Date          :  ${challanDate}`, innerX + leftBoxWidth + 2, detailsY + 13);
 
-      // Table (follow ChallanForm Print 1/2 rule)
       const head = [['Sr.', printOption === 2 ? 'Item Name' : 'Barcode', 'Qty.', 'Rate', 'Disc (%)', 'Sp.Dis (%)']];
       const fillerRow = ['', '', '', '', '', ''];
       const body = [...(rowsFromItems.length ? rowsFromItems : [['', '', '', '', '', '']]), fillerRow];
 
-      const bottomPadding = 16;
-      const availableHeight = originY + copyHeight - bottomPadding - tableY;
+      const bottomPadding = 12;
+      const availableHeight = originY + quadrantHeight - bottomPadding - tableY;
       const estimatedRowHeight = 5.2;
       const estimatedHeadHeight = 7;
       const estimatedBodyHeight = rowsFromItems.length * estimatedRowHeight;
-      const fillerHeight = Math.max(20, availableHeight - estimatedHeadHeight - estimatedBodyHeight);
+      const fillerHeight = Math.max(18, availableHeight - estimatedHeadHeight - estimatedBodyHeight);
 
-      const srW = 8;
-      const qtyW = 14;
-      const rateW = 18;
-      const discW = 14;
-      const spDiscW = 14;
-      const descW = Math.max(40, copyWidth - (srW + qtyW + rateW + discW + spDiscW));
+      const srW = 6;
+      const qtyW = 12;
+      const rateW = 16;
+      const discW = 12;
+      const spDiscW = 12;
+      const descW = Math.max(35, innerWidth - (srW + qtyW + rateW + discW + spDiscW));
 
       autoTable(doc, {
         head,
         body,
         startY: tableY,
-        margin: { left: originX },
-        tableWidth: copyWidth,
+        margin: { left: innerX },
+        tableWidth: innerWidth,
         theme: 'grid',
         styles: {
           font: 'helvetica',
-          fontSize: 8.5,
+          fontSize: 7.5,
           textColor: [0, 0, 0],
-          cellPadding: { top: 1.2, right: 1.5, bottom: 1.2, left: 1.5 },
+          cellPadding: { top: 0.8, right: 0.8, bottom: 0.8, left: 0.8 },
           lineColor: [0, 0, 0],
           lineWidth: 0.25,
           overflow: 'linebreak',
@@ -466,6 +506,7 @@ const ChallanList = () => {
           fillColor: [230, 230, 230],
           textColor: blue,
           fontStyle: 'bold',
+          fontSize: 7,
           halign: 'center',
           valign: 'middle'
         },
@@ -485,21 +526,33 @@ const ChallanList = () => {
           }
         }
       });
+
+      // total for this copy
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`Total Amount: Rs. ${totalAmount.toFixed(2)}`, innerX + innerWidth - 1.5, originY + quadrantHeight - 5, {
+        align: 'right'
+      });
     };
 
-    drawChallanCopy(leftX);
+    // print four copies
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const originX = margin + c * (quadrantWidth + hGap);
+        const originY = margin + r * (quadrantHeight + vGap);
+        drawChallanCopy(originX, originY);
+      }
+    }
 
-    // Total amount at bottom
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Total Amount: Rs. ${totalAmount.toFixed(2)}`, leftX + copyWidth - 2.5, topY + copyHeight - 6, {
-      align: 'right'
-    });
-
-    doc.save(
-      `${firmName.replace(/\s+/g, '_')}_Challan_${challanNo}_${new Date().toISOString().split('T')[0]}.pdf`
-    );
+    const previewUrl = doc.output("bloburl");
+    const previewWindow = window.open(previewUrl, "_blank");
+    if (!previewWindow) {
+      showToast(
+        "Popup blocked. Please allow popups for print preview.",
+        "error",
+      );
+    }
   };
 
   // Helper function to convert number to words (optional)
