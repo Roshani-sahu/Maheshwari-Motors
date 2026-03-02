@@ -1,50 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { Button, Input, Select } from "../../components/ui";
-import { toNumber } from "../../services/apiUtils";
-import { FaPrint } from "react-icons/fa";
+import api from "../../services/axiosInstance";
+import { getResponseData, toNumber } from "../../services/apiUtils";
+import { FaPrint, FaSearch, FaSyncAlt } from "react-icons/fa";
 
 const GST_REPORT_TYPES = ["Purchase", "Return", "Sale"];
-
-const GST_SAMPLE_ROWS = [
-  {
-    date: "2026-02-03",
-    vno: "3",
-    acName: "EMS AUTOMOBILES",
-    gstin: "24AAPHF0642G1ZI",
-    itemName: "PISTON RING ECO SPORT",
-    hsnCode: "8708",
-    pcs: 1,
-    rate: 1440.75,
-    dis: 0,
-    spDis: 0,
-    taxableAmount: 1440.75,
-    gstPercent: 18,
-    gstAmount: 259.33,
-    sgstAmount: 129.67,
-    cgstAmount: 129.67,
-    igstAmount: 0,
-    net: 1700.08,
-  },
-  {
-    date: "2026-02-03",
-    vno: "GT4400",
-    acName: "RUSHABH AUTO PARTS",
-    gstin: "24APXPM9435M1ZX",
-    itemName: "STUD KIT WAGONR",
-    hsnCode: "8708",
-    pcs: 4,
-    rate: 324.0,
-    dis: 50.0,
-    spDis: 0,
-    taxableAmount: 648.0,
-    gstPercent: 18,
-    gstAmount: 116.64,
-    sgstAmount: 70.02,
-    cgstAmount: 70.02,
-    igstAmount: 0,
-    net: 764.64,
-  },
-];
 
 const GSTReportDetails = () => {
   const [filters, setFilters] = useState({
@@ -56,10 +16,67 @@ const GSTReportDetails = () => {
     gstin: "",
     hsnCode: "",
   });
-  const [rows] = useState(GST_SAMPLE_ROWS);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleRefresh = () => {
+    setFilters({
+      type: "Purchase",
+      book: "PURCHASE BOOK (GST)",
+      dateFrom: "",
+      dateTo: "",
+      acName: "",
+      gstin: "",
+      hsnCode: "",
+    });
+    setRows([]);
+  };
+
+  const handleView = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get("/reports/gst-report", {
+        params: {
+          type: filters.type,
+          book: filters.book || undefined,
+          date_from: filters.dateFrom || undefined,
+          date_to: filters.dateTo || undefined,
+          ac_name: filters.acName || undefined,
+          gstin: filters.gstin || undefined,
+          hsn_code: filters.hsnCode || undefined,
+        },
+      });
+      const payload = getResponseData(res) || {};
+      const entries = Array.isArray(payload.entries) ? payload.entries : [];
+      const mapped = entries.map((e) => ({
+        date: e.date,
+        vno: e.vno ?? e.v_no ?? "",
+        acName: e.ac_name || "",
+        gstin: e.gstin || "",
+        itemName: e.item_name || "",
+        hsnCode: e.hsn_code || "",
+        pcs: toNumber(e.pcs, 0),
+        rate: toNumber(e.rate, 0),
+        dis: toNumber(e.discount, 0),
+        spDis: toNumber(e.special_discount, 0),
+        taxableAmount: toNumber(e.taxable_amount, 0),
+        gstPercent: toNumber(e.gst_percent, 0),
+        gstAmount: toNumber(e.gst_amount, 0),
+        sgstAmount: toNumber(e.sgst_amount, 0),
+        cgstAmount: toNumber(e.cgst_amount, 0),
+        igstAmount: toNumber(e.igst_amount, 0),
+        net: toNumber(e.net_amount, 0),
+      }));
+      setRows(mapped);
+    } catch (error) {
+      console.error("Failed to load GST report", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : "-");
@@ -104,9 +121,17 @@ const GSTReportDetails = () => {
           <h1 className="text-2xl font-bold text-gray-900">GST Report Details</h1>
           <p className="text-gray-600">GST bill wise report sale/purchase.</p>
         </div>
-        <Button onClick={handlePrint} className="flex items-center gap-2">
-          <FaPrint /> Print
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleView} className="flex items-center gap-2">
+            <FaSearch /> View
+          </Button>
+          <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2">
+            <FaSyncAlt /> Refresh
+          </Button>
+          <Button onClick={handlePrint} className="flex items-center gap-2">
+            <FaPrint /> Print
+          </Button>
+        </div>
       </div>
 
       <div className="gst-print-header">
@@ -217,28 +242,36 @@ const GSTReportDetails = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((row, idx) => (
-                <tr key={`${row.vno}-${idx}`} className="border-b last:border-b-0">
-                  <td className="px-2 py-1">{formatDate(row.date)}</td>
-                  <td className="px-2 py-1">{row.vno}</td>
-                  <td className="px-2 py-1">{row.acName}</td>
-                  <td className="px-2 py-1">{row.gstin}</td>
-                  <td className="px-2 py-1">{row.itemName}</td>
-                  <td className="px-2 py-1">{row.hsnCode}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.pcs, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.rate, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.dis, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.spDis, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.taxableAmount, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.gstPercent, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.gstAmount, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.sgstAmount, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.cgstAmount, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.igstAmount, 0).toLocaleString()}</td>
-                  <td className="px-2 py-1 text-right">{toNumber(row.net, 0).toLocaleString()}</td>
+              {loading ? (
+                <tr>
+                  <td className="px-3 py-6 text-center text-gray-500" colSpan={17}>
+                    Loading GST report...
+                  </td>
                 </tr>
-              ))}
-              {filteredRows.length === 0 && (
+              ) : (
+                filteredRows.map((row, idx) => (
+                  <tr key={`${row.vno}-${idx}`} className="border-b last:border-b-0">
+                    <td className="px-2 py-1">{formatDate(row.date)}</td>
+                    <td className="px-2 py-1">{row.vno}</td>
+                    <td className="px-2 py-1">{row.acName}</td>
+                    <td className="px-2 py-1">{row.gstin}</td>
+                    <td className="px-2 py-1">{row.itemName}</td>
+                    <td className="px-2 py-1">{row.hsnCode}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.pcs, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.rate, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.dis, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.spDis, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.taxableAmount, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.gstPercent, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.gstAmount, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.sgstAmount, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.cgstAmount, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.igstAmount, 0).toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">{toNumber(row.net, 0).toLocaleString()}</td>
+                  </tr>
+                ))
+              )}
+              {!loading && filteredRows.length === 0 && (
                 <tr>
                   <td className="px-3 py-6 text-center text-gray-500" colSpan={17}>
                     No GST report entries found

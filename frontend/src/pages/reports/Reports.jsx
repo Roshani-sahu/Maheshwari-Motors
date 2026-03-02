@@ -1,47 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button, Input, Select } from "../../components/ui";
 import api from "../../services/axiosInstance";
-import { getResponseList, normalizeContact, toNumber } from "../../services/apiUtils";
+import { getResponseData, getResponseList, normalizeContact, toNumber } from "../../services/apiUtils";
 import { FaPrint, FaSyncAlt, FaSearch } from "react-icons/fa";
-
-const SAMPLE_ROWS = [
-  {
-    date: "2026-02-12",
-    voucherNo: "01232",
-    type: "Sale",
-    docNo: "SALE BOOK (GST)",
-    narration: "SALE BOOK (GST)",
-    debit: 1690.0,
-    credit: 0,
-    balance: 16265.0,
-    cd: "Dr",
-    firm: "MAA",
-  },
-  {
-    date: "2026-02-13",
-    voucherNo: "01270",
-    type: "Sale",
-    docNo: "SALE BOOK (GST)",
-    narration: "SALE BOOK (GST)",
-    debit: 4050.0,
-    credit: 0,
-    balance: 20315.0,
-    cd: "Dr",
-    firm: "MAA",
-  },
-  {
-    date: "2026-02-14",
-    voucherNo: "00724",
-    type: "Cash Rec",
-    docNo: "CASH BOOK",
-    narration: "CASH BOOK",
-    debit: 0,
-    credit: 12022.0,
-    balance: 8955.0,
-    cd: "Dr",
-    firm: "MAA",
-  },
-];
 
 const REPORT_TYPES = ["All", "Sale", "Purchase", "Cash Rec", "Cash Pay", "Bank Rec", "Bank Pay"];
 
@@ -57,7 +18,9 @@ const Reports = () => {
     firm: "",
   });
   const [applied, setApplied] = useState(filters);
-  const [rows, setRows] = useState(SAMPLE_ROWS);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [apiTotals, setApiTotals] = useState({ debit: 0, credit: 0, closing: 0, closingCd: "" });
 
   useEffect(() => {
     const loadParties = async () => {
@@ -88,20 +51,68 @@ const Reports = () => {
   }, [rows, applied]);
 
   const totals = useMemo(() => {
-    const debitTotal = filteredRows.reduce((sum, row) => sum + toNumber(row.debit, 0), 0);
-    const creditTotal = filteredRows.reduce((sum, row) => sum + toNumber(row.credit, 0), 0);
-    const closingBalance = filteredRows.length
+    const hasRows = filteredRows.length > 0;
+    const debitTotal = hasRows
+      ? filteredRows.reduce((sum, row) => sum + toNumber(row.debit, 0), 0)
+      : toNumber(apiTotals.debit, 0);
+    const creditTotal = hasRows
+      ? filteredRows.reduce((sum, row) => sum + toNumber(row.credit, 0), 0)
+      : toNumber(apiTotals.credit, 0);
+    const closingBalance = hasRows
       ? filteredRows[filteredRows.length - 1].balance
-      : 0;
-    return {
-      debitTotal,
-      creditTotal,
-      closingBalance,
-    };
-  }, [filteredRows]);
+      : toNumber(apiTotals.closing, 0);
+    const closingCd = hasRows
+      ? filteredRows[filteredRows.length - 1].cd
+      : apiTotals.closingCd || "";
+    return { debitTotal, creditTotal, closingBalance, closingCd };
+  }, [filteredRows, apiTotals]);
 
-  const handleView = () => {
-    setApplied(filters);
+  const handleView = async () => {
+    if (!filters.partyId) {
+      setRows([]);
+      setApplied(filters);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await api.get("/reports/account-ledger", {
+        params: {
+          contact_id: filters.partyId,
+          date_from: filters.dateFrom || undefined,
+          date_to: filters.dateTo || undefined,
+        },
+      });
+      const payload = getResponseData(res) || {};
+      const entries = Array.isArray(payload.entries) ? payload.entries : [];
+      const mapped = entries.map((entry) => ({
+        date: entry.date,
+        voucherNo: entry.v_no || entry.voucher_no || entry.vNo || "",
+        type: entry.type || "",
+        docNo: entry.doc_no || "",
+        narration: entry.narration || "",
+        debit: toNumber(entry.debit_amount ?? entry.debit, 0),
+        credit: toNumber(entry.credit_amount ?? entry.credit, 0),
+        balance: toNumber(entry.balance, 0),
+        cd: entry.cd || "",
+        firm: entry.firm || "",
+      }));
+      setRows(mapped);
+      setApiTotals({
+        debit: toNumber(payload.total_debit, 0),
+        credit: toNumber(payload.total_credit, 0),
+        closing:
+          mapped.length > 0
+            ? mapped[mapped.length - 1].balance
+            : toNumber(payload.closing_balance, 0),
+        closingCd:
+          mapped.length > 0 ? mapped[mapped.length - 1].cd : payload.closing_cd || "",
+      });
+      setApplied(filters);
+    } catch (error) {
+      console.error("Failed to load account ledger", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = () => {
@@ -123,7 +134,8 @@ const Reports = () => {
       narration: "",
       firm: "",
     });
-    setRows(SAMPLE_ROWS);
+    setRows([]);
+    setApiTotals({ debit: 0, credit: 0, closing: 0, closingCd: "" });
   };
 
   const handlePrint = () => {
@@ -158,6 +170,7 @@ const Reports = () => {
               onChange={(value) => setFilters((prev) => ({ ...prev, partyId: value }))}
               placeholder="Select Party"
             >
+              <option value="">Select Party</option>
               {parties.map((party) => (
                 <option key={party.id} value={party.id}>
                   {party.name}
@@ -239,21 +252,37 @@ const Reports = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((row, idx) => (
-                <tr key={`${row.voucherNo}-${idx}`} className="border-b last:border-b-0">
-                  <td className="px-3 py-2">{row.date ? new Date(row.date).toLocaleDateString() : "-"}</td>
-                  <td className="px-3 py-2">{row.voucherNo}</td>
-                  <td className="px-3 py-2">{row.type}</td>
-                  <td className="px-3 py-2">{row.docNo}</td>
-                  <td className="px-3 py-2">{row.narration}</td>
-                  <td className="px-3 py-2 text-right">{toNumber(row.debit, 0).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right">{toNumber(row.credit, 0).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right">{toNumber(row.balance, 0).toLocaleString()}</td>
-                  <td className="px-3 py-2">{row.cd}</td>
-                  <td className="px-3 py-2">{row.firm}</td>
+              {loading ? (
+                <tr>
+                  <td className="px-3 py-6 text-center text-gray-500" colSpan={10}>
+                    Loading ledger...
+                  </td>
                 </tr>
-              ))}
-              {filteredRows.length === 0 && (
+              ) : (
+                filteredRows.map((row, idx) => (
+                  <tr key={`${row.voucherNo}-${idx}`} className="border-b last:border-b-0">
+                    <td className="px-3 py-2">
+                      {row.date ? new Date(row.date).toLocaleDateString() : "-"}
+                    </td>
+                    <td className="px-3 py-2">{row.voucherNo}</td>
+                    <td className="px-3 py-2">{row.type}</td>
+                    <td className="px-3 py-2">{row.docNo}</td>
+                    <td className="px-3 py-2">{row.narration}</td>
+                    <td className="px-3 py-2 text-right">
+                      {toNumber(row.debit, 0).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {toNumber(row.credit, 0).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {toNumber(row.balance, 0).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2">{row.cd}</td>
+                    <td className="px-3 py-2">{row.firm}</td>
+                  </tr>
+                ))
+              )}
+              {!loading && filteredRows.length === 0 && (
                 <tr>
                   <td className="px-3 py-6 text-center text-gray-500" colSpan={10}>
                     No ledger entries found
@@ -268,7 +297,12 @@ const Reports = () => {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>Total Debit: <span className="font-semibold">{totals.debitTotal.toLocaleString()}</span></div>
             <div>Total Credit: <span className="font-semibold">{totals.creditTotal.toLocaleString()}</span></div>
-            <div>Closing Balance: <span className="font-semibold">{toNumber(totals.closingBalance, 0).toLocaleString()}</span></div>
+            <div>
+              Closing Balance:{" "}
+              <span className="font-semibold">
+                {toNumber(totals.closingBalance, 0).toLocaleString()} {totals.closingCd}
+              </span>
+            </div>
           </div>
         </div>
       </div>
