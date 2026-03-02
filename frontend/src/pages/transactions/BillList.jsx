@@ -573,7 +573,7 @@ const BillList = () => {
       summaryY = margin + 8;
     }
 
-    const totalRowHeight = 8;
+    const totalRowHeight = 10;
     const midBlockHeight = 18;
     const wordsRowHeight = 8;
     const termsBlockHeight = 22;
@@ -685,9 +685,14 @@ const BillList = () => {
 
     const termsY = wordsY + wordsRowHeight;
     const termsSplitX = margin + contentWidth * 0.56;
+
+    // allow the bottom footer (terms + signatures) to expand to the very bottom of the page
+    const availableFooter = pageHeight - margin - termsY;
+    const footerHeight = Math.max(termsBlockHeight, availableFooter);
+
     doc.setTextColor(0, 0, 0);
-    doc.rect(margin, termsY, contentWidth, termsBlockHeight);
-    doc.line(termsSplitX, termsY, termsSplitX, termsY + termsBlockHeight);
+    doc.rect(margin, termsY, contentWidth, footerHeight);
+    doc.line(termsSplitX, termsY, termsSplitX, termsY + footerHeight);
 
     doc.setFont("times", "bold");
     doc.setFontSize(9.2);
@@ -705,7 +710,7 @@ const BillList = () => {
     doc.text("Electronic Reference Number", termsSplitX + 2, termsY + 5.2);
     const rightSectionWidth = summaryRightX - termsSplitX - 3.5;
     const certLine = fitTextSingleLine(
-      "Certified That The Particulars Given Above Are True And Correct",
+      "Certified That Particulars Given Above Are True And Correct",
       rightSectionWidth,
     );
     doc.text(certLine, termsSplitX + 2, termsY + 10.2);
@@ -713,10 +718,14 @@ const BillList = () => {
     const leftSectionCenterX = margin + (termsSplitX - margin) / 2;
     doc.setTextColor(...blue);
     doc.setFontSize(11);
-    doc.text(`For : ${firmName.toUpperCase()}`, rightSectionCenterX, termsY + 15.8, { align: "center" });
+
+    // move the signature block down to the bottom of the footer area
+    const signatureY = termsY + footerHeight - 6; // 6mm up from bottom
+    const forLineY = signatureY - 5;
+    doc.text(`For : ${firmName.toUpperCase()}`, rightSectionCenterX, forLineY, { align: "center" });
     doc.setFontSize(9.5);
-    doc.text("Receiver's Signature", leftSectionCenterX, termsY + 20.4, { align: "center" });
-    doc.text("Authorised Signatory", rightSectionCenterX, termsY + 20.4, { align: "center" });
+    doc.text("Receiver's Signature", leftSectionCenterX, signatureY, { align: "center" });
+    doc.text("Authorised Signatory", rightSectionCenterX, signatureY, { align: "center" });
 
     const safeBillNo = String(billNo || bill?.billNo || bill?.id).replace(/[^\w-]+/g, "_");
     doc.save(`${firmName.replace(/[^\w-]+/g, "_")}_Invoice_${safeBillNo}.pdf`);

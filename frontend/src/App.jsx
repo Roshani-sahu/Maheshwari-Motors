@@ -70,7 +70,7 @@ import ChequePrintSetup from "./pages/setup/ChequePrintSetup";
 import FirmSetup from "./components/FirmSetup";
 
 const App = () => {
-  const { toast, confirmDialog, loading, setUser, logout } = useStore();
+  const { toast, confirmDialog, loading, setUser, setFirm, logout } = useStore();
 
   // Initialize Auth on component mount
   React.useEffect(() => {
@@ -83,6 +83,17 @@ const App = () => {
           const response = await api.get('/auth/me');
           // console.log('✅ Auth initialization successful:', response.data.data);
           setUser(response.data.data);
+          const profile = response.data?.data;
+          const firms = [];
+          if (profile?.gst_firm) firms.push({ ...profile.gst_firm, id: 'gst', type: 'GST' });
+          if (profile?.nongst_firm) firms.push({ ...profile.nongst_firm, id: 'nongst', type: 'NON_GST' });
+          if (firms.length > 0) {
+            const preferredType = String(profile?.current_firm_type || '').toUpperCase() === 'GST'
+              ? 'gst'
+              : 'nongst';
+            const defaultFirm = firms.find((f) => f.id === preferredType) || firms[0];
+            setFirm(defaultFirm);
+          }
         } catch (error) {
           console.error('❌ Auth initialization failed:', {
             status: error.response?.status,
