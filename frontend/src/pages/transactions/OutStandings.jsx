@@ -2,7 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button, Input, Select, Textarea } from "../../components/ui";
 import useStore from "../../store";
 import api from "../../services/axiosInstance";
-import { getEntityId, getResponseList, normalizeContact, toNumber } from "../../services/apiUtils";
+import {
+  getEntityId,
+  getResponseList,
+  normalizeContact,
+  toNumber,
+} from "../../services/apiUtils";
 import { FaCalculator, FaLayerGroup, FaMoneyBillWave } from "react-icons/fa";
 
 const PAYMENT_TYPES = [
@@ -56,7 +61,9 @@ const OutStandings = () => {
 
   const contacts = contactType === "party" ? parties : suppliers;
   const selectedContactDetails = contacts.find((c) => c.id === selectedContact);
-  const selectedPaymentType = PAYMENT_TYPES.find((p) => p.value === payment.payment_type);
+  const selectedPaymentType = PAYMENT_TYPES.find(
+    (p) => p.value === payment.payment_type,
+  );
   const isBankRequired = BANK_REQUIRED.has(payment.payment_type);
 
   const billMap = useMemo(
@@ -69,7 +76,10 @@ const OutStandings = () => {
     const allocatedAmount = bills.reduce((sum, bill) => {
       return sum + toNumber(allocations[bill.id], 0);
     }, 0);
-    const totalDue = bills.reduce((sum, bill) => sum + toNumber(bill.due, 0), 0);
+    const totalDue = bills.reduce(
+      (sum, bill) => sum + toNumber(bill.due, 0),
+      0,
+    );
     const remaining = Number((totalAmount - allocatedAmount).toFixed(2));
     return {
       totalAmount,
@@ -119,7 +129,10 @@ const OutStandings = () => {
         setBanks(mappedBanks);
       } catch (error) {
         console.error("Failed to load base data", error);
-        showToast("Failed to load parties/banks", "error");
+        showToast(
+          error?.response?.data?.message || "Failed to load parties/banks",
+          "error",
+        );
       }
     };
 
@@ -168,7 +181,9 @@ const OutStandings = () => {
           };
         });
 
-        const sorted = [...list].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const sorted = [...list].sort(
+          (a, b) => new Date(a.date) - new Date(b.date),
+        );
         setBills(sorted);
 
         const nextAllocations = {};
@@ -178,7 +193,10 @@ const OutStandings = () => {
         setAllocations(nextAllocations);
       } catch (error) {
         console.error("Failed to fetch bills", error);
-        showToast("Failed to load bills", "error");
+        showToast(
+          error?.response?.data?.message || "Failed to load bills",
+          "error",
+        );
       } finally {
         setLoadingBills(false);
       }
@@ -201,7 +219,10 @@ const OutStandings = () => {
     );
     const dueCap =
       Number.isFinite(bill.due) && bill.due > 0 ? bill.due : fallbackDue;
-    const capped = dueCap > 0 ? Math.max(0, Math.min(numeric, dueCap)) : Math.max(0, numeric);
+    const capped =
+      dueCap > 0 ?
+        Math.max(0, Math.min(numeric, dueCap))
+      : Math.max(0, numeric);
     setAllocations((prev) => ({ ...prev, [billId]: capped }));
   };
 
@@ -235,6 +256,38 @@ const OutStandings = () => {
     setAllocations(nextAllocations);
   };
 
+  const handleAutoAllocateFullOnly = () => {
+    const totalAmount = toNumber(payment.amount, 0);
+    if (totalAmount <= 0) {
+      showToast("Enter payment amount first", "warning");
+      return;
+    }
+    let remaining = totalAmount;
+    const nextAllocations = {};
+    bills.forEach((bill) => {
+      if (remaining >= bill.due && bill.due > 0) {
+        nextAllocations[bill.id] = bill.due;
+        remaining = Number((remaining - bill.due).toFixed(2));
+      } else {
+        nextAllocations[bill.id] = 0;
+      }
+    });
+    setAllocations(nextAllocations);
+  };
+
+  const handleAllocateRemaining = (billId) => {
+    const bill = billMap.get(billId);
+    if (!bill) return;
+    const currentAlloc = toNumber(allocations[billId], 0);
+    const maxAdditional = Math.max(0, bill.due - currentAlloc);
+    const allocateAmount = Math.min(totals.remaining, maxAdditional);
+    if (allocateAmount <= 0) return;
+    setAllocations((prev) => ({
+      ...prev,
+      [billId]: Number((currentAlloc + allocateAmount).toFixed(2)),
+    }));
+  };
+
   const handleSubmit = async () => {
     const totalAmount = toNumber(payment.amount, 0);
     if (!selectedContact) {
@@ -258,7 +311,10 @@ const OutStandings = () => {
       return;
     }
     if (totals.remaining > 0 && !payment.apply_remaining_to_balance) {
-      showToast("Remaining amount must be allocated or marked as unsettled", "warning");
+      showToast(
+        "Remaining amount must be allocated or marked as unsettled",
+        "warning",
+      );
       return;
     }
 
@@ -297,11 +353,15 @@ const OutStandings = () => {
         if (contactId) {
           if (contactType === "party") {
             setParties((prev) =>
-              prev.map((c) => (c.id === contactId ? { ...c, balance: nextBalance } : c)),
+              prev.map((c) =>
+                c.id === contactId ? { ...c, balance: nextBalance } : c,
+              ),
             );
           } else {
             setSuppliers((prev) =>
-              prev.map((c) => (c.id === contactId ? { ...c, balance: nextBalance } : c)),
+              prev.map((c) =>
+                c.id === contactId ? { ...c, balance: nextBalance } : c,
+              ),
             );
           }
         }
@@ -309,7 +369,12 @@ const OutStandings = () => {
 
       showToast("Bills settled successfully", "success");
       handleClearAllocations();
-      setPayment((prev) => ({ ...prev, amount: "", reference_no: "", note: "" }));
+      setPayment((prev) => ({
+        ...prev,
+        amount: "",
+        reference_no: "",
+        note: "",
+      }));
       if (selectedContact) {
         const refreshed = await api.get(`/bills/contact/${selectedContact}`, {
           params: { page: 1, limit: 200, payment_status: "due" },
@@ -332,7 +397,10 @@ const OutStandings = () => {
       }
     } catch (error) {
       console.error("Failed to settle bills", error);
-      showToast(error?.response?.data?.message || "Failed to settle bills", "error");
+      showToast(
+        error?.response?.data?.message || "Failed to settle bills",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
@@ -342,7 +410,9 @@ const OutStandings = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">OutStandings</h1>
-        <p className="text-gray-600">Settle payments against bills and manage unsettled balances.</p>
+        <p className="text-gray-600">
+          Settle payments against bills and manage unsettled balances.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -354,7 +424,9 @@ const OutStandings = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Contact Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Contact Type
+              </label>
               <Select value={contactType} onChange={setContactType}>
                 <option value="party">Party</option>
                 <option value="supplier">Supplier</option>
@@ -377,21 +449,29 @@ const OutStandings = () => {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Amount *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Amount *
+              </label>
               <Input
                 type="number"
                 value={payment.amount}
-                onChange={(value) => setPayment((prev) => ({ ...prev, amount: value }))}
+                onChange={(value) =>
+                  setPayment((prev) => ({ ...prev, amount: value }))
+                }
                 placeholder="Enter total amount"
                 min="0"
                 step="0.01"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Return Type *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Return Type *
+              </label>
               <Select
                 value={payment.payment_type}
-                onChange={(value) => setPayment((prev) => ({ ...prev, payment_type: value }))}
+                onChange={(value) =>
+                  setPayment((prev) => ({ ...prev, payment_type: value }))
+                }
               >
                 {PAYMENT_TYPES.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -400,70 +480,72 @@ const OutStandings = () => {
                 ))}
               </Select>
               <p className="text-xs text-gray-500 mt-1">
-                Received: bank/cash received from party. Given: bank/cash paid to supplier.
+                Received: bank/cash received from party. Given: bank/cash paid
+                to supplier.
               </p>
               {selectedPaymentType?.hint && (
-                <p className="text-xs text-gray-500 mt-1">{selectedPaymentType.hint}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedPaymentType.hint}
+                </p>
               )}
             </div>
             {isBankRequired && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bank *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Bank *
+                </label>
                 <Select
                   value={payment.bank_id}
-                  onChange={(value) => setPayment((prev) => ({ ...prev, bank_id: value }))}
+                  onChange={(value) =>
+                    setPayment((prev) => ({ ...prev, bank_id: value }))
+                  }
                   placeholder="Select bank"
                 >
                   {banks.map((bank) => (
                     <option key={bank.id} value={bank.id}>
-                      {bank.name}{bank.account ? ` - ${bank.account}` : ""}
+                      {bank.name}
+                      {bank.account ? ` - ${bank.account}` : ""}
                     </option>
                   ))}
                 </Select>
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reference No</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Reference No
+              </label>
               <Input
                 value={payment.reference_no}
-                onChange={(value) => setPayment((prev) => ({ ...prev, reference_no: value }))}
+                onChange={(value) =>
+                  setPayment((prev) => ({ ...prev, reference_no: value }))
+                }
                 placeholder="NEFT/UPI/Cheque reference"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Payment Date
+              </label>
               <Input
                 type="date"
                 value={payment.date}
-                onChange={(value) => setPayment((prev) => ({ ...prev, date: value }))}
+                onChange={(value) =>
+                  setPayment((prev) => ({ ...prev, date: value }))
+                }
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Note
+              </label>
               <Textarea
                 value={payment.note}
-                onChange={(value) => setPayment((prev) => ({ ...prev, note: value }))}
+                onChange={(value) =>
+                  setPayment((prev) => ({ ...prev, note: value }))
+                }
                 placeholder="Optional note"
                 rows={2}
               />
-            </div>
-            <div className="md:col-span-2 flex items-start gap-2">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={payment.apply_remaining_to_balance}
-                onChange={(e) =>
-                  setPayment((prev) => ({ ...prev, apply_remaining_to_balance: e.target.checked }))
-                }
-              />
-              <div>
-                <p className="text-sm font-medium text-gray-700">
-                  Add remaining amount to {contactType === "party" ? "party" : "supplier"} balance (unsettled)
-                </p>
-                <p className="text-xs text-gray-500">
-                  This keeps the remaining amount unsettled for later verbal settlement.
-                </p>
-              </div>
             </div>
           </div>
         </div>
@@ -476,29 +558,105 @@ const OutStandings = () => {
           <div className="space-y-2 text-sm text-gray-700">
             <div className="flex items-center justify-between">
               <span>Total Due (Bills)</span>
-              <span className="font-semibold">Rs {totals.totalDue.toLocaleString()}</span>
+              <span className="font-semibold">
+                Rs {totals.totalDue.toLocaleString()}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span>Payment Amount</span>
-              <span className="font-semibold">Rs {totals.totalAmount.toLocaleString()}</span>
+              <span className="font-semibold">
+                Rs {totals.totalAmount.toLocaleString()}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span>Allocated</span>
-              <span className="font-semibold">Rs {totals.allocatedAmount.toLocaleString()}</span>
+              <span className="font-semibold text-green-700">
+                Rs {totals.allocatedAmount.toLocaleString()}
+              </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span>Remaining</span>
-              <span className={`font-semibold ${totals.remaining < 0 ? "text-red-600" : "text-blue-600"}`}>
+            <div
+              className={`flex items-center justify-between rounded-md px-2 py-1 -mx-2 ${
+                totals.remaining > 0 ? "bg-amber-50 border border-amber-200"
+                : totals.remaining < 0 ? "bg-red-50 border border-red-200"
+                : ""
+              }`}
+            >
+              <span className="font-medium">Remaining</span>
+              <span
+                className={`font-bold ${
+                  totals.remaining > 0 ? "text-amber-700"
+                  : totals.remaining < 0 ? "text-red-600"
+                  : "text-green-700"
+                }`}
+              >
                 Rs {totals.remaining.toLocaleString()}
               </span>
             </div>
             {selectedContactDetails && (
               <div className="flex items-center justify-between">
                 <span>Current Balance</span>
-                <span className="font-semibold">Rs {toNumber(selectedContactDetails.balance, 0).toLocaleString()}</span>
+                <span className="font-semibold">
+                  Rs{" "}
+                  {toNumber(selectedContactDetails.balance, 0).toLocaleString()}
+                </span>
               </div>
             )}
           </div>
+
+          {totals.remaining > 0 && (
+            <div className="pt-3 border-t space-y-2">
+              <p className="text-xs font-semibold text-amber-800">
+                Rs {totals.remaining.toLocaleString()} is unallocated. What
+                should happen?
+              </p>
+              <label className="flex items-start gap-2 cursor-pointer p-2 rounded-md border hover:bg-gray-50 transition-colors">
+                <input
+                  type="radio"
+                  name="remaining_action"
+                  className="mt-0.5"
+                  checked={!payment.apply_remaining_to_balance}
+                  onChange={() =>
+                    setPayment((prev) => ({
+                      ...prev,
+                      apply_remaining_to_balance: false,
+                    }))
+                  }
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-800">
+                    I will allocate it to bills
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Manually assign the remaining to one or more bills below.
+                  </p>
+                </div>
+              </label>
+              <label className="flex items-start gap-2 cursor-pointer p-2 rounded-md border hover:bg-gray-50 transition-colors">
+                <input
+                  type="radio"
+                  name="remaining_action"
+                  className="mt-0.5"
+                  checked={payment.apply_remaining_to_balance}
+                  onChange={() =>
+                    setPayment((prev) => ({
+                      ...prev,
+                      apply_remaining_to_balance: true,
+                    }))
+                  }
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-800">
+                    Add to {contactType === "party" ? "party" : "supplier"}'s
+                    balance
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Keep Rs {totals.remaining.toLocaleString()} as unsettled
+                    outstanding for later adjustment.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
 
           <div className="pt-2 border-t">
             <Button
@@ -510,8 +668,15 @@ const OutStandings = () => {
               Settle Bills
             </Button>
             {totals.remaining > 0 && !payment.apply_remaining_to_balance && (
+              <p className="text-xs text-amber-700 mt-2 font-medium">
+                Please allocate the remaining Rs{" "}
+                {totals.remaining.toLocaleString()} to bills, or choose
+                &quot;Add to balance&quot; above.
+              </p>
+            )}
+            {totals.remaining < 0 && (
               <p className="text-xs text-red-600 mt-2">
-                Remaining amount must be allocated to a bill or marked as unsettled.
+                Allocated total exceeds payment amount.
               </p>
             )}
           </div>
@@ -524,24 +689,45 @@ const OutStandings = () => {
             <FaLayerGroup className="text-purple-600" />
             <h3 className="font-semibold">Bills to Settle</h3>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleAutoAllocate} disabled={loadingBills}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAutoAllocate}
+              disabled={loadingBills}
+              title="Settle bills in order, including partial amounts"
+            >
               Auto Allocate
             </Button>
-            <Button variant="outline" size="sm" onClick={handleClearAllocations} disabled={loadingBills}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAutoAllocateFullOnly}
+              disabled={loadingBills}
+              title="Only settle bills that can be fully paid"
+            >
+              Full Bills Only
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearAllocations}
+              disabled={loadingBills}
+            >
               Clear
             </Button>
           </div>
         </div>
 
-        {loadingBills ? (
+        {loadingBills ?
           <div className="text-sm text-gray-600">Loading bills...</div>
-        ) : bills.length === 0 ? (
+        : bills.length === 0 ?
           <div className="text-sm text-gray-600">
-            {selectedContact ? "No due bills available." : "Select a party/supplier to view bills."}
+            {selectedContact ?
+              "No due bills available."
+            : "Select a party/supplier to view bills."}
           </div>
-        ) : (
-          <div className="overflow-x-auto">
+        : <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-600">
                 <tr>
@@ -550,45 +736,110 @@ const OutStandings = () => {
                   <th className="text-right px-3 py-2">Amount</th>
                   <th className="text-right px-3 py-2">Paid</th>
                   <th className="text-right px-3 py-2">Due</th>
-                  <th className="text-left px-3 py-2">Allocate</th>
-                  <th className="text-left px-3 py-2">Action</th>
+                  <th className="text-left px-3 py-2 min-w-[120px]">
+                    Allocate
+                  </th>
+                  <th className="text-center px-3 py-2">After</th>
+                  <th className="text-left px-3 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {bills.map((bill) => (
-                  <tr key={bill.id} className="border-b last:border-b-0">
-                    <td className="px-3 py-2 font-medium text-gray-900">{bill.billNo}</td>
-                    <td className="px-3 py-2 text-gray-600">
-                      {bill.date ? new Date(bill.date).toLocaleDateString() : "-"}
-                    </td>
-                    <td className="px-3 py-2 text-right">Rs {bill.amount.toLocaleString()}</td>
-                    <td className="px-3 py-2 text-right">Rs {bill.paidAmount.toLocaleString()}</td>
-                    <td className="px-3 py-2 text-right">Rs {bill.due.toLocaleString()}</td>
-                    <td className="px-3 py-2">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={allocations[bill.id] === 0 ? "" : allocations[bill.id] ?? ""}
-                        onChange={(value) => updateAllocation(bill.id, value)}
-                        className="text-right"
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSettleFull(bill.id)}
-                      >
-                        Full Due
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
+                {bills.map((bill) => {
+                  const alloc = toNumber(allocations[bill.id], 0);
+                  const projectedPaid = bill.paidAmount + alloc;
+                  const projectedDue = Math.max(
+                    0,
+                    Number((bill.amount - projectedPaid).toFixed(2)),
+                  );
+                  const isFullySettled = alloc > 0 && projectedDue < 0.01;
+                  const isPartial = alloc > 0 && !isFullySettled;
+                  const canAllocMore = totals.remaining > 0 && alloc < bill.due;
+
+                  return (
+                    <tr
+                      key={bill.id}
+                      className={`border-b last:border-b-0 transition-colors ${
+                        isFullySettled ? "bg-green-50"
+                        : isPartial ? "bg-amber-50"
+                        : ""
+                      }`}
+                    >
+                      <td className="px-3 py-2 font-medium text-gray-900">
+                        {bill.billNo}
+                      </td>
+                      <td className="px-3 py-2 text-gray-600">
+                        {bill.date ?
+                          new Date(bill.date).toLocaleDateString()
+                        : "-"}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        Rs {bill.amount.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        Rs {bill.paidAmount.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2 text-right font-medium">
+                        Rs {bill.due.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={
+                            allocations[bill.id] === 0 ?
+                              ""
+                            : (allocations[bill.id] ?? "")
+                          }
+                          onChange={(value) => updateAllocation(bill.id, value)}
+                          className="text-right"
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {alloc > 0 ?
+                          <span
+                            className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${
+                              isFullySettled ?
+                                "bg-green-100 text-green-800"
+                              : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {isFullySettled ?
+                              "Paid"
+                            : `Due ${projectedDue.toLocaleString()}`}
+                          </span>
+                        : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSettleFull(bill.id)}
+                            title="Allocate full due amount"
+                          >
+                            Full
+                          </Button>
+                          {canAllocMore && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAllocateRemaining(bill.id)}
+                              title={`Allocate remaining Rs ${Math.min(totals.remaining, bill.due - alloc).toLocaleString()}`}
+                              className="text-amber-700 border-amber-300 hover:bg-amber-50"
+                            >
+                              +Rem
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        )}
+        }
       </div>
     </div>
   );

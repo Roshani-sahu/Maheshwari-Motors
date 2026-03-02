@@ -14,7 +14,11 @@ import { DataTable, Modal, DeleteConfirmDialog } from "../../components/common";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
 import api from "../../services/axiosInstance"; //
-import { getResponseData, getResponseList, normalizeBill } from "../../services/apiUtils";
+import {
+  getResponseData,
+  getResponseList,
+  normalizeBill,
+} from "../../services/apiUtils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -31,9 +35,11 @@ const BillList = () => {
         let hasMore = true;
 
         while (hasMore && page <= 50) {
-          const response = await api.get("/bills", { params: { page, limit: 100 } });
+          const response = await api.get("/bills", {
+            params: { page, limit: 100 },
+          });
           const data = response?.data?.data;
-          
+
           let pageData = [];
           if (Array.isArray(data)) {
             pageData = data;
@@ -49,13 +55,19 @@ const BillList = () => {
           allBills = [...allBills, ...pageData];
         }
 
-        setBills(allBills.map(normalizeBill).sort((a, b) => {
-          const dateA = new Date(a.createdAt || a.date);
-          const dateB = new Date(b.createdAt || b.date);
-          return dateB - dateA;
-        }));
+        setBills(
+          allBills.map(normalizeBill).sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.date);
+            const dateB = new Date(b.createdAt || b.date);
+            return dateB - dateA;
+          }),
+        );
       } catch (error) {
         console.error("Failed to fetch bills", error);
+        showToast(
+          error?.response?.data?.message || "Failed to load bills",
+          "error",
+        );
       }
     };
     fetchBills();
@@ -91,7 +103,10 @@ const BillList = () => {
       return;
     }
 
-    const challans = Array.isArray(billData?.challan_ids) ? billData.challan_ids.filter(Boolean) : [];
+    const challans =
+      Array.isArray(billData?.challan_ids) ?
+        billData.challan_ids.filter(Boolean)
+      : [];
     if (challans.length === 0) {
       showToast("No challan found in this bill", "error");
       return;
@@ -140,7 +155,9 @@ const BillList = () => {
 
     const resolvePan = (...values) => {
       for (const value of values) {
-        const text = String(value || "").trim().toUpperCase();
+        const text = String(value || "")
+          .trim()
+          .toUpperCase();
         if (/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(text)) return text;
       }
       return "--";
@@ -166,33 +183,53 @@ const BillList = () => {
 
     const firmName = toMandatoryText(selectedFirm?.name || "MAHESHWARI MOTORS");
     const firmAddress = toMandatoryText(
-      selectedFirm?.address || "52, KHATODARA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.",
+      selectedFirm?.address ||
+        "52, KHATODARA GIDC, BEHIND SUB JAIL, RING ROAD, SURAT.",
     );
     const firmPhone = toMandatoryText(
       selectedFirm?.phone || selectedFirm?.mobile || "02612633010, 7203801010",
     );
-    const firmEmail = toMandatoryText(selectedFirm?.email || "kbc_mywords@yahoo.com");
+    const firmEmail = toMandatoryText(
+      selectedFirm?.email || "kbc_mywords@yahoo.com",
+    );
     const firmGstin = toMandatoryText(
-      selectedFirm?.gstin || selectedFirm?.GSTIN || selectedFirm?.gst || "24AGPPC7454F1ZO",
+      selectedFirm?.gstin ||
+        selectedFirm?.GSTIN ||
+        selectedFirm?.gst ||
+        "24AGPPC7454F1ZO",
     );
     const firmPan = extractPan(firmGstin);
-    const bankName = toMandatoryText(selectedFirm?.bank_name || selectedFirm?.bankName || "PRIME CO OP BANK LTD");
+    const bankName = toMandatoryText(
+      selectedFirm?.bank_name ||
+        selectedFirm?.bankName ||
+        "PRIME CO OP BANK LTD",
+    );
     const bankAccountNo = toMandatoryText(
-      selectedFirm?.account_number || selectedFirm?.accountNumber || "10032001002995",
+      selectedFirm?.account_number ||
+        selectedFirm?.accountNumber ||
+        "10032001002995",
     );
     const invoiceTitleInput = window.prompt("Enter bill title", "TAX INVOICE");
-    const invoiceTitle = toMandatoryText(invoiceTitleInput, "TAX INVOICE").toUpperCase();
+    const invoiceTitle = toMandatoryText(
+      invoiceTitleInput,
+      "TAX INVOICE",
+    ).toUpperCase();
 
-    const invoiceDateObj = billData?.date ? new Date(billData.date) : new Date();
+    const invoiceDateObj =
+      billData?.date ? new Date(billData.date) : new Date();
     const invoiceDate = formatDateDDMMYYYY(invoiceDateObj);
     const financialYearStart =
-      invoiceDateObj.getMonth() >= 3 ? invoiceDateObj.getFullYear() : invoiceDateObj.getFullYear() - 1;
+      invoiceDateObj.getMonth() >= 3 ?
+        invoiceDateObj.getFullYear()
+      : invoiceDateObj.getFullYear() - 1;
     const financialYear = `${financialYearStart}-${financialYearStart + 1}`;
 
     const contact = billData?.contact_id || {};
     const transport = billData?.transport_id || {};
 
-    const receiverName = toMandatoryText(contact?.name || bill?.party || "CASH BOOK");
+    const receiverName = toMandatoryText(
+      contact?.name || bill?.party || "CASH BOOK",
+    );
     const receiverAddress = toMandatoryText(contact?.address);
     const receiverCity = toMandatoryText(contact?.city);
     const receiverState = toMandatoryText(contact?.state || "GUJARAT");
@@ -200,14 +237,31 @@ const BillList = () => {
     const receiverStateCode = extractStateCode(contact?.gstin);
     const receiverPhone = toMandatoryText(contact?.phone);
     const receiverPin = resolvePartyPincode(contact);
-    const receiverPan = resolvePan(contact?.pan_number, contact?.pan, contact?.reg_number, extractPan(contact?.gstin));
+    const receiverPan = resolvePan(
+      contact?.pan_number,
+      contact?.pan,
+      contact?.reg_number,
+      extractPan(contact?.gstin),
+    );
 
-    const consigneeName = toMandatoryText(billData?.customer_name || contact?.name);
-    const consigneeAddress = toMandatoryText(billData?.shipping_address || contact?.address);
-    const consigneeCity = toMandatoryText(billData?.shipping_city || contact?.city);
-    const consigneeState = toMandatoryText(billData?.shipping_state || contact?.state);
-    const consigneeGstin = toMandatoryText(billData?.shipping_gstin || contact?.gstin);
-    const consigneeStateCode = extractStateCode(billData?.shipping_gstin || contact?.gstin);
+    const consigneeName = toMandatoryText(
+      billData?.customer_name || contact?.name,
+    );
+    const consigneeAddress = toMandatoryText(
+      billData?.shipping_address || contact?.address,
+    );
+    const consigneeCity = toMandatoryText(
+      billData?.shipping_city || contact?.city,
+    );
+    const consigneeState = toMandatoryText(
+      billData?.shipping_state || contact?.state,
+    );
+    const consigneeGstin = toMandatoryText(
+      billData?.shipping_gstin || contact?.gstin,
+    );
+    const consigneeStateCode = extractStateCode(
+      billData?.shipping_gstin || contact?.gstin,
+    );
     const consigneePin = (() => {
       const candidates = [
         billData?.shipping_pincode,
@@ -231,7 +285,9 @@ const BillList = () => {
       receiverPan,
     );
 
-    const billNo = toMandatoryText(billData?.bill_no || billData?.billNo || bill?.billNo);
+    const billNo = toMandatoryText(
+      billData?.bill_no || billData?.billNo || bill?.billNo,
+    );
     const challanNos = challans
       .map((challan) => challan?.challan_no || challan?.challanNo || "")
       .filter(Boolean)
@@ -239,7 +295,8 @@ const BillList = () => {
 
     const printOption =
       Number(
-        challans.find((challan) => Number(challan?.print_option ?? 0) > 0)?.print_option ??
+        challans.find((challan) => Number(challan?.print_option ?? 0) > 0)
+          ?.print_option ??
           billData?.print_option ??
           2,
       ) || 2;
@@ -248,7 +305,8 @@ const BillList = () => {
       const challanItems = Array.isArray(challan?.items) ? challan.items : [];
       return challanItems.map((item) => {
         const itemRef = item?.item_id || {};
-        const itemName = itemRef?.item_name || itemRef?.name || item?.item_name || "";
+        const itemName =
+          itemRef?.item_name || itemRef?.name || item?.item_name || "";
         const barcode =
           itemRef?.barcode ||
           itemRef?.barcode_no ||
@@ -260,8 +318,12 @@ const BillList = () => {
           "";
 
         const description =
-          printOption === 2 ? toMandatoryText(itemName, "Item") : toMandatoryText(barcode, "-");
-        const hsn = toMandatoryText(itemRef?.hsn || itemRef?.hsn_code || item?.hsn || item?.hsn_code);
+          printOption === 2 ?
+            toMandatoryText(itemName, "Item")
+          : toMandatoryText(barcode, "-");
+        const hsn = toMandatoryText(
+          itemRef?.hsn || itemRef?.hsn_code || item?.hsn || item?.hsn_code,
+        );
 
         const quantity = toNumberValue(item?.quantity, 0);
         const rate = toNumberValue(item?.rate, 0);
@@ -301,9 +363,15 @@ const BillList = () => {
       formatAmount(item.amount),
     ]);
 
-    const taxableTotal = parsedItems.reduce((sum, item) => sum + item.taxable, 0);
+    const taxableTotal = parsedItems.reduce(
+      (sum, item) => sum + item.taxable,
+      0,
+    );
     const taxTotal = parsedItems.reduce((sum, item) => sum + item.taxAmount, 0);
-    const totalFromItems = parsedItems.reduce((sum, item) => sum + item.amount, 0);
+    const totalFromItems = parsedItems.reduce(
+      (sum, item) => sum + item.amount,
+      0,
+    );
     const totalQty = parsedItems.reduce((sum, item) => sum + item.quantity, 0);
     const transportCharge = toNumberValue(billData?.transport_charge, 0);
     const totalAmount = toNumberValue(billData?.amount, totalFromItems);
@@ -336,7 +404,18 @@ const BillList = () => {
         "EIGHTEEN",
         "NINETEEN",
       ];
-      const tens = ["", "", "TWENTY", "THIRTY", "FORTY", "FIFTY", "SIXTY", "SEVENTY", "EIGHTY", "NINETY"];
+      const tens = [
+        "",
+        "",
+        "TWENTY",
+        "THIRTY",
+        "FORTY",
+        "FIFTY",
+        "SIXTY",
+        "SEVENTY",
+        "EIGHTY",
+        "NINETY",
+      ];
       const convertTwoDigits = (num) => {
         if (num < 20) return ones[num];
         const ten = Math.floor(num / 10);
@@ -372,7 +451,11 @@ const BillList = () => {
       return `${rupeesText} ONLY`;
     })();
 
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 6;
@@ -384,7 +467,10 @@ const BillList = () => {
       if (!source) return "";
       if (doc.getTextWidth(source) <= maxWidth) return source;
       let trimmed = source;
-      while (trimmed.length > 0 && doc.getTextWidth(`${trimmed}...`) > maxWidth) {
+      while (
+        trimmed.length > 0 &&
+        doc.getTextWidth(`${trimmed}...`) > maxWidth
+      ) {
         trimmed = trimmed.slice(0, -1);
       }
       return trimmed ? `${trimmed}...` : "";
@@ -403,28 +489,56 @@ const BillList = () => {
     doc.setFont("times", "bold");
     doc.setFontSize(12.5);
     doc.setTextColor(...blue);
-    doc.text(firmName.toUpperCase(), margin + contentWidth / 2, cursorY + 4, { align: "center" });
+    doc.text(firmName.toUpperCase(), margin + contentWidth / 2, cursorY + 4, {
+      align: "center",
+    });
 
     doc.setFont("times", "normal");
     doc.setFontSize(8.5);
     doc.setTextColor(0, 0, 0);
-    doc.text(doc.splitTextToSize(firmAddress, contentWidth - 16), margin + contentWidth / 2, cursorY + 9, {
+    doc.text(
+      doc.splitTextToSize(firmAddress, contentWidth - 16),
+      margin + contentWidth / 2,
+      cursorY + 9,
+      {
+        align: "center",
+      },
+    );
+
+    doc.text(`Ph.${firmPhone}`, margin + contentWidth / 2, cursorY + 18, {
+      align: "center",
+    });
+    doc.text(`Email : ${firmEmail}`, margin + contentWidth / 2, cursorY + 23, {
       align: "center",
     });
 
-    doc.text(`Ph.${firmPhone}`, margin + contentWidth / 2, cursorY + 18, { align: "center" });
-    doc.text(`Email : ${firmEmail}`, margin + contentWidth / 2, cursorY + 23, { align: "center" });
-
     doc.setFont("times", "bold");
     doc.setFontSize(10.5);
-    doc.text(`GSTIN : ${firmGstin}`, margin + contentWidth / 2, cursorY + 28, { align: "center" });
+    doc.text(`GSTIN : ${firmGstin}`, margin + contentWidth / 2, cursorY + 28, {
+      align: "center",
+    });
 
     doc.setFont("times", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(...blue);
-    doc.text("Original For Recipient [ ]", margin + contentWidth - 2, cursorY + 12, { align: "right" });
-    doc.text("Duplicate For Transporter [ ]", margin + contentWidth - 2, cursorY + 18, { align: "right" });
-    doc.text("Triplicate For Supplier [ ]", margin + contentWidth - 2, cursorY + 24, { align: "right" });
+    doc.text(
+      "Original For Recipient [ ]",
+      margin + contentWidth - 2,
+      cursorY + 12,
+      { align: "right" },
+    );
+    doc.text(
+      "Duplicate For Transporter [ ]",
+      margin + contentWidth - 2,
+      cursorY + 18,
+      { align: "right" },
+    );
+    doc.text(
+      "Triplicate For Supplier [ ]",
+      margin + contentWidth - 2,
+      cursorY + 24,
+      { align: "right" },
+    );
 
     cursorY += 31;
 
@@ -433,7 +547,9 @@ const BillList = () => {
     doc.setFont("times", "bold");
     doc.setFontSize(12);
     doc.setTextColor(...blue);
-    doc.text(invoiceTitle, margin + contentWidth / 2, cursorY + 5.2, { align: "center" });
+    doc.text(invoiceTitle, margin + contentWidth / 2, cursorY + 5.2, {
+      align: "center",
+    });
     cursorY += 7.5;
 
     const detailSectionHeight = 32;
@@ -451,14 +567,38 @@ const BillList = () => {
 
     doc.text(`Invoice No : ${billNo} (${financialYear})`, leftX, baseLineY);
     doc.text(`Invoice Date : ${invoiceDate}`, leftX, baseLineY + rowGap);
-    doc.text("Tax is Payable On Reverse Charge (Y/N) : --", leftX, baseLineY + rowGap * 2);
+    doc.text(
+      "Tax is Payable On Reverse Charge (Y/N) : --",
+      leftX,
+      baseLineY + rowGap * 2,
+    );
     doc.text(`State : ${receiverState}`, leftX, baseLineY + rowGap * 3);
-    doc.text(`State Code : ${receiverStateCode}`, leftX + 55, baseLineY + rowGap * 3);
+    doc.text(
+      `State Code : ${receiverStateCode}`,
+      leftX + 55,
+      baseLineY + rowGap * 3,
+    );
 
-    doc.text(`Transport : ${toMandatoryText(transport?.name)}`, rightX, baseLineY);
-    doc.text(`Vehicle No. : ${toMandatoryText(billData?.vehicle_number)}`, rightX, baseLineY + rowGap);
-    doc.text(`Date & Time Of Supply : ${invoiceDate}`, rightX, baseLineY + rowGap * 2);
-    doc.text(`Place Of Supply : ${receiverCity}`, rightX, baseLineY + rowGap * 3);
+    doc.text(
+      `Transport : ${toMandatoryText(transport?.name)}`,
+      rightX,
+      baseLineY,
+    );
+    doc.text(
+      `Vehicle No. : ${toMandatoryText(billData?.vehicle_number)}`,
+      rightX,
+      baseLineY + rowGap,
+    );
+    doc.text(
+      `Date & Time Of Supply : ${invoiceDate}`,
+      rightX,
+      baseLineY + rowGap * 2,
+    );
+    doc.text(
+      `Place Of Supply : ${receiverCity}`,
+      rightX,
+      baseLineY + rowGap * 3,
+    );
 
     cursorY += detailSectionHeight;
 
@@ -468,7 +608,11 @@ const BillList = () => {
     doc.setFont("times", "bold");
     doc.setFontSize(10);
     doc.setTextColor(...blue);
-    doc.text("Details Of Receivers (Billed To)  Recipient", margin + 1.8, cursorY + 5.2);
+    doc.text(
+      "Details Of Receivers (Billed To)  Recipient",
+      margin + 1.8,
+      cursorY + 5.2,
+    );
     doc.text("Details Of Consignee (Shipped To)", splitX + 1.8, cursorY + 5.2);
     cursorY += 7.5;
 
@@ -484,7 +628,11 @@ const BillList = () => {
 
     doc.text(`Name : ${receiverName}`, leftPartyX, cursorY + 6.5);
     doc.setFont("times", "normal");
-    doc.text(doc.splitTextToSize(receiverAddress, contentWidth * 0.48), leftPartyX, cursorY + 12.5);
+    doc.text(
+      doc.splitTextToSize(receiverAddress, contentWidth * 0.48),
+      leftPartyX,
+      cursorY + 12.5,
+    );
     doc.text(`City : ${receiverCity}`, leftPartyX, cursorY + 24.5);
     doc.text(`Pin : ${receiverPin}`, leftPartyX + 32, cursorY + 24.5);
     doc.text(`Phone : ${receiverPhone}`, leftPartyX, cursorY + 29.2);
@@ -492,19 +640,31 @@ const BillList = () => {
     doc.text(`PAN No. : ${receiverPan}`, leftPartyX + 62, cursorY + 34);
     doc.setFont("times", "bold");
     doc.text(`State : ${receiverState}`, leftPartyX, cursorY + 41);
-    doc.text(`State Code : ${receiverStateCode}`, leftPartyX + 62, cursorY + 41);
+    doc.text(
+      `State Code : ${receiverStateCode}`,
+      leftPartyX + 62,
+      cursorY + 41,
+    );
 
     doc.setFont("times", "bold");
     doc.text(`Name : ${consigneeName}`, rightPartyX, cursorY + 6.5);
     doc.setFont("times", "normal");
-    doc.text(doc.splitTextToSize(consigneeAddress, contentWidth * 0.48), rightPartyX, cursorY + 12.5);
+    doc.text(
+      doc.splitTextToSize(consigneeAddress, contentWidth * 0.48),
+      rightPartyX,
+      cursorY + 12.5,
+    );
     doc.text(`City : ${consigneeCity}`, rightPartyX, cursorY + 24.5);
     doc.text(`Pin : ${consigneePin}`, rightPartyX + 32, cursorY + 24.5);
     doc.text(`GSTIN : ${consigneeGstin}`, rightPartyX, cursorY + 34);
     doc.text(`PAN No. : ${consigneePan}`, rightPartyX + 56, cursorY + 34);
     doc.setFont("times", "bold");
     doc.text(`State : ${consigneeState}`, rightPartyX, cursorY + 41);
-    doc.text(`State Code : ${consigneeStateCode}`, rightPartyX + 56, cursorY + 41);
+    doc.text(
+      `State Code : ${consigneeStateCode}`,
+      rightPartyX + 56,
+      cursorY + 41,
+    );
 
     cursorY += partyBoxHeight;
 
@@ -513,25 +673,52 @@ const BillList = () => {
     doc.setFont("times", "bold");
     doc.setFontSize(9.5);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Order No : ${toMandatoryText(challanNos)}`, margin + 1.8, cursorY + 5.3);
-    doc.text(`Broker : ${toMandatoryText(billData?.broker_name || billData?.agent_name)}`, splitX + 1.8, cursorY + 5.3);
+    doc.text(
+      `Order No : ${toMandatoryText(challanNos)}`,
+      margin + 1.8,
+      cursorY + 5.3,
+    );
+    doc.text(
+      `Broker : ${toMandatoryText(billData?.broker_name || billData?.agent_name)}`,
+      splitX + 1.8,
+      cursorY + 5.3,
+    );
     cursorY += 8;
 
     autoTable(doc, {
-      head: [[
-        "Sr.",
-        printOption === 2 ? "Item Description" : "Barcode",
-        "HSN",
-        "Qty.",
-        "Rate",
-        "Dis.%",
-        "Sp.%",
-        "Taxable",
-        "Tax %",
-        "Tax.Amt.",
-        "Amount",
-      ]],
-      body: itemRows.length ? itemRows : [["1", "--", "--", "0", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00", "0.00"]],
+      head: [
+        [
+          "Sr.",
+          printOption === 2 ? "Item Description" : "Barcode",
+          "HSN",
+          "Qty.",
+          "Rate",
+          "Dis.%",
+          "Sp.%",
+          "Taxable",
+          "Tax %",
+          "Tax.Amt.",
+          "Amount",
+        ],
+      ],
+      body:
+        itemRows.length ? itemRows : (
+          [
+            [
+              "1",
+              "--",
+              "--",
+              "0",
+              "0.00",
+              "0.00",
+              "0.00",
+              "0.00",
+              "0.00",
+              "0.00",
+              "0.00",
+            ],
+          ]
+        ),
       startY: cursorY,
       margin: { left: margin, right: margin },
       tableWidth: contentWidth,
@@ -592,12 +779,33 @@ const BillList = () => {
     doc.setFontSize(10);
     doc.setTextColor(...blue);
     const totalLabelCenter =
-      margin + (tableColumnWidths[0] + tableColumnWidths[1] + tableColumnWidths[2]) / 2;
+      margin +
+      (tableColumnWidths[0] + tableColumnWidths[1] + tableColumnWidths[2]) / 2;
     doc.text("TOTAL :", totalLabelCenter, summaryY + 5.3, { align: "center" });
-    doc.text(String(Math.round(totalQty)), columnRightEdges[3] - 1.2, summaryY + 5.3, { align: "right" });
-    doc.text(formatAmount(totalBeforeTax), columnRightEdges[7] - 1.2, summaryY + 5.3, { align: "right" });
-    doc.text(formatAmount(taxTotal), columnRightEdges[9] - 1.2, summaryY + 5.3, { align: "right" });
-    doc.text(formatAmount(totalAmount), columnRightEdges[10] - 1.2, summaryY + 5.3, { align: "right" });
+    doc.text(
+      String(Math.round(totalQty)),
+      columnRightEdges[3] - 1.2,
+      summaryY + 5.3,
+      { align: "right" },
+    );
+    doc.text(
+      formatAmount(totalBeforeTax),
+      columnRightEdges[7] - 1.2,
+      summaryY + 5.3,
+      { align: "right" },
+    );
+    doc.text(
+      formatAmount(taxTotal),
+      columnRightEdges[9] - 1.2,
+      summaryY + 5.3,
+      { align: "right" },
+    );
+    doc.text(
+      formatAmount(totalAmount),
+      columnRightEdges[10] - 1.2,
+      summaryY + 5.3,
+      { align: "right" },
+    );
 
     const midBlockY = summaryY + totalRowHeight;
     const rightInfoWidth = 58;
@@ -606,7 +814,12 @@ const BillList = () => {
     doc.rect(margin, midBlockY, contentWidth, midBlockHeight);
     doc.line(splitInfoX, midBlockY, splitInfoX, midBlockY + midBlockHeight);
     const bankAreaRightX = margin + 58;
-    doc.line(bankAreaRightX, midBlockY, bankAreaRightX, midBlockY + midBlockHeight);
+    doc.line(
+      bankAreaRightX,
+      midBlockY,
+      bankAreaRightX,
+      midBlockY + midBlockHeight,
+    );
 
     doc.setFont("times", "bold");
     doc.setFontSize(9);
@@ -630,21 +843,60 @@ const BillList = () => {
     doc.setTextColor(...blue);
     const taxHeaders = ["Tax%", "Taxable%", "SGST", "CGST", "Tax Amt."];
     taxHeaders.forEach((header, idx) => {
-      const centerX = taxColumnStarts[idx] + (taxColumnWidths[idx] / 2);
+      const centerX = taxColumnStarts[idx] + taxColumnWidths[idx] / 2;
       doc.text(header, centerX, midBlockY + 5, { align: "center" });
     });
-    doc.text(isGstBill ? "18.00" : "0.00", taxColumnEnds[0] - 0.8, midBlockY + 10.2, { align: "right" });
-    doc.text(formatAmount(totalBeforeTax), taxColumnEnds[1] - 0.8, midBlockY + 10.2, { align: "right" });
-    doc.text(formatAmount(sgstAmount), taxColumnEnds[2] - 0.8, midBlockY + 10.2, { align: "right" });
-    doc.text(formatAmount(cgstAmount), taxColumnEnds[3] - 0.8, midBlockY + 10.2, { align: "right" });
-    doc.text(formatAmount(taxTotal), taxColumnEnds[4] - 0.8, midBlockY + 10.2, { align: "right" });
+    doc.text(
+      isGstBill ? "18.00" : "0.00",
+      taxColumnEnds[0] - 0.8,
+      midBlockY + 10.2,
+      { align: "right" },
+    );
+    doc.text(
+      formatAmount(totalBeforeTax),
+      taxColumnEnds[1] - 0.8,
+      midBlockY + 10.2,
+      { align: "right" },
+    );
+    doc.text(
+      formatAmount(sgstAmount),
+      taxColumnEnds[2] - 0.8,
+      midBlockY + 10.2,
+      { align: "right" },
+    );
+    doc.text(
+      formatAmount(cgstAmount),
+      taxColumnEnds[3] - 0.8,
+      midBlockY + 10.2,
+      { align: "right" },
+    );
+    doc.text(formatAmount(taxTotal), taxColumnEnds[4] - 0.8, midBlockY + 10.2, {
+      align: "right",
+    });
 
     doc.setFont("times", "bold");
     doc.text("* TOTAL :", taxColumnStarts[0], midBlockY + 15.4);
-    doc.text(formatAmount(totalBeforeTax), taxColumnEnds[1] - 0.8, midBlockY + 15.4, { align: "right" });
-    doc.text(formatAmount(sgstAmount), taxColumnEnds[2] - 0.8, midBlockY + 15.4, { align: "right" });
-    doc.text(formatAmount(cgstAmount), taxColumnEnds[3] - 0.8, midBlockY + 15.4, { align: "right" });
-    doc.text(formatAmount(taxTotal), taxColumnEnds[4] - 0.8, midBlockY + 15.4, { align: "right" });
+    doc.text(
+      formatAmount(totalBeforeTax),
+      taxColumnEnds[1] - 0.8,
+      midBlockY + 15.4,
+      { align: "right" },
+    );
+    doc.text(
+      formatAmount(sgstAmount),
+      taxColumnEnds[2] - 0.8,
+      midBlockY + 15.4,
+      { align: "right" },
+    );
+    doc.text(
+      formatAmount(cgstAmount),
+      taxColumnEnds[3] - 0.8,
+      midBlockY + 15.4,
+      { align: "right" },
+    );
+    doc.text(formatAmount(taxTotal), taxColumnEnds[4] - 0.8, midBlockY + 15.4, {
+      align: "right",
+    });
 
     const rightLabelX = splitInfoX + 2;
     const rightRateRightX = summaryRightX - 15;
@@ -657,15 +909,34 @@ const BillList = () => {
       rightRateRightX - rightLabelX - 1,
     );
     doc.text(beforeTaxLabel, rightLabelX, midBlockY + 5);
-    doc.text(formatAmount(totalBeforeTax), rightAmountRightX, midBlockY + 5, { align: "right" });
-    doc.text("+ SGST", rightLabelX, midBlockY + 10.2);
-    doc.text(isGstBill ? "9.000 %" : "0.000 %", rightRateRightX, midBlockY + 10.2, { align: "right" });
-    doc.text(formatAmount(sgstAmount), rightAmountRightX, midBlockY + 10.2, { align: "right" });
-    doc.text(isGstBill ? "+ CGST" : "+ IGST", rightLabelX, midBlockY + 15.4);
-    doc.text(isGstBill ? "9.000 %" : "18.000 %", rightRateRightX, midBlockY + 15.4, { align: "right" });
-    doc.text(formatAmount(isGstBill ? cgstAmount : igstAmount), rightAmountRightX, midBlockY + 15.4, {
+    doc.text(formatAmount(totalBeforeTax), rightAmountRightX, midBlockY + 5, {
       align: "right",
     });
+    doc.text("+ SGST", rightLabelX, midBlockY + 10.2);
+    doc.text(
+      isGstBill ? "9.000 %" : "0.000 %",
+      rightRateRightX,
+      midBlockY + 10.2,
+      { align: "right" },
+    );
+    doc.text(formatAmount(sgstAmount), rightAmountRightX, midBlockY + 10.2, {
+      align: "right",
+    });
+    doc.text(isGstBill ? "+ CGST" : "+ IGST", rightLabelX, midBlockY + 15.4);
+    doc.text(
+      isGstBill ? "9.000 %" : "18.000 %",
+      rightRateRightX,
+      midBlockY + 15.4,
+      { align: "right" },
+    );
+    doc.text(
+      formatAmount(isGstBill ? cgstAmount : igstAmount),
+      rightAmountRightX,
+      midBlockY + 15.4,
+      {
+        align: "right",
+      },
+    );
 
     const wordsY = midBlockY + midBlockHeight;
     doc.setFillColor(...headerFill);
@@ -676,12 +947,17 @@ const BillList = () => {
     doc.setFont("times", "bold");
     doc.setFontSize(9.2);
     doc.setTextColor(0, 0, 0);
-    const wordsLine = fitTextSingleLine(`(in Words) : ${amountInWords}`, netAmountLeftX - margin - 3);
+    const wordsLine = fitTextSingleLine(
+      `(in Words) : ${amountInWords}`,
+      netAmountLeftX - margin - 3,
+    );
     doc.text(wordsLine, margin + 1.8, wordsY + 5.3);
     doc.text("NET AMOUNT :", netAmountLeftX + 2, wordsY + 5.3);
     doc.setTextColor(...blue);
     doc.setFontSize(11);
-    doc.text(formatAmount(totalAmount), summaryRightX - 1.8, wordsY + 5.3, { align: "right" });
+    doc.text(formatAmount(totalAmount), summaryRightX - 1.8, wordsY + 5.3, {
+      align: "right",
+    });
 
     const termsY = wordsY + wordsRowHeight;
     const termsSplitX = margin + contentWidth * 0.56;
@@ -701,8 +977,16 @@ const BillList = () => {
     doc.setFont("times", "normal");
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(8.8);
-    doc.text("Payment will be accepted by A/c. pay cheque only.", margin + 1.8, termsY + 10.2);
-    doc.text("We are not responsible for any lose or damage during transit.", margin + 1.8, termsY + 14.7);
+    doc.text(
+      "Payment will be accepted by A/c. pay cheque only.",
+      margin + 1.8,
+      termsY + 10.2,
+    );
+    doc.text(
+      "We are not responsible for any lose or damage during transit.",
+      margin + 1.8,
+      termsY + 14.7,
+    );
     doc.text("GST Rule Follow.", margin + 1.8, termsY + 19.2);
 
     doc.setFont("times", "bold");
@@ -722,12 +1006,21 @@ const BillList = () => {
     // move the signature block down to the bottom of the footer area
     const signatureY = termsY + footerHeight - 6; // 6mm up from bottom
     const forLineY = signatureY - 5;
-    doc.text(`For : ${firmName.toUpperCase()}`, rightSectionCenterX, forLineY, { align: "center" });
+    doc.text(`For : ${firmName.toUpperCase()}`, rightSectionCenterX, forLineY, {
+      align: "center",
+    });
     doc.setFontSize(9.5);
-    doc.text("Receiver's Signature", leftSectionCenterX, signatureY, { align: "center" });
-    doc.text("Authorised Signatory", rightSectionCenterX, signatureY, { align: "center" });
+    doc.text("Receiver's Signature", leftSectionCenterX, signatureY, {
+      align: "center",
+    });
+    doc.text("Authorised Signatory", rightSectionCenterX, signatureY, {
+      align: "center",
+    });
 
-    const safeBillNo = String(billNo || bill?.billNo || bill?.id).replace(/[^\w-]+/g, "_");
+    const safeBillNo = String(billNo || bill?.billNo || bill?.id).replace(
+      /[^\w-]+/g,
+      "_",
+    );
     doc.save(`${firmName.replace(/[^\w-]+/g, "_")}_Invoice_${safeBillNo}.pdf`);
   };
 
@@ -735,7 +1028,9 @@ const BillList = () => {
     {
       key: "billNo",
       label: "Bill No",
-      render: (value) => <span className="text-xs sm:text-sm font-medium">{value}</span>,
+      render: (value) => (
+        <span className="text-xs sm:text-sm font-medium">{value}</span>
+      ),
     },
     {
       key: "date",
@@ -1070,7 +1365,10 @@ const BillList = () => {
             setDeleteDialog({ isOpen: false, bill: null });
           } catch (error) {
             console.error(error);
-            showToast("Failed to delete bill", "error");
+            showToast(
+              error?.response?.data?.message || "Failed to delete bill",
+              "error",
+            );
           }
         }}
         itemName={deleteDialog.bill?.billNo}

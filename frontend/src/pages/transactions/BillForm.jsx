@@ -172,12 +172,13 @@ const BillForm = () => {
             name: normalized.itemName,
             amount: normalized.amount,
             barcode: normalized.barcode,
+            type: normalized.type, // 1 = GST, 0 = Non-GST
           };
         });
 
         setLoadedParties(partiesData);
         setLoadedSuppliers(suppliersData);
-        setLoadedItems(itemsData);
+        setLoadedItems(isFirmGST ? itemsData.filter((it) => it.type === 1) : itemsData);
 
         const agentsData = getResponseList(aRes).map((ag) => ({
           id: getEntityId(ag) || ag._id || ag.id,
@@ -233,10 +234,11 @@ const BillForm = () => {
           id: normalized.id,
           name: normalized.itemName,
           amount: normalized.amount,
+          type: normalized.type,
         };
       });
 
-      setLoadedItems(items);
+      setLoadedItems(isFirmGST ? items.filter((it) => it.type === 1) : items);
       setItemsPage(page);
 
       const meta = getResponseMeta(response);
@@ -262,10 +264,11 @@ const BillForm = () => {
             id: normalized.id,
             name: normalized.itemName,
             amount: normalized.amount,
+            type: normalized.type,
           };
         });
 
-        setLoadedItems(searchResults);
+        setLoadedItems(isFirmGST ? searchResults.filter((it) => it.type === 1) : searchResults);
         setItemsPage(1);
 
         const meta = getResponseMeta(response);
@@ -339,9 +342,12 @@ const BillForm = () => {
     return () => controller.abort();
   }, [bill.contactType, bill.party, loadedParties, loadedLabelDiscounts]);
 
-  const filteredItems = loadedItems.filter(
-    (item) => !bill.items.includes(item.id),
-  );
+  // when the current firm is GST only allow GST items (type === 1)
+  const filteredItems = loadedItems.filter((item) => {
+    if (bill.items.includes(item.id)) return false;
+    if (isFirmGST && item.type !== 1) return false;
+    return true;
+  });
   const round2 = (value) => Number((Number(value) || 0).toFixed(2));
 
   const toggleItemSelection = (itemId) => {
@@ -373,7 +379,7 @@ const BillForm = () => {
           rate: item?.amount || 0,
           disPercent: useDisc.normal || 0,
           spDis: useDisc.special || 0,
-          gstPercent: 0,
+          gstPercent: item?.gst_percent || 0,
           itemDiscount: item?.discount || 0,
           stock: item?.stock || 0,
           type:
@@ -1038,12 +1044,6 @@ const BillForm = () => {
               : effectiveGstType,
           };
         }),
-        transport_id: bill.transportId || undefined,
-        transport_charge: parseFloat(bill.transportCharge) || 0,
-        agent_id: bill.agent || undefined,
-        customer_name: bill.customerName || undefined,
-        vehicle_no: bill.vehicleNo || undefined,
-        bill_no: bill.billNumber || undefined,
       };
 
       const challanRes = await api.post("/challans", challanPayload);
@@ -1058,12 +1058,10 @@ const BillForm = () => {
       const payload = {
         contact_id: bill.party,
         challan_ids: [challanId],
-        delivered_amount: 0,
         amount: netAmount,
         bill_no: bill.billNumber || undefined,
         transport_id: bill.transportId || undefined,
         transport_charge: parseFloat(bill.transportCharge) || 0,
-        agent_id: bill.agent || undefined,
         customer_name: bill.customerName || undefined,
         vehicle_no: bill.vehicleNo || undefined,
       };
@@ -1301,7 +1299,7 @@ const BillForm = () => {
             </h3>
           </div>
 
-            <div className="p-4 bg-gray-50 border-t">
+          <div className="p-4 bg-gray-50 border-t">
             <div className="mb-3">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Search & Add Items:
@@ -1595,8 +1593,6 @@ const BillForm = () => {
               </tbody>
             </table>
           </div>
-
-        
         </div>
 
         {/* {bill.items.length > 0 && (
