@@ -145,6 +145,12 @@ const ChallanList = () => {
     [challans],
   );
 
+  // hide challans that have already been converted to a bill
+  const displayedChallans = useMemo(
+    () => challans.filter((c) => !c.converted_to_bill),
+    [challans],
+  );
+
   const _generateChallanPDFLegacy = (challan) => {
     const doc = new jsPDF();
 
@@ -849,10 +855,14 @@ const ChallanList = () => {
       await api.post("/bills", payload);
       showToast("Bill created successfully", "success");
 
+      // refresh challan list and remove converted items from view
       setChallans(await loadAllChallans());
 
       setIsConvertModalOpen(false);
       setSelectedChallans([]);
+
+      // take user to the bill list so they can see the newly created bill
+      navigate("/transactions/bill-list");
     } catch (error) {
       console.error(error);
       const msg =
@@ -1014,7 +1024,7 @@ const ChallanList = () => {
       <div className="overflow-x-auto -mx-2 px-2 sm:mx-0 sm:px-0">
         <DataTable
           columns={columns}
-          data={challans}
+          data={displayedChallans}
           actions={actions}
           searchable={false}
           sortable={true}
