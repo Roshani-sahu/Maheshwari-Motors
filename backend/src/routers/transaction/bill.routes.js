@@ -7,13 +7,18 @@ const router = Router();
 router.use(authMiddleware);
 router.use(requireFirm);
 
-router.get("/", billController.getBills);
-router.post("/", billController.createBill);
-router.post("/settlements", billController.settleBills);
+// Specific routes before parameterized ones
 router.post("/last-sold-items", billController.getLastSoldItemsForParty);
+router.post("/settlements", billController.settleBills);
 router.get("/summary", billController.getBillSummary);
 router.get("/status/:status", billController.getBillsByStatus);
 router.get("/contact/:contactId", billController.getBillsForContact);
+
+// General routes
+router.get("/", billController.getBills);
+router.post("/", billController.createBill);
+
+// Parameterized routes
 router.get("/:billId", billController.getBillById);
 router.post("/:billId/payment", billController.recordPayment);
 router.post("/:billId/return", billController.handleReturn);

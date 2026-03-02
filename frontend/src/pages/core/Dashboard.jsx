@@ -62,7 +62,10 @@ const Dashboard = () => {
              if (userProfile?.nongst_firm) firms.push({ ...userProfile.nongst_firm, id: 'nongst', type: 'NON_GST' });
 
              if (firms.length > 0) {
-                 const defaultFirm = firms[0];
+                 const preferredType = String(userProfile?.current_firm_type || '').toUpperCase() === 'GST'
+                   ? 'gst'
+                   : 'nongst';
+                 const defaultFirm = firms.find((f) => f.id === preferredType) || firms[0];
                  setFirm(defaultFirm);
                  currentFirmId = defaultFirm.id;
              }

@@ -9,9 +9,9 @@ const CompanySelector = () => {
   return (
     <div className="relative">
       <button
-        // onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 text-xs md:text-sm border border-neutral-300 bg-white text-neutral-800 rounded-md hover:bg-neutral-50"
-      >
+        >
         <FaBuilding className="text-neutral-500" />
         <span>{selectedFirm ? `${selectedFirm.name} (${selectedFirm.type})` : 'Select Firm'}</span>
         {/* <FaChevronDown className="text-xs text-neutral-500" /> */}
