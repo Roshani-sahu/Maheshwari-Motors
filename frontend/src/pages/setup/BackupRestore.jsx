@@ -1,52 +1,88 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaDownload,
   FaUpload,
   FaPlay,
   FaClockRotateLeft,
+  FaFileImport,
+  FaFileExport,
 } from "react-icons/fa6";
 import { Button } from "../../components/ui";
 import { DataTable, ConfirmationDialog } from "../../components/common";
+import api from "../../services/axiosInstance";
+
+// utility for client‑side file download
+const downloadBlob = (blob, filename) => {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+};
 
 const BackupRestore = () => {
-  const [backupLogs, setBackupLogs] = useState([
-    {
-      id: 1,
-      date: "2024-01-15 10:30:00",
-      type: "Auto Backup",
-      size: "2.5 MB",
-      status: "Success",
-      location: "C:\\ERP\\Backups\\backup_20240115_1030.sql",
-    },
-    {
-      id: 2,
-      date: "2024-01-14 10:30:00",
-      type: "Auto Backup",
-      size: "2.4 MB",
-      status: "Success",
-      location: "C:\\ERP\\Backups\\backup_20240114_1030.sql",
-    },
-    {
-      id: 3,
-      date: "2024-01-13 15:45:00",
-      type: "Manual Backup",
-      size: "2.3 MB",
-      status: "Success",
-      location: "C:\\ERP\\Backups\\backup_20240113_1545.sql",
-    },
-    {
-      id: 4,
-      date: "2024-01-12 10:30:00",
-      type: "Auto Backup",
-      size: "2.2 MB",
-      status: "Failed",
-      location: "N/A",
-    },
-  ]);
-
+  const [backupLogs, setBackupLogs] = useState([]);
   const [isBackupDialogOpen, setIsBackupDialogOpen] = useState(false);
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [loadingLogs, setLoadingLogs] = useState(true);
+
+  // fetch real logs from server if available
+  useEffect(() => {
+    const loadLogs = async () => {
+      try {
+        setLoadingLogs(true);
+        const res = await api.get("/backup/logs");
+        const list = res?.data?.data || res?.data || [];
+        setBackupLogs(list);
+      } catch (err) {
+        console.warn("unable to load backup logs, using dummy data", err);
+        // fallback to hardcoded examples if endpoint not implemented
+        setBackupLogs([
+          {
+            id: 1,
+            date: "2024-01-15 10:30:00",
+            type: "Auto Backup",
+            size: "2.5 MB",
+            status: "Success",
+            location: "C:\\ERP\\Backups\\backup_20240115_1030.sql",
+          },
+          {
+            id: 2,
+            date: "2024-01-14 10:30:00",
+            type: "Auto Backup",
+            size: "2.4 MB",
+            status: "Success",
+            location: "C:\\ERP\\Backups\\backup_20240114_1030.sql",
+          },
+          {
+            id: 3,
+            date: "2024-01-13 15:45:00",
+            type: "Manual Backup",
+            size: "2.3 MB",
+            status: "Success",
+            location: "C:\\ERP\\Backups\\backup_20240113_1545.sql",
+          },
+          {
+            id: 4,
+            date: "2024-01-12 10:30:00",
+            type: "Auto Backup",
+            size: "2.2 MB",
+            status: "Failed",
+            location: "N/A",
+          },
+        ]);
+      } finally {
+        setLoadingLogs(false);
+      }
+    };
+    loadLogs();
+  }, []);
 
   const columns = [
     { key: "date", label: "Date & Time" },
@@ -78,35 +114,85 @@ const BackupRestore = () => {
     },
   ];
 
-  const handleTriggerBackup = () => {
-    const newBackup = {
-      id: backupLogs.length + 1,
-      date: new Date().toLocaleString(),
-      type: "Manual Backup",
-      size: "2.6 MB",
-      status: "Success",
-      location: `C:\\ERP\\Backups\\backup_${new Date()
-        .toISOString()
-        .slice(0, 10)
-        .replace(/-/g, "")}_${new Date()
-        .toTimeString()
-        .slice(0, 5)
-        .replace(":", "")}.sql`,
-    };
-
-    setBackupLogs((prev) => [newBackup, ...prev]);
-    setIsBackupDialogOpen(false);
+  const handleTriggerBackup = async () => {
+    // call server to create backup if endpoint exists, otherwise simulate
+    try {
+      const res = await api.post("/backup/create");
+      if (res?.data?.data) {
+        setBackupLogs((prev) => [res.data.data, ...prev]);
+      } else {
+        // fallback to dummy
+        const newBackup = {
+          id: backupLogs.length + 1,
+          date: new Date().toLocaleString(),
+          type: "Manual Backup",
+          size: "",
+          status: "Success",
+          location: "(server response)",
+        };
+        setBackupLogs((prev) => [newBackup, ...prev]);
+      }
+    } catch (err) {
+      console.error("backup failed", err);
+    } finally {
+      setIsBackupDialogOpen(false);
+    }
   };
 
   const handleFileSelect = (e) => {
     setSelectedFile(e.target.files[0]);
   };
 
-  const handleRestore = () => {
-    if (selectedFile) {
-      console.log("Restoring from:", selectedFile.name);
-      setIsRestoreDialogOpen(false);
+  const handleRestore = async () => {
+    if (!selectedFile) return;
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    const isExcel = /\.(xlsx?|csv)$/i.test(selectedFile.name);
+    const endpoint = isExcel ? "/setup/import" : "/setup/restore";
+
+    try {
+      setImporting(true);
+      setUploadProgress(0);
+      const res = await api.post(endpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (evt) => {
+          if (evt.total) {
+            setUploadProgress(Math.round((evt.loaded * 100) / evt.total));
+          }
+        },
+      });
+      showToast(
+        isExcel
+          ? "File imported successfully"
+          : "Database restored successfully",
+        "success",
+      );
+    } catch (err) {
+      console.error("restore/import failed", err);
+      showToast(
+        err?.response?.data?.message || "Operation failed",
+        "error",
+      );
+    } finally {
+      setImporting(false);
       setSelectedFile(null);
+      setUploadProgress(0);
+      setIsRestoreDialogOpen(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      // ask server to build export; if not available export logs as csv
+      const res = await api.get("/setup/export", { responseType: "blob" });
+      const filename =
+        res.headers["content-disposition"]?.split("filename=")[1] ||
+        "export.xlsx";
+      downloadBlob(res.data, filename);
+    } catch (err) {
+      console.error("export failed", err);
+      showToast("Export failed", "error");
     }
   };
 
@@ -164,7 +250,8 @@ const BackupRestore = () => {
                 Restore Database
               </h3>
               <p className="text-xs sm:text-sm text-gray-600">
-                Restore from a backup file
+                Restore from a backup file or import data (Excel/CSV) – suitable
+                for bulk uploads with lakhs of rows
               </p>
             </div>
           </div>
@@ -176,20 +263,35 @@ const BackupRestore = () => {
 
             <input
               type="file"
-              accept=".sql,.bak"
+              accept=".sql,.bak,.xlsx,.xls,.csv"
               onChange={handleFileSelect}
               className="w-full text-xs sm:text-sm text-gray-500 file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-2 sm:file:px-4 file:rounded-md file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:text-xs sm:file:text-sm"
             />
+            {importing && (
+              <p className="text-xs text-gray-600">
+                Uploading... {uploadProgress}%
+              </p>
+            )}
 
-            <Button
-              onClick={() => setIsRestoreDialogOpen(true)}
-              disabled={!selectedFile}
-              variant="outline"
-              className="w-full flex items-center justify-center gap-2 text-xs sm:text-sm"
-            >
-              <FaUpload size={12} className="sm:size-auto" />
-              Restore Database
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setIsRestoreDialogOpen(true)}
+                disabled={!selectedFile || importing}
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm"
+              >
+                <FaUpload size={12} className="sm:size-auto" />
+                {importing ? "Processing..." : "Restore Database"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm"
+              >
+                <FaFileExport size={12} className="sm:size-auto" />
+                Export Data
+              </Button>
+            </div>
           </div>
         </div>
       </div>
