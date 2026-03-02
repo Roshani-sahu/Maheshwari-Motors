@@ -1217,7 +1217,7 @@ const UserMaster = () => {
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">Branch</label>
-                            <Input value={bank?.bank_branch || ''} disabled className="mt-1" />
+                            <Input value={bank?.bank_branch || ''} disabled className="mt-1"   autoComplete="on"/>
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">IFSC Code</label>

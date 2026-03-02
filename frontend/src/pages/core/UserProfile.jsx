@@ -18,6 +18,7 @@ const UserProfile = () => {
     current_firm_type: '',
     is_active: false,
     createdAt: '',
+    signature: '',
     admin: {},
     gst_firm: {},
     nongst_firm: {}
@@ -41,6 +42,7 @@ const UserProfile = () => {
           current_firm_type: userData?.current_firm_type || '',
           is_active: Boolean(userData?.is_active),
           createdAt: userData?.createdAt || '',
+          signature: userData?.signature || '',
           admin: userData?.admin || {},
           gst_firm: userData?.gst_firm || {},
           nongst_firm: userData?.nongst_firm || {}
@@ -138,6 +140,14 @@ const UserProfile = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1"><FaPhone className="inline mr-2" />Phone</label>
                       <p className="text-gray-900 py-2">{view(profileData.phone)}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Signature</label>
+                      {profileData.signature ? (
+                        <img src={profileData.signature} alt="Signature" className="h-16 border rounded" />
+                      ) : (
+                        <p className="text-gray-500 py-2">No signature uploaded</p>
+                      )}
                     </div>
                     {/* <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1"><FaCalendar className="inline mr-2" />Member Since</label>
