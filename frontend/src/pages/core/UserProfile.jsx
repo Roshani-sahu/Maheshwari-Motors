@@ -153,7 +153,13 @@ const UserProfile = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1"><FaCalendar className="inline mr-2" />Member Since</label>
                       <p className="text-gray-900 py-2">{profileData.createdAt ? new Date(profileData.createdAt).toLocaleDateString() : 'N/A'}</p>
                     </div> */}
-                                        {renderField('Username', profileData.admin?.username)}
+                    {renderField(
+                      'Username',
+                      profileData.admin?.username ||
+                        activeFirm?.username ||
+                        profileData.gst_firm?.username ||
+                        profileData.nongst_firm?.username
+                    )}
 
                   </div>
                 </div>

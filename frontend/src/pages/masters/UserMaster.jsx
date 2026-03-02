@@ -131,6 +131,7 @@ const UserMaster = () => {
     days: 0,
     amount: ''
   });
+  const [pendingSubscription, setPendingSubscription] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editingForm, setEditingForm] = useState(null);
@@ -143,6 +144,24 @@ const UserMaster = () => {
   const [transactions, setTransactions] = useState([]);
   const [newUser, setNewUser] = useState(getDefaultUserForm());
   const [newPassword, setNewPassword] = useState('');
+  const addModalSubscription = {
+    years: Number(pendingSubscription?.years ?? subscriptionData.years ?? 0),
+    months: Number(pendingSubscription?.months ?? subscriptionData.months ?? 0),
+    days: Number(pendingSubscription?.days ?? subscriptionData.days ?? 0),
+    amount: Number(pendingSubscription?.amount ?? subscriptionData.amount ?? 0),
+  };
+
+  const updateAddModalSubscription = (patch) => {
+    const next = { ...addModalSubscription, ...patch };
+    setPendingSubscription(next);
+    setSubscriptionData((prev) => ({
+      ...prev,
+      years: next.years,
+      months: next.months,
+      days: next.days,
+      amount: next.amount,
+    }));
+  };
 
   // Check master/admin authentication
   useEffect(() => {
@@ -366,17 +385,75 @@ const UserMaster = () => {
         return;
       }
 
+      const gstPrimaryBank = Array.isArray(newUser.gst_firm?.banks)
+        ? newUser.gst_firm.banks[0] || {}
+        : {};
+      const nongstPrimaryBank = Array.isArray(newUser.nongst_firm?.banks)
+        ? newUser.nongst_firm.banks[0] || {}
+        : {};
+
       const createPayload = {
         name: newUser.name,
         email: newUser.email,
         phone: newUser.phone,
-        gst_firm: newUser.gst_firm,
-        nongst_firm: newUser.nongst_firm,
+        gst_firm: {
+          ...newUser.gst_firm,
+          bank_name: gstPrimaryBank.bank_name || "",
+          bank_branch: gstPrimaryBank.bank_branch || "",
+          ifsc_code: gstPrimaryBank.ifsc_code || "",
+          account_number: gstPrimaryBank.account_number || "",
+          account_holder: gstPrimaryBank.account_holder || "",
+          upi_id: gstPrimaryBank.upi_id || "",
+        },
+        nongst_firm: {
+          ...newUser.nongst_firm,
+          bank_name: nongstPrimaryBank.bank_name || "",
+          bank_branch: nongstPrimaryBank.bank_branch || "",
+          ifsc_code: nongstPrimaryBank.ifsc_code || "",
+          account_number: nongstPrimaryBank.account_number || "",
+          account_holder: nongstPrimaryBank.account_holder || "",
+          upi_id: nongstPrimaryBank.upi_id || "",
+        },
       };
 
       console.log('Creating user with data:', JSON.stringify(createPayload, null, 2));
       const createdResponse = await api.post('/admin/users', createPayload);
       const createdUserId = createdResponse?.data?.data?._id;
+
+      const effectiveSubscription = {
+        years: Number(pendingSubscription?.years ?? subscriptionData.years ?? 0),
+        months: Number(pendingSubscription?.months ?? subscriptionData.months ?? 0),
+        days: Number(pendingSubscription?.days ?? subscriptionData.days ?? 0),
+        amount: Number(pendingSubscription?.amount ?? subscriptionData.amount ?? 0),
+      };
+
+      const hasSubscriptionDuration =
+        effectiveSubscription.years > 0 ||
+        effectiveSubscription.months > 0 ||
+        effectiveSubscription.days > 0;
+
+      let subscriptionSaved = false;
+      if (createdUserId && hasSubscriptionDuration && effectiveSubscription.amount > 0) {
+        try {
+          await api.put(`/admin/subscriptions/${createdUserId}`, {
+            plan_type: 'paid',
+            years: effectiveSubscription.years,
+            months: effectiveSubscription.months,
+            days: effectiveSubscription.days,
+            amount: effectiveSubscription.amount,
+            notes: 'Created from Add User flow',
+            extend_from_current: false,
+          });
+          subscriptionSaved = true;
+        } catch (subscriptionError) {
+          console.error('Subscription save failed after user create:', subscriptionError);
+          console.error('Subscription error response:', subscriptionError?.response?.data);
+          showToast(
+            'User created, but subscription amount was not saved. Please set subscription again.',
+            'error',
+          );
+        }
+      }
 
       if (newUser.signatureFile && createdUserId) {
         const formData = new FormData();
@@ -387,15 +464,29 @@ const UserMaster = () => {
       }
 
       console.log('User created successfully');
-      showToast(
-        newUser.signatureFile
-          ? 'User and signature added successfully'
-          : 'User added successfully',
-        'success',
-      );
+      if (!hasSubscriptionDuration || effectiveSubscription.amount <= 0) {
+        showToast('User added successfully (demo plan only)', 'success');
+      } else if (subscriptionSaved) {
+        showToast(
+          newUser.signatureFile
+            ? 'User, subscription and signature added successfully'
+            : 'User and subscription added successfully',
+          'success',
+        );
+      } else {
+        showToast(
+          newUser.signatureFile
+            ? 'User and signature added, but subscription failed'
+            : 'User added, but subscription failed',
+          'error',
+        );
+      }
       setIsAddModalOpen(false);
       setNewUser(getDefaultUserForm());
+      setSubscriptionData({ username: '', years: 0, months: 0, days: 0, amount: '' });
+      setPendingSubscription(null);
       fetchUsers();
+      fetchTransactions();
     } catch (error) {
       console.error('User submit error:', error);
       console.error('Error response:', error.response?.data);
@@ -705,12 +796,19 @@ const UserMaster = () => {
               }
               
               setNewUser({...newUser, name: subscriptionData.username});
+              setPendingSubscription({
+                years: Number(subscriptionData.years || 0),
+                months: Number(subscriptionData.months || 0),
+                days: Number(subscriptionData.days || 0),
+                amount: Number(subscriptionData.amount || 0),
+              });
               setIsSubscriptionModalOpen(false);
               setIsAddModalOpen(true);
             }}>Continue to User Details</Button>
             <Button variant="outline" onClick={() => {
               setIsSubscriptionModalOpen(false);
               setSubscriptionData({ username: '', years: 0, months: 0, days: 0, amount: '' });
+              setPendingSubscription(null);
             }}>Cancel</Button>
           </div>
         </div>
@@ -757,6 +855,60 @@ const UserMaster = () => {
                     <img src={newUser.signature} alt="Signature" className="mt-2 h-20 border rounded" />
                   )}
                </div>
+            </div>
+          </div>
+
+          <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+            <h3 className="text-sm font-semibold text-indigo-900 mb-3 uppercase tracking-wider">1.5 Subscription Details</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs font-medium text-gray-700">Years</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={addModalSubscription.years}
+                  onChange={(v) => updateAddModalSubscription({ years: parseInt(v, 10) || 0 })}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700">Months</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="12"
+                  value={addModalSubscription.months}
+                  onChange={(v) => {
+                    const val = parseInt(v, 10) || 0;
+                    updateAddModalSubscription({ months: val > 12 ? 12 : val });
+                  }}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700">Days</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="31"
+                  value={addModalSubscription.days}
+                  onChange={(v) => {
+                    const val = parseInt(v, 10) || 0;
+                    updateAddModalSubscription({ days: val > 31 ? 31 : val });
+                  }}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700">Amount (₹)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={addModalSubscription.amount}
+                  onChange={(v) => updateAddModalSubscription({ amount: Number(v) || 0 })}
+                  className="mt-1"
+                />
+              </div>
             </div>
           </div>
 
@@ -1217,7 +1369,7 @@ const UserMaster = () => {
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">Branch</label>
-                            <Input value={bank?.bank_branch || ''} disabled className="mt-1"   autoComplete="on"/>
+                            <Input value={bank?.bank_branch || ''} disabled className="mt-1" />
                           </div>
                           <div>
                             <label className="text-xs text-gray-600">IFSC Code</label>
