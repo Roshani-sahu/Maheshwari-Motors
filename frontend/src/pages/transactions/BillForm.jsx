@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaTimes, FaSave, FaEye, FaPrint } from "react-icons/fa";
+import { FaTimes, FaSave, FaPrint, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
 import { Modal } from "../../components/common";
@@ -63,6 +63,7 @@ const BillForm = () => {
   const [loadedSuppliers, setLoadedSuppliers] = useState([]);
   const [loadedAgents, setLoadedAgents] = useState([]);
   const [loadedTransports, setLoadedTransports] = useState([]);
+  const [loadedBanks, setLoadedBanks] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
   const [loadedDiscounts, setLoadedDiscounts] = useState({});
   const [loadedLabelDiscounts, setLoadedLabelDiscounts] = useState({});
@@ -71,10 +72,9 @@ const BillForm = () => {
   const [itemsPage, setItemsPage] = useState(1);
   const [totalItemsPages, setTotalItemsPages] = useState(1);
   const [isLoadingItems, setIsLoadingItems] = useState(false);
-  const [viewItemModal, setViewItemModal] = useState({
-    isOpen: false,
-    data: null,
-  });
+  const [expandedItemId, setExpandedItemId] = useState(null);
+  const [itemHistoryMap, setItemHistoryMap] = useState({});
+  const [showAllCombinedStock, setShowAllCombinedStock] = useState(false);
   const itemDropdownRef = useRef(null);
 
   const [bill, setBill] = useState({
@@ -92,6 +92,8 @@ const BillForm = () => {
     customerName: "",
     vehicleNo: "",
     printOption: 1,
+    from_bank: "",
+    to_bank: "",
   });
 
   const effectiveGstType = isFirmGST ? 1 : bill.gstType;
@@ -111,13 +113,14 @@ const BillForm = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pRes, sRes, iRes, brandRes, aRes, tRes] = await Promise.all([
+        const [pRes, sRes, iRes, brandRes, aRes, tRes, bRes] = await Promise.all([
           api.get("/contacts/parties", { params: { page: 1, limit: 200 } }),
           api.get("/contacts/suppliers", { params: { page: 1, limit: 200 } }),
           api.get("/items", { params: { page: 1, limit: 50, search: "" } }),
           api.get("/brands", { params: { page: 1, limit: 200 } }),
           api.get("/agents", { params: { page: 1, limit: 200 } }),
           api.get("/transports", { params: { page: 1, limit: 200 } }),
+          api.get("/banks", { params: { page: 1, limit: 200 } }),
         ]);
 
         const partiesData = getResponseList(pRes).map((party) => {
@@ -197,6 +200,12 @@ const BillForm = () => {
           charge: tr.charge || tr.transport_charge || tr.transportCharge || 0,
         }));
         setLoadedTransports(transportsData);
+
+        const banksData = getResponseList(bRes).map((b) => ({
+          id: getEntityId(b) || b._id || b.id,
+          name: b.name || b.bank_name || "Unknown",
+        }));
+        setLoadedBanks(banksData);
 
         const brandList = getResponseList(brandRes);
         const discountMap = {};
@@ -350,7 +359,12 @@ const BillForm = () => {
   });
   const round2 = (value) => Number((Number(value) || 0).toFixed(2));
 
-  const toggleItemSelection = (itemId) => {
+  const toggleItemSelection = async (itemId) => {
+    if (bill.items.includes(itemId) && expandedItemId === itemId) {
+      setExpandedItemId(null);
+    }
+
+    const isAdding = !bill.items.includes(itemId);
     const activeParty = loadedParties.find((p) => p.id === bill.party);
     const activeLabelId = activeParty?.label_id;
     const labelDiscounts =
@@ -400,6 +414,17 @@ const BillForm = () => {
 
       return { ...prev, items };
     });
+
+    // Auto-fetch history when adding item
+    if (isAdding) {
+      setExpandedItemId(itemId);
+      if (
+        !itemHistoryMap[itemId]?.rows?.length &&
+        !itemHistoryMap[itemId]?.loading
+      ) {
+        await fetchItemHistory(itemId);
+      }
+    }
   };
 
   const calculateItemAmount = (itemId) => {
@@ -461,36 +486,65 @@ const BillForm = () => {
     }, 0);
   };
 
-  const handleViewLastSold = async (itemId) => {
-    const item = loadedItems.find((i) => i.id === itemId);
-    const party = (
-      bill.contactType === "party" ?
-        loadedParties
-      : loadedSuppliers).find((c) => c.id === bill.party);
+  const formatHistoryDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleDateString("en-IN");
+  };
 
-    // Dummy data
-    const dummyData = {
-      challan_no: `CH${Math.floor(Math.random() * 10000)}`,
-      challan_date: new Date(
-        Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      contact: {
-        name: party?.name || "Sample Party",
-        phone: "9876543210",
-      },
-      is_gst: effectiveGstType,
-      item: {
-        quantity: Math.floor(Math.random() * 10) + 1,
-        rate: (item?.amount || 100) + (Math.random() * 50 - 25),
-        discount: Math.floor(Math.random() * 15),
-        gst_percent:
-          effectiveGstType === 1 ?
-            [5, 12, 18, 28][Math.floor(Math.random() * 4)]
-          : 0,
-      },
-    };
+  const fetchItemHistory = async (itemId) => {
+    if (!bill.party) {
+      const errorMsg = "Please select party before loading history";
+      showToast(errorMsg, "error");
+      setItemHistoryMap((prev) => ({
+        ...prev,
+        [itemId]: { loading: false, rows: [], error: errorMsg },
+      }));
+      return;
+    }
 
-    setViewItemModal({ isOpen: true, data: dummyData });
+    setItemHistoryMap((prev) => ({
+      ...prev,
+      [itemId]: { loading: true, rows: [], error: null },
+    }));
+
+    try {
+      const response = await api.get(`/bills/item/${itemId}/last-sold`, {
+        params: {
+          contact_id: bill.party,
+        },
+      });
+      const rows = getResponseList(response);
+
+      setItemHistoryMap((prev) => ({
+        ...prev,
+        [itemId]: { loading: false, rows, error: null },
+      }));
+    } catch (error) {
+      console.error("Failed to load item history:", error);
+      const errorMsg =
+        error?.response?.data?.message || "Failed to load item history";
+      showToast(errorMsg, "error");
+      setItemHistoryMap((prev) => ({
+        ...prev,
+        [itemId]: { loading: false, rows: [], error: errorMsg },
+      }));
+    }
+  };
+
+  const handleToggleHistory = async (itemId) => {
+    if (expandedItemId === itemId) {
+      setExpandedItemId(null);
+      return;
+    }
+    setExpandedItemId(itemId);
+    if (
+      !itemHistoryMap[itemId]?.rows?.length &&
+      !itemHistoryMap[itemId]?.loading
+    ) {
+      await fetchItemHistory(itemId);
+    }
   };
 
   const LEGACY_handlePrint = () => {
@@ -1200,6 +1254,47 @@ const BillForm = () => {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              From Bank
+            </label>
+            <select
+              value={bill.from_bank}
+              onChange={(e) =>
+                setBill((prev) => ({ ...prev, from_bank: e.target.value }))
+              }
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">Select Bank</option>
+              {loadedBanks.map((bank) => (
+                <option key={bank.id} value={bank.id}>
+                  {bank.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              To Bank
+            </label>
+            <select
+              value={bill.to_bank}
+              onChange={(e) =>
+                setBill((prev) => ({ ...prev, to_bank: e.target.value }))
+              }
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            >
+              <option value="">Select Bank</option>
+              {loadedBanks.map((bank) => (
+                <option key={bank.id} value={bank.id}>
+                  {bank.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1396,7 +1491,14 @@ const BillForm = () => {
                   <th className="px-2 py-2 text-left border-r">ItemName</th>
                   <th className="px-2 py-2 text-left border-r">Remark</th>
                   <th className="px-2 py-2 text-left border-r">Type</th>
-                  <th className="px-2 py-2 text-left border-r">Stock</th>
+                  <th
+                    className="px-2 py-2 text-left border-r hover:bg-gray-100"
+                    onDoubleClick={() =>
+                      setShowAllCombinedStock((prev) => !prev)
+                    }
+                  >
+                    Stock
+                  </th>
                   <th className="px-2 py-2 text-left border-r">PCS</th>
                   <th className="px-2 py-2 text-left border-r">Rate</th>
                   <th className="px-2 py-2 text-left border-r">Dis %</th>
@@ -1419,10 +1521,26 @@ const BillForm = () => {
                     : effectiveGstType;
                   const displayItemName =
                     details.itemName || item?.name || "Unknown Item";
+                  const historyOpen = expandedItemId === itemId;
 
                   return (
-                    <tr key={itemId} className="border-t">
-                      <td className="px-2 py-2 border-r">{index + 1}</td>
+                    <Fragment key={itemId}>
+                      <tr className="border-t">
+                        <td className="px-2 py-2 border-r">
+                          <div className="flex items-center gap-1">
+                            <span>{index + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleHistory(itemId)}
+                              className="text-gray-500 hover:text-gray-700"
+                              title="View last 4 entries"
+                            >
+                              {historyOpen ?
+                                <FaChevronUp size={10} />
+                              : <FaChevronDown size={10} />}
+                            </button>
+                          </div>
+                        </td>
                       <td className="px-2 py-2 border-r">
                         <span className="text-xs">{displayItemName}</span>
                       </td>
@@ -1459,11 +1577,19 @@ const BillForm = () => {
                       <td className="px-2 py-2 border-r">
                         <input
                           type="number"
-                          value={details.stock || 0}
+                          value={
+                            showAllCombinedStock ?
+                              (
+                                (details.physicalStock || 0) +
+                                (details.logicalStock || 0)
+                              ).toFixed(1)
+                            : details.stock || 0
+                          }
                           onChange={(e) =>
                             updateItemDetail(itemId, "stock", e.target.value)
                           }
-                          className="w-12 px-1 py-1 border rounded text-xs"
+                          className="w-16 px-1 py-1 border rounded text-xs"
+                          readOnly
                         />
                       </td>
                       <td className="px-2 py-2 border-r">
@@ -1562,22 +1688,15 @@ const BillForm = () => {
                         </span>
                       </td>
                       <td className="px-2 py-2">
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleViewLastSold(itemId)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            <FaEye size={12} />
-                          </button>
-                          <button
-                            onClick={() => toggleItemSelection(itemId)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <FaTimes size={12} />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => toggleItemSelection(itemId)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <FaTimes size={12} />
+                        </button>
                       </td>
                     </tr>
+                    </Fragment>
                   );
                 })}
                 {bill.items.length === 0 && (
@@ -1594,6 +1713,177 @@ const BillForm = () => {
             </table>
           </div>
         </div>
+
+        {bill.items.length > 0 && (
+          <div className="border rounded-lg bg-gray-50">
+            <div className="bg-gray-100 px-4 py-2 border-b">
+              <span className="text-sm font-medium text-gray-700">
+                Selected Items ({bill.items.length})
+              </span>
+            </div>
+            <div className="p-4">
+              <div className="flex flex-wrap gap-2 mb-4">
+                {bill.items.map((itemId) => {
+                  const item = loadedItems.find((i) => i.id === itemId);
+                  const details = bill.itemDetails[itemId] || {};
+                  const displayItemName =
+                    details.itemName || item?.name || "Unknown Item";
+                  const isActive = expandedItemId === itemId;
+                  return (
+                    <span
+                      key={itemId}
+                      onClick={() => handleToggleHistory(itemId)}
+                      className={`px-2 py-1 text-xs rounded flex items-center gap-1 cursor-pointer transition-colors ${
+                        isActive ?
+                          "bg-blue-600 text-white"
+                        : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                      }`}
+                    >
+                      {displayItemName}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleItemSelection(itemId);
+                        }}
+                        className={
+                          isActive ?
+                            "text-white hover:text-gray-200"
+                          : "text-blue-600 hover:text-blue-800"
+                        }
+                      >
+                        <FaTimes size={10} />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+
+              {expandedItemId &&
+                (() => {
+                  const historyState = itemHistoryMap[expandedItemId] || {
+                    loading: false,
+                    rows: [],
+                    error: null,
+                  };
+                  const historyRows =
+                    Array.isArray(historyState.rows) ?
+                      historyState.rows.slice(0, 4)
+                    : [];
+                  const item = loadedItems.find((i) => i.id === expandedItemId);
+                  const details = bill.itemDetails[expandedItemId] || {};
+                  const displayItemName =
+                    details.itemName || item?.name || "Unknown Item";
+
+                  return (
+                    <div className="border rounded-lg bg-white">
+                      <div className="bg-gray-50 px-3 py-2 border-b">
+                        <span className="text-xs font-medium text-gray-700">
+                          Last 4 Entries - {displayItemName}
+                        </span>
+                      </div>
+                      {historyState.loading ?
+                        <div className="px-3 py-4 text-xs text-gray-500 text-center">
+                          Loading history...
+                        </div>
+                      : historyState.error ?
+                        <div className="px-3 py-4 text-xs text-red-600 text-center">
+                          {historyState.error}
+                        </div>
+                      : historyRows.length === 0 ?
+                        <div className="px-3 py-4 text-xs text-gray-500 text-center">
+                          No history found.
+                        </div>
+                      : <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="px-2 py-2 text-left border">
+                                  Date
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Bill No
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Rate
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Qty
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Amount
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Disc%
+                                </th>
+                                <th className="px-2 py-2 text-left border">
+                                  Sp Disc
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {historyRows.map((row, rowIndex) => (
+                                <tr
+                                  key={`history-${rowIndex}`}
+                                  className="hover:bg-blue-50 cursor-pointer"
+                                  onClick={() => {
+                                    updateItemDetail(
+                                      expandedItemId,
+                                      "rate",
+                                      row?.rate || 0,
+                                    );
+                                    updateItemDetail(
+                                      expandedItemId,
+                                      "disPercent",
+                                      row?.discount || 0,
+                                    );
+                                    updateItemDetail(
+                                      expandedItemId,
+                                      "spDis",
+                                      row?.special_discount || 0,
+                                    );
+                                    updateItemDetail(
+                                      expandedItemId,
+                                      "gstPercent",
+                                      row?.gst_percent || 0,
+                                    );
+                                    showToast("Details filled from history", "success");
+                                  }}
+                                >
+                                  <td className="px-2 py-2 border">
+                                    {formatHistoryDate(row?.bill_date || row?.date)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {row?.bill_no || "-"}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.rate || 0).toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.quantity || 0)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.amount || 0).toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.discount || 0).toFixed(2)}
+                                  </td>
+                                  <td className="px-2 py-2 border">
+                                    {Number(row?.special_discount || 0).toFixed(
+                                      2,
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      }
+                    </div>
+                  );
+                })()}
+            </div>
+          </div>
+        )}
 
         {/* {bill.items.length > 0 && (
           <div className="border rounded-lg p-4 bg-gray-50">
@@ -1692,76 +1982,7 @@ const BillForm = () => {
         </div>
       </div>
 
-      <Modal
-        isOpen={viewItemModal.isOpen}
-        onClose={() => setViewItemModal({ isOpen: false, data: null })}
-        title="Last Sold Details"
-        size="lg"
-      >
-        {viewItemModal.data && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-700">Challan No:</p>
-                <p className="text-sm">{viewItemModal.data.challan_no}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700">Date:</p>
-                <p className="text-sm">
-                  {new Date(
-                    viewItemModal.data.challan_date,
-                  ).toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700">Contact:</p>
-                <p className="text-sm">{viewItemModal.data.contact?.name}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700">Phone:</p>
-                <p className="text-sm">
-                  {viewItemModal.data.contact?.phone || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700">GST Type:</p>
-                <p className="text-sm">
-                  {viewItemModal.data.is_gst === 1 ? "GST" : "Non-GST"}
-                </p>
-              </div>
-            </div>
-            <div className="border-t pt-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">
-                Item Details:
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-600">Quantity:</p>
-                  <p className="text-sm">{viewItemModal.data.item?.quantity}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600">Rate:</p>
-                  <p className="text-sm">
-                    ₹{viewItemModal.data.item?.rate?.toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600">Discount:</p>
-                  <p className="text-sm">
-                    {viewItemModal.data.item?.discount}%
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600">GST:</p>
-                  <p className="text-sm">
-                    {viewItemModal.data.item?.gst_percent}%
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
+
     </div>
   );
 };
