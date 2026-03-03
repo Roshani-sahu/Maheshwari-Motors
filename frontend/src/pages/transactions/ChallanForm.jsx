@@ -1872,7 +1872,7 @@ const ChallanForm = () => {
                 step="0.01"
                 value={calculateTotalDiscount().toFixed(2)}
                 readOnly
-                className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50"
+                className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-100 cursor-not-allowed text-gray-600"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -1881,7 +1881,7 @@ const ChallanForm = () => {
                 type="number"
                 value={calculateNetAmount().toFixed(2)}
                 readOnly
-                className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50"
+                className="flex-1 px-3 py-2 border rounded-md text-sm bg-gray-100 cursor-not-allowed text-gray-600"
               />
             </div>
           </div>

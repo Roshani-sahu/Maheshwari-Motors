@@ -13,13 +13,12 @@ const INDIAN_STATES = [
   'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Lakshadweep', 'Puducherry', 'Ladakh', 'Jammu and Kashmir'
 ];
 
-const emptyForm = { city: '', state: '', pincode: '', phone: '', agent_id: '', transport_id: '' };
+const emptyForm = { city: '', state: '', pincode: '', phone: '', agent_id: '' };
 
 const AreaMaster = () => {
   const { showToast } = useStore();
   const [areas, setAreas] = useState([]);
   const [agents, setAgents] = useState([]);
-  const [transports, setTransports] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -42,21 +41,18 @@ const AreaMaster = () => {
     state: a?.state || '',
     pincode: a?.pincode || '',
     phone: a?.phone || '',
-    agent_id: typeof a?.agent_id === 'object' ? a.agent_id?._id : (a?.agent_id || ''),
-    transport_id: typeof a?.transport_id === 'object' ? a.transport_id?._id : (a?.transport_id || '')
+    agent_id: typeof a?.agent_id === 'object' ? a.agent_id?._id : (a?.agent_id || '')
   });
 
   const fetchAll = async (signal) => {
     try {
-      const [areasRes, agentsRes, transportsRes] = await Promise.all([
+      const [areasRes, agentsRes] = await Promise.all([
         api.get('/areas', { params: { page: 1, limit: 200 }, signal }),
-        api.get('/agents', { params: { page: 1, limit: 200 }, signal }),
-        api.get('/transports', { params: { page: 1, limit: 200 }, signal })
+        api.get('/agents', { params: { page: 1, limit: 200 }, signal })
       ]);
 
       setAreas(listFromResponse(areasRes).map(normalizeArea));
       setAgents(listFromResponse(agentsRes));
-      setTransports(listFromResponse(transportsRes));
     } catch (error) {
       if (error?.name !== 'CanceledError') {
         showToast('Failed to load area data', 'error');
@@ -102,8 +98,7 @@ const AreaMaster = () => {
     state: formData.state?.trim(),
     pincode: formData.pincode?.trim() || undefined,
     phone: formData.phone?.trim() || undefined,
-    agent_id: formData.agent_id || undefined,
-    transport_id: formData.transport_id || undefined
+    agent_id: formData.agent_id || undefined
   });
 
   const validate = () => {
@@ -186,13 +181,6 @@ const AreaMaster = () => {
           <select value={formData.agent_id} onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })} disabled={isView} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
             <option value="">Select Agent</option>
             {agents.map((a) => <option key={a._id} value={a._id}>{a.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Transport</label>
-          <select value={formData.transport_id} onChange={(e) => setFormData({ ...formData, transport_id: e.target.value })} disabled={isView} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            <option value="">Select Transport</option>
-            {transports.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
           </select>
         </div>
       </div>

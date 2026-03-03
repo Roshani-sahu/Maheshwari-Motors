@@ -6,12 +6,11 @@ import useStore from '../../store';
 import api from '../../services/axiosInstance';
 import { getResponseList, getEntityId } from '../../services/apiUtils';
 
-const emptyForm = { name: '', address: '', city: '', pincode: '', phone: '', whatsapp: '', party_id: '' };
+const emptyForm = { name: '', address: '', city: '', pincode: '', phone: '' };
 
 const AgentMaster = () => {
   const { showToast } = useStore();
   const [agents, setAgents] = useState([]);
-  const [parties, setParties] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, agent: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -26,20 +25,13 @@ const AgentMaster = () => {
     address: a?.address || '',
     city: a?.city || '',
     pincode: a?.pincode || '',
-    phone: a?.phone || '',
-    whatsapp: a?.whatsapp || '',
-    party_id: typeof a?.party_id === 'object' ? a.party_id?._id : (a?.party_id || ''),
-    party_name: typeof a?.party_id === 'object' ? a.party_id?.name : ''
+    phone: a?.phone || ''
   });
 
   const fetchData = async (signal) => {
     try {
-      const [agentsRes, partiesRes] = await Promise.all([
-        api.get('/agents', { params: { page: 1, limit: 200 }, signal }),
-        api.get('/contacts/parties', { params: { page: 1, limit: 200 }, signal })
-      ]);
+      const agentsRes = await api.get('/agents', { params: { page: 1, limit: 200 }, signal });
       setAgents(getResponseList(agentsRes).map(normalizeAgent));
-      setParties(getResponseList(partiesRes));
     } catch (error) {
       if (error?.name !== 'CanceledError') {
         showToast('Failed to fetch agents', 'error');
@@ -54,12 +46,9 @@ const AgentMaster = () => {
   }, []);
 
   const columns = [
-
         { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
-
     { key: 'name', label: 'Name', render: (value) => <span className="text-xs sm:text-sm font-medium">{value}</span> },
     { key: 'city', label: 'City', render: (value) => <span className="text-xs sm:text-sm">{value}</span> },
-    { key: 'party_name', label: 'Party', render: (value) => <span className="text-xs sm:text-sm">{value || '-'}</span> },
     { key: 'phone', label: 'Phone', render: (value) => <span className="text-xs sm:text-sm">{value || 'N/A'}</span> }
   ];
 
@@ -90,15 +79,13 @@ const AgentMaster = () => {
     address: formData.address?.trim() || undefined,
     city: formData.city?.trim() || undefined,
     pincode: formData.pincode?.trim() || undefined,
-    phone: formData.phone?.trim() || undefined,
-    whatsapp: formData.whatsapp?.trim() || undefined,
-    party_id: formData.party_id || undefined
+    phone: formData.phone?.trim() || undefined
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name?.trim() || !formData.party_id || submitting) {
-      showToast('Name and party are required', 'error');
+    if (!formData.name?.trim() || submitting) {
+      showToast('Name is required', 'error');
       return;
     }
 
@@ -163,8 +150,6 @@ const AgentMaster = () => {
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label><p className="text-sm text-gray-900">{selectedAgent.city}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Pincode</label><p className="text-sm text-gray-900">{selectedAgent.pincode}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Phone</label><p className="text-sm text-gray-900">{selectedAgent.phone || 'N/A'}</p></div>
-              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">WhatsApp</label><p className="text-sm text-gray-900">{selectedAgent.whatsapp || 'N/A'}</p></div>
-              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Party</label><p className="text-sm text-gray-900">{selectedAgent.party_name || '-'}</p></div>
             </div>
             <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Address</label><p className="text-sm text-gray-900">{selectedAgent.address}</p></div>
             <Button variant="outline" onClick={() => { setIsViewModalOpen(false); setSelectedAgent(null); }}>Close</Button>
@@ -175,16 +160,12 @@ const AgentMaster = () => {
       <Modal isOpen={isAddModalOpen || isEditModalOpen} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedAgent(null); setFormData(emptyForm); }} title={isEditModalOpen ? 'Edit Agent' : 'Add New Agent'} size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Party</label><select name="party_id" value={formData.party_id} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Party</option>{parties.map((p) => <option key={getEntityId(p)} value={getEntityId(p)}>{p.name}</option>)}</select></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Address</label><textarea name="address" value={formData.address} onChange={handleInputChange} rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">City</label><input type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label><input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label><input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label><input type="tel" name="whatsapp" value={formData.whatsapp} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
-          </div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label><input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedAgent(null); setFormData(emptyForm); }}>Cancel</Button>
             <Button type="submit" disabled={submitting}>{isEditModalOpen ? 'Update Agent' : 'Add Agent'}</Button>

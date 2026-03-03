@@ -5,7 +5,7 @@ import { Button, Input } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
 
-const emptyForm = { hsn_number: '', gst_percentage: '', description: '', is_active: true };
+const emptyForm = { hsn_number: '', gst_percentage: '', description: '' };
 
 const HsnMaster = () => {
   const { showToast } = useStore();
@@ -21,8 +21,7 @@ const HsnMaster = () => {
     _id: doc?._id,
     hsn_number: doc?.hsn_code || '',
     gst_percentage: Number(doc?.gst_rate ?? 0),
-    description: doc?.description || '',
-    is_active: doc?.is_active !== false
+    description: doc?.description || ''
   });
 
   const fetchHsns = async (signal) => {
@@ -48,16 +47,7 @@ const HsnMaster = () => {
     { key: '_id', label: 'ID', render: (value, row, index) => index + 1 },
     { key: 'hsn_number', label: 'HSN Number' },
     { key: 'gst_percentage', label: 'GST %', render: (value) => `${value}%` },
-    { key: 'description', label: 'Description' },
-    {
-      key: 'is_active',
-      label: 'Status',
-      render: (value) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {value ? 'Active' : 'Inactive'}
-        </span>
-      )
-    }
+    { key: 'description', label: 'Description' }
   ], []);
 
   const actions = useMemo(() => [
@@ -80,8 +70,7 @@ const HsnMaster = () => {
   const buildPayload = () => ({
     hsn_code: formData.hsn_number?.trim(),
     description: formData.description?.trim() || undefined,
-    gst_rate: Number(formData.gst_percentage || 0),
-    is_active: Boolean(formData.is_active)
+    gst_rate: Number(formData.gst_percentage || 0)
   });
 
   const validate = () => {
@@ -165,12 +154,6 @@ const HsnMaster = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <div onClick={() => setFormData({ ...formData, is_active: !formData.is_active })} className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${formData.is_active ? 'bg-green-500' : 'bg-gray-300'}`}>
-              <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${formData.is_active ? 'translate-x-7' : 'translate-x-0'}`} />
-            </div>
-          </div>
           <div className="flex gap-3 pt-4"><Button onClick={handleAdd} disabled={submitting}>Add HSN</Button><Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button></div>
         </div>
       </Modal>
@@ -182,12 +165,6 @@ const HsnMaster = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-            <div onClick={() => setFormData({ ...formData, is_active: !formData.is_active })} className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${formData.is_active ? 'bg-green-500' : 'bg-gray-300'}`}>
-              <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${formData.is_active ? 'translate-x-7' : 'translate-x-0'}`} />
-            </div>
           </div>
           <div className="flex gap-3 pt-4"><Button onClick={handleEdit} disabled={submitting}>Save Changes</Button><Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button></div>
         </div>

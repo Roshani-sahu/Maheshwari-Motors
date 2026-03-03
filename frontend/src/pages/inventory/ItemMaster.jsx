@@ -28,7 +28,6 @@ const ItemMaster = () => {
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, item: null });
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
   const [hsns, setHsns] = useState([]);
   const [departments, setDepartments] = useState([]);
 
@@ -82,9 +81,8 @@ const ItemMaster = () => {
   useEffect(() => {
       const fetchCategories = async () => {
           try {
-              const [catRes, supplierRes, hsnRes, deptRes] = await Promise.all([
+              const [catRes, hsnRes, deptRes] = await Promise.all([
                   api.get('/categories'),
-                  api.get('/contacts/suppliers', { params: { page: 1, limit: 200 } }),
                   api.get('/hsn', { params: { page: 1, limit: 200 } }),
                   api.get('/departments'),
               ]);
@@ -125,10 +123,6 @@ const ItemMaster = () => {
                 return { id: normalized.id, name: normalized.name };
               }));
               
-              setSuppliers(getResponseList(supplierRes).map((supplier) => {
-                const normalized = normalizeContact(supplier);
-                return { id: normalized.id, name: normalized.name };
-              }));
               setHsns(
                 getResponseList(hsnRes)
                   .filter((hsn) => hsn?.is_active !== false)
@@ -277,7 +271,6 @@ const ItemMaster = () => {
         if (editingItem.gst_percent) formData.append('gst_percent', editingItem.gst_percent);
         if (editingItem.categoryId) formData.append('category_id', editingItem.categoryId);
         if (editingItem.brandId) formData.append('brand_id', editingItem.brandId);
-        if (editingItem.supplierId) formData.append('contact_id', editingItem.supplierId);
         if (editingItem.departmentId) formData.append('dept_id', editingItem.departmentId);
         if (editingItem.hsn_code) formData.append('hsn_id', editingItem.hsn_code);
         if (editingItem.alias) formData.append('alias', editingItem.alias);
@@ -431,20 +424,6 @@ const ItemMaster = () => {
                   <option value="">Select Brand</option>
                   {brands.map(b => (
                     <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Supplier</label>
-                <select
-                  value={editingItem.supplierId || ''}
-                  onChange={(e) => setEditingItem(prev => ({ ...prev, supplierId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
-                >
-                  <option value="">Select Supplier</option>
-                  {suppliers.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
               </div>
@@ -645,10 +624,6 @@ const ItemMaster = () => {
               <div>
                 <label className="block text-xs font-medium text-gray-500">Brand</label>
                 <p className="text-sm text-gray-900">{brands.find(b => b.id === viewingItem.brandId)?.name || '-'}</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500">Supplier</label>
-                <p className="text-sm text-gray-900">{suppliers.find(s => s.id === viewingItem.supplierId)?.name || '-'}</p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500">Department</label>

@@ -371,7 +371,7 @@ const Sidebar = ({ onClose }) => {
             
             
             
-            <NavLink
+            {/* <NavLink
               to="/inventory/view-category"
               onClick={onClose}
               className={({ isActive }) =>
@@ -384,7 +384,7 @@ const Sidebar = ({ onClose }) => {
             >
               <FaList className="w-4 h-4" />
               View Category
-            </NavLink>
+            </NavLink> */}
 
            
             

@@ -840,15 +840,9 @@ const ChallanList = () => {
       return;
     }
 
-    const firstPartyId = selectedChallans[0].partyId;
-    if (selectedChallans.some((c) => c.partyId !== firstPartyId)) {
-      setValidationError("All selected challans must belong to the same party");
-      return;
-    }
-
     try {
       const payload = {
-        contact_id: firstPartyId,
+        contact_id: selectedChallans[0].partyId,
         challan_ids: selectedChallans.map((c) => c.id),
       };
 
@@ -1061,15 +1055,6 @@ const ChallanList = () => {
                       }
                       onChange={(e) => {
                         if (e.target.checked) {
-                          const parties = Array.from(
-                            new Set(convertibleChallans.map((c) => c.party)),
-                          );
-                          if (parties.length > 1) {
-                            setValidationError(
-                              "Cannot select challans from different parties. Please select challans of the same party only.",
-                            );
-                            return;
-                          }
                           setSelectedChallans([...convertibleChallans]);
                         } else {
                           setSelectedChallans([]);
@@ -1100,15 +1085,6 @@ const ChallanList = () => {
                         )}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            if (
-                              selectedChallans.length > 0 &&
-                              selectedChallans[0].party !== challan.party
-                            ) {
-                              setValidationError(
-                                "You can only select challans of the same party to convert into a single bill.",
-                              );
-                              return;
-                            }
                             setSelectedChallans((prev) => [...prev, challan]);
                           } else {
                             setSelectedChallans((prev) =>

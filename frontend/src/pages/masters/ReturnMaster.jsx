@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaEye, FaPlus, FaTrash } from "react-icons/fa";
+import { FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
 import { DataTable, DeleteConfirmDialog, Modal } from "../../components/common";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
@@ -546,6 +546,48 @@ const ReturnMaster = () => {
 
   const actions = [
     {
+      label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
+      onClick: async (entry) => {
+        try {
+          const response = await api.get(`/returns/${entry.id}`);
+          const data = getResponseData(response);
+          setFormData({
+            return_no: data?.return_no || "Auto Generated",
+            date: data?.date ? new Date(data.date).toISOString().split("T")[0] : getToday(),
+            return_type: data?.return_type || "sale_return",
+            contact_id: getEntityId(data?.contact_id) || "",
+            bill_id: getEntityId(data?.bill_id) || "",
+            challan_id: getEntityId(data?.challan_id) || "",
+            items: Array.isArray(data?.items) && data.items.length > 0
+              ? data.items.map(item => ({
+                  item_id: getEntityId(item?.item_id) || "",
+                  quantity: toNumber(item?.quantity, 1),
+                  rate: toNumber(item?.rate, 0),
+                  discount: toNumber(item?.discount, 0),
+                  special_discount: toNumber(item?.special_discount, 0),
+                  gst_percent: toNumber(item?.gst_percent, 0),
+                  gst_amount: toNumber(item?.gst_amount, 0),
+                  taxable_amount: toNumber(item?.taxable_amount, 0),
+                  amount: toNumber(item?.amount, 0),
+                  is_damaged: item?.is_damaged === true,
+                  is_gst: toNumber(item?.is_gst, 1),
+                }))
+              : [createEmptyItem()],
+            total_amount: toNumber(data?.total_amount, 0),
+            note: data?.note || "",
+          });
+          setIsAddModalOpen(true);
+        } catch (error) {
+          console.error("Failed to load return for edit:", error);
+          showToast(
+            error?.response?.data?.message || "Failed to load return",
+            "error",
+          );
+        }
+      },
+      className: "bg-blue-600 text-white hover:bg-blue-700 p-1 sm:p-1.5 md:p-2 text-xs",
+    },
+    {
       label: <FaEye size={10} className="sm:size-3 md:size-4" />,
       onClick: async (entry) => {
         setPreviewDialog({ isOpen: true, loading: true, data: null });
@@ -804,7 +846,7 @@ const ReturnMaster = () => {
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Return No</label>
               <input
                 type="text"
@@ -812,8 +854,18 @@ const ReturnMaster = () => {
                 readOnly
                 className="w-full px-3 py-2 border rounded-md text-sm bg-gray-50"
               />
+            </div> */}
+ <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Return Type</label>
+              <select
+                value={formData.return_type}
+                onChange={(event) => handleReturnTypeChange(event.target.value)}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+              >
+                <option value="sale_return">Sale Return</option>
+                <option value="purchase_return">Purchase Return</option>
+              </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
               <input
@@ -826,17 +878,7 @@ const ReturnMaster = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Return Type</label>
-              <select
-                value={formData.return_type}
-                onChange={(event) => handleReturnTypeChange(event.target.value)}
-                className="w-full px-3 py-2 border rounded-md text-sm"
-              >
-                <option value="sale_return">Sale Return</option>
-                <option value="purchase_return">Purchase Return</option>
-              </select>
-            </div>
+           
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
