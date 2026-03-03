@@ -626,6 +626,29 @@ const PartyMaster = () => {
               {/* <span className="text-xs sm:text-sm text-gray-700">GST</span> */}
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
+              <input 
+                type="text" 
+                name="gstin" 
+                value={formData.gstin} 
+                onChange={handleInputChange} 
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                placeholder="27ABCDE1234F1Z5" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number (Auto-extracted)</label>
+              <input 
+                type="text" 
+                value={extractPAN(formData.gstin) || ''} 
+                disabled 
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-mono" 
+                placeholder="Enter GST to extract PAN"
+              />
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -637,6 +660,7 @@ const PartyMaster = () => {
               <input type="tel" name="whatsapp_number" value={formData.whatsapp_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="WhatsApp Number" />
             </div>
           </div>
+          
 
                   <div className="grid grid-cols-2 gap-4">
 
@@ -690,30 +714,7 @@ const PartyMaster = () => {
 
          
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label>
-              <input 
-                type="text" 
-                name="gstin" 
-                value={formData.is_gst === 1 ? formData.gstin : ''} 
-                onChange={handleInputChange} 
-                disabled={formData.is_gst === 0}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" 
-                placeholder="27ABCDE1234F1Z5" 
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number (Auto-extracted)</label>
-              <input 
-                type="text" 
-                value={formData.is_gst === 1 ? extractPAN(formData.gstin) || '' : ''} 
-                disabled 
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-mono" 
-                placeholder="Enter GST to extract PAN"
-              />
-            </div>
-          </div>
+          
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -729,10 +730,15 @@ const PartyMaster = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
-            <select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="">Select Category</option>
-              {categories.map(cat => <option className='text-black' key={getEntityId(cat)} value={getEntityId(cat)}>{cat.name}</option>)}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
+            <select 
+              name="label_id" 
+              value={formData.label_id} 
+              onChange={handleInputChange} 
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select Label</option>
+              {labels.map((label, index) => <option key={`${label._id}-${index}`} value={label._id}>{label.name}</option>)}
             </select>
           </div>
 
@@ -743,10 +749,9 @@ const PartyMaster = () => {
               {agents.map(agent => <option key={getEntityId(agent)} value={getEntityId(agent)}>{agent.name}</option>)}
             </select>
           </div>
-</div>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Bank</label>
             <select name="bank_id" value={formData.bank_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -754,24 +759,7 @@ const PartyMaster = () => {
               {banks.map(bank => <option key={getEntityId(bank)} value={getEntityId(bank)}>{bank.bank_name} - {bank.account_number}</option>)}
             </select>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Label</label>
-            <select 
-              name="label_id" 
-              value={formData.label_id} 
-              onChange={handleInputChange} 
-              disabled={!formData.category}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              <option value="">{formData.category ? 'Select Label' : 'Select Category First'}</option>
-              {labels
-                .filter(label => label.category_id === formData.category)
-                .map((label, index) => <option key={`${label._id}-${index}`} value={label._id}>{label.name}</option>)
-              }
-            </select>
-          </div>
-</div>
+        </div>
           <div className="flex gap-3 pt-4">
             <Button
               type="button"

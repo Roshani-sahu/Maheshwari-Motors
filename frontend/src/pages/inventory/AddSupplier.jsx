@@ -24,7 +24,6 @@ const INITIAL_FORM = {
   city: '',
   state: '',
   gstin: '',
-  category: '',
   is_gst: 0,
   cin: '',
   reg_number: '',
@@ -34,7 +33,6 @@ const INITIAL_FORM = {
 const AddSupplier = () => {
   const { showToast } = useStore();
   const [suppliers, setSuppliers] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [banks, setBanks] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, supplier: null });
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -64,7 +62,6 @@ const AddSupplier = () => {
       state: normalized.state,
       gstin: normalized.gstin,
       is_gst: normalized.is_gst,
-      category: normalized.category_id,
       cin: normalized.cin,
       reg_number: normalized.reg_number,
       bank_id: bankId,
@@ -83,18 +80,6 @@ const AddSupplier = () => {
     };
     fetchSuppliers();
   }, [showToast]);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await api.get('/categories');
-        setCategories(getResponseList(response));
-      } catch (error) {
-        console.error("Failed to fetch categories", error);
-      }
-    };
-    fetchCategories();
-  }, []);
 
   useEffect(() => {
     const fetchBanks = async () => {
@@ -137,7 +122,6 @@ const AddSupplier = () => {
     if (!formData.address?.trim()) errors.push('Address is required');
     if (!formData.city?.trim()) errors.push('City is required');
     if (!formData.state?.trim()) errors.push('State is required');
-    if (!formData.category) errors.push('Category is required');
     
     let cleanPhone = formData.phone ? formData.phone.replace(/\D/g, '') : '';
     if (cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
@@ -163,7 +147,6 @@ const AddSupplier = () => {
       city: formData.city || undefined,
       state: formData.state || undefined,
       gstin: formData.gstin ? formData.gstin.toUpperCase() : undefined,
-      category_id: formData.category || undefined,
       cin: formData.cin || undefined,
       reg_number: formData.reg_number || undefined,
       bank_id: formData.bank_id || undefined
@@ -266,7 +249,6 @@ const AddSupplier = () => {
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Branch</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.bank_branch || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.bank_branch || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">IFSC Code</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.ifsc_code || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.ifsc_code || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Account Number</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.account_number || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.account_number || 'N/A'}</p></div>
-              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label><p className="text-sm text-gray-900">{categories.find(c => getEntityId(c) === selectedSupplier.category)?.name || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label><p className="text-sm text-gray-900">{selectedSupplier.city || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">State</label><p className="text-sm text-gray-900">{selectedSupplier.state || 'N/A'}</p></div>
             </div>
@@ -278,9 +260,15 @@ const AddSupplier = () => {
 
       <Modal isOpen={isAddModalOpen || isEditModalOpen} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedSupplier(null); setFormData(INITIAL_FORM); }} title={isEditModalOpen ? 'Edit Supplier' : 'Add New Supplier'} size="md">
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-4">
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name *</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter supplier name" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Alias</label><input type="text" name="alias" value={formData.alias} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter alias (optional)" /></div>
+          </div>
           <div><div className="flex items-center gap-3"><div onClick={() => setFormData((prev) => ({ ...prev, is_gst: prev.is_gst === 0 ? 1 : 0 }))} className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${formData.is_gst === 1 ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-all duration-300 ${formData.is_gst === 1 ? 'translate-x-7' : 'translate-x-0'}`} /></div></div></div>
+           <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label><input type="text" name="gstin" value={formData.is_gst === 1 ? formData.gstin : ''} onChange={handleInputChange} disabled={formData.is_gst === 0} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="27ABCDE1234F1Z5" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">PAN Number (Auto-extracted)</label><input type="text" value={formData.is_gst === 1 ? extractPAN(formData.gstin) || '' : ''} disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-mono" placeholder="Enter GST to extract PAN" /></div>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label><input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Phone" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label><input type="tel" name="whatsapp_number" value={formData.whatsapp_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="WhatsApp Number" /></div>
@@ -291,15 +279,11 @@ const AddSupplier = () => {
             <div><label className="block text-sm font-medium text-gray-700 mb-1">City *</label><input type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="City" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">State *</label><select name="state" value={formData.state} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select State</option>{INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label><input type="text" name="gstin" value={formData.is_gst === 1 ? formData.gstin : ''} onChange={handleInputChange} disabled={formData.is_gst === 0} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed" placeholder="27ABCDE1234F1Z5" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">PAN Number (Auto-extracted)</label><input type="text" value={formData.is_gst === 1 ? extractPAN(formData.gstin) || '' : ''} disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 font-mono" placeholder="Enter GST to extract PAN" /></div>
-          </div>
+         
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">CIN</label><input type="text" name="cin" value={formData.cin} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="CIN" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Reg Number</label><input type="text" name="reg_number" value={formData.reg_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Registration Number" /></div>
           </div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Category *</label><select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Category</option>{categories.map(cat => <option className='text-black' key={getEntityId(cat)} value={getEntityId(cat)}>{cat.name}</option>)}</select></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Bank</label><select name="bank_id" value={formData.bank_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Bank</option>{banks.map(bank => <option key={getEntityId(bank)} value={getEntityId(bank)}>{bank.bank_name} - {bank.account_number}</option>)}</select></div>
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedSupplier(null); setFormData(INITIAL_FORM); }}>Cancel</Button>
