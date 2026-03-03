@@ -316,10 +316,11 @@ const BillList = () => {
           item?.barcode ||
           item?.part_no ||
           "";
+        const remark = item?.remark || item?.remarks || "";
 
         const description =
           printOption === 2 ?
-            toMandatoryText(itemName, "Item")
+            toMandatoryText(remark || itemName, "Item")
           : toMandatoryText(barcode, "-");
         const hsn = toMandatoryText(
           itemRef?.hsn || itemRef?.hsn_code || item?.hsn || item?.hsn_code,
