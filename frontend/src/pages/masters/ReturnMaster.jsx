@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
+import { FaDownload, FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
 import { DataTable, DeleteConfirmDialog, Modal } from "../../components/common";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
@@ -14,6 +14,9 @@ import {
   normalizeItem,
   toNumber,
 } from "../../services/apiUtils";
+
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const getToday = () => new Date().toISOString().split("T")[0];
 
@@ -487,6 +490,76 @@ const ReturnMaster = () => {
     setReferenceItems([]);
   };
 
+  const generateReturnPDF = async (entry) => {
+    try {
+      const response = await api.get(`/returns/${entry.id}`);
+      const data = getResponseData(response);
+      
+      const doc = new jsPDF();
+      const firmName = selectedFirm?.name || "MAHESHWARI MOTORS";
+      const returnType = data?.return_type === "sale_return" ? "Sale Return" : "Purchase Return";
+      const refNo = data?.return_type === "sale_return" ? data?.bill_id?.bill_no || "-" : data?.challan_id?.challan_no || "-";
+      const items = Array.isArray(data?.items) ? data.items : [];
+
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text(firmName, 105, 15, { align: "center" });
+      
+      doc.setFontSize(14);
+      doc.text(returnType, 105, 25, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Return No: ${data?.return_no || "-"}`, 20, 40);
+      doc.text(`Date: ${formatDate(data?.date)}`, 20, 47);
+      doc.text(`Contact: ${data?.contact_id?.name || "-"}`, 20, 54);
+      doc.text(`Reference: ${refNo}`, 20, 61);
+
+      const tableData = items.map((item, index) => {
+        const itemRef = item?.item_id || {};
+        const itemName = itemRef?.item_name || itemRef?.name || "-";
+        return [
+          index + 1,
+          itemName,
+          toNumber(item?.quantity, 0),
+          toNumber(item?.rate, 0).toFixed(2),
+          toNumber(item?.discount, 0).toFixed(2),
+          toNumber(item?.special_discount, 0).toFixed(2),
+          toNumber(item?.gst_percent, 0).toFixed(2),
+          toNumber(item?.taxable_amount, 0).toFixed(2),
+          toNumber(item?.gst_amount, 0).toFixed(2),
+          toNumber(item?.amount, 0).toFixed(2),
+        ];
+      });
+
+      autoTable(doc, {
+        head: [["#", "Item", "Qty", "Rate", "Dis%", "SP Dis%", "GST%", "Taxable", "GST Amt", "Amount"]],
+        body: tableData,
+        startY: 70,
+        theme: "grid",
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [60, 60, 60] },
+      });
+
+      const finalY = doc.lastAutoTable.finalY + 10;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Total Amount: Rs ${toNumber(data?.total_amount, 0).toFixed(2)}`, 20, finalY);
+
+      if (data?.note) {
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Note: ${data.note}`, 20, finalY + 8);
+      }
+
+      doc.save(`${returnType.replace(" ", "_")}_${data?.return_no || "Return"}.pdf`);
+      showToast("PDF downloaded successfully", "success");
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      showToast(error?.response?.data?.message || "Failed to generate PDF", "error");
+    }
+  };
+
   const columns = [
     {
       key: "serial",
@@ -605,6 +678,11 @@ const ReturnMaster = () => {
         }
       },
       className: "bg-slate-600 text-white hover:bg-slate-700 p-1 sm:p-1.5 md:p-2 text-xs",
+    },
+    {
+      label: <FaDownload size={10} className="sm:size-3 md:size-4" />,
+      onClick: generateReturnPDF,
+      className: "bg-green-600 text-white hover:bg-green-700 p-1 sm:p-1.5 md:p-2 text-xs",
     },
     {
       label: <FaTrash size={10} className="sm:size-3 md:size-4" />,
