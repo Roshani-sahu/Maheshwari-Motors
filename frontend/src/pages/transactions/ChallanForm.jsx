@@ -46,7 +46,6 @@ const ChallanForm = () => {
   const itemDropdownRef = useRef(null);
 
   const [challan, setChallan] = useState({
-    contactType: "party",
     party: "",
     label_id: "",
     challanNo: "",
@@ -57,7 +56,6 @@ const ChallanForm = () => {
     discount: 0,
     printOption: 1,
     from_bank: "",
-    to_bank: "",
   });
 
   useEffect(() => {
@@ -176,8 +174,6 @@ const ChallanForm = () => {
             : new Date().toISOString().split("T")[0];
 
           setChallan({
-            contactType:
-              challanData?.challan_type === "purchase" ? "supplier" : "party",
             party: normalizedChallan.partyId,
             label_id:
               getEntityId(challanData?.label_id) ||
@@ -214,18 +210,6 @@ const ChallanForm = () => {
   };
 
   const fetchItemHistory = async (itemId) => {
-    if (challan.contactType !== "party") {
-      setItemHistoryMap((prev) => ({
-        ...prev,
-        [itemId]: {
-          loading: false,
-          rows: [],
-          error: "History available only for Party challans",
-        },
-      }));
-      return;
-    }
-
     if (!challan.party) {
       const errorMsg = "Please select party before loading history";
       showToast(errorMsg, "error");
@@ -360,7 +344,6 @@ const ChallanForm = () => {
   }, []);
 
   useEffect(() => {
-    if (challan.contactType !== "party") return;
     const labelId = challan.label_id;
     if (!labelId) return;
     if (loadedLabelDiscounts[labelId]) return;
@@ -397,7 +380,7 @@ const ChallanForm = () => {
 
     fetchLabelDiscounts();
     return () => controller.abort();
-  }, [challan.contactType, challan.label_id, loadedLabelDiscounts]);
+  }, [challan.label_id, loadedLabelDiscounts]);
 
   const filteredItems = loadedItems.filter(
     (item) => !challan.items.includes(item.id),
@@ -561,10 +544,7 @@ const ChallanForm = () => {
   const handleSave = async () => {
     try {
       if (!challan.party) {
-        showToast(
-          `Please select ${challan.contactType === "supplier" ? "supplier" : "party"}`,
-          "error",
-        );
+        showToast("Please select party", "error");
         return;
       }
       if (challan.items.length === 0) {
@@ -572,8 +552,7 @@ const ChallanForm = () => {
         return;
       }
 
-      const challanType =
-        challan.contactType === "supplier" ? "purchase" : "sale";
+      const challanType = "sale";
       const challanIsGst = challan.gstType !== null ? challan.gstType : 0;
       const grossTotal = round2(calculateSubtotal());
       const totalDiscount = round2(calculateTotalDiscount());
@@ -587,9 +566,7 @@ const ChallanForm = () => {
         challan_type: challanType,
         date: challan.date,
         contact_id: challan.party,
-        ...(challanType === "sale" ?
-          { label_id: challan.label_id || undefined }
-        : {}),
+        label_id: challan.label_id || undefined,
         is_gst: challanIsGst,
         print_option: challan.printOption,
         gross_total: grossTotal,
@@ -661,10 +638,7 @@ const ChallanForm = () => {
       return;
     }
 
-    const party = (
-      challan.contactType === "party" ?
-        loadedParties
-      : loadedSuppliers).find((c) => c.id === challan.party);
+    const party = loadedParties.find((c) => c.id === challan.party);
 
     const printContent = `
       <html>
@@ -860,10 +834,7 @@ const ChallanForm = () => {
       return;
     }
 
-    const party = (
-      challan.contactType === "party" ?
-        loadedParties
-      : loadedSuppliers).find((contact) => contact.id === challan.party);
+    const party = loadedParties.find((contact) => contact.id === challan.party);
     const firmName = selectedFirm?.name || "MAHESHWARI MOTORS";
     const firmAddress =
       selectedFirm?.address ||
@@ -1130,40 +1101,16 @@ const ChallanForm = () => {
       </div>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-blue-50 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contact Type *
-            </label>
-            <select
-              value={challan.contactType}
-              onChange={(e) =>
-                setChallan((prev) => ({
-                  ...prev,
-                  contactType: e.target.value,
-                  party: "",
-                  label_id: "",
-                }))
-              }
-              className="w-full px-3 py-2 border rounded-md text-sm"
-            >
-              <option value="party">Party</option>
-              <option value="supplier">Supplier</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {challan.contactType === "party" ? "Party" : "Supplier"} *
+              Party *
             </label>
             <select
               value={challan.party}
               onChange={(e) => {
                 const selectedId = e.target.value;
-                const contacts =
-                  challan.contactType === "party" ?
-                    loadedParties
-                  : loadedSuppliers;
-                const selected = contacts.find((c) => c.id === selectedId);
+                const selected = loadedParties.find((c) => c.id === selectedId);
                 setChallan((prev) => ({
                   ...prev,
                   party: selectedId,
@@ -1175,13 +1122,8 @@ const ChallanForm = () => {
               }}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
-              <option value="">
-                Select {challan.contactType === "party" ? "Party" : "Supplier"}
-              </option>
-              {(challan.contactType === "party" ?
-                loadedParties
-              : loadedSuppliers
-              ).map((contact) => (
+              <option value="">Select Party</option>
+              {loadedParties.map((contact) => (
                 <option key={contact.id} value={contact.id}>
                   {contact.name}
                 </option>
@@ -1200,15 +1142,11 @@ const ChallanForm = () => {
                   label_id: e.target.value,
                 }))
               }
-              disabled={challan.contactType !== "party" || !challan.party}
+              disabled={!challan.party}
               className="w-full px-3 py-2 border rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
             >
               <option value="">
-                {challan.contactType !== "party" ?
-                  "Not applicable"
-                : !challan.party ?
-                  "Select Party First"
-                : "Select Label"}
+                {!challan.party ? "Select Party First" : "Select Label"}
               </option>
               {loadedLabels
                 .filter((label) => {
@@ -1289,7 +1227,7 @@ const ChallanForm = () => {
               ))}
             </select>
           </div>
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               To Bank
             </label>
@@ -1307,7 +1245,7 @@ const ChallanForm = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
         </div>
 
         <div className="border rounded-lg">
