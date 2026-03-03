@@ -1133,7 +1133,7 @@ const ChallanForm = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Label
-            </label>
+             </label>
             <select
               value={challan.label_id}
               onChange={(e) =>
