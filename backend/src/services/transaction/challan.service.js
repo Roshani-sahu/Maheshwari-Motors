@@ -186,16 +186,20 @@ class ChallanService {
     const normalizedToBank = await this._normalizeBankPayload(to_bank, userId);
 
     if (challanType === "sale") {
-      const party = await Contact.findOne({
-        _id: contact_id,
-        user_id: userId,
-        type: "party",
-      })
-        .select("assigned_label item_discounts")
-        .lean();
+      // party/contact may be missing when invoicing "me" or self
+      let party = { assigned_label: null, item_discounts: [] };
+      if (contact_id) {
+        party = await Contact.findOne({
+          _id: contact_id,
+          user_id: userId,
+          type: "party",
+        })
+          .select("assigned_label item_discounts")
+          .lean();
 
-      if (!party) {
-        throw ApiError.badRequest("Party not found for sale challan");
+        if (!party) {
+          throw ApiError.badRequest("Party not found for sale challan");
+        }
       }
 
       const effectiveLabelName =

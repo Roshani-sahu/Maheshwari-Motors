@@ -38,15 +38,24 @@ const BANK_REQUIRED = new Set([
   "bank_transfer_payment_given",
 ]);
 
-const OutStandings = () => {
+const OutStandings = ({
+  isEmbedded = false,
+  defaultContactType = "party",
+  lockContactType = false,
+  // when provided the component will preselect and optionally lock a contact
+  initialContact = "",
+  lockContact = false,
+}) => {
   const { showToast } = useStore();
   const [loading, setLoading] = useState(false);
   const [loadingBills, setLoadingBills] = useState(false);
   const [parties, setParties] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [banks, setBanks] = useState([]);
-  const [contactType, setContactType] = useState("party");
-  const [selectedContact, setSelectedContact] = useState("");
+  const [contactType, setContactType] = useState(
+    defaultContactType === "supplier" ? "supplier" : "party",
+  );
+  const [selectedContact, setSelectedContact] = useState(initialContact || "");
   const [bills, setBills] = useState([]);
   const [allocations, setAllocations] = useState({});
   const [payment, setPayment] = useState({
@@ -140,17 +149,40 @@ const OutStandings = () => {
   }, [showToast]);
 
   useEffect(() => {
-    setSelectedContact("");
-    setBills([]);
-    setAllocations({});
-    setPayment((prev) => ({
-      ...prev,
-      payment_type:
-        contactType === "supplier" ?
-          "bank_transfer_payment_given"
-        : "bank_transaction_received_amount",
-    }));
-  }, [contactType]);
+    if (lockContact && initialContact) {
+      // keep the locked contact selection when type changes
+      setSelectedContact(initialContact);
+    } else {
+      setSelectedContact("");
+      setBills([]);
+      setAllocations({});
+      setPayment((prev) => ({
+        ...prev,
+        payment_type:
+          contactType === "supplier"
+            ? "bank_transfer_payment_given"
+            : "bank_transaction_received_amount",
+      }));
+    }
+  }, [contactType, lockContact, initialContact]);
+
+  useEffect(() => {
+    // Keep contact type synced with parent defaults when locked.
+    if (lockContactType) {
+      const next =
+        defaultContactType === "supplier" ? "supplier" : "party";
+      if (next !== contactType) {
+        setContactType(next);
+      }
+    }
+  }, [defaultContactType, lockContactType, contactType]);
+
+  // keep selectedContact synced with prop when it changes
+  useEffect(() => {
+    if (initialContact) {
+      setSelectedContact(initialContact);
+    }
+  }, [initialContact]);
 
   useEffect(() => {
     if (!selectedContact) {
@@ -407,13 +439,15 @@ const OutStandings = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">OutStandings</h1>
-        <p className="text-gray-600">
-          Settle payments against bills and manage unsettled balances.
-        </p>
-      </div>
+    <div className={isEmbedded ? "space-y-4" : "space-y-6"}>
+      {!isEmbedded && (
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">OutStandings</h1>
+          <p className="text-gray-600">
+            Settle payments against bills and manage unsettled balances.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg border lg:col-span-2 space-y-4">
@@ -427,26 +461,38 @@ const OutStandings = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Contact Type
               </label>
-              <Select value={contactType} onChange={setContactType}>
-                <option value="party">Party</option>
-                <option value="supplier">Supplier</option>
-              </Select>
+              {lockContactType ? (
+                <div className="px-3 py-2 border rounded-md bg-gray-50 text-sm capitalize">
+                  {contactType === "party" ? "party" : "supplier"}
+                </div>
+              ) : (
+                <Select value={contactType} onChange={setContactType}>
+                  <option value="party">Party</option>
+                  <option value="supplier">Supplier</option>
+                </Select>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 {contactType === "party" ? "Party" : "Supplier"} *
               </label>
-              <Select
-                value={selectedContact}
-                onChange={setSelectedContact}
-                placeholder={`Select ${contactType}`}
-              >
-                {(contacts || []).map((contact) => (
-                  <option key={contact.id} value={contact.id}>
-                    {contact.name}
-                  </option>
-                ))}
-              </Select>
+              {lockContact && selectedContact ? (
+                <div className="px-3 py-2 border rounded-md bg-gray-50 text-sm">
+                  {selectedContactDetails?.name || "-"}
+                </div>
+              ) : (
+                <Select
+                  value={selectedContact}
+                  onChange={setSelectedContact}
+                  placeholder={`Select ${contactType}`}
+                >
+                  {(contacts || []).map((contact) => (
+                    <option key={contact.id} value={contact.id}>
+                      {contact.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

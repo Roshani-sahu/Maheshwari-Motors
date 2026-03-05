@@ -209,10 +209,16 @@ const BillList = () => {
         selectedFirm?.accountNumber ||
         "10032001002995",
     );
-    const invoiceTitleInput = window.prompt("Enter bill title", "TAX INVOICE");
+n     // suggest a different default title based on contact type
+    const defaultTitle = billData?.contact_id
+      ? billData.contact_id.type === "supplier"
+        ? "PURCHASE TAX INVOICE"
+        : "SALE TAX INVOICE"
+      : "TAX INVOICE";
+    const invoiceTitleInput = window.prompt("Enter bill title", defaultTitle);
     const invoiceTitle = toMandatoryText(
       invoiceTitleInput,
-      "TAX INVOICE",
+      defaultTitle,
     ).toUpperCase();
 
     const invoiceDateObj =
@@ -228,7 +234,7 @@ const BillList = () => {
     const transport = billData?.transport_id || {};
 
     const receiverName = toMandatoryText(
-      contact?.name || bill?.party || "CASH BOOK",
+      billData?.customer_name || contact?.name || bill?.party || "CASH BOOK",
     );
     const receiverAddress = toMandatoryText(contact?.address);
     const receiverCity = toMandatoryText(contact?.city);
@@ -1124,7 +1130,7 @@ const BillList = () => {
               <div class="info">
                 <p><span class="label">Bill No:</span> ${bill.billNo}</p>
                 <p><span class="label">Date:</span> ${new Date(bill.date).toLocaleDateString()}</p>
-                <p><span class="label">Party:</span> ${bill.party}</p>
+                <p><span class="label">Party:</span> ${bill.customer_name || bill.party || "-"}</p>
                 <p><span class="label">Amount:</span> ₹${bill.amount.toLocaleString()}</p>
                 <p><span class="label">Type:</span> ${bill.gstType}</p>
               </div>
@@ -1150,7 +1156,7 @@ const BillList = () => {
   const filteredBills = bills.filter((bill) => {
     if (
       filters.party &&
-      !bill.party.toLowerCase().includes(filters.party.toLowerCase())
+      !((bill.party || bill.customer_name || "").toLowerCase().includes(filters.party.toLowerCase()))
     )
       return false;
     if (filters.gstType !== "all" && bill.gstType !== parseInt(filters.gstType))

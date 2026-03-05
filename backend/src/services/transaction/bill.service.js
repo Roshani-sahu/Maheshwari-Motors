@@ -137,6 +137,7 @@ class BillService {
 
     if (query.contact_id) filter.contact_id = query.contact_id;
     if (query.payment_status) filter.payment_status = query.payment_status;
+    if (query.bill_no) filter.bill_no = query.bill_no;
 
     if (query.from_date || query.to_date) {
       filter.date = {};
@@ -206,22 +207,45 @@ class BillService {
       customer_name,
       vehicle_number,
       transport_charge,
+      bill_no: requestedBillNo,
     } = billData;
 
-    if (!challan_ids || challan_ids.length === 0) {
+    // allow overriding the auto-generated bill number
+    let providedBillNo = "";
+    if (typeof requestedBillNo === "string") {
+      providedBillNo = requestedBillNo.trim();
+      if (providedBillNo) {
+        const exists = await Bill.exists({
+          bill_no: providedBillNo,
+          user_id: userId,
+          is_gst: isGst,
+        });
+        if (exists) {
+          throw ApiError.badRequest("Bill number already exists");
+        }
+      }
+    }
+
+    // challans are required unless no contact_id (self bill)
+    if ((!challan_ids || challan_ids.length === 0) && !contact_id) {
+      // okay for self-bill, we'll handle later
+    } else if (!challan_ids || challan_ids.length === 0) {
       throw ApiError.badRequest("At least one challan is required");
     }
 
-    const challans = await Challan.find({
-      _id: { $in: challan_ids },
-      contact_id,
+    // build filter for challans; only include contact_id when provided
+    const challanFilter = {
+      _id: { $in: challan_ids || [] },
       user_id: userId,
       is_gst: isGst,
       challan_type: "sale",
       converted_to_bill: false,
-    });
+    };
+    if (contact_id) challanFilter.contact_id = contact_id;
 
-    if (challans.length !== challan_ids.length) {
+    const challans = await Challan.find(challanFilter);
+
+    if (contact_id && challans.length !== (challan_ids || []).length) {
       throw ApiError.badRequest(
         "Some challans are invalid, already billed, or do not belong to this contact/firm",
       );
@@ -232,11 +256,15 @@ class BillService {
       0,
     );
 
-    const contact = await Contact.findOne({
-      _id: contact_id,
-      user_id: userId,
-    }).lean();
-    if (!contact) throw ApiError.notFound("Contact not found");
+    // contact may be missing for 'me' bills
+    let contact = {};
+    if (contact_id) {
+      contact = await Contact.findOne({
+        _id: contact_id,
+        user_id: userId,
+      }).lean();
+      if (!contact) throw ApiError.notFound("Contact not found");
+    }
 
     let resolvedTransportId = null;
     if (transport_id) {
@@ -289,7 +317,7 @@ class BillService {
       throw ApiError.badRequest("Delivered amount cannot exceed total amount");
     }
 
-    if (balanceApplied !== 0) {
+    if (balanceApplied !== 0 && contact_id) {
       await Contact.findByIdAndUpdate(contact_id, { balance: 0 });
     }
 
@@ -301,12 +329,19 @@ class BillService {
       billAmount = deliveredNum;
     }
 
-    const billNoSeq = await getNextId(
-      `BillNo_${isGst === 1 ? "GST" : "NONGST"}`,
-      userId,
-    );
-    const bill_no = `BL-${String(billNoSeq).padStart(6, "0")}`;
     const nextId = await getNextId("Bill", userId);
+
+    // choose bill number: use provided override if available, otherwise generate
+    let bill_no;
+    if (providedBillNo) {
+      bill_no = providedBillNo;
+    } else {
+      const billNoSeq = await getNextId(
+        `BillNo_${isGst === 1 ? "GST" : "NONGST"}`,
+        userId,
+      );
+      bill_no = `BL-${String(billNoSeq).padStart(6, "0")}`;
+    }
 
     const bill = await Bill.create({
       id: nextId,
@@ -331,7 +366,7 @@ class BillService {
       skip_stock_calculation: isGst === 0,
     });
 
-    if (partialReturnAmount > 0) {
+    if (partialReturnAmount > 0 && contact_id) {
       await Contact.findByIdAndUpdate(contact_id, {
         $inc: { balance: partialReturnAmount },
       });

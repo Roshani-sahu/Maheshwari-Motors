@@ -4,6 +4,7 @@ import { DataTable, DeleteConfirmDialog, Modal } from "../../components/common";
 import { Button } from "../../components/ui";
 import useStore from "../../store";
 import api from "../../services/axiosInstance";
+import OutStandings from "../transactions/OutStandings";
 import {
   getEntityId,
   getResponseData,
@@ -191,6 +192,8 @@ const ReturnMaster = () => {
     loading: false,
     data: null,
   });
+  // outstanding panel is now shown inside the add return modal
+  const [showOutstandingInline, setShowOutstandingInline] = useState(false);
 
   const fetchReturns = useCallback(async () => {
     const response = await api.get("/returns", { params: { page: 1, limit: 200 } });
@@ -697,6 +700,12 @@ const ReturnMaster = () => {
   ];
 
   const openAddModal = () => {
+    if (bills.length === 0 || contacts.length === 0 || challans.length === 0) {
+      // Refetch master data to ensure dropdowns are populated.
+      fetchFormOptions().catch((error) =>
+        console.error("Failed to refresh form options before adding return", error),
+      );
+    }
     setFormData(getInitialFormData());
     setReferenceItems([]);
     setIsAddModalOpen(true);
@@ -916,6 +925,11 @@ const ReturnMaster = () => {
         pagination
       />
 
+      {/*
+        Original outstanding section removed; will appear within add-return modal
+        so settlement can be done per-contact while creating a return.
+      */}
+
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
@@ -1038,6 +1052,32 @@ const ReturnMaster = () => {
               </div>
             )}
           </div>
+          {/* inline outstanding toggle */}
+          {formData.contact_id && (
+            <div className="mt-4 border rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900">Outstanding Settlement</h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowOutstandingInline((prev) => !prev)}
+                >
+                  {showOutstandingInline ? "Hide" : "Show"}
+                </Button>
+              </div>
+              {showOutstandingInline && (
+                <div className="border-t pt-3">
+                  <OutStandings
+                    isEmbedded
+                    defaultContactType={isSaleReturn ? "party" : "supplier"}
+                    lockContactType
+                    initialContact={formData.contact_id}
+                    lockContact
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="border rounded-lg">
             <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b">

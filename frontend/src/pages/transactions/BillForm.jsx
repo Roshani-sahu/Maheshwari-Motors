@@ -65,6 +65,7 @@ const BillForm = () => {
   const [loadedTransports, setLoadedTransports] = useState([]);
   const [loadedBanks, setLoadedBanks] = useState([]);
   const [loadedItems, setLoadedItems] = useState([]);
+  const [loadedLabels, setLoadedLabels] = useState([]);
   const [loadedDiscounts, setLoadedDiscounts] = useState({});
   const [loadedLabelDiscounts, setLoadedLabelDiscounts] = useState({});
   const [itemSearchTerm, setItemSearchTerm] = useState("");
@@ -94,6 +95,7 @@ const BillForm = () => {
     printOption: 1,
     from_bank: "",
     to_bank: "",
+    labelId: "",
   });
 
   const effectiveGstType = isFirmGST ? 1 : bill.gstType;
@@ -110,10 +112,11 @@ const BillForm = () => {
     setBill((prev) => ({ ...prev, gstType: prev.gstType === 1 ? 0 : 1 }));
   };
 
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [pRes, sRes, iRes, brandRes, aRes, tRes, bRes] = await Promise.all([
+        const [pRes, sRes, iRes, brandRes, aRes, tRes, bRes, lRes] = await Promise.all([
           api.get("/contacts/parties", { params: { page: 1, limit: 200 } }),
           api.get("/contacts/suppliers", { params: { page: 1, limit: 200 } }),
           api.get("/items", { params: { page: 1, limit: 50, search: "" } }),
@@ -121,6 +124,7 @@ const BillForm = () => {
           api.get("/agents", { params: { page: 1, limit: 200 } }),
           api.get("/transports", { params: { page: 1, limit: 200 } }),
           api.get("/banks", { params: { page: 1, limit: 200 } }),
+          api.get("/labels", { params: { page: 1, limit: 200 } }),
         ]);
 
         const partiesData = getResponseList(pRes).map((party) => {
@@ -206,6 +210,12 @@ const BillForm = () => {
           name: b.name || b.bank_name || "Unknown",
         }));
         setLoadedBanks(banksData);
+
+        const labelsData = getResponseList(lRes).map((label) => ({
+          id: getEntityId(label) || label._id || label.id,
+          name: label.name || label.label_name || "Unknown",
+        }));
+        setLoadedLabels(labelsData);
 
         const brandList = getResponseList(brandRes);
         const discountMap = {};
@@ -494,7 +504,7 @@ const BillForm = () => {
   };
 
   const fetchItemHistory = async (itemId) => {
-    if (!bill.party) {
+    if (bill.contactType !== "me" && !bill.party) {
       const errorMsg = "Please select party before loading history";
       showToast(errorMsg, "error");
       setItemHistoryMap((prev) => ({
@@ -510,10 +520,10 @@ const BillForm = () => {
     }));
 
     try {
+      const params = {};
+      if (bill.contactType !== "me") params.contact_id = bill.party;
       const response = await api.get(`/bills/item/${itemId}/last-sold`, {
-        params: {
-          contact_id: bill.party,
-        },
+        params,
       });
       const rows = getResponseList(response);
 
@@ -548,15 +558,21 @@ const BillForm = () => {
   };
 
   const LEGACY_handlePrint = () => {
-    if (!bill.party || bill.items.length === 0) {
-      showToast("Please select a party and add items before printing", "error");
+    if ((bill.contactType !== "me" && !bill.party) || bill.items.length === 0) {
+      showToast(
+        `Please ${
+          bill.contactType === "me" ? "add items" : "select a party and add items"
+        } before printing`,
+        "error",
+      );
       return;
     }
 
-    const party = (
-      bill.contactType === "party" ?
-        loadedParties
-      : loadedSuppliers).find((c) => c.id === bill.party);
+    const party = bill.contactType === "party"
+      ? loadedParties.find((c) => c.id === bill.party)
+      : bill.contactType === "supplier"
+      ? loadedSuppliers.find((c) => c.id === bill.party)
+      : null;
 
     const printContent = `
       <html>
@@ -771,12 +787,22 @@ const BillForm = () => {
   };
 
   const handlePrint = () => {
-    if (!bill.party || bill.items.length === 0) {
-      showToast("Please select a party and add items before printing", "error");
+    if ((bill.contactType !== "me" && !bill.party) || bill.items.length === 0) {
+      showToast(
+        `Please ${
+          bill.contactType === "me" ? "add items" : "select a contact and add items"
+        } before printing`,
+        "error",
+      );
       return;
     }
 
-    const party = (bill.contactType === "party" ? loadedParties : loadedSuppliers).find((c) => c.id === bill.party);
+    const party =
+      bill.contactType === "party"
+        ? loadedParties.find((c) => c.id === bill.party)
+        : bill.contactType === "supplier"
+        ? loadedSuppliers.find((c) => c.id === bill.party)
+        : null;
     const transport = loadedTransports.find((t) => t.id === bill.transportId);
     const agent = loadedAgents.find((a) => a.id === bill.agent);
 
@@ -795,13 +821,19 @@ const BillForm = () => {
     const firmPhone = selectedFirm?.phone || "";
     const firmEmail = selectedFirm?.email || "";
     const firmGstin = selectedFirm?.gstin || "";
-    const invoiceTitle = "TAX INVOICE";
+    let invoiceTitle = "TAX INVOICE";
+    if (bill.contactType === "supplier") invoiceTitle = "PURCHASE TAX INVOICE";
+    else if (bill.contactType === "party") invoiceTitle = "SALE TAX INVOICE";
+    // 'me' will default to TAX INVOICE but you can adjust if needed
     const billNo = String(bill.billNumber || "").trim();
     const financialYear = "2024-25";
     const invoiceDate = formatDateDDMMYYYY(bill.date) || formatDateDDMMYYYY(new Date());
     const printOption = Number(bill.printOption ?? 2) || 2;
 
-    const receiverName = party?.name || "CASH BOOK";
+    const receiverName =
+      bill.contactType === "me"
+        ? bill.customerName || selectedFirm?.name || "SELF"
+        : party?.name || "CASH BOOK";
     const receiverAddress = party?.address || "";
     const receiverCity = party?.city || "";
     const receiverPin = party?.pin || "";
@@ -1219,10 +1251,22 @@ const BillForm = () => {
   };
 
   const handleSave = async () => {
-    if (!bill.party) {
-      showToast("Please select a party", "error");
-      return;
+    // basic validations
+    if (bill.contactType === "me") {
+      if (!bill.customerName || !bill.customerName.trim()) {
+        showToast("Please enter a name for 'Me' contact", "error");
+        return;
+      }
+    } else {
+      if (!bill.party) {
+        showToast(
+          `Please select ${bill.contactType === "party" ? "a party" : "a supplier"}`,
+          "error",
+        );
+        return;
+      }
     }
+
     if (bill.items.length === 0) {
       showToast("Please add at least one item", "error");
       return;
@@ -1250,8 +1294,9 @@ const BillForm = () => {
       const challanPayload = {
         challan_type: "sale",
         date: bill.date,
-        contact_id: bill.party,
-        label_id: selectedParty?.label_id || undefined,
+        // leave contact_id undefined for "me" bills so backend treats as self
+        contact_id: bill.contactType === "me" ? undefined : bill.party,
+        label_id: bill.labelId || selectedParty?.label_id || undefined,
         print_option: Number(bill.printOption ?? 2) || 2,
         gross_total: grossTotal,
         sub_total: subTotal,
@@ -1296,7 +1341,8 @@ const BillForm = () => {
 
       // Convert to bill
       const payload = {
-        contact_id: bill.party,
+        // omit contact_id when using "me" type so backend treats as self
+        contact_id: bill.contactType === "me" ? undefined : bill.party,
         challan_ids: [challanId],
         amount: netAmount,
         bill_no: bill.billNumber || undefined,
@@ -1322,12 +1368,6 @@ const BillForm = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Create Bill</h1>
-          {/* <input
-            type="text"
-            value={bill.billNumber}
-            onChange={(e) => setBill((prev) => ({ ...prev, billNumber: e.target.value }))}
-            className="px-3 py-2 border rounded-md text-sm"
-          /> */}
         </div>
         <Button
           variant="outline"
@@ -1338,79 +1378,144 @@ const BillForm = () => {
       </div>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 p-4 bg-blue-50 rounded-lg">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Contact Type *
             </label>
             <select
               value={bill.contactType}
-              onChange={(e) =>
-                setBill((prev) => ({
-                  ...prev,
-                  contactType: e.target.value,
-                  party: "",
-                }))
-              }
-              className="w-full px-3 py-2 border rounded-md text-sm"
-            >
-              <option value="party">Party</option>
-              <option value="supplier">Supplier</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {bill.contactType === "party" ? "Party" : "Supplier"} *
-            </label>
-            <select
-              value={bill.party}
               onChange={(e) => {
-                const selectedId = e.target.value;
-                const contacts =
-                  bill.contactType === "party" ?
-                    loadedParties
-                  : loadedSuppliers;
-                const selected = contacts.find((c) => c.id === selectedId);
+                const newType = e.target.value;
                 setBill((prev) => ({
                   ...prev,
-                  party: selectedId,
-                  gstType:
-                    isFirmGST ? 1
-                    : selected ? selected.is_gst || 0
-                    : prev.gstType,
-                  transportCharge:
-                    selected ?
-                      selected.transport_charge || 0
-                    : prev.transportCharge,
-                  transportId:
-                    selected ?
-                      selected.transport_id || prev.transportId
-                    : prev.transportId,
-                  agent: selected ? selected.agent || prev.agent : prev.agent,
-                  customerName:
-                    selected ?
-                      selected.name || prev.customerName
-                    : prev.customerName,
+                  contactType: newType,
+                  party: "",
+                  customerName: newType === "me" ? prev.customerName : "",
                 }));
               }}
               className="w-full px-3 py-2 border rounded-md text-sm"
             >
+              <option value="party">Party</option>
+              <option value="supplier">Supplier</option>
+              <option value="me">Me</option>
+            </select>
+          </div>
+          <div>
+            {bill.contactType === "me" ? (
+              <>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  value={bill.customerName}
+                  onChange={(e) =>
+                    setBill((prev) => ({ ...prev, customerName: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                  placeholder="Enter name"
+                />
+              </>
+            ) : (
+              <>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {bill.contactType === "party" ? "Party" : "Supplier"} *
+                </label>
+                <select
+                  value={bill.party}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    const contacts =
+                      bill.contactType === "party" ?
+                        loadedParties
+                      : loadedSuppliers;
+                    const selected = contacts.find((c) => c.id === selectedId);
+                    setBill((prev) => ({
+                      ...prev,
+                      party: selectedId,
+                      gstType:
+                        isFirmGST ? 1
+                        : selected ? selected.is_gst || 0
+                        : prev.gstType,
+                      transportCharge:
+                        selected ?
+                          selected.transport_charge || 0
+                        : prev.transportCharge,
+                      transportId:
+                        selected ?
+                          selected.transport_id || prev.transportId
+                        : prev.transportId,
+                      agent: selected ? selected.agent || prev.agent : prev.agent,
+                      labelId: selected ? selected.label_id || "" : "",
+                      customerName:
+                        selected ?
+                          selected.name || prev.customerName
+                        : prev.customerName,
+                    }));
+                  }}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                >
+                  <option value="">
+                    Select {bill.contactType === "party" ? "Party" : "Supplier"}
+                  </option>
+                  {(bill.contactType === "party" ?
+                    loadedParties
+                  : loadedSuppliers
+                  ).map((contact) => (
+                    <option key={contact.id} value={contact.id}>
+                      {contact.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Label
+            </label>
+            <select
+              value={bill.labelId}
+              onChange={(e) =>
+                setBill((prev) => ({
+                  ...prev,
+                  labelId: e.target.value,
+                }))
+              }
+              disabled={bill.contactType !== "party" || !bill.party}
+              className="w-full px-3 py-2 border rounded-md text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
               <option value="">
-                Select {bill.contactType === "party" ? "Party" : "Supplier"}
+                {bill.contactType !== "party" ?
+                  "Not applicable"
+                : !bill.party ?
+                  "Select Party First"
+                : "Select Label"}
               </option>
-              {(bill.contactType === "party" ?
-                loadedParties
-              : loadedSuppliers
-              ).map((contact) => (
-                <option key={contact.id} value={contact.id}>
-                  {contact.name}
+              {loadedLabels.map((label) => (
+                <option key={label.id} value={label.id}>
+                  {label.name}
                 </option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date
+              Invoice Number
+            </label>
+            <input
+              type="text"
+              value={bill.billNumber}
+              onChange={(e) =>
+                setBill((prev) => ({ ...prev, billNumber: e.target.value }))
+              }
+              className="w-full px-3 py-2 border rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Invoice Date
             </label>
             <input
               type="date"
@@ -2145,7 +2250,10 @@ const BillForm = () => {
         <div className="flex gap-3 pt-4 border-t">
           <Button
             onClick={handleSave}
-            disabled={!bill.party || bill.items.length === 0}
+            disabled={
+              (bill.contactType !== "me" && !bill.party) ||
+              bill.items.length === 0
+            }
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
           >
             <FaSave />
@@ -2153,7 +2261,10 @@ const BillForm = () => {
           </Button>
           <Button
             onClick={handlePrint}
-            disabled={!bill.party || bill.items.length === 0}
+            disabled={
+              (bill.contactType !== "me" && !bill.party) ||
+              bill.items.length === 0
+            }
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
           >
             <FaPrint />
