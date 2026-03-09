@@ -95,10 +95,7 @@ const CategoryMaster = () => {
   });
 
   const handleAddCategory = async () => {
-    if (!newCategoryName?.trim() || submitting) {
-      showToast('Category name is required', 'error');
-      return;
-    }
+    if (submitting) return;
 
     setSubmitting(true);
     try {
@@ -116,7 +113,7 @@ const CategoryMaster = () => {
   };
 
   const handleEditCategory = async () => {
-    if (!editingCategory?.id || !newCategoryName?.trim() || submitting) return;
+    if (!editingCategory?.id || submitting) return;
     setSubmitting(true);
     try {
       await api.put(`/categories/${editingCategory.id}`, payload());
@@ -191,7 +188,7 @@ const CategoryMaster = () => {
               )}
             </div>
           </div>
-          <div className="flex gap-3 pt-4"><Button onClick={handleAddCategory} disabled={!newCategoryName || submitting}>Add Category</Button><Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button></div>
+          <div className="flex gap-3 pt-4"><Button onClick={handleAddCategory} disabled={submitting}>Add Category</Button><Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button></div>
         </div>
       </Modal>
 
@@ -214,7 +211,7 @@ const CategoryMaster = () => {
               )}
             </div>
           </div>
-          <div className="flex gap-3 pt-4"><Button onClick={handleEditCategory} disabled={!newCategoryName || submitting}>Save Changes</Button><Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button></div>
+          <div className="flex gap-3 pt-4"><Button onClick={handleEditCategory} disabled={submitting}>Save Changes</Button><Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button></div>
         </div>
       </Modal>
 

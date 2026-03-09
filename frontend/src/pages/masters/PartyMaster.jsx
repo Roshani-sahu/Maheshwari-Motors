@@ -26,7 +26,6 @@ const INITIAL_FORM = {
   city: '',
   state: '',
   gstin: '',
-  category: '',
   is_gst: 0,
   cin: '',
   reg_number: '',
@@ -251,7 +250,6 @@ const PartyMaster = () => {
           city: party.city || '',
           state: party.state || '',
           gstin: party.gstin || '',
-          category: party.category || '',
           is_gst: party.is_gst || 0,
           cin: party.cin || '',
           reg_number: party.reg_number || '',
@@ -288,10 +286,8 @@ const PartyMaster = () => {
     if (!formData.address?.trim()) errors.push('Address is required');
     if (!formData.city?.trim()) errors.push('City is required');
     if (!formData.state?.trim()) errors.push('State is required');
-    if (!formData.category) errors.push('Category is required');
     if (!formData.transport_id) errors.push('Transport is required');
     if (!formData.area_id) errors.push('Area is required');
-    if (!formData.agent) errors.push('Agent is required');
     
     let cleanPhone = formData.phone ? formData.phone.replace(/\D/g, '') : '';
     if (cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
@@ -318,7 +314,6 @@ const PartyMaster = () => {
     if (formData.city) payload.city = formData.city;
     if (formData.state) payload.state = formData.state;
     if (formData.gstin) payload.gstin = formData.gstin.toUpperCase();
-    if (formData.category) payload.category_id = formData.category;
     if (formData.cin) payload.cin = formData.cin;
     if (formData.reg_number) payload.reg_number = formData.reg_number;
     if (formData.bank_id) payload.bank_id = formData.bank_id;
