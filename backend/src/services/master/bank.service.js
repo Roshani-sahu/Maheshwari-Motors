@@ -7,6 +7,10 @@ class BankService {
   async getBanks(userId, query = {}) {
     const filter = { user_id: userId };
 
+    if (query.bank_type) {
+      filter.bank_type = query.bank_type;
+    }
+
     if (query.search) {
       const escaped = query.search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       filter.$or = [
@@ -29,7 +33,7 @@ class BankService {
   }
 
   async createBank(bankData, userId) {
-    const { bank_name, bank_branch, ifsc_code, account_number, account_holder, upi_id, is_default } = bankData;
+    const { bank_name, bank_branch, ifsc_code, account_number, account_holder, upi_id, bank_type, is_default } = bankData;
 
     if (!bank_name || typeof bank_name !== "string" || !bank_name.trim()) {
       throw ApiError.badRequest("Bank name is required");
@@ -61,6 +65,7 @@ class BankService {
       account_number: account_number.trim(),
       account_holder: account_holder?.trim() || "",
       upi_id: upi_id?.trim() || "",
+      bank_type: bank_type || "firm",
       is_default: shouldDefault,
       user_id: userId,
     });
@@ -72,7 +77,7 @@ class BankService {
     const bank = await Bank.findOne({ _id: bankId, user_id: userId });
     if (!bank) throw ApiError.notFound("Bank not found");
 
-    const { bank_name, bank_branch, ifsc_code, account_number, account_holder, upi_id, is_default } = updateData;
+    const { bank_name, bank_branch, ifsc_code, account_number, account_holder, upi_id, bank_type, is_default } = updateData;
 
     if (account_number !== undefined) {
       if (typeof account_number !== "string" || !account_number.trim()) {
@@ -99,6 +104,7 @@ class BankService {
     if (account_number !== undefined) fields.account_number = account_number.trim();
     if (account_holder !== undefined) fields.account_holder = account_holder.trim();
     if (upi_id !== undefined) fields.upi_id = upi_id.trim();
+    if (bank_type !== undefined) fields.bank_type = bank_type;
     if (is_default !== undefined) fields.is_default = is_default;
 
     return Bank.findByIdAndUpdate(bankId, fields, { new: true }).lean();
@@ -139,6 +145,7 @@ class BankService {
       ifsc_code: bank.ifsc_code || "",
       account_number: bank.account_number || "",
       account_holder: bank.account_holder || "",
+      bank_type: bank.bank_type || "firm",
     };
   }
 }
