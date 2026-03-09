@@ -54,8 +54,8 @@ const ViewAllSupplier = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">View All Supplier</h1>
-          <p className="text-gray-600">View all suppliers</p>
+          <h1 className="text-2xl font-bold text-gray-900">View All Creditors</h1>
+          {/* <p className="text-gray-600">View all supplier</p> */}
         </div>
       </div>
 

@@ -389,7 +389,7 @@ const Sidebar = ({ onClose }) => {
            
             
             <NavLink
-              to="/inventory/add-supplier"
+              to="/inventory/add-creditors"
               onClick={onClose}
               className={({ isActive }) =>
                 `${linkBase} ${
@@ -404,7 +404,7 @@ const Sidebar = ({ onClose }) => {
             </NavLink>
             
             <NavLink
-              to="/inventory/view-all-supplier"
+              to="/inventory/view-all-creditors"
               onClick={onClose}
               className={({ isActive }) =>
                 `${linkBase} ${

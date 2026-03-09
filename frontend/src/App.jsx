@@ -137,11 +137,11 @@ const App = () => {
           <Route path="/inventory/item-view" element={<ItemView />} />
           <Route path="/inventory/category-master" element={<CategoryMaster />} />
           <Route path="/inventory/view-category" element={<ViewCategory />} />
-          <Route path="/inventory/add-supplier" element={<AddSupplier />} />
-          <Route path="/inventory/view-all-supplier" element={<ViewAllSupplier />} />
+          <Route path="/inventory/add-creditors" element={<AddSupplier />} />
+          <Route path="/inventory/view-all-creditors" element={<ViewAllSupplier />} />
           <Route path="/masters/item-master/add" element={<AddItem />} />
           <Route path="/masters/account-master" element={<AccountMaster />} />
-          <Route path="/masters/party-master" element={<PartyMaster />} />
+          <Route path="/masters/debitors-master" element={<PartyMaster />} />
           <Route path="/masters/brand-master" element={<BrandMaster />} />
           <Route path="/masters/discount-master" element={<DiscountMaster />} />
           <Route path="/masters/agent-master" element={<AgentMaster />} />
