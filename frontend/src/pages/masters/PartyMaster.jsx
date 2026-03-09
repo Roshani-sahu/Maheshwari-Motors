@@ -26,7 +26,6 @@ const INITIAL_FORM = {
   city: '',
   state: '',
   gstin: '',
-  category: '',
   is_gst: 0,
   cin: '',
   reg_number: '',
@@ -251,7 +250,6 @@ const PartyMaster = () => {
           city: party.city || '',
           state: party.state || '',
           gstin: party.gstin || '',
-          category: party.category || '',
           is_gst: party.is_gst || 0,
           cin: party.cin || '',
           reg_number: party.reg_number || '',
@@ -318,7 +316,6 @@ const PartyMaster = () => {
     if (formData.city) payload.city = formData.city;
     if (formData.state) payload.state = formData.state;
     if (formData.gstin) payload.gstin = formData.gstin.toUpperCase();
-    if (formData.category) payload.category_id = formData.category;
     if (formData.cin) payload.cin = formData.cin;
     if (formData.reg_number) payload.reg_number = formData.reg_number;
     if (formData.bank_id) payload.bank_id = formData.bank_id;

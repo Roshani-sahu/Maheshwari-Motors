@@ -44,11 +44,9 @@ class CategoryService {
   async createCategory(categoryData, userId) {
     const { name, description, brand_ids } = categoryData;
 
-    if (!name || typeof name !== "string" || !name.trim()) {
-      throw ApiError.badRequest("Category name is required");
-    }
+    const categoryName = name?.trim() || "Unnamed Category";
 
-    const escapedName = this._escapeRegex(name.trim());
+    const escapedName = this._escapeRegex(categoryName);
     const existingCategory = await Category.findOne({
       name: { $regex: new RegExp(`^${escapedName}$`, "i") },
       user_id: userId,
@@ -73,7 +71,7 @@ class CategoryService {
 
     const category = await Category.create({
       id: await getNextId("Category", userId),
-      name: name.trim(),
+      name: categoryName,
       description,
       brand_ids: normalizedBrandIds,
       label_ids: [],
@@ -96,10 +94,8 @@ class CategoryService {
     const { name, description, brand_ids } = updateData;
 
     if (name !== undefined) {
-      if (typeof name !== "string" || !name.trim()) {
-        throw ApiError.badRequest("Category name cannot be empty");
-      }
-      const escapedName = this._escapeRegex(name.trim());
+      const categoryName = name?.trim() || "Unnamed Category";
+      const escapedName = this._escapeRegex(categoryName);
       const duplicate = await Category.findOne({
         name: { $regex: new RegExp(`^${escapedName}$`, "i") },
         user_id: userId,
@@ -110,6 +106,7 @@ class CategoryService {
           "Another category with this name already exists",
         );
       }
+      fields.name = categoryName;
     }
 
     let normalizedBrandIds;
@@ -153,7 +150,6 @@ class CategoryService {
     }
 
     const fields = {};
-    if (name !== undefined) fields.name = name.trim();
     if (description !== undefined) fields.description = description;
     if (normalizedBrandIds !== undefined) fields.brand_ids = normalizedBrandIds;
 

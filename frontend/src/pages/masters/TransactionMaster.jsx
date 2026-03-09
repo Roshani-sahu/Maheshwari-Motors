@@ -9,7 +9,9 @@ const TRANSACTION_TYPES = {
   BANK_RECEIVED: 'bank_received',
   CASH_RECEIVED: 'cash_received',
   BANK_PAYMENT: 'bank_payment',
-  CASH_PAYMENT: 'cash_payment'
+  CASH_PAYMENT: 'cash_payment',
+  CASHBOOK: 'cashbook',
+  BANKBOOK: 'bankbook'
 };
 
 const BOOKS = {
@@ -284,7 +286,7 @@ const TransactionMaster = () => {
               <label className="block text-sm font-medium mb-1">Transaction Type *</label>
               <select name="type" value={formData.type} onChange={handleInputChange} required className="w-full px-3 py-2 border rounded-lg">
                 <option value="">Select Type</option>
-                {getBookTransactionTypes(activeBook).map(type => (
+                {Object.values(TRANSACTION_TYPES).map(type => (
                   <option key={type} value={type}>{type.replace(/_/g, ' ').toUpperCase()}</option>
                 ))}
               </select>

@@ -110,7 +110,7 @@ const Sidebar = ({ onClose }) => {
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
               <FaBuilding className="w-4 h-4" />
-              Party Master
+              Debitors ( Saler) Master
             </NavLink>
 
              <NavLink
@@ -400,7 +400,7 @@ const Sidebar = ({ onClose }) => {
               }
             >
               <FaUserPlus className="w-4 h-4" />
-              Add Supplier
+              Creditors ( Purchasers) Master
             </NavLink>
             
             <NavLink
@@ -415,7 +415,7 @@ const Sidebar = ({ onClose }) => {
               }
             >
               <FaUsersGear className="w-4 h-4" />
-              View All Supplier
+              View All Creditors
             </NavLink>
             
           

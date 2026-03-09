@@ -40,7 +40,7 @@ const AddItem = () => {
     discount: '',
     image: null,
     threshold: '',
-    is_gst: 0
+    is_gst: 1
   });
 
   const [errors, setErrors] = useState({});
@@ -105,6 +105,17 @@ const AddItem = () => {
 
   const handleChange = (name, value) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === 'brand' && value) {
+      const selectedBrand = allBrands.find((brand) => brand.id === value);
+      if (selectedBrand?.hsnId) {
+        setFormData((prev) => ({ ...prev, hsn_code: selectedBrand.hsnId }));
+        const selectedHsn = hsns.find((hsn) => hsn.id === selectedBrand.hsnId);
+        if (selectedHsn) {
+          setFormData((prev) => ({ ...prev, gst_percent: selectedHsn.gst_percentage }));
+        }
+      }
+    }
 
     if (name === 'hsn_code' && value) {
       const selectedHsn = hsns.find((hsn) => hsn.id === value);
