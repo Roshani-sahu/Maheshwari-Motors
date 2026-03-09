@@ -40,7 +40,6 @@ const INITIAL_FORM = {
 const PartyMaster = () => {
   const { showToast } = useStore();
   const [parties, setParties] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [agents, setAgents] = useState([]);
   const [transports, setTransports] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -77,7 +76,6 @@ const PartyMaster = () => {
       gstin: normalized.gstin,
       contact_type: normalized.type || 'party',
       is_gst: normalized.is_gst,
-      category: normalized.category_id,
       cin: normalized.cin,
       reg_number: normalized.reg_number,
       bank_id: bankId,
@@ -105,18 +103,11 @@ const PartyMaster = () => {
     fetchParties();
   }, [showToast]);
 
-  // Fetch categories and labels
+  // Fetch labels
   useEffect(() => {
-    const fetchCategoriesAndLabels = async () => {
+    const fetchLabels = async () => {
       try {
-        const [catRes, labelRes] = await Promise.all([
-          api.get('/categories'),
-          api.get('/labels', { params: { page: 1, limit: 200 } })
-        ]);
-        
-        const cats = getResponseList(catRes);
-        setCategories(cats);
-        
+        const labelRes = await api.get('/labels', { params: { page: 1, limit: 200 } });
         const labelsData = getResponseList(labelRes).map(label => ({
           _id: getEntityId(label),
           name: label.name || label.label_name,
@@ -124,10 +115,10 @@ const PartyMaster = () => {
         }));
         setLabels(labelsData);
       } catch (error) {
-        console.error("Failed to fetch categories/labels", error);
+        console.error("Failed to fetch labels", error);
       }
     };
-    fetchCategoriesAndLabels();
+    fetchLabels();
   }, []);
 
   // Fetch agents
@@ -286,9 +277,14 @@ const PartyMaster = () => {
     if (!formData.address?.trim()) errors.push('Address is required');
     if (!formData.city?.trim()) errors.push('City is required');
     if (!formData.state?.trim()) errors.push('State is required');
-    // category is optional now, no validation check
     if (!formData.transport_id) errors.push('Transport is required');
     if (!formData.area_id) errors.push('Area is required');
+    const selectedLabel = formData.label_id
+      ? labels.find((label) => label._id === formData.label_id)
+      : null;
+    if (formData.label_id && !selectedLabel) {
+      errors.push('Selected label is invalid. Please reselect the label.');
+    }
     // agent is optional per user request (was previously required)
     
     let cleanPhone = formData.phone ? formData.phone.replace(/\D/g, '') : '';
@@ -324,7 +320,12 @@ const PartyMaster = () => {
     if (formData.transport_id) payload.transport_id = formData.transport_id;
     if (formData.area_id) payload.area_id = formData.area_id;
     if (formData.agent) payload.agent_id = formData.agent;
-    if (formData.label_id && formData.label_id !== '') payload.label_id = formData.label_id;
+    if (formData.label_id && formData.label_id !== '') {
+      payload.label_id = formData.label_id;
+      if (selectedLabel?.category_id) {
+        payload.category_id = selectedLabel.category_id;
+      }
+    }
 
     console.log('Submitting payload:', payload);
 
@@ -515,10 +516,6 @@ const PartyMaster = () => {
                 <p className="text-sm text-gray-900">{selectedParty.bank_details?.account_number || banks.find(b => getEntityId(b) === selectedParty.bank_id)?.account_number || 'N/A'}</p>
               </div>
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Category</label>
-                <p className="text-sm text-gray-900">{categories.find(c => getEntityId(c) === selectedParty.category)?.name || 'N/A'}</p>
-              </div>
-              <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Agent</label>
                 <p className="text-sm text-gray-900">{agents.find(a => getEntityId(a) === selectedParty.agent)?.name || 'N/A'}</p>
               </div>
@@ -691,18 +688,6 @@ const PartyMaster = () => {
               <select name="state" value={formData.state} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Select State</option>
                 {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* optional category field */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <option value="">Select Category</option>
-                {categories.length === 0 && <option disabled>No categories available</option>}
-                {categories.map((cat) => <option key={getEntityId(cat)} value={getEntityId(cat)}>{cat.name || cat.category_name}</option>)}
               </select>
             </div>
           </div>
