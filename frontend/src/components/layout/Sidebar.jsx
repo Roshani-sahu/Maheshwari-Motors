@@ -105,7 +105,7 @@ const Sidebar = ({ onClose }) => {
        
             
              <NavLink
-              to="/masters/party-master"
+              to="/masters/debitors-master"
               onClick={onClose}
               className={`${linkBase} text-[#CBD5E1] hover:bg-neutral-100 hover:text-neutral-900`}
             >
