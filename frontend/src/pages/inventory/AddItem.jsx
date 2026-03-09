@@ -27,6 +27,7 @@ const AddItem = () => {
     name: '',
     alias: '',
     item_id: '',
+    barcode: '',
     stock: '',
     category: '',
     brand: '',
@@ -172,6 +173,7 @@ const AddItem = () => {
       appendOptional(payload, 'description', formData.description);
       appendOptional(payload, 'alias', formData.alias);
       appendOptional(payload, 'item_id', formData.item_id);
+      appendOptional(payload, 'barcode', formData.barcode);
       if (formData.image) payload.append('image', formData.image);
 
       await api.post('/items', payload, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -209,6 +211,10 @@ const AddItem = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Item ID</label>
               <Input name="item_id" type="number" value={formData.item_id} onChange={(value) => handleChange('item_id', value)} placeholder="Auto-generated if empty" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Barcode</label>
+              <Input name="barcode" value={formData.barcode} onChange={(value) => handleChange('barcode', value)} placeholder="Auto-generated if empty" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
