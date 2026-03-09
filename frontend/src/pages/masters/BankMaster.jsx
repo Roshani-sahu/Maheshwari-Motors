@@ -8,6 +8,7 @@ import api from '../../services/axiosInstance';
 const BankMaster = () => {
   const { showToast } = useStore();
   const [banks, setBanks] = useState([]);
+  const [filterType, setFilterType] = useState(''); // '' means all
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -21,12 +22,15 @@ const BankMaster = () => {
     account_number: '',
     account_holder: '',
     upi_id: '',
+    // bank_type stays implicitly "firm" on backend
     is_default: false
   });
 
-  const fetchBanks = async () => {
+  const fetchBanks = async (type = filterType) => {
     try {
-      const response = await api.get('/banks');
+      const params = { page: 1, limit: 200 };
+      if (type) params.bank_type = type;
+      const response = await api.get('/banks', { params });
       const data = response.data?.data?.data || response.data?.data || [];
       setBanks(data.map(b => ({ ...b, id: b._id })));
     } catch (error) {
@@ -36,10 +40,11 @@ const BankMaster = () => {
 
   useEffect(() => {
     fetchBanks();
-  }, []);
+  }, [filterType]);
 
   const columns = [
     { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs sm:text-sm">{index + 1}</span> },
+    { key: 'bank_type', label: 'Type', render: (val) => <span className="text-xs sm:text-sm">{val ? (val.charAt(0).toUpperCase() + val.slice(1)) : 'Firm'}</span> },
     { key: 'bank_name', label: 'Bank Name', render: (val) => <span className="text-xs sm:text-sm font-medium">{val}</span> },
     { key: 'account_number', label: 'Account Number', render: (val) => <span className="text-xs sm:text-sm">{val}</span> },
     { key: 'ifsc_code', label: 'IFSC Code', render: (val) => <span className="text-xs sm:text-sm">{val || '-'}</span> },
@@ -94,9 +99,21 @@ const BankMaster = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bank Master</h1>
           <p className="text-gray-600 text-xs sm:text-sm">Manage bank accounts</p>
         </div>
-        <Button onClick={() => { setFormData({ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '', account_holder: '', upi_id: '', is_default: false }); setIsAddModalOpen(true); }} className="flex items-center gap-2 text-xs sm:text-sm">
-          <FaPlus className="text-sm sm:text-base" />Add Bank
-        </Button>
+        <div className="flex items-center gap-3">
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-2 py-1 border border-gray-300 rounded-lg text-xs sm:text-sm"
+          >
+            <option value="">All Banks</option>
+            <option value="firm">Firm Bank</option>
+            <option value="party">Party Bank</option>
+            <option value="supplier">Supplier Bank</option>
+          </select>
+          <Button onClick={() => { setFormData({ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '', account_holder: '', upi_id: '', is_default: false }); setIsAddModalOpen(true); }} className="flex items-center gap-2 text-xs sm:text-sm">
+            <FaPlus className="text-sm sm:text-base" />Add Bank
+          </Button>
+        </div>
       </div>
 
       <DataTable columns={columns} data={banks} actions={actions} searchable sortable pagination />
@@ -111,6 +128,7 @@ const BankMaster = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Bank Branch</label>
             <Input value={formData.bank_branch} onChange={(v) => setFormData({ ...formData, bank_branch: v })} placeholder="Enter branch name" />
           </div>
+          {/* bank_type removed from form; backend will assign default 'firm' */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
             <Input value={formData.ifsc_code} onChange={(v) => setFormData({ ...formData, ifsc_code: v })} placeholder="Enter IFSC code" />
@@ -147,6 +165,10 @@ const BankMaster = () => {
               <div>
                 <label className="block text-xs font-medium text-gray-500">Bank Name</label>
                 <p className="text-sm font-medium text-gray-900">{viewingBank.bank_name}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500">Bank Type</label>
+                <p className="text-sm text-gray-900">{viewingBank.bank_type ? viewingBank.bank_type.charAt(0).toUpperCase()+viewingBank.bank_type.slice(1) : 'Firm'}</p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500">Bank Branch</label>

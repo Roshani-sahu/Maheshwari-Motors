@@ -9,6 +9,7 @@ const bankSchema = new mongoose.Schema(
     account_number: { type: String, trim: true, required: true },
     account_holder: { type: String, trim: true, default: "" },
     upi_id: { type: String, trim: true, default: "" },
+    bank_type: { type: String, enum: ["firm", "party", "supplier"], default: "firm" }, // new field for filtering
     is_default: { type: Boolean, default: false },
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
