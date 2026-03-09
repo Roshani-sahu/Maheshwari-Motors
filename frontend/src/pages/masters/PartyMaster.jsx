@@ -286,8 +286,10 @@ const PartyMaster = () => {
     if (!formData.address?.trim()) errors.push('Address is required');
     if (!formData.city?.trim()) errors.push('City is required');
     if (!formData.state?.trim()) errors.push('State is required');
+    // category is optional now, no validation check
     if (!formData.transport_id) errors.push('Transport is required');
     if (!formData.area_id) errors.push('Area is required');
+    // agent is optional per user request (was previously required)
     
     let cleanPhone = formData.phone ? formData.phone.replace(/\D/g, '') : '';
     if (cleanPhone.length > 10) cleanPhone = cleanPhone.slice(-10);
@@ -341,10 +343,13 @@ const PartyMaster = () => {
       const response = await api.get('/contacts/parties', { params: { page: 1, limit: 200 } });
       setParties(getResponseList(response).map(mapParty));
       
-      setIsAddModalOpen(false);
-      setIsEditModalOpen(false);
+      // after a successful save we reset form; when adding we keep the modal open so user can add more
       setFormData(INITIAL_FORM);
       setSelectedParty(null);
+      if (isEditModalOpen) {
+        setIsEditModalOpen(false);
+      }
+      // do not automatically close add modal to allow consecutive entries
     } catch (error) {
       console.error("Party submit error:", error);
       console.error("Error response:", error.response?.data);
@@ -690,6 +695,18 @@ const PartyMaster = () => {
             </div>
           </div>
 
+          {/* optional category field */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+              <select name="category" value={formData.category} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Select Category</option>
+                {categories.length === 0 && <option disabled>No categories available</option>}
+                {categories.map((cat) => <option key={getEntityId(cat)} value={getEntityId(cat)}>{cat.name || cat.category_name}</option>)}
+              </select>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Transport mapping *</label>
@@ -733,14 +750,16 @@ const PartyMaster = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Select Label</option>
+              {labels.length === 0 && <option disabled>No labels available</option>}
               {labels.map((label, index) => <option key={`${label._id}-${index}`} value={label._id}>{label.name}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Agent *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label> {/* optional field now */}
             <select name="agent" value={formData.agent} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
               <option value="">Select Agent</option>
+              {agents.length === 0 && <option disabled>No agents available</option>}
               {agents.map(agent => <option key={getEntityId(agent)} value={getEntityId(agent)}>{agent.name}</option>)}
             </select>
           </div>

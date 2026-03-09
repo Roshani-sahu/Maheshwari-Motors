@@ -209,16 +209,10 @@ const BillList = () => {
         selectedFirm?.accountNumber ||
         "10032001002995",
     );
-n     // suggest a different default title based on contact type
-    const defaultTitle = billData?.contact_id
-      ? billData.contact_id.type === "supplier"
-        ? "PURCHASE TAX INVOICE"
-        : "SALE TAX INVOICE"
-      : "TAX INVOICE";
-    const invoiceTitleInput = window.prompt("Enter bill title", defaultTitle);
+    const invoiceTitleInput = window.prompt("Enter bill title", "TAX INVOICE");
     const invoiceTitle = toMandatoryText(
       invoiceTitleInput,
-      defaultTitle,
+      "TAX INVOICE",
     ).toUpperCase();
 
     const invoiceDateObj =
@@ -234,7 +228,7 @@ n     // suggest a different default title based on contact type
     const transport = billData?.transport_id || {};
 
     const receiverName = toMandatoryText(
-      billData?.customer_name || contact?.name || bill?.party || "CASH BOOK",
+      contact?.name || bill?.party || "CASH BOOK",
     );
     const receiverAddress = toMandatoryText(contact?.address);
     const receiverCity = toMandatoryText(contact?.city);
@@ -998,7 +992,7 @@ n     // suggest a different default title based on contact type
 
     doc.setFont("times", "bold");
     doc.setFontSize(8.8);
-    doc.text("Electronic Reference Number", termsSplitX + 2, termsY + 5.2);
+    doc.text("Electronic Reference Numberrr", termsSplitX + 2, termsY + 5.2);
     const rightSectionWidth = summaryRightX - termsSplitX - 3.5;
     const certLine = fitTextSingleLine(
       "Certified That Particulars Given Above Are True And Correct",
@@ -1130,7 +1124,7 @@ n     // suggest a different default title based on contact type
               <div class="info">
                 <p><span class="label">Bill No:</span> ${bill.billNo}</p>
                 <p><span class="label">Date:</span> ${new Date(bill.date).toLocaleDateString()}</p>
-                <p><span class="label">Party:</span> ${bill.customer_name || bill.party || "-"}</p>
+                <p><span class="label">Party:</span> ${bill.party}</p>
                 <p><span class="label">Amount:</span> ₹${bill.amount.toLocaleString()}</p>
                 <p><span class="label">Type:</span> ${bill.gstType}</p>
               </div>
@@ -1156,7 +1150,7 @@ n     // suggest a different default title based on contact type
   const filteredBills = bills.filter((bill) => {
     if (
       filters.party &&
-      !((bill.party || bill.customer_name || "").toLowerCase().includes(filters.party.toLowerCase()))
+      !bill.party.toLowerCase().includes(filters.party.toLowerCase())
     )
       return false;
     if (filters.gstType !== "all" && bill.gstType !== parseInt(filters.gstType))
