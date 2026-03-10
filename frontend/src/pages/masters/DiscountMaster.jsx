@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FaSave, FaPlus } from 'react-icons/fa';
 import { Button, Modal } from '../../components/ui';
-import { getEntityId } from '../../services/apiUtils';
+import { getEntityId, getResponseList, normalizeItem } from '../../services/apiUtils';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
 
@@ -12,6 +12,9 @@ const DiscountMaster = () => {
   const [saving, setSaving] = useState(false);
   const [labels, setLabels] = useState([]);
   const [selectedLabel, setSelectedLabel] = useState(null);
+  const [items, setItems] = useState([]);
+  const [selectedBrand, setSelectedBrand] = useState(null);
+  const [itemSearch, setItemSearch] = useState('');
   const [isAddLabelModalOpen, setIsAddLabelModalOpen] = useState(false);
   const [newLabelName, setNewLabelName] = useState('');
   const firstFieldRef = useRef(null);
@@ -38,20 +41,37 @@ const DiscountMaster = () => {
     const controller = new AbortController();
     const fetchCategoriesAndLabels = async () => {
       try {
-        const labelRes = await api.get('/labels', {
-          params: { page: 1, limit: 200 },
-          signal: controller.signal
-        });
+        const [labelResult, itemResult] = await Promise.allSettled([
+          api.get('/labels', {
+            params: { page: 1, limit: 200 },
+            signal: controller.signal
+          }),
+          api.get('/items', {
+            params: { page: 1, limit: 1000 },
+            signal: controller.signal
+          })
+        ]);
 
-        const labelList = listFromResponse(labelRes).map((label) => ({
-          id: getEntityId(label),
-          name: label?.name || label?.label_name || '',
-          categoryId: getEntityId(label?.category_id)
-        }));
-        setLabels(labelList);
+        if (labelResult.status === 'fulfilled') {
+          const labelList = listFromResponse(labelResult.value).map((label) => ({
+            id: getEntityId(label),
+            name: label?.name || label?.label_name || '',
+            categoryId: getEntityId(label?.category_id)
+          }));
+          setLabels(labelList);
+        } else if (labelResult.reason?.name !== 'CanceledError') {
+          showToast('Failed to load labels', 'error');
+        }
+
+        if (itemResult.status === 'fulfilled') {
+          const itemList = getResponseList(itemResult.value).map((item) => normalizeItem(item));
+          setItems(itemList);
+        } else if (itemResult.reason?.name !== 'CanceledError') {
+          showToast('Failed to load items', 'error');
+        }
       } catch (error) {
         if (error?.name !== 'CanceledError') {
-          showToast('Failed to load labels', 'error');
+          showToast('Failed to load labels or items', 'error');
         }
       }
     };
@@ -70,6 +90,7 @@ const DiscountMaster = () => {
     if (!selectedLabel?.id) {
       setBrands([]);
       setDiscounts({});
+      setSelectedBrand(null);
       return;
     }
 
@@ -87,6 +108,10 @@ const DiscountMaster = () => {
           discount2: item.disc2 || { normal: 0, special: 0 }
         }));
         setBrands(list);
+        setSelectedBrand((prev) => {
+          if (!prev) return null;
+          return list.find((brand) => String(brand.id) === String(prev.id)) || null;
+        });
 
         const discountMap = {};
         list.forEach((b) => {
@@ -106,6 +131,15 @@ const DiscountMaster = () => {
     fetchLabelDiscounts();
     return () => controller.abort();
   }, [selectedLabel?.id, showToast]);
+
+  const filteredItems = useMemo(() => {
+    if (!selectedBrand?.id) return [];
+    const brandId = String(selectedBrand.id);
+    const list = items.filter((item) => String(item.brandId) === brandId);
+    if (!itemSearch.trim()) return list;
+    const needle = itemSearch.trim().toLowerCase();
+    return list.filter((item) => item.itemName.toLowerCase().includes(needle));
+  }, [items, selectedBrand, itemSearch]);
 
   const updateDiscount = (brandId, discountType, field, value) => {
     setDiscounts((prev) => ({
@@ -197,54 +231,106 @@ const DiscountMaster = () => {
               <h3 className="text-sm sm:text-base font-semibold text-gray-900">{selectedLabel ? `${selectedLabel.name} - Brand Discounts` : 'Brand Discounts'}</h3>
             </div>
 
-            <div className="overflow-x-auto">
-              {!selectedLabel ? (
-                <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">Select a label to manage discount rates</p></div>
-              ) : brands.length === 0 ? (
-                <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">No brands available for this label</p></div>
-              ) : (
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">Brand</th>
-                      <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                        <div className="mb-2">GST Discount</div>
-                        <div className="flex gap-2 text-[10px] normal-case font-normal">
-                          <div className="w-full">Normal</div>
-                          <div className="w-full">Special</div>
-                        </div>
-                      </th>
-                      <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        <div className="mb-2">Non-GST Discount</div>
-                        <div className="flex gap-2 text-[10px] normal-case font-normal">
-                          <div className="w-full">Normal</div>
-                          <div className="w-full">Special</div>
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {brands.map((brand) => (
-                      <tr key={brand.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-gray-900 border-r border-gray-200">{brand.name}</td>
-                        <td className="px-2 py-3 border-r border-gray-200">
-                          <div className="flex gap-2">
-                            <input type="number" step="0.01" min="0" max="100" value={getDiscount(brand.id, 'discount1', 'normal')} onChange={(e) => updateDiscount(brand.id, 'discount1', 'normal', e.target.value)} className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md" />
-                            <input type="number" step="0.01" min="0" max="100" value={getDiscount(brand.id, 'discount1', 'special')} onChange={(e) => updateDiscount(brand.id, 'discount1', 'special', e.target.value)} className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md" />
+            {!selectedLabel ? (
+              <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">Select a label to manage discount rates</p></div>
+            ) : brands.length === 0 ? (
+              <div className="flex items-center justify-center py-12"><p className="text-sm text-gray-500">No brands available for this label</p></div>
+            ) : (
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 p-3 sm:p-4">
+                <div className="xl:col-span-2 overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">Brand</th>
+                        <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          <div className="mb-2">GST Discount</div>
+                          <div className="flex gap-2 text-[10px] normal-case font-normal">
+                            <div className="w-full">Normal</div>
+                            <div className="w-full">Special</div>
                           </div>
-                        </td>
-                        <td className="px-2 py-3">
-                          <div className="flex gap-2">
-                            <input type="number" step="0.01" min="0" max="100" value={getDiscount(brand.id, 'discount2', 'normal')} onChange={(e) => updateDiscount(brand.id, 'discount2', 'normal', e.target.value)} className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md" />
-                            <input type="number" step="0.01" min="0" max="100" value={getDiscount(brand.id, 'discount2', 'special')} onChange={(e) => updateDiscount(brand.id, 'discount2', 'special', e.target.value)} className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md" />
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div className="mb-2">Non-GST Discount</div>
+                          <div className="flex gap-2 text-[10px] normal-case font-normal">
+                            <div className="w-full">Normal</div>
+                            <div className="w-full">Special</div>
                           </div>
-                        </td>
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {brands.map((brand) => {
+                        const isActive = String(selectedBrand?.id || '') === String(brand.id);
+                        return (
+                          <tr
+                            key={brand.id}
+                            onClick={() => setSelectedBrand(brand)}
+                            className={`cursor-pointer transition-colors ${
+                              isActive ? 'bg-blue-50' : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-gray-900 border-r border-gray-200">
+                              <div className="flex items-center gap-2">
+                                <span>{brand.name}</span>
+                                {isActive && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Selected</span>}
+                              </div>
+                            </td>
+                            <td className="px-2 py-3 border-r border-gray-200">
+                              <div className="flex gap-2">
+                                <input type="number" step="0.01" min="0" max="100" value={getDiscount(brand.id, 'discount1', 'normal')} onChange={(e) => updateDiscount(brand.id, 'discount1', 'normal', e.target.value)} className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md" />
+                                <input type="number" step="0.01" min="0" max="100" value={getDiscount(brand.id, 'discount1', 'special')} onChange={(e) => updateDiscount(brand.id, 'discount1', 'special', e.target.value)} className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md" />
+                              </div>
+                            </td>
+                            <td className="px-2 py-3">
+                              <div className="flex gap-2">
+                                <input type="number" step="0.01" min="0" max="100" value={getDiscount(brand.id, 'discount2', 'normal')} onChange={(e) => updateDiscount(brand.id, 'discount2', 'normal', e.target.value)} className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md" />
+                                <input type="number" step="0.01" min="0" max="100" value={getDiscount(brand.id, 'discount2', 'special')} onChange={(e) => updateDiscount(brand.id, 'discount2', 'special', e.target.value)} className="w-full px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md" />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="xl:col-span-1">
+                  <div className="border rounded-lg h-full">
+                    <div className="px-4 py-3 border-b bg-gray-50">
+                      <div className="text-sm font-semibold text-gray-900">Brand Items</div>
+                      <div className="text-xs text-gray-500">
+                        {selectedBrand ? `${selectedBrand.name} (${filteredItems.length})` : 'Select a brand to view items'}
+                      </div>
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <input
+                        type="text"
+                        value={itemSearch}
+                        onChange={(e) => setItemSearch(e.target.value)}
+                        placeholder="Search items..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        disabled={!selectedBrand}
+                      />
+                      <div className="max-h-[420px] overflow-y-auto">
+                        {!selectedBrand ? (
+                          <p className="text-sm text-gray-500">Click a brand row to see items.</p>
+                        ) : filteredItems.length === 0 ? (
+                          <p className="text-sm text-gray-500">No items found for this brand.</p>
+                        ) : (
+                          <ul className="space-y-2">
+                            {filteredItems.map((item) => (
+                              <li key={item.id} className="flex items-center justify-between gap-2 rounded-md border border-gray-100 px-3 py-2 text-sm">
+                                <span className="font-medium text-gray-900">{item.itemName}</span>
+                                <span className="text-xs text-gray-500">₹{Number(item.amount || 0).toFixed(2)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

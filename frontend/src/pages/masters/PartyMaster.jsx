@@ -320,8 +320,6 @@ const PartyMaster = () => {
     if (!formData.state?.trim()) errors.push('State is required');
     if (!formData.transport_id) errors.push('Transport is required');
     if (!formData.area_id) errors.push('Area is required');
-    if (!formData.bank_name?.trim()) errors.push('Bank Name is required');
-    if (!formData.account_number?.trim()) errors.push('Account Number is required');
     const selectedLabel = formData.label_id
       ? labels.find((label) => label._id === formData.label_id)
       : null;
@@ -397,10 +395,20 @@ const PartyMaster = () => {
     if (formData.agent) payload.agent_id = formData.agent;
     if (formData.label_id && formData.label_id !== '') {
       payload.label_id = formData.label_id;
+      payload.label_ids = [formData.label_id];
       if (selectedLabel?.category_id) {
         payload.category_id = selectedLabel.category_id;
       }
+    } else {
+      payload.label_ids = [];
     }
+
+    if (formData.bank_name?.trim()) payload.bank_name = formData.bank_name.trim();
+    if (formData.bank_branch?.trim()) payload.bank_branch = formData.bank_branch.trim();
+    if (formData.ifsc_code?.trim()) payload.ifsc_code = formData.ifsc_code.trim();
+    if (formData.account_number?.trim()) payload.account_number = formData.account_number.trim();
+    if (formData.account_holder?.trim()) payload.account_holder_name = formData.account_holder.trim();
+    if (formData.upi_id?.trim()) payload.upi_id = formData.upi_id.trim();
 
     console.log('Submitting payload:', payload);
 
@@ -838,13 +846,13 @@ const PartyMaster = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name </label>
             <input
               type="text"
               name="bank_name"
               value={formData.bank_name}
               onChange={handleInputChange}
-              required
+             
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter bank name"
             />
@@ -875,13 +883,13 @@ const PartyMaster = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Account Number *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Account Number </label>
             <input
               type="text"
               name="account_number"
               value={formData.account_number}
               onChange={handleInputChange}
-              required
+              
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter account number"
             />
