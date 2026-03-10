@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
 import useStore from '../../store';
 import api from '../../services/axiosInstance';
+import { getEntityId } from '../../services/apiUtils';
 
 const TRANSACTION_TYPES = {
   BANK_RECEIVED: 'bank_received',
@@ -46,6 +47,9 @@ const TransactionMaster = () => {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, transaction: null });
   const [loading, setLoading] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState('all');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const firstFieldRef = useRef(null);
 
   const getResponseList = (res) => {
@@ -60,7 +64,7 @@ const TransactionMaster = () => {
 
   useEffect(() => {
     fetchTransactions();
-  }, [activeBook]);
+  }, [activeBook, fromDate, toDate]);
 
   const focusFirstField = () => {
     setTimeout(() => {
@@ -100,13 +104,21 @@ const TransactionMaster = () => {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/transactions');
-      const allTransactions = getResponseList(res);
-      const bookTypes = getBookTransactionTypes(activeBook);
-      const filtered = allTransactions.filter(t => bookTypes.includes(t.type));
-      setTransactions(filtered);
+      const params = { page: 1, limit: 200 };
+      if (fromDate) params.from_date = fromDate;
+      if (toDate) params.to_date = toDate;
+      if (activeBook === BOOKS.CASH || activeBook === BOOKS.AC) {
+        params.book = activeBook;
+      }
+      const res = await api.get('/transactions', { params });
+      setTransactions(getResponseList(res));
     } catch (error) {
-      showToast('Failed to fetch transactions', 'error');
+      try {
+        const res = await api.get('/transactions');
+        setTransactions(getResponseList(res));
+      } catch (fallbackError) {
+        showToast('Failed to fetch transactions', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -129,14 +141,172 @@ const TransactionMaster = () => {
 
   const activeBookTypes = getBookTransactionTypes(activeBook);
 
+  const contactsById = useMemo(() => {
+    const entries = parties.map((party) => [
+      String(getEntityId(party)),
+      party
+    ]);
+    return new Map(entries);
+  }, [parties]);
+
+  const bankNameById = useMemo(() => {
+    const entries = banks.map((bank) => [
+      String(getEntityId(bank)),
+      bank?.bank_name || bank?.name || ''
+    ]);
+    return new Map(entries);
+  }, [banks]);
+
+  const bookContacts = useMemo(
+    () => parties.filter((party) => party?.type === 'book'),
+    [parties],
+  );
+
+  const normalizeBookName = (value) =>
+    String(value || '')
+      .toLowerCase()
+      .replace(/[\s_-]+/g, '');
+
+  const findBookContact = (canonicalName) => {
+    const canonical = normalizeBookName(canonicalName);
+    const exact = bookContacts.find((contact) => {
+      const name = normalizeBookName(contact?.name);
+      const alias = normalizeBookName(contact?.alias);
+      return name === canonical || alias === canonical;
+    });
+    if (exact) return exact;
+    return bookContacts.find((contact) => {
+      const name = normalizeBookName(contact?.name);
+      const alias = normalizeBookName(contact?.alias);
+      return name.includes(canonical) || alias.includes(canonical);
+    });
+  };
+
+  const cashBookContact = useMemo(
+    () => findBookContact('cashbook'),
+    [bookContacts],
+  );
+
+  const bankBookContact = useMemo(
+    () => findBookContact('bankbook'),
+    [bookContacts],
+  );
+
+  const missingBookMessage = useMemo(() => {
+    if (activeBook === BOOKS.CASH && !cashBookContact) {
+      return "Cashbook contact (type 'book') not found.";
+    }
+    if (activeBook === BOOKS.AC && !bankBookContact) {
+      return "Bankbook contact (type 'book') not found.";
+    }
+    return null;
+  }, [activeBook, cashBookContact, bankBookContact]);
+
+  const resolveContact = (value) => {
+    const contactId = getEntityId(value);
+    if (!contactId) return value && typeof value === 'object' ? value : null;
+    return contactsById.get(String(contactId)) || null;
+  };
+
+  const filteredTransactions = useMemo(() => {
+    const rows = Array.isArray(transactions) ? transactions : [];
+    let scoped = rows;
+
+    if (activeBook === BOOKS.CASH || activeBook === BOOKS.AC) {
+      const bookContact = activeBook === BOOKS.CASH ? cashBookContact : bankBookContact;
+      const bookId = getEntityId(bookContact);
+      if (!bookId) return [];
+      scoped = scoped
+        .filter((t) => String(getEntityId(t?.contact_id)) === String(bookId))
+        .map((t) => ({ ...t, typeLabel: 'BILL' }));
+    } else if (activeBook === BOOKS.CREDITOR) {
+      scoped = scoped.filter((t) => {
+        const contact = resolveContact(t?.contact_id);
+        const contactType = t?.contact_type || contact?.type || t?.contact_id?.type;
+        return (
+          contactType === 'supplier' &&
+          (t?.type === TRANSACTION_TYPES.BANK_PAYMENT ||
+            t?.type === TRANSACTION_TYPES.CASH_PAYMENT)
+        );
+      });
+    } else if (activeBook === BOOKS.DEBITOR) {
+      scoped = scoped.filter((t) => {
+        const contact = resolveContact(t?.contact_id);
+        const contactType = t?.contact_type || contact?.type || t?.contact_id?.type;
+        return (
+          contactType === 'party' &&
+          (t?.type === TRANSACTION_TYPES.BANK_RECEIVED ||
+            t?.type === TRANSACTION_TYPES.CASH_RECEIVED)
+        );
+      });
+    }
+
+    if (historyFilter !== 'all') {
+      scoped = scoped.filter((t) => {
+        const contact = resolveContact(t?.contact_id);
+        const contactType = t?.contact_type || contact?.type || t?.contact_id?.type;
+        return historyFilter === 'supplier'
+          ? contactType === 'supplier'
+          : contactType === 'party';
+      });
+    }
+
+    if (fromDate || toDate) {
+      const fromTs = fromDate ? new Date(fromDate).setHours(0, 0, 0, 0) : null;
+      const toTs = toDate ? new Date(toDate).setHours(23, 59, 59, 999) : null;
+      scoped = scoped.filter((t) => {
+        if (!t?.date) return false;
+        const dateTs = new Date(t.date).getTime();
+        if (Number.isNaN(dateTs)) return false;
+        if (fromTs && dateTs < fromTs) return false;
+        if (toTs && dateTs > toTs) return false;
+        return true;
+      });
+    }
+
+    return scoped;
+  }, [
+    transactions,
+    activeBook,
+    cashBookContact,
+    bankBookContact,
+    resolveContact,
+    historyFilter,
+    fromDate,
+    toDate
+  ]);
+
   const columns = [
     { key: 'id', label: 'ID', width: '50px', render: (v, r, i) => i + 1 },
     { key: 'transaction_no', label: 'Trans No', width: '100px' },
     { key: 'date', label: 'Date', width: '100px', render: (v) => new Date(v).toLocaleDateString() },
-    { key: 'type', label: 'Type', width: '120px', render: (v) => v.replace(/_/g, ' ').toUpperCase() },
-    { key: 'contact_id', label: 'Party', width: '150px', render: (v) => parties.find(p => p._id === v)?.name || 'N/A' },
+    {
+      key: 'type',
+      label: 'Type',
+      width: '120px',
+      render: (_v, row) =>
+        row?.typeLabel ||
+        (row?.type ? row.type.replace(/_/g, ' ').toUpperCase() : 'N/A')
+    },
+    {
+      key: 'contact_id',
+      label: 'Party',
+      width: '150px',
+      render: (v) => {
+        const contactId = getEntityId(v);
+        return contactsById.get(String(contactId))?.name || v?.name || 'N/A';
+      }
+    },
     { key: 'amount', label: 'Amount', width: '100px', render: (v) => `₹${v?.toFixed(2)}` },
-    { key: 'bank_id', label: 'Bank', width: '120px', render: (v) => v ? banks.find(b => b._id === v)?.bank_name || 'N/A' : 'N/A' },
+    {
+      key: 'bank_id',
+      label: 'Bank',
+      width: '120px',
+      render: (v) => {
+        const bankId = getEntityId(v);
+        return bankId ? bankNameById.get(String(bankId)) || 'N/A' : 'N/A';
+      }
+    },
     { key: 'reference', label: 'Reference', width: '100px' }
   ];
 
@@ -263,9 +433,64 @@ const TransactionMaster = () => {
         ))}
       </div>
 
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: 'all', label: 'All History' },
+            { key: 'supplier', label: 'Supplier History Transaction' },
+            { key: 'party', label: 'Party History Transaction' }
+          ].map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setHistoryFilter(item.key)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                historyFilter === item.key
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">From Date</label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="px-3 py-2 border rounded-md text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">To Date</label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="px-3 py-2 border rounded-md text-sm"
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setFromDate('');
+              setToDate('');
+            }}
+          >
+            Clear Dates
+          </Button>
+        </div>
+      </div>
+
+      {missingBookMessage && (
+        <div className="text-sm text-red-600">{missingBookMessage}</div>
+      )}
+
       <DataTable
         columns={columns}
-        data={transactions}
+        data={filteredTransactions}
         actions={actions}
         searchable={true}
         sortable={true}
@@ -366,3 +591,4 @@ const TransactionMaster = () => {
 };
 
 export default TransactionMaster;
+
