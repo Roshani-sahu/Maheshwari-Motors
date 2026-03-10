@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Subscription from "../../models/common/subscription.model.js";
 import User from "../../models/auth/user.model.js";
 import { ApiError, Pagination } from "../../utils/index.js";
@@ -16,7 +17,9 @@ function normalizeDuration(duration = {}) {
   }
 
   if (years < 0 || months < 0 || days < 0) {
-    throw ApiError.badRequest("Subscription duration values cannot be negative");
+    throw ApiError.badRequest(
+      "Subscription duration values cannot be negative",
+    );
   }
 
   if (years === 0 && months === 0 && days === 0) {
@@ -68,13 +71,30 @@ class SubscriptionService {
   }
 
   async getSubscriptionByUserId(userId) {
-    const subscription = await Subscription.findOne({ user_id: userId }).populate(
-      "user_id",
-      "name email phone type is_active",
-    );
+    const subscription = await Subscription.findOne({
+      user_id: userId,
+    }).populate("user_id", "name email phone type is_active");
 
     if (!subscription) throw ApiError.notFound("Subscription not found");
     return subscription;
+  }
+
+  async resolveUserId(identifier) {
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+      const user = await User.findById(identifier).select("_id");
+      if (user) return user._id;
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { "admin.username": identifier },
+        { "gst_firm.username": identifier },
+        { "nongst_firm.username": identifier },
+      ],
+    }).select("_id");
+
+    if (!user) throw ApiError.notFound("User not found for the given username");
+    return user._id;
   }
 
   async setSubscription(userId, data, adminUserId = null) {
@@ -83,8 +103,8 @@ class SubscriptionService {
 
     const duration = normalizeDuration(data);
     const planType = data.plan_type === "demo" ? "demo" : "paid";
+    const amount = Number(data.amount || 0);
     const now = new Date();
-
     const existing = await Subscription.findOne({ user_id: userId });
 
     let startDate = now;
@@ -106,6 +126,7 @@ class SubscriptionService {
         plan_type: planType,
         status: "active",
         timeline: duration,
+        amount,
         start_date: startDate,
         expiry_date: expiryDate,
         activated_by: adminUserId,
@@ -120,6 +141,7 @@ class SubscriptionService {
     existing.history.push({
       plan_type: existing.plan_type,
       timeline: existing.timeline,
+      amount: existing.amount || 0,
       start_date: existing.start_date,
       expiry_date: existing.expiry_date,
       activated_by: existing.activated_by,
@@ -130,6 +152,7 @@ class SubscriptionService {
     existing.plan_type = planType;
     existing.status = "active";
     existing.timeline = duration;
+    existing.amount = amount;
     existing.start_date = startDate;
     existing.expiry_date = expiryDate;
     existing.activated_by = adminUserId;

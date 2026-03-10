@@ -102,11 +102,6 @@ class ChallanController {
       req.params.itemId,
       req.user._id,
     );
-    if (!result) {
-      return res
-        .status(404)
-        .json(new ApiResponse(404, null, "No sale record found for this item"));
-    }
     res
       .status(200)
       .json(
@@ -129,6 +124,18 @@ class ChallanController {
       .status(200)
       .json(new ApiResponse(200, challan, "Payment recorded successfully"));
   });
+
+  checkChallanNoUnique = asyncHandler(async (req, res) => {
+    const result = await challanService.checkChallanNoUnique(
+      req.body.challan_no,
+      req.isGst,
+      req.body.challan_type || null,
+      req.user._id,
+    );
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Challan number check completed"));
+  });
 }
 
 const challanController = new ChallanController();
@@ -143,5 +150,6 @@ export const getUnconvertedChallansForContact =
   challanController.getUnconvertedChallansForContact;
 export const getLastSoldItem = challanController.getLastSoldItem;
 export const recordPayment = challanController.recordPayment;
+export const checkChallanNoUnique = challanController.checkChallanNoUnique;
 
 export default challanController;

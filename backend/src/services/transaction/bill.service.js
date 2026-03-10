@@ -137,7 +137,6 @@ class BillService {
 
     if (query.contact_id) filter.contact_id = query.contact_id;
     if (query.payment_status) filter.payment_status = query.payment_status;
-    if (query.bill_no) filter.bill_no = query.bill_no;
 
     if (query.from_date || query.to_date) {
       filter.date = {};
@@ -197,74 +196,145 @@ class BillService {
     return bill;
   }
 
+  async _resolveBillNo(providedBillNo, isGst, userId) {
+    if (
+      providedBillNo &&
+      typeof providedBillNo === "string" &&
+      providedBillNo.trim()
+    ) {
+      const trimmed = providedBillNo.trim();
+      const exists = await Bill.exists({
+        bill_no: trimmed,
+        user_id: userId,
+        is_gst: isGst,
+      });
+      if (exists) {
+        throw ApiError.conflict(
+          `Bill number '${trimmed}' already exists. Please use a different bill number.`,
+        );
+      }
+      return trimmed;
+    }
+    const billNoSeq = await getNextId(
+      `BillNo_${isGst === 1 ? "GST" : "NONGST"}`,
+      userId,
+    );
+    return `BL-${String(billNoSeq).padStart(6, "0")}`;
+  }
+
+  async checkBillNoUnique(billNo, isGst, userId) {
+    if (!billNo || typeof billNo !== "string" || !billNo.trim()) {
+      throw ApiError.badRequest("bill_no is required");
+    }
+    const exists = await Bill.exists({
+      bill_no: billNo.trim(),
+      user_id: userId,
+      is_gst: isGst,
+    });
+    return { bill_no: billNo.trim(), is_unique: !exists };
+  }
+
   async createBill(billData, userId, isGst) {
     const {
       challan_ids,
-      contact_id,
+      contact_id: rawContactId,
+      party_id: partyId,
       apply_balance = false,
       delivered_amount,
       transport_id,
       customer_name,
       vehicle_number,
+      vehicle_no,
       transport_charge,
-      bill_no: requestedBillNo,
+      amount: providedAmount,
+      total_amount: providedTotalAmount,
+      bill_no: providedBillNo,
     } = billData;
+    const contact_id = rawContactId || partyId;
+    const normalizedVehicleNumber =
+      typeof vehicle_number === "string" ? vehicle_number : vehicle_no;
 
-    // allow overriding the auto-generated bill number
-    let providedBillNo = "";
-    if (typeof requestedBillNo === "string") {
-      providedBillNo = requestedBillNo.trim();
-      if (providedBillNo) {
-        const exists = await Bill.exists({
-          bill_no: providedBillNo,
-          user_id: userId,
-          is_gst: isGst,
-        });
-        if (exists) {
-          throw ApiError.badRequest("Bill number already exists");
-        }
-      }
-    }
-
-    // challans are required unless no contact_id (self bill)
-    if ((!challan_ids || challan_ids.length === 0) && !contact_id) {
-      // okay for self-bill, we'll handle later
-    } else if (!challan_ids || challan_ids.length === 0) {
+    if (!challan_ids || challan_ids.length === 0) {
       throw ApiError.badRequest("At least one challan is required");
     }
 
-    // build filter for challans; only include contact_id when provided
+    if (!contact_id) {
+      throw ApiError.badRequest("contact_id is required");
+    }
+
+    const hasFirmContext = isGst === 0 || isGst === 1;
     const challanFilter = {
-      _id: { $in: challan_ids || [] },
+      _id: { $in: challan_ids },
+      contact_id,
       user_id: userId,
-      is_gst: isGst,
       challan_type: "sale",
       converted_to_bill: false,
     };
-    if (contact_id) challanFilter.contact_id = contact_id;
+    if (hasFirmContext) challanFilter.is_gst = isGst;
 
     const challans = await Challan.find(challanFilter);
 
-    if (contact_id && challans.length !== (challan_ids || []).length) {
+    if (challans.length !== challan_ids.length) {
+      const challansIgnoringFirm = await Challan.find({
+        _id: { $in: challan_ids },
+        // contact_id,
+        user_id: userId,
+        challan_type: "sale",
+        converted_to_bill: false,
+      }).select("_id is_gst");
+
+      if (
+        hasFirmContext &&
+        challansIgnoringFirm.length === challan_ids.length
+      ) {
+        const firmLabels = [
+          ...new Set(
+            challansIgnoringFirm.map((challan) =>
+              challan.is_gst === 1 ? "GST" : "NON_GST",
+            ),
+          ),
+        ];
+
+        throw ApiError.badRequest(
+          `Selected challan(s) belong to ${firmLabels.join("/")} firm. Please create bill from the matching firm login.`,
+        );
+      }
+
       throw ApiError.badRequest(
         "Some challans are invalid, already billed, or do not belong to this contact/firm",
       );
     }
 
-    let totalAmount = challans.reduce(
-      (sum, challan) => sum + challan.amount,
-      0,
-    );
-
-    // contact may be missing for 'me' bills
-    let contact = {};
-    if (contact_id) {
-      contact = await Contact.findOne({
-        _id: contact_id,
-        user_id: userId,
-      }).lean();
-      if (!contact) throw ApiError.notFound("Contact not found");
+    if (!hasFirmContext) {
+      const mixedFirmChallans = new Set(
+        challans.map((challan) => challan.is_gst),
+      ).size;
+      if (mixedFirmChallans > 1) {
+        throw ApiError.badRequest(
+          "Selected challans contain mixed GST and NON_GST entries. Please create separate bills per firm.",
+        );
+      }
     }
+
+    const resolvedIsGst = hasFirmContext ? isGst : challans[0].is_gst;
+
+    let totalAmount;
+    const rawAmount =
+      providedAmount !== undefined ? providedAmount : providedTotalAmount;
+    if (rawAmount !== undefined && rawAmount !== null && rawAmount !== "") {
+      totalAmount = Number(rawAmount);
+      if (!Number.isFinite(totalAmount) || totalAmount < 0) {
+        throw ApiError.badRequest("amount must be a non-negative number");
+      }
+    } else {
+      totalAmount = challans.reduce((sum, challan) => sum + challan.amount, 0);
+    }
+
+    const contact = await Contact.findOne({
+      _id: contact_id,
+      user_id: userId,
+    }).lean();
+    if (!contact) throw ApiError.notFound("Contact not found");
 
     let resolvedTransportId = null;
     if (transport_id) {
@@ -317,7 +387,7 @@ class BillService {
       throw ApiError.badRequest("Delivered amount cannot exceed total amount");
     }
 
-    if (balanceApplied !== 0 && contact_id) {
+    if (balanceApplied !== 0) {
       await Contact.findByIdAndUpdate(contact_id, { balance: 0 });
     }
 
@@ -329,19 +399,12 @@ class BillService {
       billAmount = deliveredNum;
     }
 
+    const bill_no = await this._resolveBillNo(
+      providedBillNo,
+      resolvedIsGst,
+      userId,
+    );
     const nextId = await getNextId("Bill", userId);
-
-    // choose bill number: use provided override if available, otherwise generate
-    let bill_no;
-    if (providedBillNo) {
-      bill_no = providedBillNo;
-    } else {
-      const billNoSeq = await getNextId(
-        `BillNo_${isGst === 1 ? "GST" : "NONGST"}`,
-        userId,
-      );
-      bill_no = `BL-${String(billNoSeq).padStart(6, "0")}`;
-    }
 
     const bill = await Bill.create({
       id: nextId,
@@ -353,20 +416,22 @@ class BillService {
           customer_name.trim()
         : contact.name || "",
       vehicle_number:
-        typeof vehicle_number === "string" ? vehicle_number.trim() : "",
+        typeof normalizedVehicleNumber === "string" ?
+          normalizedVehicleNumber.trim()
+        : "",
       transport_charge: resolvedTransportCharge,
       date: new Date(),
       amount: billAmount,
       return_amount: partialReturnAmount,
       challan_ids,
       user_id: userId,
-      is_gst: isGst,
+      is_gst: resolvedIsGst,
       paid_amount: 0,
       payment_status: "due",
-      skip_stock_calculation: isGst === 0,
+      skip_stock_calculation: resolvedIsGst === 0,
     });
 
-    if (partialReturnAmount > 0 && contact_id) {
+    if (partialReturnAmount > 0) {
       await Contact.findByIdAndUpdate(contact_id, {
         $inc: { balance: partialReturnAmount },
       });
@@ -389,6 +454,132 @@ class BillService {
       bill: populatedBill,
       balance_applied: balanceApplied,
       partial_return: partialReturnAmount,
+    };
+  }
+
+  /**
+   * Batch-convert multiple challans into bills, grouping by is_gst and contact_id.
+   * Creates one bill per (is_gst, contact_id) combination.
+   */
+  async batchConvertChallans(challanIds, userId) {
+    if (!Array.isArray(challanIds) || challanIds.length === 0) {
+      throw ApiError.badRequest("At least one challan_id is required");
+    }
+
+    const challans = await Challan.find({
+      _id: { $in: challanIds },
+      user_id: userId,
+      challan_type: "sale",
+      converted_to_bill: false,
+    })
+      .populate("contact_id", "name balance transport_charge transport_id")
+      .lean();
+
+    if (challans.length !== challanIds.length) {
+      throw ApiError.badRequest(
+        "Some challans are invalid, already billed, or do not belong to your account",
+      );
+    }
+
+    // Group by is_gst, then by contact_id
+    const groups = new Map();
+    for (const challan of challans) {
+      const contactId = String(challan.contact_id?._id || challan.contact_id);
+      const key = `${challan.is_gst}_${contactId}`;
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          is_gst: challan.is_gst,
+          contact_id: contactId,
+          contact_name: challan.contact_id?.name || "Unknown",
+          challans: [],
+        });
+      }
+      groups.get(key).challans.push(challan);
+    }
+
+    const createdBills = [];
+
+    for (const [, group] of groups) {
+      const groupChallanIds = group.challans.map((c) => c._id);
+      const totalAmount = this._round(
+        group.challans.reduce((sum, c) => sum + (c.amount || 0), 0),
+      );
+
+      const contact = await Contact.findOne({
+        _id: group.contact_id,
+        user_id: userId,
+      }).lean();
+
+      if (!contact) {
+        throw ApiError.notFound(
+          `Contact not found for party '${group.contact_name}'`,
+        );
+      }
+
+      let resolvedTransportId = null;
+      if (contact.transport_id) {
+        const transportExists = await Transport.exists({
+          _id: contact.transport_id,
+          user_id: userId,
+        });
+        if (transportExists) {
+          resolvedTransportId = contact.transport_id;
+        }
+      }
+
+      const resolvedTransportCharge = Number(contact.transport_charge || 0);
+
+      const bill_no = await this._resolveBillNo(null, group.is_gst, userId);
+      const nextId = await getNextId("Bill", userId);
+
+      const bill = await Bill.create({
+        id: nextId,
+        bill_no,
+        contact_id: group.contact_id,
+        transport_id: resolvedTransportId,
+        customer_name: contact.name || "",
+        vehicle_number: "",
+        transport_charge: resolvedTransportCharge,
+        date: new Date(),
+        amount: totalAmount,
+        return_amount: 0,
+        challan_ids: groupChallanIds,
+        user_id: userId,
+        is_gst: group.is_gst,
+        paid_amount: 0,
+        payment_status: "due",
+        skip_stock_calculation: group.is_gst === 0,
+      });
+
+      await Challan.updateMany(
+        { _id: { $in: groupChallanIds } },
+        { converted_to_bill: true, bill_id: bill._id },
+      );
+
+      createdBills.push(bill);
+    }
+
+    const populatedBills = await Bill.find({
+      _id: { $in: createdBills.map((b) => b._id) },
+    })
+      .populate("contact_id", "name type balance transport_charge")
+      .populate("transport_id", "name phone")
+      .populate({
+        path: "challan_ids",
+        select: "amount discount sub_total date items",
+      });
+
+    return {
+      bills: populatedBills,
+      total_bills_created: populatedBills.length,
+      groups: [...groups.values()].map((g) => ({
+        is_gst: g.is_gst,
+        firm_type: g.is_gst === 1 ? "GST" : "NON_GST",
+        contact_id: g.contact_id,
+        contact_name: g.contact_name,
+        challan_count: g.challans.length,
+      })),
     };
   }
 
@@ -781,83 +972,49 @@ class BillService {
     });
   }
 
-  async getLastSoldItemsForParty(payload, userId, isGst) {
-    const contactId = payload?.contact_id;
-    const itemId = payload?.item_id;
-
-    if (!contactId) {
-      throw ApiError.badRequest("contact_id is required");
-    }
-    if (!itemId) {
-      throw ApiError.badRequest("item_id is required");
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(contactId)) {
-      throw ApiError.badRequest("Invalid contact_id");
-    }
-    if (!mongoose.Types.ObjectId.isValid(itemId)) {
-      throw ApiError.badRequest("Invalid item_id");
-    }
-
-    const contact = await Contact.findOne({
-      _id: contactId,
-      user_id: userId,
-    })
-      .select("_id name type")
-      .lean();
-    if (!contact) {
-      throw ApiError.notFound("Contact not found");
-    }
-
-    const bills = await Bill.find({
-      user_id: userId,
-      is_gst: isGst,
-      contact_id: contactId,
-    })
-      .select("_id bill_no date amount payment_status challan_ids")
-      .sort({ date: -1, createdAt: -1, _id: -1 })
-      .lean();
-
-    if (bills.length === 0) {
-      return [];
-    }
-
-    const billMap = new Map(bills.map((bill) => [String(bill._id), bill]));
-    const challanIds = [
-      ...new Set(
-        bills
-          .flatMap((bill) => bill.challan_ids || [])
-          .filter(Boolean)
-          .map((id) => String(id)),
-      ),
-    ];
-
-    if (challanIds.length === 0) {
-      return [];
+  async getLastSoldItem(itemId, userId, isGst) {
+    if (!itemId || !mongoose.Types.ObjectId.isValid(itemId)) {
+      throw ApiError.badRequest("Valid item_id is required");
     }
 
     const challans = await Challan.find({
-      _id: { $in: challanIds },
       user_id: userId,
       is_gst: isGst,
       challan_type: "sale",
-      contact_id: contactId,
+      converted_to_bill: true,
       "items.item_id": itemId,
     })
-      .select("bill_id challan_no date items")
+      .sort({ date: -1, createdAt: -1, _id: -1 })
+      .select("bill_id challan_no date items contact_id")
+      .populate("contact_id", "name phone type")
       .populate(
         "items.item_id",
         "item_name alias description hsn_id barcode item_id sale_rate mrp_rate gst_percent image",
       )
       .lean();
 
+    if (challans.length === 0) return [];
+
+    const billIds = [
+      ...new Set(challans.map((c) => String(c.bill_id)).filter(Boolean)),
+    ];
+
+    const bills = await Bill.find({
+      _id: { $in: billIds },
+      user_id: userId,
+      is_gst: isGst,
+    })
+      .select("_id bill_no date amount payment_status")
+      .lean();
+
+    const billMap = new Map(bills.map((b) => [String(b._id), b]));
     const normalizedItemId = String(itemId);
     const entries = [];
 
     for (const challan of challans) {
-      const mappedBill =
+      const bill =
         challan.bill_id ? billMap.get(String(challan.bill_id)) : null;
-      if (!mappedBill) continue;
+      if (!bill) continue;
 
       for (const line of challan.items || []) {
         const lineItem = line?.item_id;
@@ -869,13 +1026,14 @@ class BillService {
         if (lineItemId !== normalizedItemId) continue;
 
         entries.push({
-          bill_id: mappedBill._id,
-          bill_no: mappedBill.bill_no,
-          bill_date: mappedBill.date,
-          bill_amount: mappedBill.amount,
-          bill_payment_status: mappedBill.payment_status,
+          bill_id: bill._id,
+          bill_no: bill.bill_no,
+          bill_date: bill.date,
+          bill_amount: bill.amount,
+          bill_payment_status: bill.payment_status,
           challan_no: challan.challan_no,
           challan_date: challan.date,
+          contact: challan.contact_id,
           item: lineItem,
           quantity: line.quantity,
           rate: line.rate,

@@ -9,8 +9,10 @@ router.use(requireFirm);
 
 router.get("/", billController.getBills);
 router.post("/", billController.createBill);
+router.post("/batch-convert", billController.batchConvert);
+router.post("/check-bill-no", billController.checkBillNoUnique);
 router.post("/settlements", billController.settleBills);
-router.post("/last-sold-items", billController.getLastSoldItemsForParty);
+router.get("/item/:itemId/last-sold", billController.getLastSoldItem);
 router.get("/summary", billController.getBillSummary);
 router.get("/status/:status", billController.getBillsByStatus);
 router.get("/contact/:contactId", billController.getBillsForContact);

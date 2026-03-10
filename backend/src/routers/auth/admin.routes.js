@@ -50,6 +50,7 @@ router.put(
 router.get("/subscriptions", adminController.getSubscriptions);
 router.get("/subscriptions/expiring-today", adminController.getExpiringToday);
 router.post("/subscriptions/expire-check", adminController.runExpiryCheck);
+router.post("/subscriptions", adminController.setSubscription);
 router.get("/subscriptions/:userId", adminController.getSubscriptionByUserId);
 router.put("/subscriptions/:userId", adminController.setSubscription);
 

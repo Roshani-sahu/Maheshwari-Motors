@@ -20,8 +20,6 @@ class Database {
 
       this.connection = await mongoose.connect(env.MONGODB_URI, options);
 
-      console.log(`Database connected`);
-
       mongoose.connection.on("error", (err) => {
         console.error("Database connection error:", err);
       });
@@ -41,7 +39,6 @@ class Database {
     if (this.connection) {
       await mongoose.disconnect();
       this.connection = null;
-      console.log("Database disconnected");
     }
   }
 }

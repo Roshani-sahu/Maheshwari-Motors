@@ -1,7 +1,6 @@
 export { default as authController } from "./auth/auth.controller.js";
 export * as adminController from "./auth/admin.controller.js";
 export * as itemController from "./master/item.controller.js";
-export * as categoryController from "./master/category.controller.js";
 export * as labelController from "./master/label.controller.js";
 export * as brandController from "./master/brand.controller.js";
 export * as hsnController from "./master/hsn.controller.js";
@@ -16,3 +15,4 @@ export * as reportController from "./report/report.controller.js";
 export { default as departmentController } from "./master/department.controller.js";
 export { default as bankController } from "./master/bank.controller.js";
 export * as returnController from "./transaction/return.controller.js";
+export * as transactionController from "./transaction/transaction.controller.js";

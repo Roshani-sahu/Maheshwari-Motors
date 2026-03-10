@@ -4,11 +4,32 @@ import User from "../../models/auth/user.model.js";
 import Session from "../../models/auth/session.model.js";
 import Subscription from "../../models/common/subscription.model.js";
 import Bank from "../../models/master/bank.model.js";
+import Contact from "../../models/master/contact.model.js";
 import s3Service from "../common/s3.service.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 
 class AdminService {
+  _toSafeUserObject(user) {
+    if (!user) return user;
+
+    const safe = { ...user };
+    if (safe.gst_firm) {
+      safe.gst_firm = { ...safe.gst_firm };
+      delete safe.gst_firm.password;
+    }
+    if (safe.nongst_firm) {
+      safe.nongst_firm = { ...safe.nongst_firm };
+      delete safe.nongst_firm.password;
+    }
+    if (safe.admin) {
+      safe.admin = { ...safe.admin };
+      delete safe.admin.password;
+    }
+
+    return safe;
+  }
+
   _normalizeBankIds(bankIds, label) {
     if (bankIds === undefined) return undefined;
 
@@ -53,6 +74,141 @@ class AdminService {
     return normalized;
   }
 
+  _normalizeBankText(value) {
+    if (value === undefined || value === null) return "";
+    return String(value).trim();
+  }
+
+  _hasBankDraftValues(bank = {}) {
+    if (!bank || typeof bank !== "object") return false;
+    const fields = [
+      "bank_name",
+      "account_number",
+      "ifsc_code",
+      "bank_branch",
+      "account_holder",
+      "upi_id",
+    ];
+    return fields.some((field) => this._normalizeBankText(bank[field]) !== "");
+  }
+
+  async _syncFirmBankIds(userId, bankIds, label) {
+    if (bankIds === undefined) return undefined;
+    if (!Array.isArray(bankIds)) {
+      throw ApiError.badRequest(`${label}: bank_ids must be an array`);
+    }
+    if (bankIds.length === 0) return [];
+
+    const synced = [];
+    const seen = new Set();
+
+    for (const entry of bankIds) {
+      if (typeof entry === "string" || mongoose.Types.ObjectId.isValid(entry)) {
+        const key = String(entry);
+        if (seen.has(key)) continue;
+
+        const existing = await Bank.findOne({ _id: key, user_id: userId })
+          .select("_id")
+          .lean();
+        if (!existing) {
+          throw ApiError.badRequest(
+            `${label}: one or more bank_ids are invalid or do not belong to this user`,
+          );
+        }
+        seen.add(key);
+        synced.push(existing._id);
+        continue;
+      }
+
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        throw ApiError.badRequest(`${label}: invalid bank entry provided`);
+      }
+
+      const entryId =
+        entry._id && mongoose.Types.ObjectId.isValid(entry._id) ?
+          String(entry._id)
+        : null;
+
+      if (entryId) {
+        const bankDoc = await Bank.findOne({ _id: entryId, user_id: userId });
+        if (!bankDoc) {
+          throw ApiError.badRequest(
+            `${label}: one or more bank_ids are invalid or do not belong to this user`,
+          );
+        }
+
+        if (this._hasBankDraftValues(entry)) {
+          if (entry.bank_name !== undefined) {
+            bankDoc.bank_name = this._normalizeBankText(entry.bank_name);
+          }
+          if (entry.bank_branch !== undefined) {
+            bankDoc.bank_branch = this._normalizeBankText(entry.bank_branch);
+          }
+          if (entry.ifsc_code !== undefined) {
+            bankDoc.ifsc_code = this._normalizeBankText(entry.ifsc_code);
+          }
+          if (entry.account_number !== undefined) {
+            bankDoc.account_number = this._normalizeBankText(
+              entry.account_number,
+            );
+          }
+          if (entry.account_holder !== undefined) {
+            bankDoc.account_holder = this._normalizeBankText(
+              entry.account_holder,
+            );
+          }
+          if (entry.upi_id !== undefined) {
+            bankDoc.upi_id = this._normalizeBankText(entry.upi_id);
+          }
+
+          if (!bankDoc.bank_name || !bankDoc.account_number) {
+            throw ApiError.badRequest(
+              `${label}: bank_name and account_number are required for each bank`,
+            );
+          }
+          await bankDoc.save();
+        }
+
+        if (!seen.has(entryId)) {
+          seen.add(entryId);
+          synced.push(bankDoc._id);
+        }
+        continue;
+      }
+
+      if (!this._hasBankDraftValues(entry)) {
+        continue;
+      }
+
+      const bankName = this._normalizeBankText(entry.bank_name);
+      const accountNumber = this._normalizeBankText(entry.account_number);
+      if (!bankName || !accountNumber) {
+        throw ApiError.badRequest(
+          `${label}: bank_name and account_number are required for each bank`,
+        );
+      }
+
+      const createdBank = await Bank.create({
+        id: await getNextId("Bank", userId),
+        bank_name: bankName,
+        bank_branch: this._normalizeBankText(entry.bank_branch),
+        ifsc_code: this._normalizeBankText(entry.ifsc_code),
+        account_number: accountNumber,
+        account_holder: this._normalizeBankText(entry.account_holder),
+        upi_id: this._normalizeBankText(entry.upi_id),
+        user_id: userId,
+      });
+
+      const createdKey = String(createdBank._id);
+      if (!seen.has(createdKey)) {
+        seen.add(createdKey);
+        synced.push(createdBank._id);
+      }
+    }
+
+    return synced;
+  }
+
   async _attachSubscriptionSummary(users = []) {
     if (!users || users.length === 0) return users;
 
@@ -60,7 +216,7 @@ class AdminService {
     const subscriptions = await Subscription.find({
       user_id: { $in: userIds },
     })
-      .select("user_id plan_type status start_date expiry_date timeline")
+      .select("user_id plan_type status start_date expiry_date timeline amount")
       .lean();
 
     const subMap = new Map(
@@ -90,14 +246,30 @@ class AdminService {
     });
   }
 
-  async _createFirmBank(userId, bankName, accountNumber, ifscCode, bankBranch) {
+  async _createFirmBank(
+    userId,
+    bankName,
+    accountNumber,
+    ifscCode,
+    bankBranch,
+    accountHolder = "",
+    upiId = "",
+  ) {
     if (!bankName && !accountNumber) return null;
 
     if (!bankName || typeof bankName !== "string" || !bankName.trim()) {
-      throw ApiError.badRequest("bank_name is required when providing bank details");
+      throw ApiError.badRequest(
+        "bank_name is required when providing bank details",
+      );
     }
-    if (!accountNumber || typeof accountNumber !== "string" || !accountNumber.trim()) {
-      throw ApiError.badRequest("account_number is required when providing bank details");
+    if (
+      !accountNumber ||
+      typeof accountNumber !== "string" ||
+      !accountNumber.trim()
+    ) {
+      throw ApiError.badRequest(
+        "account_number is required when providing bank details",
+      );
     }
 
     const bank = await Bank.create({
@@ -106,7 +278,9 @@ class AdminService {
       account_number: accountNumber.trim(),
       ifsc_code: typeof ifscCode === "string" ? ifscCode.trim() : "",
       bank_branch: typeof bankBranch === "string" ? bankBranch.trim() : "",
-      is_default: false,
+      account_holder:
+        typeof accountHolder === "string" ? accountHolder.trim() : "",
+      upi_id: typeof upiId === "string" ? upiId.trim() : "",
       user_id: userId,
     });
 
@@ -199,6 +373,8 @@ class AdminService {
       account_number: gstAccountNumber,
       ifsc_code: gstIfscCode,
       bank_branch: gstBankBranch,
+      account_holder: gstAccountHolder,
+      upi_id: gstUpiId,
     } = gst_firm;
 
     const {
@@ -217,6 +393,8 @@ class AdminService {
       account_number: nongstAccountNumber,
       ifsc_code: nongstIfscCode,
       bank_branch: nongstBankBranch,
+      account_holder: nongstAccountHolder,
+      upi_id: nongstUpiId,
     } = nongst_firm;
 
     const user = await User.create({
@@ -257,13 +435,14 @@ class AdminService {
       },
     });
 
-    // Create bank records from manual fields and assign to firms
     const gstBankId = await this._createFirmBank(
       user._id,
       gstBankName,
       gstAccountNumber,
       gstIfscCode,
       gstBankBranch,
+      gstAccountHolder,
+      gstUpiId,
     );
     const nongstBankId = await this._createFirmBank(
       user._id,
@@ -271,6 +450,8 @@ class AdminService {
       nongstAccountNumber,
       nongstIfscCode,
       nongstBankBranch,
+      nongstAccountHolder,
+      nongstUpiId,
     );
 
     if (gstBankId) {
@@ -285,6 +466,11 @@ class AdminService {
 
     await this._ensureDemoSubscription(user._id);
 
+    await Contact.insertMany([
+      { name: "CashBook", type: "book", user_id: user._id },
+      { name: "BankBook", type: "book", user_id: user._id },
+    ]);
+
     const safeUser = user.toSafeObject();
     const [withSubscription] = await this._attachSubscriptionSummary([
       safeUser,
@@ -296,10 +482,19 @@ class AdminService {
     const result = await Pagination.paginate(
       User,
       { type: "secondary" },
-      { ...query, sort: { createdAt: -1 } },
+      {
+        ...query,
+        sort: { createdAt: -1 },
+        select: "-gst_firm.password -nongst_firm.password -admin.password",
+        populate: [
+          { path: "gst_firm.bank_ids", model: "Bank" },
+          { path: "nongst_firm.bank_ids", model: "Bank" },
+        ],
+      },
     );
 
-    result.data = await this._attachSubscriptionSummary(result.data);
+    const safeUsers = result.data.map((user) => this._toSafeUserObject(user));
+    result.data = await this._attachSubscriptionSummary(safeUsers);
     return result;
   }
 
@@ -411,7 +606,7 @@ class AdminService {
         bank_ids,
       } = gst_firm;
 
-      const validatedGstBankIds = await this._validateUserBankIds(
+      const validatedGstBankIds = await this._syncFirmBankIds(
         userId,
         bank_ids,
         "GST Firm",
@@ -456,7 +651,7 @@ class AdminService {
         bank_ids,
       } = nongst_firm;
 
-      const validatedNonGstBankIds = await this._validateUserBankIds(
+      const validatedNonGstBankIds = await this._syncFirmBankIds(
         userId,
         bank_ids,
         "Non-GST Firm",

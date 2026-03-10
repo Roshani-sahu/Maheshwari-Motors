@@ -75,8 +75,12 @@ class AdminController {
   });
 
   setSubscription = asyncHandler(async (req, res) => {
+    let userId = req.params.userId;
+    if (!userId && req.body.username) {
+      userId = await subscriptionService.resolveUserId(req.body.username);
+    }
     const result = await subscriptionService.setSubscription(
-      req.params.userId,
+      userId,
       req.body,
       req.user._id,
     );

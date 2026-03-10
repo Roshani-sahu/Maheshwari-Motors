@@ -1,7 +1,6 @@
 export { default as authService } from "./auth/auth.service.js";
 export { default as adminService } from "./auth/admin.service.js";
 export { default as itemService } from "./master/item.service.js";
-export { default as categoryService } from "./master/category.service.js";
 export { default as labelService } from "./master/label.service.js";
 export { default as brandService } from "./master/brand.service.js";
 export { default as hsnService } from "./master/hsn.service.js";
@@ -18,3 +17,4 @@ export { default as reportService } from "./report/report.service.js";
 export { default as s3Service } from "./common/s3.service.js";
 export { default as returnService } from "./transaction/return.service.js";
 export { default as subscriptionService } from "./subscription/subscription.service.js";
+export { default as transactionService } from "./transaction/transaction.service.js";

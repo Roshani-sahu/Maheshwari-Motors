@@ -38,8 +38,7 @@ const billSchema = new mongoose.Schema(
     contact_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Contact",
-      required: false,
-      default: null,
+      required: true,
     },
     transport_id: {
       type: mongoose.Schema.Types.ObjectId,

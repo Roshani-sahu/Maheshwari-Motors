@@ -2,7 +2,6 @@ import { Router } from "express";
 import authRoutes from "./auth/auth.routes.js";
 import adminRoutes from "./auth/admin.routes.js";
 import itemRoutes from "./master/item.routes.js";
-import categoryRoutes from "./master/category.routes.js";
 import labelRoutes from "./master/label.routes.js";
 import brandRoutes from "./master/brand.routes.js";
 import hsnRoutes from "./master/hsn.routes.js";
@@ -17,13 +16,13 @@ import reportRoutes from "./report/report.routes.js";
 import departmentRoutes from "./master/department.route.js";
 import bankRoutes from "./master/bank.routes.js";
 import returnRoutes from "./transaction/return.routes.js";
+import transactionRoutes from "./transaction/transaction.routes.js";
 
 const router = Router();
 
 router.use("/auth", authRoutes);
 router.use("/admin", adminRoutes);
 router.use("/items", itemRoutes);
-router.use("/categories", categoryRoutes);
 router.use("/labels", labelRoutes);
 router.use("/brands", brandRoutes);
 router.use("/hsn", hsnRoutes);
@@ -38,5 +37,6 @@ router.use("/reports", reportRoutes);
 router.use("/departments", departmentRoutes);
 router.use("/banks", bankRoutes);
 router.use("/returns", returnRoutes);
+router.use("/transactions", transactionRoutes);
 
 export default router;

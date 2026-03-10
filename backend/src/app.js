@@ -23,6 +23,7 @@ const health = (res) => {
       "DevOps Engineer": { name: "Avi Tamrakar" },
     },
     uptime: process.uptime(),
+    updated: "03 march 2026 | 05:13 PM",
   });
 };
 
@@ -30,12 +31,9 @@ const initializeApp = asyncHandler(() => {
   const app = express();
   app.set("trust proxy", 1);
 
-  console.log("[CORS] CORS_ORIGIN =", env.CORS_ORIGIN);
-
   const corsOrigin =
     env.CORS_ORIGIN === "*" ?
       (origin, cb) => {
-        console.log("[CORS] Incoming origin:", origin);
         cb(null, origin || "*");
       }
     : env.CORS_ORIGIN;
@@ -52,14 +50,11 @@ const initializeApp = asyncHandler(() => {
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
   app.get("/", (_, res) => health(res));
-  app.get("/avi", (_, res) => health(res));
-
   app.use("/api/v1", routes);
   app.use(notFoundHandler);
   app.use(errorHandler);
 
   app.listen(env.PORT, () => {
-    console.log(`🚀 Server running on port ${env.PORT}`);
     startSubscriptionCron();
   });
 });

@@ -9,11 +9,6 @@ const agentSchema = new mongoose.Schema(
     pincode: { type: String },
     phone: { type: String },
     whatsapp: { type: String },
-    party_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Contact",
-      default: null,
-    },
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

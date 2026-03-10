@@ -13,6 +13,7 @@ const setChallanType = (type) => (req, _res, next) => {
 };
 
 router.post("/", challanController.createChallan);
+router.post("/check-challan-no", challanController.checkChallanNoUnique);
 
 router.get("/", challanController.getAllChallans);
 router.get("/sale", setChallanType("sale"), challanController.getChallans);

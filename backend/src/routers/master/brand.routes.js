@@ -8,10 +8,6 @@ router.use(authMiddleware);
 
 router.get("/", brandController.getBrands);
 router.post("/", brandController.createBrand);
-router.get(
-  "/category/:categoryId/discounts",
-  brandController.getDiscountsByCategory,
-);
 router.get("/:brandId", brandController.getBrandById);
 router.put("/:brandId", brandController.updateBrand);
 router.delete("/:brandId", brandController.deleteBrand);

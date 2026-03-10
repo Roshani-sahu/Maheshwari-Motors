@@ -9,5 +9,7 @@ router.use(requireFirm);
 
 router.get("/purchase", reportController.getPurchaseReport);
 router.get("/sales", reportController.getSalesReport);
+router.get("/account-ledger", reportController.getAccountLedger);
+router.get("/gst-report", reportController.getGstReport);
 
 export default router;

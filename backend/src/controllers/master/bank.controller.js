@@ -3,7 +3,11 @@ import { asyncHandler, ApiResponse } from "../../utils/index.js";
 
 class BankController {
   getBanks = asyncHandler(async (req, res) => {
-    const result = await bankService.getBanks(req.user._id, req.query);
+    const result = await bankService.getBanks(
+      req.user._id,
+      req.query,
+      req.firmType || null,
+    );
     res
       .status(200)
       .json(new ApiResponse(200, result, "Banks fetched successfully"));
@@ -17,7 +21,11 @@ class BankController {
   });
 
   createBank = asyncHandler(async (req, res) => {
-    const bank = await bankService.createBank(req.body, req.user._id);
+    const bank = await bankService.createBank(
+      req.body,
+      req.user._id,
+      req.firmType || null,
+    );
     res
       .status(201)
       .json(new ApiResponse(201, bank, "Bank created successfully"));
@@ -28,6 +36,7 @@ class BankController {
       req.params.bankId,
       req.user._id,
       req.body,
+      req.firmType || null,
     );
     res
       .status(200)
@@ -39,13 +48,6 @@ class BankController {
     res
       .status(200)
       .json(new ApiResponse(200, null, "Bank deleted successfully"));
-  });
-
-  getDefaultBank = asyncHandler(async (req, res) => {
-    const bank = await bankService.getDefaultBank(req.user._id);
-    res
-      .status(200)
-      .json(new ApiResponse(200, bank, "Default bank fetched successfully"));
   });
 }
 

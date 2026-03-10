@@ -23,6 +23,7 @@ router.use(authMiddleware);
 
 router.get("/", itemController.getItems);
 router.post("/", upload.single("image"), itemController.createItem);
+router.post("/check-barcode", itemController.checkBarcodeUnique);
 router.get("/low-stock", itemController.getLowStockItems);
 router.get("/:itemId", itemController.getItemById);
 router.put("/:itemId", upload.single("image"), itemController.updateItem);

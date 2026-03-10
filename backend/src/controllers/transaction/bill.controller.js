@@ -35,6 +35,23 @@ class BillController {
       .json(new ApiResponse(201, result, "Bill created successfully"));
   });
 
+  batchConvert = asyncHandler(async (req, res) => {
+    const { challan_ids } = req.body;
+    const result = await billService.batchConvertChallans(
+      challan_ids,
+      req.user._id,
+    );
+    res
+      .status(201)
+      .json(
+        new ApiResponse(
+          201,
+          result,
+          `${result.total_bills_created} bill(s) created successfully`,
+        ),
+      );
+  });
+
   settleBills = asyncHandler(async (req, res) => {
     const result = await billService.settleBills(
       req.body,
@@ -108,9 +125,9 @@ class BillController {
       .json(new ApiResponse(200, result, "Bill summary fetched successfully"));
   });
 
-  getLastSoldItemsForParty = asyncHandler(async (req, res) => {
-    const result = await billService.getLastSoldItemsForParty(
-      req.body,
+  getLastSoldItem = asyncHandler(async (req, res) => {
+    const result = await billService.getLastSoldItem(
+      req.params.itemId,
       req.user._id,
       req.isGst,
     );
@@ -120,9 +137,20 @@ class BillController {
         new ApiResponse(
           200,
           result,
-          "Last sold item entries fetched successfully",
+          "Last sold item details fetched successfully",
         ),
       );
+  });
+
+  checkBillNoUnique = asyncHandler(async (req, res) => {
+    const result = await billService.checkBillNoUnique(
+      req.body.bill_no,
+      req.isGst,
+      req.user._id,
+    );
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Bill number check completed"));
   });
 }
 
@@ -131,6 +159,7 @@ const billController = new BillController();
 export const getBills = billController.getBills;
 export const getBillById = billController.getBillById;
 export const createBill = billController.createBill;
+export const batchConvert = billController.batchConvert;
 export const settleBills = billController.settleBills;
 export const recordPayment = billController.recordPayment;
 export const handleReturn = billController.handleReturn;
@@ -138,6 +167,7 @@ export const deleteBill = billController.deleteBill;
 export const getBillsByStatus = billController.getBillsByStatus;
 export const getBillsForContact = billController.getBillsForContact;
 export const getBillSummary = billController.getBillSummary;
-export const getLastSoldItemsForParty = billController.getLastSoldItemsForParty;
+export const getLastSoldItem = billController.getLastSoldItem;
+export const checkBillNoUnique = billController.checkBillNoUnique;
 
 export default billController;

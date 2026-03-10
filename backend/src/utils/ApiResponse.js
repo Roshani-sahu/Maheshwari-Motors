@@ -15,7 +15,7 @@ class ApiResponse {
   }
 
   static noContent(message = "Deleted successfully") {
-    return new ApiResponse(204, null, message);
+    return new ApiResponse(200, null, message);
   }
 
   send(res) {

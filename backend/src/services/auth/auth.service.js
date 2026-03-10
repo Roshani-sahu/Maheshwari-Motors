@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import User from "../../models/auth/user.model.js";
 import Session from "../../models/auth/session.model.js";
 import Bank from "../../models/master/bank.model.js";
+import Contact from "../../models/master/contact.model.js";
 import s3Service from "../common/s3.service.js";
 import { ApiError } from "../../utils/index.js";
 
@@ -87,6 +88,11 @@ class AuthService {
       device_type: "unknown",
     });
 
+    await Contact.insertMany([
+      { name: "CashBook", type: "book", user_id: user._id },
+      { name: "BankBook", type: "book", user_id: user._id },
+    ]);
+
     return {
       _id: user._id,
       name: user.name,
@@ -167,12 +173,17 @@ class AuthService {
         is_admin: false,
         role: "firm",
         firm_data: firmData,
+        signature: user.signature || null,
         token,
       };
     }
   }
 
   async getProfile(user, role, firmType) {
+    await user.populate([
+      { path: "gst_firm.bank_ids", model: "Bank" },
+      { path: "nongst_firm.bank_ids", model: "Bank" },
+    ]);
     const safe = user.toSafeObject();
     return { ...safe, current_role: role, current_firm_type: firmType || null };
   }

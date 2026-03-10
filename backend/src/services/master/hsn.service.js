@@ -102,7 +102,7 @@ class HsnService {
     const hsn = await Hsn.findOne({ _id: hsnId, user_id: userId });
     if (!hsn) throw ApiError.notFound("HSN not found");
 
-    // Unset hsn_id from any brands referencing this HSN
+    
     const { default: Brand } =
       await import("../../models/master/brand.model.js");
     await Brand.updateMany(

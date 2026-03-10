@@ -1,26 +1,5 @@
 import mongoose from "mongoose";
 
-const discountFieldSchema = new mongoose.Schema(
-  {
-    normal: { type: Number, default: 0, min: 0 },
-    special: { type: Number, default: 0, min: 0 },
-  },
-  { _id: false },
-);
-
-const partyItemDiscountSchema = new mongoose.Schema(
-  {
-    item_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Item",
-      required: true,
-    },
-    discount1: { type: discountFieldSchema, default: () => ({}) },
-    discount2: { type: discountFieldSchema, default: () => ({}) },
-  },
-  { _id: false },
-);
-
 const contactSchema = new mongoose.Schema(
   {
     id: { type: Number },
@@ -28,7 +7,7 @@ const contactSchema = new mongoose.Schema(
     alias: { type: String, trim: true, default: null },
     type: {
       type: String,
-      enum: ["party", "supplier"],
+      enum: ["party", "supplier", "book"],
       required: true,
     },
     phone: { type: String },
@@ -40,25 +19,20 @@ const contactSchema = new mongoose.Schema(
     gstin: { type: String },
     cin: { type: String },
     reg_number: { type: String },
-    assigned_label: { type: String, trim: true, default: null },
-    label_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Label",
-      default: null,
-    },
+    label_ids: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Label",
+      },
+    ],
     bank_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Bank",
       default: null,
     },
-    item_discounts: { type: [partyItemDiscountSchema], default: [] },
     transport_charge: { type: Number, default: 0 },
     area: { type: String },
     is_gst: { type: Number, enum: [0, 1], default: 1 },
-    category_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-    },
     transport_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Transport",

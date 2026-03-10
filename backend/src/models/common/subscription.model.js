@@ -13,6 +13,7 @@ const historySchema = new mongoose.Schema(
   {
     plan_type: { type: String, enum: ["demo", "paid"], required: true },
     timeline: { type: timelineSchema, required: true },
+    amount: { type: Number, min: 0, default: 0 },
     start_date: { type: Date, required: true },
     expiry_date: { type: Date, required: true },
     activated_by: {
@@ -56,6 +57,7 @@ const subscriptionSchema = new mongoose.Schema(
       index: true,
     },
     timeline: { type: timelineSchema, default: () => ({ days: 30 }) },
+    amount: { type: Number, min: 0, default: 0 },
     start_date: { type: Date, default: Date.now, required: true },
     expiry_date: { type: Date, required: true, index: true },
     activated_by: {

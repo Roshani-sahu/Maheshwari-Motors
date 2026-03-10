@@ -2,10 +2,9 @@ import mongoose from "mongoose";
 import Contact from "../../models/master/contact.model.js";
 import Challan from "../../models/transaction/challan.model.js";
 import Bill from "../../models/transaction/bill.model.js";
-import Item from "../../models/master/item.model.js";
-import Category from "../../models/master/category.model.js";
 import Label from "../../models/master/label.model.js";
 import Bank from "../../models/master/bank.model.js";
+import bankService from "./bank.service.js";
 import { ApiError, Pagination, toNumber } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 
@@ -30,29 +29,6 @@ class ContactService {
     return trimmed.length > 0 ? trimmed : null;
   }
 
-  _sanitizeDiscountField(value, label) {
-    if (value === undefined || value === null) {
-      return { normal: 0, special: 0 };
-    }
-
-    if (typeof value !== "object" || Array.isArray(value)) {
-      throw ApiError.badRequest(`${label} must be an object`);
-    }
-
-    const normal = value.normal === undefined ? 0 : Number(value.normal);
-    const special = value.special === undefined ? 0 : Number(value.special);
-
-    if (!Number.isFinite(normal) || normal < 0 || normal > 100) {
-      throw ApiError.badRequest(`${label}.normal must be between 0 and 100`);
-    }
-
-    if (!Number.isFinite(special) || special < 0 || special > 100) {
-      throw ApiError.badRequest(`${label}.special must be between 0 and 100`);
-    }
-
-    return { normal, special };
-  }
-
   async _validateBankId(bankId, userId) {
     if (bankId === undefined) return undefined;
     if (bankId === null || bankId === "") return null;
@@ -66,117 +42,40 @@ class ContactService {
     return bankId;
   }
 
-  async _sanitizeItemDiscounts(itemDiscounts, userId) {
-    if (itemDiscounts === undefined) return undefined;
+  async _validateLabelIds(labelIds, userId) {
+    if (labelIds === undefined) return undefined;
+    if (labelIds === null) return [];
 
-    if (!Array.isArray(itemDiscounts)) {
-      throw ApiError.badRequest("item_discounts must be an array");
+    if (!Array.isArray(labelIds)) {
+      throw ApiError.badRequest("label_ids must be an array");
     }
 
-    const itemIds = itemDiscounts.map((entry, index) => {
-      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-        throw ApiError.badRequest(`item_discounts[${index}] must be an object`);
+    if (labelIds.length === 0) return [];
+
+    const uniqueIds = [...new Set(labelIds.map(String))];
+
+    for (const id of uniqueIds) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw ApiError.badRequest(`Invalid label_id: ${id}`);
       }
+    }
 
-      if (!entry.item_id) {
-        throw ApiError.badRequest(
-          `item_discounts[${index}].item_id is required`,
-        );
-      }
-
-      return entry.item_id;
-    });
-
-    const uniqueItemIds = [...new Set(itemIds.map(String))];
-    const validItems = await Item.countDocuments({
-      _id: { $in: uniqueItemIds },
+    const validCount = await Label.countDocuments({
+      _id: { $in: uniqueIds },
       user_id: userId,
     });
 
-    if (validItems !== uniqueItemIds.length) {
+    if (validCount !== uniqueIds.length) {
       throw ApiError.badRequest(
-        "One or more items in item_discounts are invalid or do not belong to you",
+        "One or more labels are invalid or do not belong to you",
       );
     }
 
-    return itemDiscounts.map((entry) => ({
-      item_id: entry.item_id,
-      discount1: this._sanitizeDiscountField(entry.discount1, "discount1"),
-      discount2: this._sanitizeDiscountField(entry.discount2, "discount2"),
-    }));
-  }
-
-  async _validateAssignedLabel(assignedLabel, userId) {
-    if (assignedLabel === undefined) return undefined;
-
-    if (assignedLabel === null || assignedLabel === "") {
-      return null;
-    }
-
-    if (typeof assignedLabel !== "string" || !assignedLabel.trim()) {
-      throw ApiError.badRequest("assigned_label must be a non-empty string");
-    }
-
-    const normalized = assignedLabel.trim();
-    const escaped = this._escapeRegex(normalized);
-
-    const labelExists = await Label.exists({
-      user_id: userId,
-      name: { $regex: new RegExp(`^${escaped}$`, "i") },
-    });
-
-    if (!labelExists) {
-      throw ApiError.badRequest(
-        "Assigned label not found. Create label first.",
-      );
-    }
-
-    return normalized;
-  }
-
-  async _validateLabelId(labelId, categoryId, userId) {
-    if (labelId === undefined) return undefined;
-    if (labelId === null || labelId === "") return null;
-
-    if (!mongoose.Types.ObjectId.isValid(labelId)) {
-      throw ApiError.badRequest("Invalid label_id");
-    }
-
-    if (!categoryId) {
-      throw ApiError.badRequest(
-        "category_id is required when assigning a label_id",
-      );
-    }
-
-    const label = await Label.findOne({
-      _id: labelId,
-      category_id: categoryId,
-      user_id: userId,
-    });
-
-    if (!label) {
-      throw ApiError.badRequest(
-        "Label not found in the selected category. Ensure label_id belongs to the contact's category.",
-      );
-    }
-
-    return labelId;
+    return uniqueIds;
   }
 
   async _validateRelations(type, userId, data) {
-    const { category_id, transport_id, area_id, agent_id } = data;
-
-    if (category_id) {
-      const catExists = await Category.exists({
-        _id: category_id,
-        user_id: userId,
-      });
-      if (!catExists) {
-        throw ApiError.badRequest(
-          "Category not found. Please select a valid category.",
-        );
-      }
-    }
+    const { transport_id, area_id, agent_id } = data;
 
     if (type === "party" && transport_id) {
       const { default: Transport } =
@@ -273,17 +172,18 @@ class ContactService {
       gstin,
       cin,
       reg_number,
-      assigned_label,
-      label_id,
-      bank_id,
-      item_discounts,
+      label_ids,
       transport_charge,
-      area,
       is_gst,
-      category_id,
       transport_id,
       agent_id,
       area_id,
+      bank_name,
+      ifsc_code,
+      account_number,
+      bank_branch,
+      account_holder_name,
+      upi_id,
     } = contactData;
 
     if (!name || typeof name !== "string" || !name.trim()) {
@@ -307,7 +207,6 @@ class ContactService {
     }
 
     await this._validateRelations(type, userId, {
-      category_id,
       transport_id,
       area_id,
       agent_id,
@@ -340,21 +239,10 @@ class ContactService {
       }
     }
 
-    const normalizedBankId = await this._validateBankId(bank_id, userId);
-
-    let normalizedItemDiscounts = [];
+    let normalizedLabelIds = [];
     if (type === "party") {
-      normalizedItemDiscounts =
-        (await this._sanitizeItemDiscounts(item_discounts, userId)) || [];
-    }
-
-    let normalizedAssignedLabel = null;
-    let normalizedLabelId = null;
-    if (type === "party") {
-      normalizedAssignedLabel =
-        (await this._validateAssignedLabel(assigned_label, userId)) ?? null;
-      normalizedLabelId =
-        (await this._validateLabelId(label_id, category_id, userId)) ?? null;
+      normalizedLabelIds =
+        (await this._validateLabelIds(label_ids, userId)) || [];
     }
 
     const normalizedAlias =
@@ -374,19 +262,34 @@ class ContactService {
       gstin,
       cin,
       reg_number,
-      assigned_label: normalizedAssignedLabel,
-      label_id: normalizedLabelId,
-      bank_id: normalizedBankId ?? null,
-      item_discounts: normalizedItemDiscounts,
+      label_ids: normalizedLabelIds,
       transport_charge: normalizedTransportCharge,
-      area,
       is_gst: is_gst ?? 1,
-      category_id: category_id || null,
       transport_id: type === "party" ? transport_id || null : undefined,
       agent_id: type === "party" ? agent_id || null : undefined,
       area_id: type === "party" ? area_id || null : undefined,
       user_id: userId,
     });
+
+    // Auto-create bank if bank fields are provided
+    if (bank_name && account_number) {
+      const bank = await bankService.createBank(
+        {
+          bank_name,
+          bank_branch,
+          ifsc_code,
+          account_number,
+          account_holder: account_holder_name,
+          upi_id,
+          type, // maps to assignment_type inside createBank
+          assigned_to: contact._id,
+        },
+        userId,
+      );
+      contact.bank_id = bank._id;
+      await contact.save();
+    }
+
     return contact.populate("bank_id");
   }
 
@@ -396,6 +299,10 @@ class ContactService {
       user_id: userId,
     });
     if (!contact) throw ApiError.notFound("Contact not found");
+
+    if (contact.type === "book") {
+      throw ApiError.badRequest("Book contacts cannot be edited");
+    }
 
     const {
       name,
@@ -409,14 +316,11 @@ class ContactService {
       gstin,
       cin,
       reg_number,
-      assigned_label,
-      label_id,
+      label_ids,
       bank_id,
-      item_discounts,
       transport_charge,
       area,
       is_gst,
-      category_id,
       transport_id,
       agent_id,
       area_id,
@@ -441,7 +345,6 @@ class ContactService {
     }
 
     await this._validateRelations(contact.type, userId, {
-      category_id,
       transport_id,
       area_id,
       agent_id,
@@ -470,40 +373,17 @@ class ContactService {
 
     const normalizedBankId = await this._validateBankId(bank_id, userId);
 
-    let normalizedItemDiscounts = await this._sanitizeItemDiscounts(
-      item_discounts,
-      userId,
-    );
-
     if (contact.type !== "party") {
-      if (assigned_label !== undefined || item_discounts !== undefined) {
+      if (label_ids !== undefined) {
         throw ApiError.badRequest(
-          "assigned_label and item_discounts are supported only for party contacts",
+          "label_ids are supported only for party contacts",
         );
       }
-      normalizedItemDiscounts = undefined;
     }
 
-    const normalizedAssignedLabel =
-      contact.type === "party" ?
-        await this._validateAssignedLabel(assigned_label, userId)
-      : undefined;
-
-    const effectiveCategoryId =
-      category_id !== undefined ? category_id : contact.category_id;
-
-    let normalizedLabelId;
+    let normalizedLabelIds;
     if (contact.type === "party") {
-      if (label_id !== undefined) {
-        normalizedLabelId = await this._validateLabelId(
-          label_id,
-          effectiveCategoryId,
-          userId,
-        );
-      } else if (category_id !== undefined) {
-        // Category changed without updating label_id — auto-clear it
-        normalizedLabelId = null;
-      }
+      normalizedLabelIds = await this._validateLabelIds(label_ids, userId);
     }
 
     const fields = {};
@@ -520,22 +400,46 @@ class ContactService {
     if (cin !== undefined) fields.cin = cin;
     if (reg_number !== undefined) fields.reg_number = reg_number;
     if (normalizedBankId !== undefined) fields.bank_id = normalizedBankId;
+
+    // Sync Bank ownership when contact's bank_id changes
+    if (normalizedBankId !== undefined) {
+      const oldBankId = contact.bank_id?.toString() || null;
+      const newBankId = normalizedBankId?.toString() || null;
+
+      if (oldBankId !== newBankId) {
+        // Clear ownership on old bank if it was owned by this contact
+        if (oldBankId) {
+          await Bank.updateOne(
+            {
+              _id: oldBankId,
+              assigned_to: contactId,
+              assignment_type: contact.type,
+            },
+            { assignment_type: null, assigned_to: null },
+          );
+        }
+        // Set ownership on new bank
+        if (newBankId) {
+          await Bank.updateOne(
+            { _id: newBankId, user_id: userId },
+            {
+              assignment_type: contact.type,
+              assigned_to: contactId,
+            },
+          );
+        }
+      }
+    }
+
     if (normalizedTransportCharge !== undefined) {
       fields.transport_charge = normalizedTransportCharge;
     }
     if (area !== undefined) fields.area = area;
     if (is_gst !== undefined) fields.is_gst = is_gst;
-    if (category_id !== undefined) fields.category_id = category_id;
 
     if (contact.type === "party") {
-      if (normalizedAssignedLabel !== undefined) {
-        fields.assigned_label = normalizedAssignedLabel;
-      }
-      if (normalizedLabelId !== undefined) {
-        fields.label_id = normalizedLabelId;
-      }
-      if (normalizedItemDiscounts !== undefined) {
-        fields.item_discounts = normalizedItemDiscounts;
+      if (normalizedLabelIds !== undefined) {
+        fields.label_ids = normalizedLabelIds;
       }
 
       if (transport_id !== undefined) fields.transport_id = transport_id;
@@ -589,52 +493,35 @@ class ContactService {
     });
     if (!contact) throw ApiError.notFound("Contact not found");
 
-    if (contact.type === "party") {
-      const activeChallanCount = await Challan.countDocuments({
-        contact_id: contactId,
-        user_id: userId,
-        challan_type: "sale",
-        converted_to_bill: false,
-      });
-      if (activeChallanCount > 0) {
-        throw ApiError.badRequest(
-          `Cannot delete party with ${activeChallanCount} active challan(s). Delete or bill them first.`,
-        );
-      }
-
-      const unpaidBillCount = await Bill.countDocuments({
-        contact_id: contactId,
-        user_id: userId,
-        payment_status: "due",
-      });
-      if (unpaidBillCount > 0) {
-        throw ApiError.badRequest(
-          `Cannot delete party with ${unpaidBillCount} unpaid bill(s). Settle them first.`,
-        );
-      }
-
-      await Promise.all([
-        Bill.deleteMany({ contact_id: contactId, user_id: userId }),
-        Challan.deleteMany({ contact_id: contactId, user_id: userId }),
-      ]);
-    } else {
-      const unpaidPurchaseCount = await Challan.countDocuments({
-        contact_id: contactId,
-        user_id: userId,
-        challan_type: "purchase",
-        payment_status: "due",
-      });
-      if (unpaidPurchaseCount > 0) {
-        throw ApiError.badRequest(
-          `Cannot delete supplier with ${unpaidPurchaseCount} unpaid purchase(s). Settle them first.`,
-        );
-      }
-
-      await Challan.deleteMany({
-        contact_id: contactId,
-        user_id: userId,
-      });
+    if (contact.type === "book") {
+      throw ApiError.badRequest("Book contacts cannot be deleted");
     }
+
+    const challanCount = await Challan.countDocuments({
+      contact_id: contactId,
+      user_id: userId,
+    });
+    if (challanCount > 0) {
+      throw ApiError.badRequest(
+        `Cannot delete ${contact.type} involved in ${challanCount} challan(s). Remove all related challans first.`,
+      );
+    }
+
+    const billCount = await Bill.countDocuments({
+      contact_id: contactId,
+      user_id: userId,
+    });
+    if (billCount > 0) {
+      throw ApiError.badRequest(
+        `Cannot delete ${contact.type} involved in ${billCount} bill(s). Remove all related bills first.`,
+      );
+    }
+
+    // Clear bank ownership for any banks owned by this contact
+    await Bank.updateMany(
+      { assigned_to: contactId, user_id: userId },
+      { assignment_type: null, assigned_to: null },
+    );
 
     await Contact.findByIdAndDelete(contactId);
   }

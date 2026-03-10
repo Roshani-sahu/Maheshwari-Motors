@@ -7,10 +7,6 @@ const itemSchema = new mongoose.Schema(
     barcode: {
       type: String,
       trim: true,
-      // match: [
-      //   /^[A-Za-z0-9]{10}$/,
-      //   "Barcode must be exactly 10 alphanumeric characters",
-      // ],
     },
     item_id: {
       type: Number,
@@ -21,31 +17,20 @@ const itemSchema = new mongoose.Schema(
     purchase_rate: { type: Number, default: 0 },
     mrp_rate: { type: Number, default: 0 },
     gst_percent: { type: Number, default: 0 },
-    discount: { type: Number, default: 0 },
     stock: { type: Number, default: 0 },
     physical_stock: { type: Number, default: 0, min: 0 },
     logical_stock: { type: Number, default: 0 },
     threshold: { type: Number, default: 0 },
     image: { type: String },
-
     is_gst: { type: Number, enum: [0, 1], default: 1 },
-
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    category_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-    },
     brand_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Brand",
-    },
-    contact_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Contact",
     },
     dept_id: {
       type: mongoose.Schema.Types.ObjectId,

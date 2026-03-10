@@ -40,14 +40,10 @@ const userSchema = new Schema(
     name: { type: String, required: true },
     email: { type: String },
     phone: { type: String },
-
     gst_firm: { type: firmSubSchema, required: true },
     nongst_firm: { type: firmSubSchema, required: true },
-
     admin: { type: adminSubSchema, default: null },
-
     signature: { type: String, default: null },
-
     is_active: { type: Boolean, default: true },
   },
   { timestamps: true },

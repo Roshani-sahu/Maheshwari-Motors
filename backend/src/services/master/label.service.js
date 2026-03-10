@@ -1,10 +1,14 @@
 import mongoose from "mongoose";
 import Label from "../../models/master/label.model.js";
-import Category from "../../models/master/category.model.js";
 import Brand from "../../models/master/brand.model.js";
 import Contact from "../../models/master/contact.model.js";
 import { ApiError, Pagination } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
+
+const LABEL_POPULATE = [
+  { path: "brand_discounts.brand_id", select: "name" },
+  { path: "brand_discounts.item_discounts.item_id", select: "item_name" },
+];
 
 class LabelService {
   _escapeRegex(value) {
@@ -34,13 +38,16 @@ class LabelService {
     return { normal, special };
   }
 
-  async _sanitizeBrandDiscounts(brandDiscounts, userId, categoryBrandIds) {
+  async _sanitizeBrandDiscounts(brandDiscounts, userId) {
     if (!Array.isArray(brandDiscounts)) {
       throw ApiError.badRequest("brand_discounts must be an array");
     }
 
     const brandSeen = new Set();
-    const normalized = brandDiscounts.map((entry, index) => {
+    const normalized = [];
+
+    for (let index = 0; index < brandDiscounts.length; index++) {
+      const entry = brandDiscounts[index];
       if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
         throw ApiError.badRequest(
           `brand_discounts[${index}] must be an object`,
@@ -71,10 +78,21 @@ class LabelService {
         `brand_discounts[${index}].disc2`,
       );
 
-      return { brand_id: entry.brand_id, disc1, disc2 };
-    });
+      const itemDiscounts = await this._sanitizeItemDiscounts(
+        entry.item_discounts || [],
+        brandIdStr,
+        userId,
+        index,
+      );
 
-    // Validate all brand_ids exist and belong to user
+      normalized.push({
+        brand_id: entry.brand_id,
+        disc1,
+        disc2,
+        item_discounts: itemDiscounts,
+      });
+    }
+
     const allBrandIds = [...new Set(normalized.map((e) => String(e.brand_id)))];
 
     if (allBrandIds.length > 0) {
@@ -89,13 +107,68 @@ class LabelService {
       }
     }
 
-    // Validate brands belong to category's brand_ids
-    if (categoryBrandIds && categoryBrandIds.length > 0) {
-      const allowedSet = new Set(categoryBrandIds.map(String));
-      const invalid = allBrandIds.filter((id) => !allowedSet.has(id));
-      if (invalid.length > 0) {
+    return normalized;
+  }
+
+  async _sanitizeItemDiscounts(itemDiscounts, brandIdStr, userId, brandIndex) {
+    if (!Array.isArray(itemDiscounts)) {
+      throw ApiError.badRequest(
+        `brand_discounts[${brandIndex}].item_discounts must be an array`,
+      );
+    }
+
+    if (itemDiscounts.length === 0) return [];
+
+    const itemSeen = new Set();
+    const normalized = itemDiscounts.map((entry, i) => {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
         throw ApiError.badRequest(
-          "All brands in label must belong to the category's brand_ids",
+          `brand_discounts[${brandIndex}].item_discounts[${i}] must be an object`,
+        );
+      }
+
+      if (!entry.item_id) {
+        throw ApiError.badRequest(
+          `brand_discounts[${brandIndex}].item_discounts[${i}].item_id is required`,
+        );
+      }
+
+      const itemIdStr = String(entry.item_id);
+      if (itemSeen.has(itemIdStr)) {
+        throw ApiError.badRequest(
+          `Duplicate item_id '${itemIdStr}' in brand_discounts[${brandIndex}].item_discounts`,
+        );
+      }
+      itemSeen.add(itemIdStr);
+
+      const discount =
+        entry.discount === undefined ? 0 : Number(entry.discount);
+      if (!Number.isFinite(discount) || discount < 0) {
+        throw ApiError.badRequest(
+          `brand_discounts[${brandIndex}].item_discounts[${i}].discount must be a non-negative number`,
+        );
+      }
+
+      return { item_id: entry.item_id, discount };
+    });
+
+    // Validate all item_ids belong to this brand via Brand.item_ids
+    const brand = await Brand.findOne({
+      _id: brandIdStr,
+      user_id: userId,
+    }).select("item_ids");
+
+    if (!brand) {
+      throw ApiError.badRequest(
+        `Brand in brand_discounts[${brandIndex}] not found`,
+      );
+    }
+
+    const brandItemIdSet = new Set((brand.item_ids || []).map(String));
+    for (const item of normalized) {
+      if (!brandItemIdSet.has(String(item.item_id))) {
+        throw ApiError.badRequest(
+          `Item '${item.item_id}' does not belong to brand '${brandIdStr}'`,
         );
       }
     }
@@ -103,33 +176,8 @@ class LabelService {
     return normalized;
   }
 
-  async _validateCategoryOwnership(categoryId, userId) {
-    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
-      throw ApiError.badRequest("Invalid category_id");
-    }
-
-    const category = await Category.findOne({
-      _id: categoryId,
-      user_id: userId,
-    });
-    if (!category) {
-      throw ApiError.badRequest(
-        "Category not found. Please select a valid category.",
-      );
-    }
-    return category;
-  }
-
-  // ------------------------------------------------------------------
-  //  CRUD
-  // ------------------------------------------------------------------
-
   async getLabels(userId, query) {
     const filter = { user_id: userId };
-
-    if (query.category_id) {
-      filter.category_id = query.category_id;
-    }
 
     if (query.search) {
       const escaped = this._escapeRegex(query.search);
@@ -138,10 +186,22 @@ class LabelService {
 
     return Pagination.paginate(Label, filter, {
       ...query,
-      populate: [
-        { path: "category_id", select: "name" },
-        { path: "brand_discounts.brand_id", select: "name" },
-      ],
+      select: "-brand_discounts",
+      sort: { createdAt: -1 },
+    });
+  }
+
+  async getLabelsDetailed(userId, query) {
+    const filter = { user_id: userId };
+
+    if (query.search) {
+      const escaped = this._escapeRegex(query.search);
+      filter.name = { $regex: escaped, $options: "i" };
+    }
+
+    return Pagination.paginate(Label, filter, {
+      ...query,
+      populate: LABEL_POPULATE,
       sort: { createdAt: -1 },
     });
   }
@@ -154,57 +214,31 @@ class LabelService {
     const label = await Label.findOne({
       _id: labelId,
       user_id: userId,
-    }).populate([
-      { path: "category_id", select: "name" },
-      { path: "brand_discounts.brand_id", select: "name" },
-    ]);
+    }).populate(LABEL_POPULATE);
 
     if (!label) throw ApiError.notFound("Label not found");
     return label;
   }
 
-  async getLabelsByCategory(categoryId, userId) {
-    await this._validateCategoryOwnership(categoryId, userId);
-
-    const labels = await Label.find({
-      category_id: categoryId,
-      user_id: userId,
-    }).populate([{ path: "brand_discounts.brand_id", select: "name" }]);
-
-    return labels;
-  }
-
   async createLabel(labelData, userId) {
-    const { name, description, is_active, category_id, brand_discounts } =
-      labelData;
+    const { name, description, is_active, brand_discounts } = labelData;
 
     if (!name || typeof name !== "string" || !name.trim()) {
       throw ApiError.badRequest("Label name is required");
     }
 
-    if (!category_id) {
-      throw ApiError.badRequest("category_id is required");
-    }
-
-    const category = await this._validateCategoryOwnership(category_id, userId);
-
-    // Check duplicate name within same category
     const escapedName = this._escapeRegex(name.trim());
     const duplicate = await Label.findOne({
       name: { $regex: new RegExp(`^${escapedName}$`, "i") },
-      category_id,
       user_id: userId,
     });
     if (duplicate) {
-      throw ApiError.badRequest(
-        "A label with this name already exists in this category",
-      );
+      throw ApiError.badRequest("A label with this name already exists");
     }
 
     const normalizedBrandDiscounts = await this._sanitizeBrandDiscounts(
       brand_discounts || [],
       userId,
-      category.brand_ids,
     );
 
     const label = await Label.create({
@@ -212,20 +246,11 @@ class LabelService {
       name: name.trim(),
       description: typeof description === "string" ? description.trim() : "",
       is_active: is_active === undefined ? true : Boolean(is_active),
-      category_id,
       brand_discounts: normalizedBrandDiscounts,
       user_id: userId,
     });
 
-    // Push label _id into category.label_ids
-    await Category.findByIdAndUpdate(category_id, {
-      $addToSet: { label_ids: label._id },
-    });
-
-    return label.populate([
-      { path: "category_id", select: "name" },
-      { path: "brand_discounts.brand_id", select: "name" },
-    ]);
+    return label.populate(LABEL_POPULATE);
   }
 
   async updateLabel(labelId, userId, updateData) {
@@ -245,13 +270,12 @@ class LabelService {
       const escapedName = this._escapeRegex(name.trim());
       const duplicate = await Label.findOne({
         name: { $regex: new RegExp(`^${escapedName}$`, "i") },
-        category_id: label.category_id,
         user_id: userId,
         _id: { $ne: labelId },
       });
       if (duplicate) {
         throw ApiError.badRequest(
-          "Another label with this name already exists in this category",
+          "Another label with this name already exists",
         );
       }
     }
@@ -265,20 +289,15 @@ class LabelService {
     if (is_active !== undefined) fields.is_active = Boolean(is_active);
 
     if (brand_discounts !== undefined) {
-      const category = await Category.findById(label.category_id);
       fields.brand_discounts = await this._sanitizeBrandDiscounts(
         brand_discounts,
         userId,
-        category ? category.brand_ids : [],
       );
     }
 
     const updatedLabel = await Label.findByIdAndUpdate(labelId, fields, {
       new: true,
-    }).populate([
-      { path: "category_id", select: "name" },
-      { path: "brand_discounts.brand_id", select: "name" },
-    ]);
+    }).populate(LABEL_POPULATE);
 
     return updatedLabel;
   }
@@ -291,9 +310,8 @@ class LabelService {
     const label = await Label.findOne({ _id: labelId, user_id: userId });
     if (!label) throw ApiError.notFound("Label not found");
 
-    // Check if any contacts reference this label
     const contactCount = await Contact.countDocuments({
-      label_id: labelId,
+      label_ids: labelId,
       user_id: userId,
     });
     if (contactCount > 0) {
@@ -301,11 +319,6 @@ class LabelService {
         `Cannot delete label assigned to ${contactCount} contact(s). Remove label assignment from contacts first.`,
       );
     }
-
-    // Remove from category.label_ids
-    await Category.findByIdAndUpdate(label.category_id, {
-      $pull: { label_ids: label._id },
-    });
 
     await Label.findByIdAndDelete(labelId);
   }

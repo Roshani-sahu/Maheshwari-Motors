@@ -1,7 +1,6 @@
 export { default as User } from "./auth/user.model.js";
 export { default as Session } from "./auth/session.model.js";
 export { default as Item } from "./master/item.model.js";
-export { default as Category } from "./master/category.model.js";
 export { default as Brand } from "./master/brand.model.js";
 export { default as Hsn } from "./master/hsn.model.js";
 export { default as Contact } from "./master/contact.model.js";
@@ -16,3 +15,5 @@ export { default as Challan } from "./transaction/challan.model.js";
 export { default as Counter } from "./common/counter.model.js";
 export { default as Report } from "./common/report.model.js";
 export { default as Subscription } from "./common/subscription.model.js";
+export { default as Transaction } from "./transaction/transaction.model.js";
+export { default as Return } from "./transaction/return.model.js";

@@ -22,3 +22,17 @@ export const getSalesReport = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, result, "Sales report fetched successfully"));
 });
+
+export const getAccountLedger = asyncHandler(async (req, res) => {
+  const result = await reportService.getAccountLedger(req.user._id, req.query);
+  res
+    .status(200)
+    .json(new ApiResponse(200, result, "Account ledger fetched successfully"));
+});
+
+export const getGstReport = asyncHandler(async (req, res) => {
+  const result = await reportService.getGstReport(req.user._id, req.query);
+  res
+    .status(200)
+    .json(new ApiResponse(200, result, "GST report fetched successfully"));
+});

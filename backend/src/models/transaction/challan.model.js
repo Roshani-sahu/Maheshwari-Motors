@@ -22,7 +22,14 @@ const challanSchema = new mongoose.Schema(
       required: true,
     },
     date: { type: Date, required: true, default: Date.now },
-    label_name: { type: String, trim: true, default: null },
+    label_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Label",
+      default: null,
+      required() {
+        return this.challan_type === "sale";
+      },
+    },
     print_option: { type: Number, enum: [1, 2], default: 2 },
     contact_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -89,6 +96,17 @@ const challanSchema = new mongoose.Schema(
   },
   { timestamps: true, id: false },
 );
+
+challanSchema.virtual("label_name").get(function () {
+  if (!this.label_id) return null;
+  if (typeof this.label_id === "object") {
+    return this.label_id.name || this.label_id.label_name || null;
+  }
+  return null;
+});
+
+challanSchema.set("toJSON", { virtuals: true });
+challanSchema.set("toObject", { virtuals: true });
 
 challanSchema.index(
   { challan_no: 1, user_id: 1, is_gst: 1, challan_type: 1 },

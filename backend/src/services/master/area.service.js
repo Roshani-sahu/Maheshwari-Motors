@@ -37,7 +37,7 @@ class AreaService {
       throw ApiError.badRequest("City is required");
     }
 
-    // Validate agent exists
+    
     if (agent_id) {
       const { default: Agent } =
         await import("../../models/master/agent.model.js");
@@ -52,7 +52,7 @@ class AreaService {
       }
     }
 
-    // Validate transport exists
+    
     if (transport_id) {
       const { default: Transport } =
         await import("../../models/master/transport.model.js");
@@ -98,7 +98,7 @@ class AreaService {
       }
     }
 
-    // Validate agent exists
+    
     if (agent_id !== undefined && agent_id !== null) {
       const { default: Agent } =
         await import("../../models/master/agent.model.js");
@@ -113,7 +113,7 @@ class AreaService {
       }
     }
 
-    // Validate transport exists
+    
     if (transport_id !== undefined && transport_id !== null) {
       const { default: Transport } =
         await import("../../models/master/transport.model.js");
@@ -149,7 +149,7 @@ class AreaService {
     const area = await Area.findOne({ _id: areaId, user_id: userId });
     if (!area) throw ApiError.notFound("Area not found");
 
-    // Unlink parties that reference this area
+    
     const { default: Contact } =
       await import("../../models/master/contact.model.js");
     await Contact.updateMany(

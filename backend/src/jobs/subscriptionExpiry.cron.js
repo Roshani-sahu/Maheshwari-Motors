@@ -24,6 +24,4 @@ export function startSubscriptionCron() {
       timezone: "Asia/Kolkata",
     },
   );
-
-  console.log("[SubscriptionCron] Scheduled daily at 00:00 IST");
 }

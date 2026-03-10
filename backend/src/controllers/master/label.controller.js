@@ -9,6 +9,22 @@ class LabelController {
       .json(new ApiResponse(200, result, "Labels fetched successfully"));
   });
 
+  getLabelsDetailed = asyncHandler(async (req, res) => {
+    const result = await labelService.getLabelsDetailed(
+      req.user._id,
+      req.query,
+    );
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          result,
+          "Labels with discounts fetched successfully",
+        ),
+      );
+  });
+
   getLabelById = asyncHandler(async (req, res) => {
     const label = await labelService.getLabelById(
       req.params.labelId,
@@ -17,16 +33,6 @@ class LabelController {
     res
       .status(200)
       .json(new ApiResponse(200, label, "Label fetched successfully"));
-  });
-
-  getLabelsByCategory = asyncHandler(async (req, res) => {
-    const labels = await labelService.getLabelsByCategory(
-      req.params.categoryId,
-      req.user._id,
-    );
-    res
-      .status(200)
-      .json(new ApiResponse(200, labels, "Labels fetched successfully"));
   });
 
   createLabel = asyncHandler(async (req, res) => {
@@ -58,8 +64,8 @@ class LabelController {
 const labelController = new LabelController();
 
 export const getLabels = labelController.getLabels;
+export const getLabelsDetailed = labelController.getLabelsDetailed;
 export const getLabelById = labelController.getLabelById;
-export const getLabelsByCategory = labelController.getLabelsByCategory;
 export const createLabel = labelController.createLabel;
 export const updateLabel = labelController.updateLabel;
 export const deleteLabel = labelController.deleteLabel;

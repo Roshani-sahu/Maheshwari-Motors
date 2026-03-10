@@ -56,42 +56,32 @@ class ReturnService {
 
   _processReturnItems(items) {
     return items.map((item, idx) => {
-      const qty = toNumber(item.quantity ?? 1, `items[${idx}].quantity`, {
-        min: 1,
-      });
-      const rate = toNumber(item.rate, `items[${idx}].rate`, { min: 0 });
-      const grossAmount = qty * rate;
-      const disc = toNumber(item.discount ?? 0, `items[${idx}].discount`, {
-        min: 0,
-        max: 100,
-      });
-      const spDisc = toNumber(
-        item.special_discount ?? 0,
-        `items[${idx}].special_discount`,
-        { min: 0, max: 100 },
-      );
-      const gstPct = toNumber(
-        item.gst_percent ?? 0,
-        `items[${idx}].gst_percent`,
-        { min: 0, max: 100 },
-      );
-
-      const afterDisc = grossAmount * (1 - disc / 100);
-      const afterSpDisc = afterDisc * (1 - spDisc / 100);
-      const taxableAmount = this._round(afterSpDisc);
-      const gstAmount = this._round(taxableAmount * (gstPct / 100));
-      const finalAmount = this._round(taxableAmount + gstAmount);
-
       return {
         item_id: item.item_id,
-        quantity: qty,
-        rate,
-        discount: disc,
-        special_discount: spDisc,
-        gst_percent: gstPct,
-        gst_amount: gstAmount,
-        taxable_amount: taxableAmount,
-        amount: finalAmount,
+        quantity: toNumber(item.quantity ?? 1, `items[${idx}].quantity`, {
+          min: 1,
+        }),
+        rate: toNumber(item.rate, `items[${idx}].rate`, { min: 0 }),
+        discount: toNumber(item.discount ?? 0, `items[${idx}].discount`, {
+          min: 0,
+          max: 100,
+        }),
+        special_discount: toNumber(
+          item.special_discount ?? 0,
+          `items[${idx}].special_discount`,
+          { min: 0, max: 100 },
+        ),
+        gst_percent: toNumber(
+          item.gst_percent ?? 0,
+          `items[${idx}].gst_percent`,
+          { min: 0, max: 100 },
+        ),
+        gst_amount: toNumber(item.gst_amount ?? 0, `items[${idx}].gst_amount`),
+        taxable_amount: toNumber(
+          item.taxable_amount ?? 0,
+          `items[${idx}].taxable_amount`,
+        ),
+        amount: toNumber(item.amount ?? 0, `items[${idx}].amount`),
         is_damaged: item.is_damaged === true,
         is_gst: item.is_gst ?? 1,
       };
@@ -160,7 +150,6 @@ class ReturnService {
 
     if (!bill) throw ApiError.notFound("Bill not found");
 
-    // Build a map of item_id → total billed quantity from all challans
     const billedItemMap = new Map();
     for (const challan of bill.challan_ids || []) {
       for (const line of challan.items || []) {
@@ -170,7 +159,6 @@ class ReturnService {
       }
     }
 
-    // Check already-returned quantities against this bill
     const existingReturns = await Return.find({
       bill_id,
       user_id: userId,
@@ -188,7 +176,6 @@ class ReturnService {
       }
     }
 
-    // Validate item IDs exist in user's inventory
     const itemIds = [...new Set(items.map((i) => String(i.item_id)))];
     const dbItems = await Item.find({
       _id: { $in: itemIds },
@@ -203,7 +190,6 @@ class ReturnService {
       );
     }
 
-    // Validate returned quantities do not exceed billed - already returned
     for (const item of items) {
       const key = String(item.item_id);
       const billedQty = billedItemMap.get(key) || 0;
@@ -229,14 +215,11 @@ class ReturnService {
       processedItems.reduce((sum, i) => sum + i.amount, 0),
     );
 
-    // Stock operations: restore stock for non-damaged items
     const nonDamagedItems = processedItems.filter((i) => !i.is_damaged);
     if (nonDamagedItems.length > 0) {
-      // Sale return → items come back to us → restore (add) stock
       await stockService.restoreStock(nonDamagedItems, userId, isGst);
     }
 
-    // Reduce bill amount and adjust payment status
     const newBillAmount = this._round(bill.amount - totalAmount);
     const paidAmount = bill.paid_amount || 0;
     let paymentStatus;
@@ -254,12 +237,10 @@ class ReturnService {
       $inc: { return_amount: totalAmount },
     });
 
-    // Credit return amount to contact balance
     await Contact.findByIdAndUpdate(bill.contact_id, {
       $inc: { balance: totalAmount },
     });
 
-    // Generate return number
     const seqKey = `ReturnNo_${isGst === 1 ? "GST" : "NONGST"}`;
     const returnNoSeq = await getNextId(seqKey, userId);
     const return_no = `SR-${String(returnNoSeq).padStart(6, "0")}`;
@@ -303,7 +284,6 @@ class ReturnService {
 
     if (!challan) throw ApiError.notFound("Purchase challan not found");
 
-    // Build a map of item_id → purchased quantity from challan
     const purchasedItemMap = new Map();
     for (const line of challan.items || []) {
       const key = String(line.item_id?._id || line.item_id);
@@ -311,7 +291,6 @@ class ReturnService {
       purchasedItemMap.set(key, existing + (line.quantity || 0));
     }
 
-    // Check already-returned quantities against this challan
     const existingReturns = await Return.find({
       challan_id,
       user_id: userId,
@@ -329,7 +308,6 @@ class ReturnService {
       }
     }
 
-    // Validate item IDs exist
     const itemIds = [...new Set(items.map((i) => String(i.item_id)))];
     const dbItems = await Item.find({
       _id: { $in: itemIds },
@@ -344,7 +322,6 @@ class ReturnService {
       );
     }
 
-    // Validate quantities
     for (const item of items) {
       const key = String(item.item_id);
       const purchasedQty = purchasedItemMap.get(key) || 0;
@@ -370,10 +347,8 @@ class ReturnService {
       processedItems.reduce((sum, i) => sum + i.amount, 0),
     );
 
-    // Stock operations: remove stock (we're returning items to supplier)
     await stockService.removeStock(processedItems, userId, isGst);
 
-    // Adjust challan paid tracking
     const newChallanAmount = this._round(challan.amount - totalAmount);
     const paidAmount = challan.paid_amount || 0;
     let paymentStatus;
@@ -390,7 +365,6 @@ class ReturnService {
       payment_status: paymentStatus,
     });
 
-    // Generate return number
     const seqKey = `PurchaseReturnNo_${isGst === 1 ? "GST" : "NONGST"}`;
     const returnNoSeq = await getNextId(seqKey, userId);
     const return_no = `PR-${String(returnNoSeq).padStart(6, "0")}`;
@@ -535,13 +509,11 @@ class ReturnService {
     if (!doc) throw ApiError.notFound("Return not found");
 
     if (doc.return_type === "sale_return") {
-      // Reverse stock restoration for non-damaged items
       const nonDamagedItems = doc.items.filter((i) => !i.is_damaged);
       if (nonDamagedItems.length > 0) {
         await stockService.deductStock(nonDamagedItems, userId, isGst);
       }
 
-      // Reverse bill amount adjustment
       if (doc.bill_id) {
         const bill = await Bill.findById(doc.bill_id);
         if (bill) {
@@ -563,16 +535,13 @@ class ReturnService {
           });
         }
 
-        // Reverse contact balance credit
         await Contact.findByIdAndUpdate(doc.contact_id, {
           $inc: { balance: -doc.total_amount },
         });
       }
     } else if (doc.return_type === "purchase_return") {
-      // Reverse stock removal: add items back
       await stockService.addStock(doc.items, userId, isGst);
 
-      // Reverse challan amount adjustment
       if (doc.challan_id) {
         const challan = await Challan.findById(doc.challan_id);
         if (challan) {

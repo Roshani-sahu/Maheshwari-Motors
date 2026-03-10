@@ -80,6 +80,13 @@ class ItemController {
       .status(200)
       .json(new ApiResponse(200, item, "Stock updated successfully"));
   });
+
+  checkBarcodeUnique = asyncHandler(async (req, res) => {
+    const result = await itemService.checkBarcodeUnique(req.body.barcode);
+    res
+      .status(200)
+      .json(new ApiResponse(200, result, "Barcode check completed"));
+  });
 }
 
 const itemController = new ItemController();
@@ -91,5 +98,6 @@ export const updateItem = itemController.updateItem;
 export const deleteItem = itemController.deleteItem;
 export const getLowStockItems = itemController.getLowStockItems;
 export const updateStock = itemController.updateStock;
+export const checkBarcodeUnique = itemController.checkBarcodeUnique;
 
 export default itemController;

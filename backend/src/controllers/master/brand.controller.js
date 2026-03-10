@@ -72,16 +72,6 @@ class BrandController {
       .status(200)
       .json(new ApiResponse(200, brand, "Discount updated successfully"));
   });
-
-  getDiscountsByCategory = asyncHandler(async (req, res) => {
-    const result = await brandService.getDiscountsByCategory(
-      req.params.categoryId,
-      req.user._id,
-    );
-    res
-      .status(200)
-      .json(new ApiResponse(200, result, "Discounts fetched successfully"));
-  });
 }
 
 const brandController = new BrandController();
@@ -92,6 +82,5 @@ export const createBrand = brandController.createBrand;
 export const updateBrand = brandController.updateBrand;
 export const deleteBrand = brandController.deleteBrand;
 export const updateDiscount = brandController.updateDiscount;
-export const getDiscountsByCategory = brandController.getDiscountsByCategory;
 
 export default brandController;

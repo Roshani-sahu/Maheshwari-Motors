@@ -14,8 +14,6 @@ class SubscriptionExpiryJob {
         new Date(),
       );
 
-      console.log("[SubscriptionJob] Marked expired:", expired.modified);
-      console.log(
         "[SubscriptionJob] Expiring today:",
         Array.isArray(expiringToday) ? expiringToday.length : 0,
       );

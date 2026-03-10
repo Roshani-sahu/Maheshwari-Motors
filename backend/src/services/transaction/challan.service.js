@@ -1,95 +1,276 @@
+import mongoose from "mongoose";
 import Challan from "../../models/transaction/challan.model.js";
 import Item from "../../models/master/item.model.js";
-import Brand from "../../models/master/brand.model.js";
-import Category from "../../models/master/category.model.js";
 import Contact from "../../models/master/contact.model.js";
+import Label from "../../models/master/label.model.js";
 import bankService from "../master/bank.service.js";
 import { ApiError, Pagination, toNumber } from "../../utils/index.js";
 import { getNextId } from "../../helpers/counter.js";
 import stockService from "../inventory/stock.service.js";
 
 class ChallanService {
+  _round(value) {
+    return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+  }
+
+  _challanPopulate() {
+    return [
+      { path: "contact_id", select: "name alias phone type" },
+      { path: "label_id", select: "name is_active" },
+      { path: "items.item_id", select: "item_name alias description hsn_id" },
+    ];
+  }
+
+  _attachLegacyLabelName(challan) {
+    if (!challan) return challan;
+
+    const normalized =
+      typeof challan.toObject === "function" ?
+        challan.toObject()
+      : { ...challan };
+
+    const populatedLabel =
+      normalized.label_id && typeof normalized.label_id === "object" ?
+        normalized.label_id
+      : null;
+
+    const legacyLabelName =
+      populatedLabel?.name ||
+      populatedLabel?.label_name ||
+      (typeof normalized.label_name === "string" ?
+        normalized.label_name.trim() || null
+      : null);
+
+    normalized.label_name = legacyLabelName;
+    return normalized;
+  }
+
+  _attachLegacyLabelNames(challans = []) {
+    return challans.map((challan) => this._attachLegacyLabelName(challan));
+  }
+
   async _normalizeBankPayload(bankIdOrObj, userId) {
     if (!bankIdOrObj) return null;
 
-    const bankId = typeof bankIdOrObj === "object" ? bankIdOrObj.bank_id : bankIdOrObj;
+    const bankId =
+      typeof bankIdOrObj === "object" ? bankIdOrObj.bank_id : bankIdOrObj;
     if (!bankId) return null;
 
     return bankService.getBankSnapshot(bankId, userId);
   }
 
-  _buildPartyItemDiscountMap(itemDiscounts = []) {
-    const map = new Map();
+  async _resolveLabelId({
+    labelId,
+    labelName,
+    userId,
+    contact = null,
+    requiredForSale = false,
+  }) {
+    let candidateLabelId = labelId;
 
-    for (const row of itemDiscounts) {
-      if (!row?.item_id) continue;
-      map.set(String(row.item_id), row);
+    if (
+      (candidateLabelId === undefined ||
+        candidateLabelId === null ||
+        candidateLabelId === "") &&
+      typeof labelName === "string" &&
+      labelName.trim()
+    ) {
+      const escaped = labelName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const filter = {
+        user_id: userId,
+        name: { $regex: new RegExp(`^${escaped}$`, "i") },
+      };
+
+      const resolvedByName = await Label.findOne(filter).select("_id").lean();
+      candidateLabelId = resolvedByName?._id || null;
     }
 
-    return map;
-  }
+    if (
+      (candidateLabelId === undefined ||
+        candidateLabelId === null ||
+        candidateLabelId === "") &&
+      contact?.label_ids?.length > 0
+    ) {
+      candidateLabelId = contact.label_ids[0];
+    }
 
-  async _buildCategoryLabelDiscountMap(itemMasterMap, userId, labelName) {
-    const map = new Map();
-    if (!labelName || typeof labelName !== "string") return map;
-
-    const categoryIds = [
-      ...new Set(
-        Array.from(itemMasterMap.values())
-          .map((item) => item.category_id)
-          .filter(Boolean)
-          .map(String),
-      ),
-    ];
-
-    if (categoryIds.length === 0) return map;
-
-    const escaped = labelName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-    const categories = await Category.find({
-      _id: { $in: categoryIds },
-      user_id: userId,
-      "labels.name": { $regex: new RegExp(`^${escaped}$`, "i") },
-    })
-      .select("labels")
-      .lean();
-
-    const normalizedLabel = labelName.trim().toLowerCase();
-
-    for (const category of categories) {
-      const label = (category.labels || []).find(
-        (entry) =>
-          entry?.name?.toLowerCase() === normalizedLabel &&
-          entry?.is_active !== false,
-      );
-
-      if (!label) continue;
-
-      for (const entry of label.brand_discounts || []) {
-        if (!entry?.brand_id) continue;
-
-        const key = `${String(category._id)}:${String(entry.brand_id)}`;
-        map.set(key, {
-          disc1: entry.disc1 || { normal: 0, special: 0 },
-          disc2: entry.disc2 || { normal: 0, special: 0 },
-        });
+    if (
+      candidateLabelId === undefined ||
+      candidateLabelId === null ||
+      candidateLabelId === ""
+    ) {
+      if (requiredForSale) {
+        throw ApiError.badRequest("label_id is required for sale challan");
       }
+      return null;
     }
 
-    return map;
+    if (!mongoose.Types.ObjectId.isValid(candidateLabelId)) {
+      throw ApiError.badRequest("Invalid label_id");
+    }
+
+    const label = await Label.findOne({
+      _id: candidateLabelId,
+      user_id: userId,
+    })
+      .select("_id")
+      .lean();
+    if (!label) {
+      throw ApiError.badRequest(
+        "Label not found for this account. Please select a valid label_id.",
+      );
+    }
+
+    return label._id;
   }
 
-  _resolveDiscountSetByFirm(discountSource, saleIsGst) {
-    if (!discountSource) return { normal: 0, special: 0 };
-    return saleIsGst === 1
-      ? discountSource.discount1 || discountSource.disc1 || { normal: 0, special: 0 }
-      : discountSource.discount2 || discountSource.disc2 || { normal: 0, special: 0 };
+  _processItems(items, challanIsGst) {
+    return items.map((item, index) => {
+      if (!item?.item_id) {
+        throw ApiError.badRequest(`items[${index}].item_id is required`);
+      }
+
+      const quantityInput = item.quantity ?? item.pcs ?? 1;
+      const rateInput = item.rate;
+      const discountInput = item.discount ?? item.disPercent ?? 0;
+      const specialDiscountInput = item.special_discount ?? item.spDis ?? 0;
+      const gstPercentInput = item.gst_percent ?? item.gstPercent ?? 0;
+      const grossAmountInput = item.gross_amount ?? item.grossAmount;
+      const discountAmountInput = item.discount_amount ?? item.discountAmount;
+      const totalDiscountInput = item.total_discount ?? item.totalDiscount;
+      const taxableAmountInput = item.taxable_amount ?? item.taxableAmount;
+      const gstAmountInput = item.gst_amount ?? item.gstAmount;
+      const amountInput = item.amount ?? item.finalAmount;
+      const lineTypeInput = item.is_gst ?? item.isGst ?? challanIsGst;
+
+      if (rateInput === undefined) {
+        throw ApiError.badRequest(`items[${index}].rate is required`);
+      }
+      if (grossAmountInput === undefined) {
+        throw ApiError.badRequest(`items[${index}].gross_amount is required`);
+      }
+      if (discountAmountInput === undefined) {
+        throw ApiError.badRequest(
+          `items[${index}].discount_amount is required`,
+        );
+      }
+      if (totalDiscountInput === undefined) {
+        throw ApiError.badRequest(`items[${index}].total_discount is required`);
+      }
+      if (taxableAmountInput === undefined) {
+        throw ApiError.badRequest(`items[${index}].taxable_amount is required`);
+      }
+      if (gstAmountInput === undefined) {
+        throw ApiError.badRequest(`items[${index}].gst_amount is required`);
+      }
+      if (amountInput === undefined) {
+        throw ApiError.badRequest(`items[${index}].amount is required`);
+      }
+
+      const normalizedType = Number(lineTypeInput);
+      if (![0, 1].includes(normalizedType)) {
+        throw ApiError.badRequest(`items[${index}].is_gst must be 0 or 1`);
+      }
+
+      return {
+        item_id: item.item_id,
+        quantity: toNumber(quantityInput, `items[${index}].quantity`, {
+          min: 1,
+        }),
+        rate: toNumber(rateInput, `items[${index}].rate`),
+        discount: toNumber(discountInput, `items[${index}].discount`, {
+          min: 0,
+          max: 100,
+        }),
+        special_discount: toNumber(
+          specialDiscountInput,
+          `items[${index}].special_discount`,
+          { min: 0, max: 100 },
+        ),
+        gross_amount: toNumber(
+          grossAmountInput,
+          `items[${index}].gross_amount`,
+        ),
+        discount_amount: toNumber(
+          discountAmountInput,
+          `items[${index}].discount_amount`,
+        ),
+        total_discount: toNumber(
+          totalDiscountInput,
+          `items[${index}].total_discount`,
+        ),
+        taxable_amount: toNumber(
+          taxableAmountInput,
+          `items[${index}].taxable_amount`,
+        ),
+        gst_percent: toNumber(gstPercentInput, `items[${index}].gst_percent`, {
+          min: 0,
+          max: 100,
+        }),
+        gst_amount: toNumber(gstAmountInput, `items[${index}].gst_amount`),
+        amount: toNumber(amountInput, `items[${index}].amount`),
+        is_gst: normalizedType,
+      };
+    });
+  }
+
+  _aggregateTotals(processedItems = []) {
+    const gross_total = this._round(
+      processedItems.reduce(
+        (sum, item) => sum + Number(item.gross_amount || 0),
+        0,
+      ),
+    );
+    const sub_total = this._round(
+      processedItems.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    );
+
+    return {
+      gross_total,
+      sub_total,
+      amount: sub_total,
+      discount: 0,
+    };
+  }
+
+  _normalizeChallanTotals(payload = {}, processedItems = []) {
+    const fallback = this._aggregateTotals(processedItems);
+
+    const grossTotalInput = payload.gross_total ?? payload.grossTotal;
+    const subTotalInput = payload.sub_total ?? payload.subTotal;
+    const discountInput = payload.discount;
+    const amountInput = payload.amount;
+
+    const gross_total =
+      grossTotalInput !== undefined ?
+        toNumber(grossTotalInput, "gross_total")
+      : fallback.gross_total;
+
+    const sub_total =
+      subTotalInput !== undefined ?
+        toNumber(subTotalInput, "sub_total")
+      : fallback.sub_total;
+
+    const discount =
+      discountInput !== undefined ?
+        toNumber(discountInput, "discount")
+      : fallback.discount;
+
+    const amount =
+      amountInput !== undefined ?
+        toNumber(amountInput, "amount")
+      : fallback.amount;
+
+    return {
+      gross_total: this._round(gross_total),
+      sub_total: this._round(sub_total),
+      discount: this._round(discount),
+      amount: this._round(amount),
+    };
   }
 
   async getChallans(userId, isGst, challanType, query) {
-    const filter = {
-      user_id: userId,
-    };
+    const filter = { user_id: userId };
 
     if (challanType) filter.challan_type = challanType;
     if (isGst !== undefined) filter.is_gst = isGst;
@@ -103,44 +284,92 @@ class ChallanService {
       if (query.to_date) filter.date.$lte = new Date(query.to_date);
     }
 
-    return Pagination.paginate(Challan, filter, {
+    const result = await Pagination.paginate(Challan, filter, {
       ...query,
-      populate: [
-        { path: "contact_id", select: "name alias phone type assigned_label" },
-        {
-          path: "items.item_id",
-          select: "item_name alias description hsn_id",
-        },
-      ],
+      populate: this._challanPopulate(),
       sort: { createdAt: -1 },
     });
+
+    result.data = this._attachLegacyLabelNames(result.data);
+    return result;
   }
 
   async getChallanById(challanId, userId, isGst) {
-    const challan = await Challan.findOne({
+    const filter = {
       _id: challanId,
       user_id: userId,
-      is_gst: isGst,
-    })
-      .populate("contact_id")
-      .populate("items.item_id");
+    };
+    if (isGst !== undefined) filter.is_gst = isGst;
+
+    const challan = await Challan.findOne(filter).populate(
+      this._challanPopulate(),
+    );
 
     if (!challan) throw ApiError.notFound("Challan not found");
-    return challan;
+    return this._attachLegacyLabelName(challan);
+  }
+
+  async _resolveChallanNo(
+    providedChallanNo,
+    counterKey,
+    prefix,
+    userId,
+    isGst,
+    challanType,
+  ) {
+    if (
+      providedChallanNo &&
+      typeof providedChallanNo === "string" &&
+      providedChallanNo.trim()
+    ) {
+      const trimmed = providedChallanNo.trim();
+      const exists = await Challan.exists({
+        challan_no: trimmed,
+        user_id: userId,
+        is_gst: isGst,
+        challan_type: challanType,
+      });
+      if (exists) {
+        throw ApiError.conflict(
+          `Challan number '${trimmed}' already exists. Please use a different challan number.`,
+        );
+      }
+      return trimmed;
+    }
+    const seq = await getNextId(counterKey, userId);
+    return `${prefix}-${String(seq).padStart(6, "0")}`;
+  }
+
+  async checkChallanNoUnique(challanNo, isGst, challanType, userId) {
+    if (!challanNo || typeof challanNo !== "string" || !challanNo.trim()) {
+      throw ApiError.badRequest("challan_no is required");
+    }
+    const filter = {
+      challan_no: challanNo.trim(),
+      user_id: userId,
+      is_gst: isGst,
+    };
+    if (challanType) filter.challan_type = challanType;
+    const exists = await Challan.exists(filter);
+    return { challan_no: challanNo.trim(), is_unique: !exists };
   }
 
   async createChallan(challanData, userId, isGst, challanType) {
     const {
       items,
-      discount: manualChallanDiscount,
       contact_id,
       date,
+      label_id,
       label_name,
       from_bank,
       to_bank,
+      challan_no: providedChallanNo,
     } = challanData;
+
     const printOption =
-      Number(challanData?.print_option ?? challanData?.printOption ?? 2) === 1 ? 1 : 2;
+      Number(challanData?.print_option ?? challanData?.printOption ?? 2) === 1 ?
+        1
+      : 2;
 
     if (!contact_id) {
       throw ApiError.badRequest("Contact ID is required");
@@ -150,12 +379,11 @@ class ChallanService {
       throw ApiError.badRequest("At least one item is required");
     }
 
-    const itemIds = [...new Set(items.map((i) => String(i.item_id)))];
-
+    const itemIds = [
+      ...new Set(items.map((item) => String(item.item_id || ""))),
+    ].filter(Boolean);
     const dbItems = await Item.find({ _id: { $in: itemIds }, user_id: userId })
-      .select(
-        "_id is_gst brand_id category_id gst_percent sale_rate mrp_rate stock physical_stock logical_stock",
-      )
+      .select("_id item_name is_gst")
       .lean();
 
     if (dbItems.length !== itemIds.length) {
@@ -164,87 +392,73 @@ class ChallanService {
       );
     }
 
-    const itemMasterMap = new Map(dbItems.map((i) => [i._id.toString(), i]));
+    const itemMasterMap = new Map(
+      dbItems.map((item) => [String(item._id), item]),
+    );
 
-    const brandIds = [
-      ...new Set(
-        dbItems.filter((i) => i.brand_id).map((i) => i.brand_id.toString()),
-      ),
-    ];
-    const brands =
-      brandIds.length > 0
-        ? await Brand.find({
-            _id: { $in: brandIds },
-            user_id: userId,
-          })
-            .select("_id discount1 discount2")
-            .lean()
-        : [];
-    const discountMap = new Map(brands.map((b) => [b._id.toString(), b]));
-
-    const normalizedFromBank = await this._normalizeBankPayload(from_bank, userId);
+    const normalizedFromBank = await this._normalizeBankPayload(
+      from_bank,
+      userId,
+    );
     const normalizedToBank = await this._normalizeBankPayload(to_bank, userId);
 
     if (challanType === "sale") {
-      // party/contact may be missing when invoicing "me" or self
-      let party = { assigned_label: null, item_discounts: [] };
-      if (contact_id) {
-        party = await Contact.findOne({
-          _id: contact_id,
-          user_id: userId,
-          type: "party",
-        })
-          .select("assigned_label item_discounts")
-          .lean();
+      const party = await Contact.findOne({
+        _id: contact_id,
+        user_id: userId,
+        type: "party",
+      })
+        .select("label_ids")
+        .lean();
 
-        if (!party) {
-          throw ApiError.badRequest("Party not found for sale challan");
-        }
+      if (!party) {
+        throw ApiError.badRequest("Party not found for sale challan");
       }
 
-      const effectiveLabelName =
-        typeof label_name === "string" && label_name.trim()
-          ? label_name.trim()
-          : party.assigned_label || null;
-
-      const partyItemDiscountMap = this._buildPartyItemDiscountMap(
-        party.item_discounts,
-      );
-      const labelDiscountMap = await this._buildCategoryLabelDiscountMap(
-        itemMasterMap,
+      const resolvedLabelId = await this._resolveLabelId({
+        labelId: label_id,
+        labelName: label_name,
         userId,
-        effectiveLabelName,
-      );
+        contact: party,
+        requiredForSale: true,
+      });
 
       return this._createSaleChallan(
         items,
-        manualChallanDiscount,
+        challanData,
         contact_id,
         date,
         userId,
         isGst,
         itemMasterMap,
-        discountMap,
-        effectiveLabelName,
+        resolvedLabelId,
         normalizedFromBank,
         normalizedToBank,
         printOption,
-        partyItemDiscountMap,
-        labelDiscountMap,
+        providedChallanNo,
       );
     }
 
+    const resolvedLabelId = await this._resolveLabelId({
+      labelId: label_id,
+      labelName: label_name,
+      userId,
+      requiredForSale: false,
+    });
+
     return this._createPurchaseChallan(
       items,
+      challanData,
       contact_id,
       date,
       userId,
       challanData.is_gst ?? isGst,
       itemMasterMap,
-      label_name,
+      resolvedLabelId,
       normalizedFromBank,
       normalizedToBank,
       printOption,
+      providedChallanNo,
     );
   }
 
@@ -262,55 +476,116 @@ class ChallanService {
       throw ApiError.badRequest("Cannot update challan that is already billed");
     }
 
+    const fields = {};
+
+    // Whitelist allowed fields to prevent mass assignment
+    const ALLOWED_FIELDS = [
+      "items",
+      "date",
+      "remarks",
+      "print_option",
+      "gross_total",
+      "grossTotal",
+      "sub_total",
+      "subTotal",
+      "discount",
+      "amount",
+      "from_bank",
+      "to_bank",
+      "label_id",
+      "label_name",
+      "challan_no",
+    ];
+    for (const key of ALLOWED_FIELDS) {
+      if (updateData[key] !== undefined) fields[key] = updateData[key];
+    }
+
     if (updateData.items) {
       await stockService.restoreStock(challan.items, userId, challan.is_gst);
-
       const processedItems = this._processItems(
         updateData.items,
         challan.is_gst,
       );
-
-      const discount = updateData.discount ?? challan.discount ?? 0;
-      const subTotal = processedItems.reduce((s, i) => s + i.amount, 0);
-      const grossTotal = processedItems.reduce((s, i) => s + i.gross_amount, 0);
-      const challanDiscountAmount = subTotal * (discount / 100);
-      const totalAmount = subTotal - challanDiscountAmount;
-
       await stockService.deductStock(processedItems, userId, challan.is_gst);
 
-      updateData.items = processedItems;
-      updateData.gross_total = grossTotal;
-      updateData.sub_total = subTotal;
-      updateData.discount = discount;
-      updateData.amount = totalAmount;
-    } else if (updateData.discount !== undefined) {
-      const challanDiscountAmount =
-        challan.sub_total * (updateData.discount / 100);
-      updateData.amount = challan.sub_total - challanDiscountAmount;
+      const totals = this._normalizeChallanTotals(updateData, processedItems);
+
+      fields.items = processedItems;
+      fields.gross_total = totals.gross_total;
+      fields.sub_total = totals.sub_total;
+      fields.discount = totals.discount;
+      fields.amount = totals.amount;
+    } else {
+      if (
+        updateData.gross_total !== undefined ||
+        updateData.grossTotal !== undefined
+      ) {
+        fields.gross_total = toNumber(
+          updateData.gross_total ?? updateData.grossTotal,
+          "gross_total",
+        );
+      }
+      if (
+        updateData.sub_total !== undefined ||
+        updateData.subTotal !== undefined
+      ) {
+        fields.sub_total = toNumber(
+          updateData.sub_total ?? updateData.subTotal,
+          "sub_total",
+        );
+      }
+      if (updateData.discount !== undefined) {
+        fields.discount = toNumber(updateData.discount, "discount");
+      }
+      if (updateData.amount !== undefined) {
+        fields.amount = toNumber(updateData.amount, "amount");
+      }
     }
 
     if (updateData.from_bank !== undefined) {
-      updateData.from_bank = await this._normalizeBankPayload(updateData.from_bank, userId);
+      fields.from_bank = await this._normalizeBankPayload(
+        updateData.from_bank,
+        userId,
+      );
     }
 
     if (updateData.to_bank !== undefined) {
-      updateData.to_bank = await this._normalizeBankPayload(updateData.to_bank, userId);
+      fields.to_bank = await this._normalizeBankPayload(
+        updateData.to_bank,
+        userId,
+      );
     }
 
-    if (updateData.label_name !== undefined && typeof updateData.label_name === "string") {
-      updateData.label_name = updateData.label_name.trim() || null;
+    if (
+      updateData.label_id !== undefined ||
+      updateData.label_name !== undefined
+    ) {
+      const party = await Contact.findOne({
+        _id: challan.contact_id,
+        user_id: userId,
+        type: "party",
+      })
+        .select("label_ids")
+        .lean();
+
+      fields.label_id = await this._resolveLabelId({
+        labelId: updateData.label_id,
+        labelName: updateData.label_name,
+        userId,
+        contact: party,
+        requiredForSale: true,
+      });
     }
 
-    const updatedChallan = await Challan.findByIdAndUpdate(
-      challanId,
-      updateData,
-      { new: true },
-    ).populate([
-      { path: "contact_id", select: "name type" },
-      { path: "items.item_id", select: "item_name alias description hsn_id" },
-    ]);
+    delete fields.label_name;
+    delete fields.grossTotal;
+    delete fields.subTotal;
 
-    return updatedChallan;
+    const updatedChallan = await Challan.findByIdAndUpdate(challanId, fields, {
+      new: true,
+    }).populate(this._challanPopulate());
+
+    return this._attachLegacyLabelName(updatedChallan);
   }
 
   async deleteChallan(challanId, userId, isGst) {
@@ -349,10 +624,11 @@ class ChallanService {
       challan_type: "sale",
       converted_to_bill: false,
     })
-      .populate("items.item_id", "item_name alias description hsn_id")
-      .sort({ createdAt: -1 });
+      .populate(this._challanPopulate())
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return challans;
+    return this._attachLegacyLabelNames(challans);
   }
 
   async recordPayment(challanId, userId, amount) {
@@ -363,155 +639,110 @@ class ChallanService {
     });
     if (!challan) throw ApiError.notFound("Purchase challan not found");
 
-    const newPaidAmount =
-      Math.round((challan.paid_amount + amount) * 100) / 100;
-    let paymentStatus;
+    const newPaidAmount = this._round(
+      (challan.paid_amount || 0) + Number(amount || 0),
+    );
+    let paymentStatus = "overpaid";
     if (Math.abs(newPaidAmount - challan.amount) < 0.01) paymentStatus = "paid";
     else if (newPaidAmount < challan.amount) paymentStatus = "due";
-    else paymentStatus = "overpaid";
 
     const updatedChallan = await Challan.findByIdAndUpdate(
       challanId,
       { paid_amount: newPaidAmount, payment_status: paymentStatus },
       { new: true },
-    ).populate("contact_id", "name type");
+    ).populate(this._challanPopulate());
 
-    return updatedChallan;
-  }
-
-  _processItems(items, challanIsGst) {
-    return items.map((item) => {
-      const qty = toNumber(item.quantity ?? 1, "Item quantity", { min: 1 });
-      const rate = toNumber(item.rate, "Item rate");
-      const grossAmount = qty * rate;
-      const disc = toNumber(item.discount ?? 0, "Item discount", { min: 0, max: 100 });
-      const spDisc = toNumber(item.special_discount ?? 0, "Item special discount", { min: 0, max: 100 });
-      const manualDiscAmt = toNumber(item.discount_amount ?? 0, "Item discount amount");
-      const gstPct = toNumber(item.gst_percent ?? 0, "Item GST percent", { min: 0, max: 100 });
-
-      const afterDisc = grossAmount * (1 - disc / 100);
-      const afterSpDisc = afterDisc * (1 - spDisc / 100);
-      const taxableAmount = afterSpDisc - manualDiscAmt;
-      const totalDiscountAmount = grossAmount - taxableAmount;
-      const gstAmount = taxableAmount * (gstPct / 100);
-      const finalAmount = taxableAmount + gstAmount;
-
-      return {
-        item_id: item.item_id,
-        quantity: qty,
-        rate,
-        discount: disc,
-        special_discount: spDisc,
-        discount_amount: manualDiscAmt,
-        gross_amount: grossAmount,
-        total_discount: totalDiscountAmount,
-        taxable_amount: taxableAmount,
-        gst_percent: gstPct,
-        gst_amount: gstAmount,
-        amount: finalAmount,
-        is_gst: item.is_gst ?? challanIsGst,
-      };
-    });
+    return this._attachLegacyLabelName(updatedChallan);
   }
 
   async _createSaleChallan(
     items,
-    manualChallanDiscount,
+    totalsInput,
     contact_id,
     date,
     userId,
     isGst,
     itemMasterMap,
-    discountMap,
-    labelName,
+    labelId,
     fromBank,
     toBank,
     printOption,
-    partyItemDiscountMap,
-    labelDiscountMap,
+    providedChallanNo,
   ) {
     const gstItems = [];
     const nonGstItems = [];
 
     for (const item of items) {
-      const masterItem = itemMasterMap.get(
-        item.item_id.toString?.() ?? item.item_id,
-      );
+      const masterItem = itemMasterMap.get(String(item.item_id));
       const masterIsGst = masterItem?.is_gst ?? 1;
-      const saleIsGst = item.is_gst ?? masterIsGst ?? 1;
+      const saleIsGst = item.is_gst ?? item.isGst ?? masterIsGst;
 
-      if (masterIsGst === 0 && saleIsGst === 1) {
+      if (masterIsGst === 0 && Number(saleIsGst) === 1) {
         throw ApiError.badRequest(
           `Item ${item.item_id} is a NON_GST item and cannot be sold as GST`,
         );
       }
 
-      const brandId = masterItem?.brand_id?.toString();
-      const categoryId = masterItem?.category_id?.toString();
-      const partyItemDiscount = partyItemDiscountMap.get(
-        String(item.item_id?.toString?.() ?? item.item_id),
-      );
-
-      const labelDiscount =
-        categoryId && brandId
-          ? labelDiscountMap.get(`${categoryId}:${brandId}`)
-          : null;
-      const brandDiscount = brandId ? discountMap.get(brandId) : null;
-
-      const hasManualDiscount =
-        item.discount !== undefined || item.special_discount !== undefined;
-
-      let disc = item.discount;
-      let spDisc = item.special_discount;
-
-      if (!hasManualDiscount) {
-        const source =
-          partyItemDiscount || labelDiscount || brandDiscount || null;
-
-        const discountSet = this._resolveDiscountSetByFirm(source, saleIsGst);
-        disc = discountSet?.normal ?? 0;
-        spDisc = discountSet?.special ?? 0;
-      } else {
-        disc = disc ?? 0;
-        spDisc = spDisc ?? 0;
-      }
-
-      const gstPct = item.gst_percent ?? masterItem?.gst_percent ?? 0;
-
-      const enrichedItem = {
+      const normalizedItem = {
         ...item,
-        is_gst: saleIsGst,
-        discount: disc,
-        special_discount: spDisc,
-        gst_percent: gstPct,
+        is_gst:
+          masterIsGst === 0 ? 0
+          : Number(saleIsGst) === 1 ? 1
+          : 0,
       };
 
-      if (saleIsGst === 1) {
-        gstItems.push(enrichedItem);
-      } else {
-        nonGstItems.push(enrichedItem);
-      }
+      if (normalizedItem.is_gst === 1) gstItems.push(normalizedItem);
+      else nonGstItems.push(normalizedItem);
     }
 
     if (gstItems.length === 0 && nonGstItems.length === 0) {
       throw ApiError.badRequest("At least one item is required");
     }
 
+    // if (isGst === 1 && gstItems.length === 0) {
+    //   throw ApiError.badRequest(
+    //     "No GST items found in this challan. Switch to NON_GST firm for these items.",
+    //   );
+    // }
+
+    // if (isGst === 0 && nonGstItems.length === 0) {
+    //   throw ApiError.badRequest(
+    //     "No NON_GST items found in this challan. Switch to GST firm for these items.",
+    //   );
+    // }
+
+    const hasMixedGroups = gstItems.length > 0 && nonGstItems.length > 0;
+
+    let challanNoUsed = false;
     const buildChallanDoc = async (groupItems, challanIsGst) => {
-      const challanNoSeq = await getNextId(
-        `ChallanNo_${challanIsGst === 1 ? "GST" : "NONGST"}`,
-        userId,
-      );
-      const challan_no = `CH-${String(challanNoSeq).padStart(6, "0")}`;
+      let challan_no;
+      if (!challanNoUsed && providedChallanNo) {
+        challan_no = await this._resolveChallanNo(
+          providedChallanNo,
+          `ChallanNo_${challanIsGst === 1 ? "GST" : "NONGST"}`,
+          "CH",
+          userId,
+          challanIsGst,
+          "sale",
+        );
+        challanNoUsed = true;
+      } else {
+        challan_no = await this._resolveChallanNo(
+          null,
+          `ChallanNo_${challanIsGst === 1 ? "GST" : "NONGST"}`,
+          "CH",
+          userId,
+          challanIsGst,
+          "sale",
+        );
+      }
       const nextId = await getNextId("Challan", userId);
 
       const processedItems = this._processItems(groupItems, challanIsGst);
-      const grossTotal = processedItems.reduce((s, i) => s + i.gross_amount, 0);
-      const subTotal = processedItems.reduce((s, i) => s + i.amount, 0);
-
-      const challanDiscount = manualChallanDiscount ?? 0;
-      const challanDiscountAmount = subTotal * (challanDiscount / 100);
-      const totalAmount = subTotal - challanDiscountAmount;
+      const totals =
+        hasMixedGroups ?
+          this._normalizeChallanTotals({}, processedItems)
+        : this._normalizeChallanTotals(totalsInput, processedItems);
 
       return {
         doc: {
@@ -520,15 +751,15 @@ class ChallanService {
           challan_type: "sale",
           contact_id,
           date: date || new Date(),
-          label_name: labelName,
+          label_id: labelId,
           print_option: printOption,
           from_bank: fromBank,
           to_bank: toBank,
           items: processedItems,
-          gross_total: grossTotal,
-          sub_total: subTotal,
-          discount: challanDiscount,
-          amount: totalAmount,
+          gross_total: totals.gross_total,
+          sub_total: totals.sub_total,
+          discount: totals.discount,
+          amount: totals.amount,
           is_gst: challanIsGst,
           user_id: userId,
         },
@@ -565,23 +796,29 @@ class ChallanService {
     const currentFirmChallan = isGst === 1 ? gstChallan : nonGstChallan;
     const returnChallan = currentFirmChallan || gstChallan || nonGstChallan;
 
-    return returnChallan.populate([
-      { path: "contact_id", select: "name type" },
-      { path: "items.item_id", select: "item_name alias description hsn_id" },
-    ]);
+    if (!returnChallan) {
+      throw ApiError.badRequest(
+        "No challan could be created for the given items",
+      );
+    }
+
+    const populated = await returnChallan.populate(this._challanPopulate());
+    return this._attachLegacyLabelName(populated);
   }
 
   async _createPurchaseChallan(
     items,
+    totalsInput,
     contact_id,
     date,
     userId,
     challanIsGst,
-    itemMasterMap,
-    labelName,
+    _itemMasterMap,
+    labelId,
     fromBank,
     toBank,
     printOption,
+    providedChallanNo,
   ) {
     const supplier = await Contact.findOne({
       _id: contact_id,
@@ -595,20 +832,24 @@ class ChallanService {
     }
 
     const supplierIsGst = supplier.is_gst ?? 1;
-    const challanNoSeq = await getNextId(
+    const challan_no = await this._resolveChallanNo(
+      providedChallanNo,
       `PurchaseNo_${challanIsGst === 1 ? "GST" : "NONGST"}`,
+      "PO",
       userId,
+      challanIsGst,
+      "purchase",
     );
-    const challan_no = `PO-${String(challanNoSeq).padStart(6, "0")}`;
     const nextId = await getNextId("Challan", userId);
 
     const processedItems = this._processItems(items, challanIsGst);
-    const grossTotal = processedItems.reduce((s, i) => s + i.gross_amount, 0);
-    const subTotal = processedItems.reduce((s, i) => s + i.amount, 0);
+    const totals = this._normalizeChallanTotals(totalsInput, processedItems);
 
-    await stockService.addStock(items, userId, challanIsGst);
+    await stockService.addStock(processedItems, userId, challanIsGst);
 
-    const itemIds = [...new Set(items.map((i) => String(i.item_id)))];
+    const itemIds = [
+      ...new Set(processedItems.map((item) => String(item.item_id))),
+    ];
     await Item.updateMany(
       { _id: { $in: itemIds }, user_id: userId },
       { is_gst: supplierIsGst },
@@ -620,32 +861,30 @@ class ChallanService {
       challan_type: "purchase",
       contact_id,
       date: date || new Date(),
-      label_name: labelName || null,
+      label_id: labelId || null,
       print_option: printOption,
       from_bank: fromBank,
       to_bank: toBank,
       items: processedItems,
-      gross_total: grossTotal,
-      sub_total: subTotal,
-      discount: 0,
-      amount: subTotal,
+      gross_total: totals.gross_total,
+      sub_total: totals.sub_total,
+      discount: totals.discount,
+      amount: totals.amount,
       is_gst: challanIsGst,
       user_id: userId,
     });
 
-    return challan.populate([
-      { path: "contact_id", select: "name type" },
-      { path: "items.item_id", select: "item_name alias description hsn_id" },
-    ]);
+    const populated = await challan.populate(this._challanPopulate());
+    return this._attachLegacyLabelName(populated);
   }
 
   async getLastSoldItem(itemId, userId) {
-    const challan = await Challan.findOne({
+    const challans = await Challan.find({
       user_id: userId,
       challan_type: "sale",
       "items.item_id": itemId,
     })
-      .sort({ date: -1, createdAt: -1 })
+      .sort({ date: -1, createdAt: -1, _id: -1 })
       .populate("contact_id", "name phone type")
       .populate(
         "items.item_id",
@@ -653,20 +892,42 @@ class ChallanService {
       )
       .lean();
 
-    if (!challan) return null;
+    if (challans.length === 0) return [];
 
-    const soldItem = challan.items.find(
-      (i) => i.item_id?._id?.toString() === itemId.toString(),
-    );
+    const normalizedItemId = String(itemId);
+    const entries = [];
 
-    return {
-      challan_id: challan._id,
-      challan_no: challan.challan_no,
-      challan_date: challan.date,
-      contact: challan.contact_id,
-      is_gst: challan.is_gst,
-      item: soldItem,
-    };
+    for (const challan of challans) {
+      for (const line of challan.items || []) {
+        const lineItem = line?.item_id;
+        const lineItemId =
+          typeof lineItem === "object" && lineItem?._id ?
+            String(lineItem._id)
+          : String(lineItem);
+
+        if (lineItemId !== normalizedItemId) continue;
+
+        entries.push({
+          challan_id: challan._id,
+          challan_no: challan.challan_no,
+          challan_date: challan.date,
+          contact: challan.contact_id,
+          is_gst: challan.is_gst,
+          item: lineItem,
+          quantity: line.quantity,
+          rate: line.rate,
+          discount: line.discount,
+          special_discount: line.special_discount,
+          discount_amount: line.discount_amount,
+          gst_percent: line.gst_percent,
+          gst_amount: line.gst_amount,
+          taxable_amount: line.taxable_amount,
+          amount: line.amount,
+        });
+      }
+    }
+
+    return entries.slice(0, 4);
   }
 }
 

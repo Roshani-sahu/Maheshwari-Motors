@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+const ASSIGNMENT_TYPES = ["firm", "party", "supplier"];
+
 const bankSchema = new mongoose.Schema(
   {
     id: { type: Number },
@@ -9,8 +11,15 @@ const bankSchema = new mongoose.Schema(
     account_number: { type: String, trim: true, required: true },
     account_holder: { type: String, trim: true, default: "" },
     upi_id: { type: String, trim: true, default: "" },
-    bank_type: { type: String, enum: ["firm", "party", "supplier"], default: "firm" }, // new field for filtering
-    is_default: { type: Boolean, default: false },
+    assignment_type: {
+      type: String,
+      enum: ASSIGNMENT_TYPES,
+      default: null,
+    },
+    assigned_to: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -22,5 +31,8 @@ const bankSchema = new mongoose.Schema(
 
 bankSchema.index({ id: 1, user_id: 1 });
 bankSchema.index({ account_number: 1, user_id: 1 });
+bankSchema.index({ assignment_type: 1, user_id: 1 });
+bankSchema.index({ assigned_to: 1, user_id: 1 });
 
+export { ASSIGNMENT_TYPES };
 export default mongoose.model("Bank", bankSchema);

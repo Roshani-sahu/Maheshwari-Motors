@@ -1,9 +1,10 @@
 import Item from "../../models/master/item.model.js";
 import Brand from "../../models/master/brand.model.js";
-import Category from "../../models/master/category.model.js";
 import Contact from "../../models/master/contact.model.js";
 import Department from "../../models/master/department.model.js";
 import Hsn from "../../models/master/hsn.model.js";
+import Challan from "../../models/transaction/challan.model.js";
+import Bill from "../../models/transaction/bill.model.js";
 import {
   ApiError,
   Pagination,
@@ -19,10 +20,9 @@ import {
 import s3Service from "../common/s3.service.js";
 
 const ITEM_POPULATE = [
-  { path: "category_id", select: "category_name" },
-  { path: "brand_id", select: "brand_name" },
-  { path: "contact_id", select: "contact_name" },
-  { path: "dept_id", select: "dept_name" },
+  { path: "brand_id", select: "name" },
+  // { path: "contact_id", select: "name" },
+  { path: "dept_id", select: "name" },
   { path: "hsn_id", select: "hsn_code description gst_rate" },
 ];
 
@@ -86,6 +86,7 @@ class ItemService {
     result.data = result.data.map((item) =>
       this._normalizeStockForResponse(item, isGst),
     );
+
     return result;
   }
 
@@ -117,7 +118,6 @@ class ItemService {
       logical_stock,
       threshold,
       is_gst,
-      category_id,
       brand_id,
       contact_id,
       dept_id,
@@ -141,6 +141,7 @@ class ItemService {
       }
       const barcodeExists = await Item.exists({
         barcode: barcode.toUpperCase(),
+        user_id: userId,
       });
       if (barcodeExists) {
         throw ApiError.conflict(
@@ -158,7 +159,10 @@ class ItemService {
       if (!Number.isFinite(numericId) || numericId < 1 || numericId % 1 !== 0) {
         throw ApiError.badRequest("Item ID must be a positive integer");
       }
-      const itemIdExists = await Item.exists({ item_id: numericId });
+      const itemIdExists = await Item.exists({
+        item_id: numericId,
+        user_id: userId,
+      });
       if (itemIdExists) {
         throw ApiError.conflict(
           `Item ID '${numericId}' is already in use by another item`,
@@ -204,17 +208,6 @@ class ItemService {
       throw ApiError.conflict("Item with this name already exists");
     }
 
-    if (category_id) {
-      const categoryExists = await Category.exists({
-        _id: category_id,
-        user_id: userId,
-      });
-      if (!categoryExists) {
-        throw ApiError.badRequest(
-          "Category not found. Please select a valid category.",
-        );
-      }
-    }
     if (brand_id) {
       const brandExists = await Brand.exists({
         _id: brand_id,
@@ -307,7 +300,6 @@ class ItemService {
       logical_stock: finalLogicalStock,
       threshold: parsedThreshold,
       is_gst,
-      category_id,
       brand_id,
       contact_id,
       dept_id,
@@ -350,7 +342,6 @@ class ItemService {
       logical_stock,
       threshold,
       is_gst,
-      category_id,
       brand_id,
       contact_id,
       dept_id,
@@ -383,6 +374,7 @@ class ItemService {
       }
       const barcodeExists = await Item.exists({
         barcode: barcode.toUpperCase(),
+        user_id: userId,
         _id: { $ne: itemId },
       });
       if (barcodeExists) {
@@ -399,6 +391,7 @@ class ItemService {
       }
       const itemIdExists = await Item.exists({
         item_id: numericId,
+        user_id: userId,
         _id: { $ne: itemId },
       });
       if (itemIdExists) {
@@ -424,17 +417,6 @@ class ItemService {
 
     const parsedThreshold = toNumberIfDefined(threshold, "Threshold");
 
-    if (category_id !== undefined && category_id !== null) {
-      const categoryExists = await Category.exists({
-        _id: category_id,
-        user_id: userId,
-      });
-      if (!categoryExists) {
-        throw ApiError.badRequest(
-          "Category not found. Please select a valid category.",
-        );
-      }
-    }
     if (brand_id !== undefined && brand_id !== null) {
       const brandExists = await Brand.exists({
         _id: brand_id,
@@ -462,6 +444,7 @@ class ItemService {
         _id: dept_id,
         user_id: userId,
       });
+
       if (!deptExists) {
         throw ApiError.badRequest(
           "Department not found. Please select a valid department.",
@@ -513,7 +496,6 @@ class ItemService {
 
     if (threshold !== undefined) fields.threshold = parsedThreshold;
     if (is_gst !== undefined) fields.is_gst = is_gst;
-    if (category_id !== undefined) fields.category_id = category_id;
     if (brand_id !== undefined) fields.brand_id = brand_id;
     if (contact_id !== undefined) fields.contact_id = contact_id;
     if (dept_id !== undefined) fields.dept_id = dept_id;
@@ -577,6 +559,16 @@ class ItemService {
     const item = await Item.findOne({ _id: itemId, user_id: userId });
     if (!item) {
       throw ApiError.notFound("Item not found");
+    }
+
+    const challanCount = await Challan.countDocuments({
+      "items.item_id": itemId,
+      user_id: userId,
+    });
+    if (challanCount > 0) {
+      throw ApiError.badRequest(
+        `Cannot delete item used in ${challanCount} challan(s). Remove all related challans/bills first.`,
+      );
     }
 
     if (item.image) {
@@ -708,6 +700,15 @@ class ItemService {
       this._normalizeStockForResponse(item, isGst),
     );
     return result;
+  }
+
+  async checkBarcodeUnique(barcode) {
+    if (!barcode || typeof barcode !== "string" || !barcode.trim()) {
+      throw ApiError.badRequest("barcode is required");
+    }
+    const trimmed = barcode.trim().toUpperCase();
+    const exists = await Item.exists({ barcode: trimmed });
+    return { barcode: trimmed, is_unique: !exists };
   }
 }
 
