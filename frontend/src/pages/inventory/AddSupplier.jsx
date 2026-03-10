@@ -23,9 +23,16 @@ const INITIAL_FORM = {
   address: '',
   city: '',
   state: '',
+  gstin: '',
   cin: '',
   reg_number: '',
-  bank_id: ''
+  bank_id: '',
+  bank_name: '',
+  bank_branch: '',
+  ifsc_code: '',
+  account_number: '',
+  account_holder: '',
+  upi_id: ''
 };
 
 const AddSupplier = () => {
@@ -141,6 +148,7 @@ const AddSupplier = () => {
       address: formData.address || undefined,
       city: formData.city || undefined,
       state: formData.state || undefined,
+      gstin: formData.gstin ? formData.gstin.toUpperCase() : undefined,
       cin: formData.cin || undefined,
       reg_number: formData.reg_number || undefined,
       bank_id: formData.bank_id || undefined
@@ -234,12 +242,15 @@ const AddSupplier = () => {
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Phone</label><p className="text-sm text-gray-900">{selectedSupplier.phone}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label><p className="text-sm text-gray-900">{selectedSupplier.whatsapp_number || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label><p className="text-sm text-gray-900">{selectedSupplier.email}</p></div>
+              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">GST Number</label><p className="text-sm text-gray-900">{selectedSupplier.gstin || 'N/A'}</p></div>
+              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">PAN Number</label><p className="text-sm text-gray-900">{selectedSupplier.gstin ? extractPAN(selectedSupplier.gstin) : 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">CIN</label><p className="text-sm text-gray-900">{selectedSupplier.cin || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Reg Number</label><p className="text-sm text-gray-900">{selectedSupplier.reg_number || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Name</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.bank_name || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.bank_name || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Bank Branch</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.bank_branch || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.bank_branch || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">IFSC Code</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.ifsc_code || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.ifsc_code || 'N/A'}</p></div>
-              <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Account Number</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.account_number || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.account_number || 'N/A'}</p></div>
+              {/* <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Account Number</label><p className="text-sm text-gray-900">{selectedSupplier.bank_details?.account_number || banks.find(b => getEntityId(b) === selectedSupplier.bank_id)?.account_number || 'N/A'}</p></div> */}
+              
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">City</label><p className="text-sm text-gray-900">{selectedSupplier.city || 'N/A'}</p></div>
               <div><label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">State</label><p className="text-sm text-gray-900">{selectedSupplier.state || 'N/A'}</p></div>
             </div>
@@ -261,6 +272,10 @@ const AddSupplier = () => {
             <div><label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label><input type="tel" name="whatsapp_number" value={formData.whatsapp_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="WhatsApp Number" /></div>
           </div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label><input type="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="contact@example.com" /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">GST Number</label><input type="text" name="gstin" value={formData.gstin} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="GST Number" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label><input type="text" value={formData.gstin ? extractPAN(formData.gstin) : ''} disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100" placeholder="Auto-filled from GST" /></div>
+          </div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Address *</label><textarea name="address" value={formData.address} onChange={handleInputChange} required rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter complete address" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">City *</label><input type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="City" /></div>
@@ -271,7 +286,19 @@ const AddSupplier = () => {
             <div><label className="block text-sm font-medium text-gray-700 mb-1">CIN</label><input type="text" name="cin" value={formData.cin} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="CIN" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">Reg Number</label><input type="text" name="reg_number" value={formData.reg_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Registration Number" /></div>
           </div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Bank</label><select name="bank_id" value={formData.bank_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Bank</option>{banks.map(bank => <option key={getEntityId(bank)} value={getEntityId(bank)}>{bank.bank_name} - {bank.account_number}</option>)}</select></div>
+          {/* <div><label className="block text-sm font-medium text-gray-700 mb-1">Bank</label><select name="bank_id" value={formData.bank_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"><option value="">Select Bank</option>{banks.map(bank => <option key={getEntityId(bank)} value={getEntityId(bank)}>{bank.bank_name} - {bank.account_number}</option>)}</select></div> */}
+            <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label><input type="text" name="bank_name" value={formData.bank_name} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter bank name" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Bank Branch</label><input type="text" name="bank_branch" value={formData.bank_branch} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter branch name" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label><input type="text" name="ifsc_code" value={formData.ifsc_code} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter IFSC code" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label><input type="text" name="account_number" value={formData.account_number} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter account number" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">Account Holder</label><input type="text" name="account_holder" value={formData.account_holder} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter account holder name" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">UPI ID</label><input type="text" name="upi_id" value={formData.upi_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter UPI ID" /></div>
+          </div>
           <div className="flex gap-3 pt-4">
             <Button type="button" variant="outline" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedSupplier(null); setFormData(INITIAL_FORM); }}>Cancel</Button>
             <Button type="submit">{isEditModalOpen ? 'Update Supplier' : 'Add Supplier'}</Button>
