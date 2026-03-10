@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
@@ -15,6 +15,7 @@ const BankMaster = () => {
   const [editingBank, setEditingBank] = useState(null);
   const [viewingBank, setViewingBank] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, bank: null });
+  const firstFieldRef = useRef(null);
   const [formData, setFormData] = useState({
     bank_name: '',
     bank_branch: '',
@@ -38,9 +39,26 @@ const BankMaster = () => {
     }
   };
 
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === 'function') {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
+  };
+
   useEffect(() => {
     fetchBanks();
   }, [filterType]);
+  
+  useEffect(() => {
+    if (isAddModalOpen && !isEditModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddModalOpen, isEditModalOpen]);
 
   const columns = [
     { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs sm:text-sm">{index + 1}</span> },
@@ -72,10 +90,14 @@ const BankMaster = () => {
         await api.post('/banks', formData);
         showToast('Bank added successfully', 'success');
       }
-      setIsAddModalOpen(false);
-      setIsEditModalOpen(false);
+      if (isEditModalOpen) {
+        setIsEditModalOpen(false);
+      }
       setFormData({ bank_name: '', bank_branch: '', ifsc_code: '', account_number: '', account_holder: '', upi_id: '', is_default: false });
       fetchBanks();
+      if (!isEditModalOpen) {
+        focusFirstField();
+      }
     } catch (error) {
       showToast(error.response?.data?.message || 'Operation failed', 'error');
     }
@@ -96,7 +118,7 @@ const BankMaster = () => {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bank Master</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bank/Cash Master</h1>
           <p className="text-gray-600 text-xs sm:text-sm">Manage bank accounts</p>
         </div>
         <div className="flex items-center gap-3">
@@ -122,7 +144,7 @@ const BankMaster = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
-            <Input value={formData.bank_name} onChange={(v) => setFormData({ ...formData, bank_name: v })} placeholder="Enter bank name" required />
+            <Input ref={firstFieldRef} value={formData.bank_name} onChange={(v) => setFormData({ ...formData, bank_name: v })} placeholder="Enter bank name" required />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Bank Branch</label>

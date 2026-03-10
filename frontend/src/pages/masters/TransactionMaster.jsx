@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaEye, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
@@ -46,6 +46,7 @@ const TransactionMaster = () => {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, transaction: null });
   const [loading, setLoading] = useState(false);
+  const firstFieldRef = useRef(null);
 
   const getResponseList = (res) => {
     const data = res?.data?.data;
@@ -60,6 +61,23 @@ const TransactionMaster = () => {
   useEffect(() => {
     fetchTransactions();
   }, [activeBook]);
+
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === 'function') {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
+  };
+
+  useEffect(() => {
+    if (isAddModalOpen && !isEditModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddModalOpen, isEditModalOpen]);
 
   const fetchParties = async () => {
     try {
@@ -108,6 +126,8 @@ const TransactionMaster = () => {
         return [];
     }
   };
+
+  const activeBookTypes = getBookTransactionTypes(activeBook);
 
   const columns = [
     { key: 'id', label: 'ID', width: '50px', render: (v, r, i) => i + 1 },
@@ -184,10 +204,14 @@ const TransactionMaster = () => {
         showToast('Transaction created successfully', 'success');
       }
       fetchTransactions();
-      setIsAddModalOpen(false);
-      setIsEditModalOpen(false);
+      if (isEditModalOpen) {
+        setIsEditModalOpen(false);
+      }
       setFormData(INITIAL_FORM);
       setSelectedTransaction(null);
+      if (!isEditModalOpen) {
+        focusFirstField();
+      }
     } catch (error) {
       showToast(error.response?.data?.message || 'Operation failed', 'error');
     }
@@ -280,13 +304,13 @@ const TransactionMaster = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Transaction No *</label>
-              <input type="text" name="transaction_no" value={formData.transaction_no} onChange={handleInputChange} required className="w-full px-3 py-2 border rounded-lg" />
+              <input ref={firstFieldRef} type="text" name="transaction_no" value={formData.transaction_no} onChange={handleInputChange} required className="w-full px-3 py-2 border rounded-lg" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Transaction Type *</label>
               <select name="type" value={formData.type} onChange={handleInputChange} required className="w-full px-3 py-2 border rounded-lg">
                 <option value="">Select Type</option>
-                {Object.values(TRANSACTION_TYPES).map(type => (
+                {(activeBookTypes.length ? activeBookTypes : Object.values(TRANSACTION_TYPES)).map(type => (
                   <option key={type} value={type}>{type.replace(/_/g, ' ').toUpperCase()}</option>
                 ))}
               </select>

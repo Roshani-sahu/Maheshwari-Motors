@@ -12,7 +12,7 @@ const agentSchema = new mongoose.Schema(
     party_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Contact",
-      required: true,
+      default: null,
     },
     user_id: {
       type: mongoose.Schema.Types.ObjectId,

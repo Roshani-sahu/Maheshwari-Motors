@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
@@ -13,7 +13,7 @@ const INDIAN_STATES = [
   'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Lakshadweep', 'Puducherry', 'Ladakh', 'Jammu and Kashmir'
 ];
 
-const emptyForm = { city: '', state: '', pincode: '', phone: '', agent_id: '' };
+const emptyForm = { city: '', state: '', pincode: '', agent_id: '' };
 
 const AreaMaster = () => {
   const { showToast } = useStore();
@@ -27,6 +27,7 @@ const AreaMaster = () => {
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, area: null });
   const [formData, setFormData] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const firstFieldRef = useRef(null);
 
   const listFromResponse = (res) => {
     const payload = res?.data?.data;
@@ -40,7 +41,6 @@ const AreaMaster = () => {
     city: a?.city || '',
     state: a?.state || '',
     pincode: a?.pincode || '',
-    phone: a?.phone || '',
     agent_id: typeof a?.agent_id === 'object' ? a.agent_id?._id : (a?.agent_id || '')
   });
 
@@ -60,19 +60,34 @@ const AreaMaster = () => {
     }
   };
 
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === 'function') {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     fetchAll(controller.signal);
     return () => controller.abort();
   }, []);
+  
+  useEffect(() => {
+    if (isAddModalOpen && !isEditModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddModalOpen, isEditModalOpen]);
 
   const columns = useMemo(() => [
-        { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
-
+    { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
     { key: 'city', label: 'City' },
     { key: 'state', label: 'State' },
-    { key: 'pincode', label: 'Pincode' },
-    { key: 'phone', label: 'Phone' }
+    { key: 'pincode', label: 'Pincode' }
   ], []);
 
   const actions = useMemo(() => [
@@ -97,17 +112,12 @@ const AreaMaster = () => {
     city: formData.city?.trim(),
     state: formData.state?.trim(),
     pincode: formData.pincode?.trim() || undefined,
-    phone: formData.phone?.trim() || undefined,
     agent_id: formData.agent_id || undefined
   });
 
   const validate = () => {
     if (!formData.city?.trim() || !formData.state?.trim()) {
       showToast('City and state are required', 'error');
-      return false;
-    }
-    if (formData.phone && !/^\d{10}$/.test(formData.phone.trim())) {
-      showToast('Phone number must be exactly 10 digits', 'error');
       return false;
     }
     return true;
@@ -119,9 +129,9 @@ const AreaMaster = () => {
     try {
       await api.post('/areas', buildPayload());
       showToast('Area added successfully', 'success');
-      setIsAddModalOpen(false);
       setFormData(emptyForm);
       fetchAll();
+      focusFirstField();
     } catch (error) {
       const errorMsg = error?.response?.data?.error || error?.response?.data?.message || 'Failed to add area';
       showToast(errorMsg, 'error');
@@ -166,7 +176,7 @@ const AreaMaster = () => {
   const renderForm = (isView = false) => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">City *</label><Input value={formData.city} onChange={(v) => setFormData({ ...formData, city: v })} disabled={isView} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 mb-1">Area *</label><Input ref={isAddModalOpen && !isEditModalOpen ? firstFieldRef : null} value={formData.city} onChange={(v) => setFormData({ ...formData, city: v })} disabled={isView} /></div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
           <select value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} disabled={isView} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
@@ -175,7 +185,6 @@ const AreaMaster = () => {
           </select>
         </div>
         <div><label className="block text-sm font-medium text-gray-700 mb-1">Pincode</label><Input value={formData.pincode} onChange={(v) => setFormData({ ...formData, pincode: v })} disabled={isView} /></div>
-        <div><label className="block text-sm font-medium text-gray-700 mb-1">Phone</label><Input value={formData.phone} onChange={(v) => setFormData({ ...formData, phone: v.replace(/\D/g, '').slice(0, 10) })} disabled={isView} placeholder="10 digit number" /></div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Agent</label>
           <select value={formData.agent_id} onChange={(e) => setFormData({ ...formData, agent_id: e.target.value })} disabled={isView} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">

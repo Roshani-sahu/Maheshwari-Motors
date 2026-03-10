@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FaDownload, FaEdit, FaEye, FaPlus, FaTrash } from "react-icons/fa";
 import { DataTable, DeleteConfirmDialog, Modal } from "../../components/common";
 import { Button } from "../../components/ui";
@@ -194,6 +194,18 @@ const ReturnMaster = () => {
   });
   // outstanding panel is now shown inside the add return modal
   const [showOutstandingInline, setShowOutstandingInline] = useState(false);
+  const firstFieldRef = useRef(null);
+
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === "function") {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
+  };
 
   const fetchReturns = useCallback(async () => {
     const response = await api.get("/returns", { params: { page: 1, limit: 200 } });
@@ -289,6 +301,12 @@ const ReturnMaster = () => {
   useEffect(() => {
     fetchAllData();
   }, [fetchAllData, selectedFirm?.id]);
+
+  useEffect(() => {
+    if (isAddModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddModalOpen]);
 
   const isSaleReturn = formData.return_type === "sale_return";
 
@@ -874,8 +892,11 @@ const ReturnMaster = () => {
     try {
       await api.post(endpoint, payload);
       showToast("Return created successfully", "success");
-      setIsAddModalOpen(false);
+      setFormData(getInitialFormData());
+      setReferenceItems([]);
+      setShowOutstandingInline(false);
       await fetchReturns();
+      focusFirstField();
     } catch (error) {
       console.error("Failed to create return:", error);
       showToast(error?.response?.data?.message || "Failed to create return", "error");
@@ -950,6 +971,7 @@ const ReturnMaster = () => {
  <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Return Type</label>
               <select
+                ref={firstFieldRef}
                 value={formData.return_type}
                 onChange={(event) => handleReturnTypeChange(event.target.value)}
                 className="w-full px-3 py-2 border rounded-md text-sm"

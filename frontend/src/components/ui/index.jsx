@@ -209,17 +209,18 @@ export const FormField = ({
 );
 
 // Input Component
-export const Input = ({ 
-  type = "text", 
-  value, 
-  onChange, 
+export const Input = React.forwardRef(({
+  type = "text",
+  value,
+  onChange,
   onBlur,
-  placeholder, 
-  disabled, 
+  placeholder,
+  disabled,
   className = "",
-  ...props 
-}) => (
+  ...props
+}, ref) => (
   <input
+    ref={ref}
     type={type}
     value={value}
     onChange={(e) => onChange?.(e.target.value)}
@@ -229,7 +230,8 @@ export const Input = ({
     className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 ${className}`}
     {...props}
   />
-);
+));
+Input.displayName = "Input";
 
 // Select Component
 export const Select = ({ 

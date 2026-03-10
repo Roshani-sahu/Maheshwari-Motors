@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
@@ -18,6 +18,7 @@ const AgentMaster = () => {
   const [selectedAgent, setSelectedAgent] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const firstFieldRef = useRef(null);
 
   const normalizeAgent = (a) => ({
     _id: a?._id,
@@ -39,11 +40,28 @@ const AgentMaster = () => {
     }
   };
 
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === 'function') {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     fetchData(controller.signal);
     return () => controller.abort();
   }, []);
+  
+  useEffect(() => {
+    if (isAddModalOpen && !isEditModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddModalOpen, isEditModalOpen]);
 
   const columns = [
         { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
@@ -99,11 +117,15 @@ const AgentMaster = () => {
         showToast('Agent created successfully', 'success');
       }
 
-      setIsAddModalOpen(false);
-      setIsEditModalOpen(false);
+      if (isEditModalOpen) {
+        setIsEditModalOpen(false);
+      }
       setFormData(emptyForm);
       setSelectedAgent(null);
       fetchData();
+      if (!isEditModalOpen) {
+        focusFirstField();
+      }
     } catch (error) {
       showToast(error?.response?.data?.message || 'Failed to save agent', 'error');
     } finally {
@@ -159,7 +181,7 @@ const AgentMaster = () => {
 
       <Modal isOpen={isAddModalOpen || isEditModalOpen} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedAgent(null); setFormData(emptyForm); }} title={isEditModalOpen ? 'Edit Agent' : 'Add New Agent'} size="md">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Name</label><input ref={firstFieldRef} type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Address</label><textarea name="address" value={formData.address} onChange={handleInputChange} rows="2" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">City</label><input type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" /></div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
@@ -6,7 +6,7 @@ import { Button } from '../../components/ui';
 import useStore from '../../store';
 
 import api from '../../services/axiosInstance';
-import { getResponseList, getEntityId, normalizeContact } from '../../services/apiUtils';
+import { getResponseData, getResponseList, getEntityId, normalizeContact } from '../../services/apiUtils';
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
@@ -30,6 +30,12 @@ const INITIAL_FORM = {
   cin: '',
   reg_number: '',
   bank_id: '',
+  bank_name: '',
+  bank_branch: '',
+  ifsc_code: '',
+  account_number: '',
+  account_holder: '',
+  upi_id: '',
   transport_charge: '',
   transport_id: '',
   area_id: '',
@@ -52,6 +58,18 @@ const PartyMaster = () => {
   const [selectedParty, setSelectedParty] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [validationModal, setValidationModal] = useState({ isOpen: false, errors: [] });
+  const firstFieldRef = useRef(null);
+
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === 'function') {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
+  };
 
   // Extract PAN from GSTIN (characters 3-12)
   const extractPAN = (gstin) => {
@@ -61,7 +79,8 @@ const PartyMaster = () => {
 
   const mapParty = (contact) => {
     const normalized = normalizeContact(contact);
-    const bankId = typeof contact.bank_id === 'object' ? getEntityId(contact.bank_id) : contact.bank_id;
+    const bankDetails = typeof contact.bank_id === 'object' ? contact.bank_id : null;
+    const bankId = bankDetails ? getEntityId(bankDetails) : contact.bank_id;
     const labelId = getEntityId(contact.label_id);
     return {
       id: normalized.id,
@@ -79,7 +98,13 @@ const PartyMaster = () => {
       cin: normalized.cin,
       reg_number: normalized.reg_number,
       bank_id: bankId,
-      bank_details: typeof contact.bank_id === 'object' ? contact.bank_id : null,
+      bank_details: bankDetails,
+      bank_name: bankDetails?.bank_name || normalized.bank_name || '',
+      bank_branch: bankDetails?.bank_branch || normalized.bank_branch || '',
+      ifsc_code: bankDetails?.ifsc_code || normalized.ifsc_code || '',
+      account_number: bankDetails?.account_number || normalized.account_number || '',
+      account_holder: bankDetails?.account_holder || '',
+      upi_id: bankDetails?.upi_id || '',
       transport_charge: normalized.transport_charge,
       transport_id: normalized.transport_id,
       area_id: normalized.area_id,
@@ -102,6 +127,12 @@ const PartyMaster = () => {
     };
     fetchParties();
   }, [showToast]);
+  
+  useEffect(() => {
+    if (isAddModalOpen && !isEditModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddModalOpen, isEditModalOpen]);
 
   // Fetch labels
   useEffect(() => {
@@ -230,6 +261,10 @@ const PartyMaster = () => {
     {
       label: <FaEdit size={10} className="sm:size-3 md:size-4" />,
       onClick: (party) => {
+        const resolvedBank =
+          party.bank_details ||
+          banks.find((b) => getEntityId(b) === party.bank_id) ||
+          {};
         setSelectedParty(party);
         setFormData({
           name: party.name || '',
@@ -245,6 +280,12 @@ const PartyMaster = () => {
           cin: party.cin || '',
           reg_number: party.reg_number || '',
           bank_id: party.bank_id || '',
+          bank_name: resolvedBank.bank_name || party.bank_name || '',
+          bank_branch: resolvedBank.bank_branch || party.bank_branch || '',
+          ifsc_code: resolvedBank.ifsc_code || party.ifsc_code || '',
+          account_number: resolvedBank.account_number || party.account_number || '',
+          account_holder: resolvedBank.account_holder || party.account_holder || '',
+          upi_id: resolvedBank.upi_id || party.upi_id || '',
           transport_charge: party.transport_charge || '',
           transport_id: party.transport_id || '',
           area_id: party.area_id || '',
@@ -279,6 +320,8 @@ const PartyMaster = () => {
     if (!formData.state?.trim()) errors.push('State is required');
     if (!formData.transport_id) errors.push('Transport is required');
     if (!formData.area_id) errors.push('Area is required');
+    if (!formData.bank_name?.trim()) errors.push('Bank Name is required');
+    if (!formData.account_number?.trim()) errors.push('Account Number is required');
     const selectedLabel = formData.label_id
       ? labels.find((label) => label._id === formData.label_id)
       : null;
@@ -314,7 +357,39 @@ const PartyMaster = () => {
     if (formData.gstin) payload.gstin = formData.gstin.toUpperCase();
     if (formData.cin) payload.cin = formData.cin;
     if (formData.reg_number) payload.reg_number = formData.reg_number;
-    if (formData.bank_id) payload.bank_id = formData.bank_id;
+    const bankPayload = {
+      bank_name: formData.bank_name?.trim() || '',
+      bank_branch: formData.bank_branch?.trim() || '',
+      ifsc_code: formData.ifsc_code?.trim() || '',
+      account_number: formData.account_number?.trim() || '',
+      account_holder: formData.account_holder?.trim() || '',
+      upi_id: formData.upi_id?.trim() || ''
+    };
+    let resolvedBankId = formData.bank_id || '';
+    if (Object.values(bankPayload).some((v) => v)) {
+      const selectedBank = resolvedBankId
+        ? banks.find((b) => getEntityId(b) === resolvedBankId)
+        : null;
+      const differsFromSelected =
+        !selectedBank ||
+        (selectedBank?.bank_name || '') !== bankPayload.bank_name ||
+        (selectedBank?.bank_branch || '') !== bankPayload.bank_branch ||
+        (selectedBank?.ifsc_code || '') !== bankPayload.ifsc_code ||
+        (selectedBank?.account_number || '') !== bankPayload.account_number ||
+        (selectedBank?.account_holder || '') !== bankPayload.account_holder ||
+        (selectedBank?.upi_id || '') !== bankPayload.upi_id;
+
+      if (differsFromSelected) {
+        const bankRes = await api.post('/banks', { ...bankPayload, bank_type: 'party' });
+        const createdBank = getResponseData(bankRes);
+        resolvedBankId = getEntityId(createdBank);
+        if (createdBank) {
+          setBanks((prev) => [...prev, createdBank]);
+        }
+      }
+    }
+
+    if (resolvedBankId) payload.bank_id = resolvedBankId;
     if (formData.transport_charge) payload.transport_charge = formData.transport_charge;
     else payload.transport_charge = 0;
     if (formData.transport_id) payload.transport_id = formData.transport_id;
@@ -349,6 +424,9 @@ const PartyMaster = () => {
       setSelectedParty(null);
       if (isEditModalOpen) {
         setIsEditModalOpen(false);
+      }
+      if (!isEditModalOpen) {
+        focusFirstField();
       }
       // do not automatically close add modal to allow consecutive entries
     } catch (error) {
@@ -516,6 +594,14 @@ const PartyMaster = () => {
                 <p className="text-sm text-gray-900">{selectedParty.bank_details?.account_number || banks.find(b => getEntityId(b) === selectedParty.bank_id)?.account_number || 'N/A'}</p>
               </div>
               <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Account Holder</label>
+                <p className="text-sm text-gray-900">{selectedParty.bank_details?.account_holder || banks.find(b => getEntityId(b) === selectedParty.bank_id)?.account_holder || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">UPI ID</label>
+                <p className="text-sm text-gray-900">{selectedParty.bank_details?.upi_id || banks.find(b => getEntityId(b) === selectedParty.bank_id)?.upi_id || 'N/A'}</p>
+              </div>
+              <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Agent</label>
                 <p className="text-sm text-gray-900">{agents.find(a => getEntityId(a) === selectedParty.agent)?.name || 'N/A'}</p>
               </div>
@@ -594,7 +680,7 @@ const PartyMaster = () => {
                   <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Party Name *</label>
-            <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter party name" />
+            <input ref={firstFieldRef} type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter party name" />
           </div>
           
           <div>
@@ -752,11 +838,78 @@ const PartyMaster = () => {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bank</label>
-            <select name="bank_id" value={formData.bank_id} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option value="">Select Bank</option>
-              {banks.map(bank => <option key={getEntityId(bank)} value={getEntityId(bank)}>{bank.bank_name} - {bank.account_number}</option>)}
-            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name *</label>
+            <input
+              type="text"
+              name="bank_name"
+              value={formData.bank_name}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter bank name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Bank Branch</label>
+            <input
+              type="text"
+              name="bank_branch"
+              value={formData.bank_branch}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter branch name"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+            <input
+              type="text"
+              name="ifsc_code"
+              value={formData.ifsc_code}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter IFSC code"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Account Number *</label>
+            <input
+              type="text"
+              name="account_number"
+              value={formData.account_number}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter account number"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Account Holder</label>
+            <input
+              type="text"
+              name="account_holder"
+              value={formData.account_holder}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter account holder name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">UPI ID</label>
+            <input
+              type="text"
+              name="upi_id"
+              value={formData.upi_id}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter UPI ID"
+            />
           </div>
         </div>
           <div className="flex gap-3 pt-4">

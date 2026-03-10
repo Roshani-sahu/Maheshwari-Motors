@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaSave, FaPlus } from 'react-icons/fa';
 import { Button, Modal } from '../../components/ui';
 import { getEntityId } from '../../services/apiUtils';
@@ -16,12 +16,24 @@ const DiscountMaster = () => {
   const [selectedLabel, setSelectedLabel] = useState(null);
   const [isAddLabelModalOpen, setIsAddLabelModalOpen] = useState(false);
   const [newLabelName, setNewLabelName] = useState('');
+  const firstFieldRef = useRef(null);
 
   const listFromResponse = (res) => {
     const payload = res?.data?.data;
     if (Array.isArray(payload)) return payload;
     if (Array.isArray(payload?.data)) return payload.data;
     return [];
+  };
+
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === 'function') {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
   };
 
   useEffect(() => {
@@ -55,6 +67,12 @@ const DiscountMaster = () => {
     fetchCategoriesAndLabels();
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (isAddLabelModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddLabelModalOpen]);
 
   useEffect(() => {
     if (!selectedLabel?.id || !selectedCategory?.id) {
@@ -290,7 +308,7 @@ const DiscountMaster = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Label Name</label>
-            <input type="text" value={newLabelName} onChange={(e) => setNewLabelName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter label name" />
+            <input ref={firstFieldRef} type="text" value={newLabelName} onChange={(e) => setNewLabelName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter label name" />
           </div>
           <div className="flex gap-3 pt-4">
             <Button variant="outline" onClick={() => { setIsAddLabelModalOpen(false); setNewLabelName(''); }}>Cancel</Button>
@@ -313,8 +331,8 @@ const DiscountMaster = () => {
                   categoryId: getEntityId(label?.category_id)
                 }));
                 setLabels(list);
-                setIsAddLabelModalOpen(false);
                 setNewLabelName('');
+                focusFirstField();
               } catch (error) {
                 showToast(error?.response?.data?.message || 'Failed to add label', 'error');
               }

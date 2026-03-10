@@ -121,6 +121,7 @@ const UserMaster = () => {
   const navigate = useNavigate();
   const { users, setUsers, showToast } = useStore();
   const isMounted = useRef(true);
+  const firstFieldRef = useRef(null);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
@@ -163,6 +164,17 @@ const UserMaster = () => {
     }));
   };
 
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === 'function') {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
+  };
+
   // Check master/admin authentication
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -178,6 +190,12 @@ const UserMaster = () => {
       isMounted.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (isAddModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddModalOpen]);
 
   const fetchUsers = async () => {
     console.log("🔄 Fetching users list..."); // Log to prove it's a fetch
@@ -481,12 +499,12 @@ const UserMaster = () => {
           'error',
         );
       }
-      setIsAddModalOpen(false);
       setNewUser(getDefaultUserForm());
       setSubscriptionData({ username: '', years: 0, months: 0, days: 0, amount: '' });
       setPendingSubscription(null);
       fetchUsers();
       fetchTransactions();
+      focusFirstField();
     } catch (error) {
       console.error('User submit error:', error);
       console.error('Error response:', error.response?.data);
@@ -824,7 +842,7 @@ const UserMaster = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                <div>
                   <label className="text-xs font-medium text-gray-700">Full Name</label>
-                  <Input value={newUser.name} onChange={(v) => setNewUser({...newUser, name: v})} placeholder="e.g. Staff One" className="mt-1" />
+                  <Input ref={firstFieldRef} value={newUser.name} onChange={(v) => setNewUser({...newUser, name: v})} placeholder="e.g. Staff One" className="mt-1" />
                </div>
                <div>
                   <label className="text-xs font-medium text-gray-700">Phone</label>

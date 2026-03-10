@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
@@ -16,6 +16,7 @@ const HsnMaster = () => {
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, hsn: null });
   const [formData, setFormData] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const firstFieldRef = useRef(null);
 
   const normalize = (doc) => ({
     _id: doc?._id,
@@ -37,11 +38,28 @@ const HsnMaster = () => {
     }
   };
 
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === 'function') {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     fetchHsns(controller.signal);
     return () => controller.abort();
   }, []);
+  
+  useEffect(() => {
+    if (isAddModalOpen && !isEditModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddModalOpen, isEditModalOpen]);
 
   const columns = useMemo(() => [
     { key: '_id', label: 'ID', render: (value, row, index) => index + 1 },
@@ -92,9 +110,9 @@ const HsnMaster = () => {
     try {
       await api.post('/hsn', buildPayload());
       showToast('HSN added successfully', 'success');
-      setIsAddModalOpen(false);
       setFormData(emptyForm);
       fetchHsns();
+      focusFirstField();
     } catch (error) {
       showToast(error?.response?.data?.message || 'Failed to add HSN', 'error');
     } finally {
@@ -148,7 +166,7 @@ const HsnMaster = () => {
 
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add HSN Code">
         <div className="space-y-4">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">HSN Number *</label><Input value={formData.hsn_number} onChange={(v) => setFormData({ ...formData, hsn_number: v })} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">HSN Number *</label><Input ref={firstFieldRef} value={formData.hsn_number} onChange={(v) => setFormData({ ...formData, hsn_number: v })} /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">GST Percentage *</label><Input type="number" step="0.01" value={formData.gst_percentage} onChange={(v) => setFormData({ ...formData, gst_percentage: v })} /></div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>

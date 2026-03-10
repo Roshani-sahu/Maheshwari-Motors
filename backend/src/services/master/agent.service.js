@@ -36,9 +36,6 @@ class AgentService {
     if (!name || typeof name !== "string" || !name.trim()) {
       throw ApiError.badRequest("Agent name is required");
     }
-    if (!party_id) {
-      throw ApiError.badRequest("Party is required for an agent");
-    }
 
     const escapedName = name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const duplicate = await Agent.findOne({
@@ -49,15 +46,17 @@ class AgentService {
       throw ApiError.conflict("Agent with this name already exists");
     }
 
-    const party = await Contact.findOne({
-      _id: party_id,
-      user_id: userId,
-      type: "party",
-    }).lean();
-    if (!party) {
-      throw ApiError.badRequest(
-        "Party not found. Please select a valid party.",
-      );
+    if (party_id) {
+      const party = await Contact.findOne({
+        _id: party_id,
+        user_id: userId,
+        type: "party",
+      }).lean();
+      if (!party) {
+        throw ApiError.badRequest(
+          "Party not found. Please select a valid party.",
+        );
+      }
     }
 
     const agent = await Agent.create({
@@ -68,7 +67,7 @@ class AgentService {
       pincode,
       phone,
       whatsapp,
-      party_id,
+      party_id: party_id || null,
       user_id: userId,
     });
 
@@ -97,7 +96,7 @@ class AgentService {
       }
     }
 
-    if (party_id !== undefined) {
+    if (party_id !== undefined && party_id !== null && party_id !== "") {
       const party = await Contact.findOne({
         _id: party_id,
         user_id: userId,
@@ -117,7 +116,7 @@ class AgentService {
     if (pincode !== undefined) fields.pincode = pincode;
     if (phone !== undefined) fields.phone = phone;
     if (whatsapp !== undefined) fields.whatsapp = whatsapp;
-    if (party_id !== undefined) fields.party_id = party_id;
+    if (party_id !== undefined) fields.party_id = party_id || null;
 
     const updatedAgent = await Agent.findByIdAndUpdate(agentId, fields, {
       new: true,

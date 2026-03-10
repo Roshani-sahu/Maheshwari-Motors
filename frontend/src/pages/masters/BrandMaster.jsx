@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
@@ -20,6 +20,7 @@ const BrandMaster = () => {
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, brand: null });
   const [submitting, setSubmitting] = useState(false);
+  const firstFieldRef = useRef(null);
 
   const listFromResponse = (res) => {
     const payload = res?.data?.data;
@@ -71,11 +72,28 @@ const BrandMaster = () => {
     }
   };
 
+  const focusFirstField = () => {
+    setTimeout(() => {
+      if (firstFieldRef.current) {
+        firstFieldRef.current.focus();
+        if (typeof firstFieldRef.current.select === 'function') {
+          firstFieldRef.current.select();
+        }
+      }
+    }, 0);
+  };
+
   useEffect(() => {
     const controller = new AbortController();
     fetchData(controller.signal);
     return () => controller.abort();
   }, []);
+  
+  useEffect(() => {
+    if (isAddModalOpen && !isEditModalOpen) {
+      focusFirstField();
+    }
+  }, [isAddModalOpen, isEditModalOpen]);
 
   const columns = [
     { key: 'id', label: 'Brand ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
@@ -135,8 +153,8 @@ const BrandMaster = () => {
       setGstRate(0);
       setSelectedItems([]);
       setItemSearchTerm('');
-      setIsAddModalOpen(false);
       fetchData();
+      focusFirstField();
     } catch (error) {
       showToast(error?.response?.data?.message || 'Failed to add brand', 'error');
     } finally {
@@ -227,7 +245,7 @@ const BrandMaster = () => {
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
-            <Input value={newBrandName} onChange={setNewBrandName} placeholder="Enter brand name" />
+            <Input ref={firstFieldRef} value={newBrandName} onChange={setNewBrandName} placeholder="Enter brand name" />
           </div>
 
           <div>
