@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
@@ -16,6 +16,8 @@ const CategoryMaster = () => {
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, category: null });
   const [submitting, setSubmitting] = useState(false);
+  const addNameRef = useRef(null);
+  const editNameRef = useRef(null);
 
   const listFromResponse = (res) => {
     const payload = res?.data?.data;
@@ -64,6 +66,24 @@ const CategoryMaster = () => {
     fetchData(controller.signal);
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+    const handle = setTimeout(() => {
+      addNameRef.current?.focus();
+      addNameRef.current?.select?.();
+    }, 0);
+    return () => clearTimeout(handle);
+  }, [isAddModalOpen]);
+
+  useEffect(() => {
+    if (!isEditModalOpen) return;
+    const handle = setTimeout(() => {
+      editNameRef.current?.focus();
+      editNameRef.current?.select?.();
+    }, 0);
+    return () => clearTimeout(handle);
+  }, [isEditModalOpen]);
 
   const columns = [
     { key: 'id', label: 'Category ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
@@ -171,7 +191,7 @@ const CategoryMaster = () => {
 
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Category" size="lg">
         <div className="space-y-6">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label><Input value={newCategoryName} onChange={setNewCategoryName} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label><Input ref={addNameRef} value={newCategoryName} onChange={setNewCategoryName} /></div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Brands in Category ({selectedBrands.length})</label>
             <div className="bg-gray-50 p-3 rounded-lg min-h-[100px] max-h-[200px] overflow-y-auto">
@@ -194,7 +214,7 @@ const CategoryMaster = () => {
 
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Category" size="lg">
         <div className="space-y-6">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label><Input value={newCategoryName} onChange={setNewCategoryName} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Category Name</label><Input ref={editNameRef} value={newCategoryName} onChange={setNewCategoryName} /></div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Brands in Category ({selectedBrands.length})</label>
             <div className="bg-gray-50 p-3 rounded-lg min-h-[100px] max-h-[200px] overflow-y-auto">
