@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaSave } from 'react-icons/fa';
 import { Button, Input } from '../../components/ui';
@@ -22,6 +22,7 @@ const AddItem = () => {
   const [departments, setDepartments] = useState([]);
   const [hsns, setHsns] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const nameRef = useRef(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -87,6 +88,14 @@ const AddItem = () => {
     fetchData();
     return () => controller.abort();
   }, [showToast]);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      nameRef.current?.focus();
+      nameRef.current?.select?.();
+    }, 0);
+    return () => clearTimeout(handle);
+  }, []);
 
   useEffect(() => {
     if (!formData.category) {
@@ -201,7 +210,7 @@ const AddItem = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
-              <Input name="name" value={formData.name} onChange={(value) => handleChange('name', value)} placeholder="Enter item name" />
+              <Input ref={nameRef} name="name" value={formData.name} onChange={(value) => handleChange('name', value)} placeholder="Enter item name" />
               {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
             </div>
             <div>

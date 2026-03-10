@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button } from '../../components/ui';
@@ -46,6 +46,7 @@ const AddSupplier = () => {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [validationModal, setValidationModal] = useState({ isOpen: false, errors: [] });
+  const nameInputRef = useRef(null);
 
   const extractPAN = (gstin) => {
     if (!gstin || gstin.length < 15) return '';
@@ -97,6 +98,15 @@ const AddSupplier = () => {
     };
     fetchBanks();
   }, []);
+
+  useEffect(() => {
+    if (!isAddModalOpen && !isEditModalOpen) return;
+    const handle = setTimeout(() => {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select?.();
+    }, 0);
+    return () => clearTimeout(handle);
+  }, [isAddModalOpen, isEditModalOpen]);
 
   const columns = [
     { key: 'id', label: 'ID', width: '50px', render: (value, row, index) => <span className="text-xs sm:text-sm">{index + 1}</span> },
@@ -263,7 +273,7 @@ const AddSupplier = () => {
       <Modal isOpen={isAddModalOpen || isEditModalOpen} onClose={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); setSelectedSupplier(null); setFormData(INITIAL_FORM); }} title={isEditModalOpen ? 'Edit Supplier' : 'Add New Supplier'} size="md">
         <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-4">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name *</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter supplier name" /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name *</label><input ref={nameInputRef} type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter supplier name" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Alias</label><input type="text" name="alias" value={formData.alias} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter alias (optional)" /></div>
           </div>
           <div><div className="flex items-center gap-3"></div></div>
