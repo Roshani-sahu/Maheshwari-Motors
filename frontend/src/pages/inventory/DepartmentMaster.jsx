@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { DataTable, Modal, DeleteConfirmDialog } from '../../components/common';
 import { Button, Input } from '../../components/ui';
@@ -14,6 +14,8 @@ const DepartmentMaster = () => {
   const [departmentName, setDepartmentName] = useState('');
   const [deleteDialog, setDeleteDialog] = useState({ isOpen: false, department: null });
   const [submitting, setSubmitting] = useState(false);
+  const addNameRef = useRef(null);
+  const editNameRef = useRef(null);
 
   const fetchDepartments = async (signal) => {
     try {
@@ -32,6 +34,24 @@ const DepartmentMaster = () => {
     fetchDepartments(controller.signal);
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+    const handle = setTimeout(() => {
+      addNameRef.current?.focus();
+      addNameRef.current?.select?.();
+    }, 0);
+    return () => clearTimeout(handle);
+  }, [isAddModalOpen]);
+
+  useEffect(() => {
+    if (!isEditModalOpen) return;
+    const handle = setTimeout(() => {
+      editNameRef.current?.focus();
+      editNameRef.current?.select?.();
+    }, 0);
+    return () => clearTimeout(handle);
+  }, [isEditModalOpen]);
 
   const columns = [
     { key: 'id', label: 'ID', render: (val, row, index) => <span className="text-xs">{index + 1}</span> },
@@ -121,14 +141,14 @@ const DepartmentMaster = () => {
 
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Department">
         <div className="space-y-4">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Department Name</label><Input value={departmentName} onChange={setDepartmentName} placeholder="Enter department name" /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Department Name</label><Input ref={addNameRef} value={departmentName} onChange={setDepartmentName} placeholder="Enter department name" /></div>
           <div className="flex gap-3 pt-4"><Button onClick={handleAdd} disabled={!departmentName || submitting}>Add Department</Button><Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button></div>
         </div>
       </Modal>
 
       <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Department">
         <div className="space-y-4">
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Department Name</label><Input value={departmentName} onChange={setDepartmentName} placeholder="Enter department name" /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Department Name</label><Input ref={editNameRef} value={departmentName} onChange={setDepartmentName} placeholder="Enter department name" /></div>
           <div className="flex gap-3 pt-4"><Button onClick={handleEdit} disabled={!departmentName || submitting}>Save Changes</Button><Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button></div>
         </div>
       </Modal>
