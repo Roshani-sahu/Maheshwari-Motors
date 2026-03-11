@@ -9,12 +9,16 @@ const DiscountMaster = () => {
   const { showToast } = useStore();
   const [brands, setBrands] = useState([]);
   const [discounts, setDiscounts] = useState({});
+  const [itemDiscounts, setItemDiscounts] = useState({});
   const [saving, setSaving] = useState(false);
   const [labels, setLabels] = useState([]);
+  const [labelDetailsMap, setLabelDetailsMap] = useState({});
   const [selectedLabel, setSelectedLabel] = useState(null);
-  const [items, setItems] = useState([]);
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [itemSearch, setItemSearch] = useState('');
+  const [brandItems, setBrandItems] = useState([]);
+  const [brandItemsLoading, setBrandItemsLoading] = useState(false);
+  const [brandItemsError, setBrandItemsError] = useState('');
   const [isAddLabelModalOpen, setIsAddLabelModalOpen] = useState(false);
   const [newLabelName, setNewLabelName] = useState('');
   const firstFieldRef = useRef(null);
@@ -41,37 +45,42 @@ const DiscountMaster = () => {
     const controller = new AbortController();
     const fetchCategoriesAndLabels = async () => {
       try {
-        const [labelResult, itemResult] = await Promise.allSettled([
-          api.get('/labels', {
+        const detailedRes = await api.get('/labels/detailed', {
+          params: { page: 1, limit: 200 },
+          signal: controller.signal
+        });
+        const fetchedLabels = listFromResponse(detailedRes);
+        const labelList = fetchedLabels.map((label) => ({
+          id: getEntityId(label),
+          name: label?.name || label?.label_name || '',
+          categoryId: getEntityId(label?.category_id)
+        }));
+        setLabels(labelList);
+        const mapped = {};
+        fetchedLabels.forEach((label) => {
+          const labelId = getEntityId(label);
+          if (labelId) mapped[labelId] = label;
+        });
+        setLabelDetailsMap(mapped);
+      } catch (error) {
+        if (error?.name === 'CanceledError') return;
+        try {
+          const res = await api.get('/labels', {
             params: { page: 1, limit: 200 },
             signal: controller.signal
-          }),
-          api.get('/items', {
-            params: { page: 1, limit: 1000 },
-            signal: controller.signal
-          })
-        ]);
-
-        if (labelResult.status === 'fulfilled') {
-          const labelList = listFromResponse(labelResult.value).map((label) => ({
+          });
+          const fetchedLabels = listFromResponse(res);
+          const labelList = fetchedLabels.map((label) => ({
             id: getEntityId(label),
             name: label?.name || label?.label_name || '',
             categoryId: getEntityId(label?.category_id)
           }));
           setLabels(labelList);
-        } else if (labelResult.reason?.name !== 'CanceledError') {
-          showToast('Failed to load labels', 'error');
-        }
-
-        if (itemResult.status === 'fulfilled') {
-          const itemList = getResponseList(itemResult.value).map((item) => normalizeItem(item));
-          setItems(itemList);
-        } else if (itemResult.reason?.name !== 'CanceledError') {
-          showToast('Failed to load items', 'error');
-        }
-      } catch (error) {
-        if (error?.name !== 'CanceledError') {
-          showToast('Failed to load labels or items', 'error');
+          setLabelDetailsMap({});
+        } catch (fallbackError) {
+          if (fallbackError?.name !== 'CanceledError') {
+            showToast('Failed to load labels', 'error');
+          }
         }
       }
     };
@@ -90,22 +99,33 @@ const DiscountMaster = () => {
     if (!selectedLabel?.id) {
       setBrands([]);
       setDiscounts({});
+      setItemDiscounts({});
       setSelectedBrand(null);
+      setBrandItems([]);
+      setBrandItemsError('');
       return;
     }
 
     const controller = new AbortController();
     const fetchLabelDiscounts = async () => {
       try {
-        const res = await api.get(`/labels/${selectedLabel.id}`, { signal: controller.signal });
-        const labelData = res?.data?.data;
+        const cached = labelDetailsMap[selectedLabel.id];
+        const labelData = cached
+          ? cached
+          : (await api.get(`/labels/${selectedLabel.id}`, { signal: controller.signal }))
+              ?.data?.data;
         const brandDiscounts = labelData?.brand_discounts || [];
         
-        const list = brandDiscounts.map((item) => ({
+        const list = brandDiscounts
+          .filter((item) => item?.brand_id)
+          .map((item) => ({
           id: item.brand_id?._id || item.brand_id,
           name: item.brand_id?.name || '',
           discount1: item.disc1 || { normal: 0, special: 0 },
-          discount2: item.disc2 || { normal: 0, special: 0 }
+          discount2: item.disc2 || { normal: 0, special: 0 },
+          item_discounts: Array.isArray(item.item_discounts)
+            ? item.item_discounts
+            : []
         }));
         setBrands(list);
         setSelectedBrand((prev) => {
@@ -114,13 +134,24 @@ const DiscountMaster = () => {
         });
 
         const discountMap = {};
+        const itemDiscountMap = {};
         list.forEach((b) => {
           discountMap[b.id] = {
             discount1: b.discount1,
             discount2: b.discount2
           };
+
+          const perBrand = {};
+          b.item_discounts.forEach((entry) => {
+            const itemId = getEntityId(entry?.item_id);
+            if (!itemId) return;
+            const discountValue = Number(entry?.discount ?? 0);
+            perBrand[itemId] = Number.isFinite(discountValue) ? discountValue : 0;
+          });
+          itemDiscountMap[b.id] = perBrand;
         });
         setDiscounts(discountMap);
+        setItemDiscounts(itemDiscountMap);
       } catch (error) {
         if (error?.name !== 'CanceledError') {
           showToast('Failed to load brand discounts', 'error');
@@ -130,16 +161,64 @@ const DiscountMaster = () => {
 
     fetchLabelDiscounts();
     return () => controller.abort();
-  }, [selectedLabel?.id, showToast]);
+  }, [selectedLabel?.id, showToast, labelDetailsMap]);
+
+  useEffect(() => {
+    if (!selectedBrand?.id) {
+      setBrandItems([]);
+      setBrandItemsError('');
+      return;
+    }
+
+    const controller = new AbortController();
+    const loadItems = async () => {
+      setBrandItemsLoading(true);
+      setBrandItemsError('');
+      try {
+        const res = await api.get('/items', {
+          params: { page: 1, limit: 200, brand_id: selectedBrand.id },
+          signal: controller.signal,
+        });
+        const itemList = getResponseList(res).map((item) => normalizeItem(item));
+        setBrandItems(itemList);
+      } catch (error) {
+        if (error?.name === 'CanceledError') return;
+        // Fallback: load all items and filter client-side
+        try {
+          const fallbackRes = await api.get('/items', {
+            params: { page: 1, limit: 1000 },
+            signal: controller.signal,
+          });
+          const allItems = getResponseList(fallbackRes).map((item) => normalizeItem(item));
+          const filtered = allItems.filter(
+            (item) => String(item.brandId) === String(selectedBrand.id),
+          );
+          setBrandItems(filtered);
+        } catch (fallbackError) {
+          if (fallbackError?.name === 'CanceledError') return;
+          const message =
+            fallbackError?.response?.data?.message ||
+            error?.response?.data?.message ||
+            'Failed to load items';
+          setBrandItemsError(message);
+          showToast(message, 'error');
+        }
+      } finally {
+        setBrandItemsLoading(false);
+      }
+    };
+
+    loadItems();
+
+    return () => controller.abort();
+  }, [selectedBrand?.id, showToast]);
 
   const filteredItems = useMemo(() => {
     if (!selectedBrand?.id) return [];
-    const brandId = String(selectedBrand.id);
-    const list = items.filter((item) => String(item.brandId) === brandId);
-    if (!itemSearch.trim()) return list;
+    if (!itemSearch.trim()) return brandItems;
     const needle = itemSearch.trim().toLowerCase();
-    return list.filter((item) => item.itemName.toLowerCase().includes(needle));
-  }, [items, selectedBrand, itemSearch]);
+    return brandItems.filter((item) => item.itemName.toLowerCase().includes(needle));
+  }, [brandItems, selectedBrand, itemSearch]);
 
   const updateDiscount = (brandId, discountType, field, value) => {
     setDiscounts((prev) => ({
@@ -154,31 +233,62 @@ const DiscountMaster = () => {
     }));
   };
 
+  const updateItemDiscountSingle = (brandId, itemId, value) => {
+    const numeric = Number(value) || 0;
+    setItemDiscounts((prev) => ({
+      ...prev,
+      [brandId]: {
+        ...prev[brandId],
+        [itemId]: numeric
+      }
+    }));
+  };
+
   const getDiscount = (brandId, discountType, field) => {
     return discounts[brandId]?.[discountType]?.[field] || 0;
+  };
+
+  const getItemDiscount = (brandId, itemId) => {
+    const value = itemDiscounts[brandId]?.[itemId];
+    return Number.isFinite(value) ? value : 0;
   };
 
   const handleSave = async () => {
     if (saving || !selectedLabel?.id) return;
     if (Object.keys(discounts).length === 0) return;
 
-    const allValues = Object.values(discounts).flatMap((d) => [
+    const brandValues = Object.values(discounts).flatMap((d) => [
       Number(d?.discount1?.normal || 0),
       Number(d?.discount1?.special || 0),
       Number(d?.discount2?.normal || 0),
-      Number(d?.discount2?.special || 0)
+      Number(d?.discount2?.special || 0),
     ]);
+    const itemValues = Object.values(itemDiscounts).flatMap((brandItems) =>
+      Object.values(brandItems || {}).map((value) => Number(value || 0)),
+    );
+    const allValues = [...brandValues, ...itemValues];
 
     if (allValues.some((n) => Number.isNaN(n) || n < 0 || n > 100)) {
       showToast('Discount values must be between 0 and 100', 'error');
       return;
     }
 
-    const brandDiscounts = brands.map((brand) => ({
-      brand_id: brand.id,
-      disc1: discounts[brand.id]?.discount1 || { normal: 0, special: 0 },
-      disc2: discounts[brand.id]?.discount2 || { normal: 0, special: 0 }
-    }));
+    const brandDiscounts = brands.map((brand) => {
+      const perBrandItems = itemDiscounts[brand.id] || {};
+      const itemDiscountList = Object.entries(perBrandItems).map(
+        ([itemId, discount]) => ({
+          item_id: itemId,
+          discount: Number(discount || 0)
+        }),
+      );
+
+      return {
+        brand_id: brand.id,
+        disc1: discounts[brand.id]?.discount1 || { normal: 0, special: 0 },
+        disc2: discounts[brand.id]?.discount2 || { normal: 0, special: 0 },
+        item_discounts: itemDiscountList
+      };
+    });
 
     setSaving(true);
     try {
@@ -298,7 +408,7 @@ const DiscountMaster = () => {
                     <div className="px-4 py-3 border-b bg-gray-50">
                       <div className="text-sm font-semibold text-gray-900">Brand Items</div>
                       <div className="text-xs text-gray-500">
-                        {selectedBrand ? `${selectedBrand.name} (${filteredItems.length})` : 'Select a brand to view items'}
+                        {selectedBrand ? `${selectedBrand.name} (${brandItems.length})` : 'Select a brand to view items'}
                       </div>
                     </div>
                     <div className="p-4 space-y-3">
@@ -313,14 +423,39 @@ const DiscountMaster = () => {
                       <div className="max-h-[420px] overflow-y-auto">
                         {!selectedBrand ? (
                           <p className="text-sm text-gray-500">Click a brand row to see items.</p>
+                        ) : brandItemsLoading ? (
+                          <p className="text-sm text-gray-500">Loading items...</p>
+                        ) : brandItemsError ? (
+                          <p className="text-sm text-red-600">{brandItemsError}</p>
                         ) : filteredItems.length === 0 ? (
                           <p className="text-sm text-gray-500">No items found for this brand.</p>
                         ) : (
                           <ul className="space-y-2">
                             {filteredItems.map((item) => (
-                              <li key={item.id} className="flex items-center justify-between gap-2 rounded-md border border-gray-100 px-3 py-2 text-sm">
-                                <span className="font-medium text-gray-900">{item.itemName}</span>
-                                <span className="text-xs text-gray-500">₹{Number(item.amount || 0).toFixed(2)}</span>
+                              <li key={item.id} className="rounded-md border border-gray-100 px-3 py-2 text-sm">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">{item.itemName}</div>
+                                    <div className="text-xs text-gray-500">
+                                      Rs. {Number(item.amount || 0).toFixed(2)}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <div className="text-[10px] text-gray-500">Item Discount</div>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="100"
+                                      value={getItemDiscount(selectedBrand.id, item.id)}
+                                      onChange={(e) =>
+                                        updateItemDiscountSingle(selectedBrand.id, item.id, e.target.value)
+                                      }
+                                      className="w-20 px-2 py-1.5 text-xs text-center border border-gray-300 rounded-md"
+                                      placeholder="0"
+                                    />
+                                  </div>
+                                </div>
                               </li>
                             ))}
                           </ul>
@@ -351,8 +486,22 @@ const DiscountMaster = () => {
               try {
                 await api.post('/labels', { name: newLabelName });
                 showToast('Label added successfully', 'success');
-                const res = await api.get('/labels', { params: { page: 1, limit: 200 } });
-                const list = listFromResponse(res).map((label) => ({
+                let fetchedLabels = [];
+                try {
+                  const res = await api.get('/labels/detailed', { params: { page: 1, limit: 200 } });
+                  fetchedLabels = listFromResponse(res);
+                  const mapped = {};
+                  fetchedLabels.forEach((label) => {
+                    const labelId = getEntityId(label);
+                    if (labelId) mapped[labelId] = label;
+                  });
+                  setLabelDetailsMap(mapped);
+                } catch (fetchError) {
+                  const fallbackRes = await api.get('/labels', { params: { page: 1, limit: 200 } });
+                  fetchedLabels = listFromResponse(fallbackRes);
+                  setLabelDetailsMap({});
+                }
+                const list = fetchedLabels.map((label) => ({
                   id: getEntityId(label),
                   name: label?.name || label?.label_name || '',
                   categoryId: getEntityId(label?.category_id)
@@ -372,3 +521,4 @@ const DiscountMaster = () => {
 };
 
 export default DiscountMaster;
+
